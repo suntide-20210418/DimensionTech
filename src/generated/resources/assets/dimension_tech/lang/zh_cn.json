@@ -1,0 +1,12 @@
+{
+  "block.dimension_tech.tier_1_mythic_miner": "一级神话采掘器",
+  "container.dimension_tech.tier_1_mythic_miner": "一级神话采掘器",
+  "item.dimension_tech.struct_marker": "结构标记器",
+  "message.dimension_tech.struct_marker.saved": "已保存 %s 的坐标 %s, %s, %s；找到结构：%s 个",
+  "tooltip.dimension_tech.struct_marker.dimension": "维度：%s",
+  "tooltip.dimension_tech.struct_marker.no_structure": "结构：无",
+  "tooltip.dimension_tech.struct_marker.structure": "结构：%s",
+  "itemGroup.dimension_tech.tab": "维度科技",
+  "key.categories.dimension_tech.main": "维度科技",
+  "key.dimension_tech.switch": "切换卡片模式"
+}

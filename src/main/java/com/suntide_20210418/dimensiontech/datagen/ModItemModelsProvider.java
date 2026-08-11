@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.datagen;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.item.ModItems;
+import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.client.model.generators.ItemModelProvider;
 import net.minecraftforge.common.data.ExistingFileHelper;
@@ -13,6 +14,8 @@ public class ModItemModelsProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
-        basicItem(ModItems.STRUCT_MARKER.get());
+        String itemName = ResourceLocationHelper.getPath(ModItems.STRUCT_MARKER_ID);
+        withExistingParent(itemName, ResourceLocationHelper.vanilla("item/generated"))
+                .texture("layer0", ResourceLocationHelper.itemModelTexture(itemName));
     }
 }

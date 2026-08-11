@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.client.key;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -13,13 +14,13 @@ import org.lwjgl.glfw.GLFW;
         modid = DimensionTechMod.MOD_ID,
         value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.MOD)
-public class ModKey {
+public final class ModKey {
     // 按键分类（自定义）
-    public static final String KEY_CATEGORY = "key.categories.advanced_memory_card";
+    public static final String KEY_CATEGORY = TranslateHelper.keyCategory("main");
 
     // 1. 创建按键绑定
     public static final KeyMapping MODE_SWITCH_KEY = new KeyMapping(
-            "key.advancedmemorycard.switch", // 按键翻译键
+            TranslateHelper.key("switch"), // key translation key
             InputConstants.Type.KEYSYM,      // 按键类型
             GLFW.GLFW_KEY_V,                 // 默认键位（V键）
             KEY_CATEGORY            // 按键分类

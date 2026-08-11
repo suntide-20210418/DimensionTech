@@ -140,6 +140,7 @@ dependencies {
     implementation fg.deobf("curse.maven:applied-energistics-2-223794:7148487")
 
     implementation fg.deobf("curse.maven:jei-238222:7391695")
+    implementation "curse.maven:oritech-1030830:8556549"
     compileOnly fg.deobf("curse.maven:emi-580555:6420945")
 }
 

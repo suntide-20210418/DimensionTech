@@ -1,0 +1,12 @@
+{
+  "block.dimension_tech.tier_1_mythic_miner": "Tier 1 Mythic Miner",
+  "container.dimension_tech.tier_1_mythic_miner": "Tier 1 Mythic Miner",
+  "item.dimension_tech.struct_marker": "Structure Marker",
+  "message.dimension_tech.struct_marker.saved": "Saved %s at %s, %s, %s; structures found: %s",
+  "tooltip.dimension_tech.struct_marker.dimension": "Dimension: %s",
+  "tooltip.dimension_tech.struct_marker.no_structure": "Structure: None",
+  "tooltip.dimension_tech.struct_marker.structure": "Structure: %s",
+  "itemGroup.dimension_tech.tab": "Dimension Tech",
+  "key.categories.dimension_tech.main": "Dimension Tech",
+  "key.dimension_tech.switch": "Switch card mode"
+}
