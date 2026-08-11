@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "refmap": "dimension_tech.refmap.json",
+  "client": [],
+  "server": [],
+  "mixins": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
