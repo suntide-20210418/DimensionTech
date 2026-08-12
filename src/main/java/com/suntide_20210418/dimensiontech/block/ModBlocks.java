@@ -20,7 +20,7 @@ public final class ModBlocks {
     public static final RegistryObject<Block> TIER_1_MYTHIC_MINER =
             BLOCKS.register(
                     ResourceLocationHelper.getPath(TIER_1_MYTHIC_MINER_ID),
-                    () -> new Tier1BaseMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () -> new Tier1MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
 
     private ModBlocks() {}
 

@@ -16,6 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -48,6 +49,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private static final String INVENTORY_TAG = "Inventory";
     private static final String ENERGY_TAG = "Energy";
     private static final String PROGRESS_TAG = "Progress";
+    private static final String PENDING_OUTPUT_TAG = "PendingOutput";
 
     private final ItemStackHandler itemHandler;
     private final MinerEnergyStorage energyStorage;
@@ -55,6 +57,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private LazyOptional<IEnergyStorage> energyCapability;
     private CompoundTag analyzedMarkerSnapshot;
     private List<CachedMarkerLoot> cachedMarkerLoot = List.of();
+    private List<ItemStack> pendingOutput = new ArrayList<>();
     private int progress;
 
     protected BaseMinerBlockEntity(
@@ -72,13 +75,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     protected abstract float getDrawLuck();
 
-    protected abstract int getDrawParallel();
+    public abstract int getDrawParallel();
 
     protected abstract int getEnergyCapacity();
 
-    protected abstract int getEnergyConsumption();
+    public abstract int getEnergyConsumption();
 
-    protected abstract int getProcessingTime();
+    public abstract int getProcessingTime();
 
     public IItemHandler getItemHandler() {
         return itemHandler;
@@ -96,8 +99,50 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return (int) Math.min(100L, (long) progress * 100L / getProcessingTime());
     }
 
+    public boolean isOutputBlocked() {
+        return !pendingOutput.isEmpty();
+    }
+
+    public int getPendingOutputCount() {
+        return pendingOutput.stream().mapToInt(ItemStack::getCount).sum();
+    }
+
+    public List<ResourceLocation> getMarkedStructures() {
+        List<ResourceLocation> structures = new ArrayList<>();
+        for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
+            StructMarkerItem.getMarkerInfo(itemHandler.getStackInSlot(slot))
+                    .ifPresent(
+                            markerInfo ->
+                                    markerInfo.structures().stream()
+                                            .map(StructMarkerItem.MarkedStructure::id)
+                                            .forEach(structures::add));
+        }
+        return structures.stream().distinct().toList();
+    }
+
+    public OutputState getOutputState() {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return OutputState.NONE;
+        }
+        AdjacentOutputs outputs = findAdjacentOutputs(serverLevel);
+        if (!outputs.meInterfaces().isEmpty()) {
+            return OutputState.ME_NETWORK;
+        }
+        if (!outputs.itemHandlers().isEmpty()) {
+            return OutputState.ITEM_HANDLER;
+        }
+        return OutputState.NONE;
+    }
+
     public void serverTick() {
-        if (!(level instanceof ServerLevel serverLevel) || !hasValidMarker()) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        if (!pendingOutput.isEmpty()) {
+            retryPendingOutput(serverLevel);
+            return;
+        }
+        if (!hasValidMarker()) {
             return;
         }
 
@@ -158,7 +203,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         }
 
         AdjacentOutputs outputs = findAdjacentOutputs(outputLevel);
-        mergedLoot.forEach(stack -> outputLoot(outputLevel, outputs, stack));
+        pendingOutput = outputLoot(outputs, mergedLoot);
+        setChanged();
     }
 
     private void refreshMarkerLootCache(MinecraftServer server) {
@@ -222,21 +268,32 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return new AdjacentOutputs(List.copyOf(meInterfaces), List.copyOf(handlers));
     }
 
-    private void outputLoot(ServerLevel outputLevel, AdjacentOutputs outputs, ItemStack stack) {
-        ItemStack remainder = stack;
-        for (BlockEntity meInterface : outputs.meInterfaces()) {
-            remainder = Ae2Integration.insertIntoInterfaceNetwork(meInterface, remainder);
-            if (remainder.isEmpty()) {
-                return;
+    private void retryPendingOutput(ServerLevel outputLevel) {
+        pendingOutput = outputLoot(findAdjacentOutputs(outputLevel), pendingOutput);
+        setChanged();
+    }
+
+    private List<ItemStack> outputLoot(AdjacentOutputs outputs, List<ItemStack> stacks) {
+        List<ItemStack> remainders = new ArrayList<>();
+        for (ItemStack stack : stacks) {
+            ItemStack remainder = stack.copy();
+            for (BlockEntity meInterface : outputs.meInterfaces()) {
+                remainder = Ae2Integration.insertIntoInterfaceNetwork(meInterface, remainder);
+                if (remainder.isEmpty()) {
+                    break;
+                }
+            }
+            for (IItemHandler outputHandler : outputs.itemHandlers()) {
+                if (remainder.isEmpty()) {
+                    break;
+                }
+                remainder = ItemHandlerHelper.insertItemStacked(outputHandler, remainder, false);
+            }
+            if (!remainder.isEmpty()) {
+                remainders.add(remainder);
             }
         }
-        for (IItemHandler outputHandler : outputs.itemHandlers()) {
-            remainder = ItemHandlerHelper.insertItemStacked(outputHandler, remainder, false);
-            if (remainder.isEmpty()) {
-                return;
-            }
-        }
-        Block.popResource(outputLevel, worldPosition, remainder);
+        return List.copyOf(remainders);
     }
 
     private record AdjacentOutputs(
@@ -270,6 +327,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
         tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
         tag.putInt(PROGRESS_TAG, progress);
+        ListTag pendingOutputTag = new ListTag();
+        pendingOutput.forEach(stack -> pendingOutputTag.add(stack.save(new CompoundTag())));
+        tag.put(PENDING_OUTPUT_TAG, pendingOutputTag);
     }
 
     @Override
@@ -284,6 +344,16 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             energyStorage.setEnergy(tag.getInt(ENERGY_TAG));
         }
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));
+        List<ItemStack> loadedPendingOutput = new ArrayList<>();
+        ListTag pendingOutputTag = tag.getList(PENDING_OUTPUT_TAG, Tag.TAG_COMPOUND);
+        pendingOutputTag.forEach(
+                stackTag -> {
+                    ItemStack stack = ItemStack.of((CompoundTag) stackTag);
+                    if (!stack.isEmpty()) {
+                        loadedPendingOutput.add(stack);
+                    }
+                });
+        pendingOutput = List.copyOf(loadedPendingOutput);
     }
 
     @NotNull
@@ -323,6 +393,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public AbstractContainerMenu createMenu(
             int containerId, Inventory playerInventory, Player player) {
         return new MythicMinerMenu(containerId, playerInventory, this);
+    }
+
+    public enum OutputState {
+        ME_NETWORK,
+        ITEM_HANDLER,
+        NONE
     }
 
     private final class MinerEnergyStorage implements IEnergyStorage {

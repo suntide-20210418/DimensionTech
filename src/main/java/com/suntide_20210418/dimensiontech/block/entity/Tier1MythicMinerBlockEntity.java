@@ -4,9 +4,9 @@ import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
-public final class Tier1BaseMinerBlockEntity extends BaseMinerBlockEntity {
+public final class Tier1MythicMinerBlockEntity extends BaseMinerBlockEntity {
 
-    public Tier1BaseMinerBlockEntity(BlockPos position, BlockState blockState) {
+    public Tier1MythicMinerBlockEntity(BlockPos position, BlockState blockState) {
         super(ModBlockEntities.TIER_1_MYTHIC_MINER.get(), position, blockState);
     }
 
@@ -26,7 +26,7 @@ public final class Tier1BaseMinerBlockEntity extends BaseMinerBlockEntity {
     }
 
     @Override
-    protected int getDrawParallel() {
+    public int getDrawParallel() {
         return ModConfigs.TIER_1_MYTHIC_MINER.baseParallel();
     }
 
@@ -36,12 +36,12 @@ public final class Tier1BaseMinerBlockEntity extends BaseMinerBlockEntity {
     }
 
     @Override
-    protected int getEnergyConsumption() {
+    public int getEnergyConsumption() {
         return ModConfigs.TIER_1_MYTHIC_MINER.energyConsumption();
     }
 
     @Override
-    protected int getProcessingTime() {
+    public int getProcessingTime() {
         return ModConfigs.TIER_1_MYTHIC_MINER.processingTime();
     }
 }

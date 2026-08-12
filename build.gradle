@@ -121,7 +121,9 @@ dependencies {
     implementation fg.deobf("curse.maven:guideme-1173950:7127447")
     implementation fg.deobf("curse.maven:applied-energistics-2-223794:7148487")
     implementation fg.deobf("curse.maven:mekanism-268560:6552911")
-    implementation fg.deobf("curse.maven:mouse-tweaks-60089:5338457")
+    // Mouse Tweaks is a client-only convenience mod. Keeping it off the
+    // dev runtime prevents runData/server launches from constructing it.
+    compileOnly fg.deobf("curse.maven:mouse-tweaks-60089:5338457")
     implementation fg.deobf("curse.maven:allthemodium-364466:7142820")
     implementation fg.deobf("curse.maven:geckolib-388172:8285794")
     implementation fg.deobf("curse.maven:ato-405593:5348605")

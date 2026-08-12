@@ -13,13 +13,13 @@ public final class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, DimensionTechMod.MOD_ID);
 
-    public static final RegistryObject<BlockEntityType<Tier1BaseMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<Tier1MythicMinerBlockEntity>>
             TIER_1_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             ResourceLocationHelper.getPath(ModBlocks.TIER_1_MYTHIC_MINER_ID),
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier1BaseMinerBlockEntity::new,
+                                                    Tier1MythicMinerBlockEntity::new,
                                                     ModBlocks.TIER_1_MYTHIC_MINER.get())
                                             .build(null));
 
