@@ -11,13 +11,13 @@ public final class ModConfigs {
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.comment("Mythic miner settings by tier").push("mythicMiner");
-        TIER_1_MYTHIC_MINER = new MythicMinerTierConfig(builder, "tier1", 1, 0.0D, 1);
+        TIER_1_MYTHIC_MINER =
+                new MythicMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100_000, 100, 400);
         builder.pop();
         SERVER_SPEC = builder.build();
     }
 
-    private ModConfigs() {
-    }
+    private ModConfigs() {}
 
     public static void register(FMLJavaModLoadingContext context) {
         context.registerConfig(ModConfig.Type.SERVER, SERVER_SPEC);
@@ -27,13 +27,19 @@ public final class ModConfigs {
         private final ForgeConfigSpec.IntValue baseParallel;
         private final ForgeConfigSpec.DoubleValue baseLuck;
         private final ForgeConfigSpec.IntValue slotCount;
+        private final ForgeConfigSpec.IntValue energyCapacity;
+        private final ForgeConfigSpec.IntValue energyConsumption;
+        private final ForgeConfigSpec.IntValue processingTime;
 
         private MythicMinerTierConfig(
                 ForgeConfigSpec.Builder builder,
                 String tier,
                 int defaultParallel,
                 double defaultLuck,
-                int defaultSlotCount) {
+                int defaultSlotCount,
+                int defaultEnergyCapacity,
+                int defaultEnergyConsumption,
+                int defaultProcessingTime) {
             builder.push(tier);
             baseParallel =
                     builder.comment("Base number of loot draws per loot table")
@@ -44,6 +50,21 @@ public final class ModConfigs {
             slotCount =
                     builder.comment("Number of structure marker slots")
                             .defineInRange("slotCount", defaultSlotCount, 1, 54);
+            energyCapacity =
+                    builder.comment("Internal energy capacity in FE")
+                            .defineInRange(
+                                    "energyCapacity", defaultEnergyCapacity, 1, Integer.MAX_VALUE);
+            energyConsumption =
+                    builder.comment("Energy consumed per processing tick in FE")
+                            .defineInRange(
+                                    "energyConsumption",
+                                    defaultEnergyConsumption,
+                                    1,
+                                    Integer.MAX_VALUE);
+            processingTime =
+                    builder.comment("Powered ticks required to produce loot")
+                            .defineInRange(
+                                    "processingTime", defaultProcessingTime, 1, Integer.MAX_VALUE);
             builder.pop();
         }
 
@@ -57,6 +78,18 @@ public final class ModConfigs {
 
         public int slotCount() {
             return slotCount.get();
+        }
+
+        public int energyCapacity() {
+            return energyCapacity.get();
+        }
+
+        public int energyConsumption() {
+            return energyConsumption.get();
+        }
+
+        public int processingTime() {
+            return processingTime.get();
         }
     }
 }

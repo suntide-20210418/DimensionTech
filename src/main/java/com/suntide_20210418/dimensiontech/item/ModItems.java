@@ -2,7 +2,6 @@ package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.block.ModBlocks;
-import com.suntide_20210418.dimensiontech.item.custom.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
@@ -13,7 +12,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
 public final class ModItems {
-    public static final ResourceLocation STRUCT_MARKER_ID = ResourceLocationHelper.item("struct_marker");
+    public static final ResourceLocation STRUCT_MARKER_ID =
+            ResourceLocationHelper.item("struct_marker");
 
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, DimensionTechMod.MOD_ID);
@@ -26,7 +26,8 @@ public final class ModItems {
     public static final RegistryObject<Item> TIER_1_MYTHIC_MINER =
             ITEMS.register(
                     ResourceLocationHelper.getPath(ModBlocks.TIER_1_MYTHIC_MINER_ID),
-                    () -> new BlockItem(
+                    () ->
+                            new BlockItem(
                                     ModBlocks.TIER_1_MYTHIC_MINER.get(), new Item.Properties()));
 
     public static void register(IEventBus eventBus) {

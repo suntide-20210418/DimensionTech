@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.item.custom;
+package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
@@ -104,10 +104,7 @@ public class StructMarkerItem extends Item {
 
     @Override
     public void appendHoverText(
-            ItemStack itemStack,
-            @Nullable Level level,
-            List<Component> tooltip,
-            TooltipFlag flag) {
+            ItemStack itemStack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(itemStack, level, tooltip, flag);
 
         CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
@@ -140,8 +137,7 @@ public class StructMarkerItem extends Item {
 
         if (!hasStructure) {
             tooltip.add(
-                    TranslateHelper.translate(
-                                    TranslateHelper.tooltip("struct_marker.no_structure"))
+                    TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.no_structure"))
                             .withStyle(ChatFormatting.DARK_GRAY));
         }
     }
@@ -202,9 +198,7 @@ public class StructMarkerItem extends Item {
     }
 
     public record MarkerInfo(
-            ResourceLocation dimension, BlockPos position, List<MarkedStructure> structures) {
-    }
+            ResourceLocation dimension, BlockPos position, List<MarkedStructure> structures) {}
 
-    public record MarkedStructure(ResourceLocation id, BoundingBox bounds) {
-    }
+    public record MarkedStructure(ResourceLocation id, BoundingBox bounds) {}
 }

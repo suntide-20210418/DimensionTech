@@ -1,7 +1,6 @@
 package com.suntide_20210418.dimensiontech.block;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import com.suntide_20210418.dimensiontech.block.custom.Tier1MythicMinerBlock;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
@@ -21,13 +20,9 @@ public final class ModBlocks {
     public static final RegistryObject<Block> TIER_1_MYTHIC_MINER =
             BLOCKS.register(
                     ResourceLocationHelper.getPath(TIER_1_MYTHIC_MINER_ID),
-                    () ->
-                            new Tier1MythicMinerBlock(
-                                    BlockBehaviour.Properties.of()
-                                            .strength(5.0F)));
+                    () -> new Tier1BaseMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
 
-    private ModBlocks() {
-    }
+    private ModBlocks() {}
 
     public static void register(IEventBus eventBus) {
         BLOCKS.register(eventBus);

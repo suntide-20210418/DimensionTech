@@ -1,6 +1,6 @@
 package com.suntide_20210418.dimensiontech.client.gui.menu;
 
-import com.suntide_20210418.dimensiontech.block.entity.MythicMinerBlockEntity;
+import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.core.BlockPos;
@@ -20,7 +20,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     public static final int CONTAINER_SLOT_Y = 32;
     public static final int BASE_PLAYER_INVENTORY_Y = 84;
 
-    private final MythicMinerBlockEntity blockEntity;
+    private final BaseMinerBlockEntity blockEntity;
     private final int containerSlotCount;
     private final int containerRows;
     private final int playerInventoryY;
@@ -30,9 +30,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     public MythicMinerMenu(
-            int containerId,
-            Inventory playerInventory,
-            MythicMinerBlockEntity blockEntity) {
+            int containerId, Inventory playerInventory, BaseMinerBlockEntity blockEntity) {
         super(ModMenu.MYTHIC_MINER.get(), containerId);
         this.blockEntity = blockEntity;
         IItemHandler itemHandler = blockEntity.getItemHandler();
@@ -44,11 +42,11 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         addPlayerInventory(playerInventory);
     }
 
-    private static MythicMinerBlockEntity getBlockEntity(
+    private static BaseMinerBlockEntity getBlockEntity(
             Inventory playerInventory, BlockPos position) {
         BlockEntity blockEntity = playerInventory.player.level().getBlockEntity(position);
-        if (blockEntity instanceof MythicMinerBlockEntity mythicMinerBlockEntity) {
-            return mythicMinerBlockEntity;
+        if (blockEntity instanceof BaseMinerBlockEntity baseMinerBlockEntity) {
+            return baseMinerBlockEntity;
         }
         throw new IllegalStateException("Mythic miner block entity is missing at " + position);
     }
@@ -59,9 +57,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
             int row = slot / SLOT_COLUMNS;
             int column = slot % SLOT_COLUMNS;
             int slotsInRow =
-                    row == containerRows - 1 && lastRowSlots != 0
-                            ? lastRowSlots
-                            : SLOT_COLUMNS;
+                    row == containerRows - 1 && lastRowSlots != 0 ? lastRowSlots : SLOT_COLUMNS;
             int rowStartX = 8 + (SLOT_COLUMNS - slotsInRow) * 9;
             addSlot(
                     new SlotItemHandler(
@@ -102,7 +98,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return playerInventoryY;
     }
 
-    public MythicMinerBlockEntity getBlockEntity() {
+    public BaseMinerBlockEntity getBlockEntity() {
         return blockEntity;
     }
 
