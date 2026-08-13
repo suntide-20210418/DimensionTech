@@ -1,5 +1,9 @@
 package com.suntide_20210418.dimensiontech.item;
 
+import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
+import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +36,13 @@ public class StructMarkerItem extends Item {
     private static final String DIMENSION_TAG = "Dimension";
     private static final String POSITION_TAG = "Position";
     private static final String STRUCTURES_TAG = "Structures";
+    private static final String DIMENSION_VALUE_TAG = "DimensionValue";
+    private static final String STRUCTURE_VALUE_TAG = "StructureValue";
+    private static final String ANALYSIS_STATUS_TAG = "AnalysisStatus";
+    private static final String ANALYSIS_LUCK_TAG = "AnalysisLuck";
+    private static final String DIAGNOSTICS_TAG = "AnalysisDiagnostics";
+    private static final String ALGORITHM_VERSION_TAG = "StructureValueAlgorithmVersion";
+    private static final int ALGORITHM_VERSION = 1;
 
     public StructMarkerItem(Properties properties) {
         super(properties);
@@ -119,6 +130,34 @@ public class StructMarkerItem extends Item {
                 TranslateHelper.translate(
                                 TranslateHelper.tooltip("struct_marker.dimension"), dimension)
                         .withStyle(ChatFormatting.GRAY));
+        if (markerData.contains(DIMENSION_VALUE_TAG, Tag.TAG_ANY_NUMERIC)) {
+            tooltip.add(
+                    TranslateHelper.translate(
+                                    TranslateHelper.tooltip("struct_marker.dimension_value"),
+                                    formatValue(markerData.getDouble(DIMENSION_VALUE_TAG)))
+                            .withStyle(ChatFormatting.GRAY));
+        }
+        boolean currentAlgorithm = markerData.getInt(ALGORITHM_VERSION_TAG) == ALGORITHM_VERSION;
+        if (currentAlgorithm && markerData.contains(STRUCTURE_VALUE_TAG, Tag.TAG_ANY_NUMERIC)) {
+            tooltip.add(
+                    TranslateHelper.translate(
+                                    TranslateHelper.tooltip("struct_marker.structure_value"),
+                                    formatValue(markerData.getDouble(STRUCTURE_VALUE_TAG)))
+                            .withStyle(ChatFormatting.GOLD));
+        }
+        String analysisStatus = currentAlgorithm
+                ? markerData.getString(ANALYSIS_STATUS_TAG)
+                : AnalysisStatus.LEGACY.name();
+        if (!analysisStatus.isEmpty()) {
+            tooltip.add(TranslateHelper.translate(
+                            TranslateHelper.tooltip("struct_marker.analysis_status"),
+                            Component.literal(analysisStatus))
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
+        if (!currentAlgorithm) {
+            tooltip.add(TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.legacy"))
+                    .withStyle(ChatFormatting.YELLOW));
+        }
 
         ListTag structures = markerData.getList(STRUCTURES_TAG, Tag.TAG_COMPOUND);
         boolean hasStructure = false;
@@ -152,8 +191,68 @@ public class StructMarkerItem extends Item {
         positionData.putInt("Z", position.getZ());
         markerData.put(POSITION_TAG, positionData);
 
-        markerData.put(STRUCTURES_TAG, findStructures(level, position));
+        ListTag structures = findStructures(level, position);
+        markerData.put(STRUCTURES_TAG, structures);
+        MarkerInfo markerInfo =
+                new MarkerInfo(
+                        level.dimension().location(), position, readMarkedStructures(structures));
+        StructureValue value = StructureValueCalculator.calculate(level, markerInfo);
+        markerData.putInt(ALGORITHM_VERSION_TAG, ALGORITHM_VERSION);
+        markerData.putDouble(DIMENSION_VALUE_TAG, value.dimensionValue());
+        markerData.putString(ANALYSIS_STATUS_TAG, value.status().name());
+        markerData.putFloat(ANALYSIS_LUCK_TAG, value.luck());
+        ListTag diagnostics = new ListTag();
+        for (Diagnostic diagnostic : value.diagnostics()) {
+            CompoundTag entry = new CompoundTag();
+            entry.putString("Code", diagnostic.code());
+            entry.putString("Message", diagnostic.message());
+            if (diagnostic.lootTableId() != null) {
+                entry.putString("LootTable", diagnostic.lootTableId().toString());
+            }
+            if (!diagnostic.jsonPointer().isEmpty()) {
+                entry.putString("JsonPointer", diagnostic.jsonPointer());
+            }
+            ListTag callPath = new ListTag();
+            diagnostic.callPath().forEach(
+                    pathElement ->
+                            callPath.add(net.minecraft.nbt.StringTag.valueOf(pathElement)));
+            entry.put("CallPath", callPath);
+            diagnostics.add(entry);
+        }
+        markerData.put(DIAGNOSTICS_TAG, diagnostics);
+        if (value.status() == AnalysisStatus.EXACT) {
+            markerData.putDouble(STRUCTURE_VALUE_TAG, value.structureValue());
+        } else {
+            markerData.remove(STRUCTURE_VALUE_TAG);
+        }
         return markerData;
+    }
+
+    private static List<MarkedStructure> readMarkedStructures(ListTag structureTags) {
+        List<MarkedStructure> structures = new ArrayList<>();
+        for (int index = 0; index < structureTags.size(); index++) {
+            CompoundTag structureData = structureTags.getCompound(index);
+            ResourceLocation structureId = ResourceLocation.tryParse(structureData.getString("Id"));
+            if (structureId == null || !structureData.contains("Bounds", Tag.TAG_COMPOUND)) {
+                continue;
+            }
+            CompoundTag bounds = structureData.getCompound("Bounds");
+            structures.add(
+                    new MarkedStructure(
+                            structureId,
+                            new BoundingBox(
+                                    bounds.getInt("MinX"),
+                                    bounds.getInt("MinY"),
+                                    bounds.getInt("MinZ"),
+                                    bounds.getInt("MaxX"),
+                                    bounds.getInt("MaxY"),
+                                    bounds.getInt("MaxZ"))));
+        }
+        return List.copyOf(structures);
+    }
+
+    private static String formatValue(double value) {
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
     }
 
     private static ListTag findStructures(ServerLevel level, BlockPos position) {

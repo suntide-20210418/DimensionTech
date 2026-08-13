@@ -37,7 +37,11 @@
   "key.categories.dimension_tech.main": "Dimension Tech",
   "key.dimension_tech.switch": "Switch card mode",
   "message.dimension_tech.struct_marker.saved": "Saved %s at %s, %s, %s; structures found: %s",
+  "tooltip.dimension_tech.struct_marker.analysis_status": "Loot analysis: %s",
   "tooltip.dimension_tech.struct_marker.dimension": "Dimension: %s",
+  "tooltip.dimension_tech.struct_marker.dimension_value": "Dimension value: %s",
+  "tooltip.dimension_tech.struct_marker.legacy": "Legacy value hidden; mark the structure again",
   "tooltip.dimension_tech.struct_marker.no_structure": "Structure: None",
-  "tooltip.dimension_tech.struct_marker.structure": "Structure: %s"
+  "tooltip.dimension_tech.struct_marker.structure": "Structure: %s",
+  "tooltip.dimension_tech.struct_marker.structure_value": "Structure value: %s"
 }

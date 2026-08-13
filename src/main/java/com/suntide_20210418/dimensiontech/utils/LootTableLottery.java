@@ -16,8 +16,7 @@ import net.minecraft.world.phys.Vec3;
 
 public final class LootTableLottery {
 
-    private LootTableLottery() {
-    }
+    private LootTableLottery() {}
 
     public static List<ItemStack> draw(
             ServerLevel level,
@@ -26,6 +25,28 @@ public final class LootTableLottery {
             @Nullable Entity entity,
             float luck,
             int parallel) {
+        return draw(level, origin, lootTables, entity, luck, parallel, null);
+    }
+
+    public static List<ItemStack> draw(
+            ServerLevel level,
+            Vec3 origin,
+            Collection<ResourceLocation> lootTables,
+            @Nullable Entity entity,
+            float luck,
+            int parallel,
+            long seed) {
+        return draw(level, origin, lootTables, entity, luck, parallel, Long.valueOf(seed));
+    }
+
+    private static List<ItemStack> draw(
+            ServerLevel level,
+            Vec3 origin,
+            Collection<ResourceLocation> lootTables,
+            @Nullable Entity entity,
+            float luck,
+            int parallel,
+            @Nullable Long seed) {
         if (lootTables.isEmpty() || parallel <= 0) {
             return List.of();
         }
@@ -37,11 +58,17 @@ public final class LootTableLottery {
                         .create(LootContextParamSets.CHEST);
 
         List<ItemStack> results = new ArrayList<>();
+        int tableIndex = 0;
         for (ResourceLocation lootTableId : lootTables) {
             LootTable lootTable = level.getServer().getLootData().getLootTable(lootTableId);
             for (int i = 0; i < parallel; i++) {
-                lootTable.getRandomItems(lootParams, results::add);
+                if (seed == null) {
+                    lootTable.getRandomItems(lootParams, results::add);
+                } else {
+                    lootTable.getRandomItems(lootParams, seed + 31L * tableIndex + i, results::add);
+                }
             }
+            tableIndex++;
         }
         return List.copyOf(results);
     }

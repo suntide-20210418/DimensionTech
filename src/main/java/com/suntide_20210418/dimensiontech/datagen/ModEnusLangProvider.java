@@ -5,7 +5,6 @@ import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.common.data.LanguageProvider;
 
-
 public class ModEnusLangProvider extends LanguageProvider {
 
     public ModEnusLangProvider(PackOutput pOutput) {
@@ -24,6 +23,10 @@ public class ModEnusLangProvider extends LanguageProvider {
                 TranslateHelper.message("struct_marker.saved"),
                 "Saved %s at %s, %s, %s; structures found: %s");
         add(TranslateHelper.tooltip("struct_marker.dimension"), "Dimension: %s");
+        add(TranslateHelper.tooltip("struct_marker.dimension_value"), "Dimension value: %s");
+        add(TranslateHelper.tooltip("struct_marker.structure_value"), "Structure value: %s");
+        add(TranslateHelper.tooltip("struct_marker.analysis_status"), "Loot analysis: %s");
+        add(TranslateHelper.tooltip("struct_marker.legacy"), "Legacy value hidden; mark the structure again");
         add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
         add("config.jade.plugin_dimension_tech.mythic_miner_status", "Mythic Miner Status");

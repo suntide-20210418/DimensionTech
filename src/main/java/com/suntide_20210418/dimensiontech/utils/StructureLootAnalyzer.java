@@ -5,6 +5,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -25,6 +28,10 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 public final class StructureLootAnalyzer {
@@ -47,6 +54,86 @@ public final class StructureLootAnalyzer {
         }
         return List.copyOf(results);
     }
+
+    /** Discovery result for value analysis; unlike {@link #analyze}, failure is never an empty list. */
+    public static DiscoveryResult discoverForValue(
+            ServerLevel level, MarkerInfo markerInfo) {
+        List<StructureLoot> structures = new ArrayList<>();
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        for (MarkedStructure marked : markerInfo.structures()) {
+            LoadedContainerDiscovery loaded = loadedContainerLootTables(level, marked);
+            if (!loaded.allChunksLoaded()) {
+                diagnostics.add(new Diagnostic(
+                        "DISCOVERY_SEMANTICS",
+                        "Not every chunk is loaded for structure " + marked.id()));
+                return new DiscoveryResult(
+                        AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
+            }
+            if (loaded.hasUnpackedRandomContainer()) {
+                diagnostics.add(new Diagnostic(
+                        "DISCOVERY_SEMANTICS",
+                        "A container without a recoverable LootTable prevents complete raw loot discovery for structure "
+                                + marked.id()));
+                return new DiscoveryResult(
+                        AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
+            }
+            if (loaded.roots().isEmpty()) {
+                diagnostics.add(new Diagnostic(
+                        "DISCOVERY_SEMANTICS",
+                        "No runtime container LootTable root could be proven for structure "
+                                + marked.id()
+                                + "; Java-placed or already-unpacked loot cannot be excluded"));
+                return new DiscoveryResult(
+                        AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
+            }
+            LootTableItems items = resolveLootTableItems(
+                    level.getServer(), new HashSet<>(loaded.roots()));
+            structures.add(new StructureLoot(
+                    marked.id(),
+                    loaded.roots(),
+                    sorted(items.items()),
+                    sorted(items.resolvedTables())));
+        }
+        return new DiscoveryResult(AnalysisStatus.EXACT, List.copyOf(structures), List.of());
+    }
+
+    private static LoadedContainerDiscovery loadedContainerLootTables(
+            ServerLevel level, MarkedStructure marked) {
+        var bounds = marked.bounds();
+        int minChunkX = SectionPos.blockToSectionCoord(bounds.minX());
+        int maxChunkX = SectionPos.blockToSectionCoord(bounds.maxX());
+        int minChunkZ = SectionPos.blockToSectionCoord(bounds.minZ());
+        int maxChunkZ = SectionPos.blockToSectionCoord(bounds.maxZ());
+        List<ResourceLocation> roots = new ArrayList<>();
+        boolean unpackedRandomContainer = false;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                LevelChunk chunk = level.getChunkSource().getChunkNow(chunkX, chunkZ);
+                if (chunk == null) {
+                    return new LoadedContainerDiscovery(false, false, List.of());
+                }
+                for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+                    if (!bounds.isInside(blockEntity.getBlockPos())) continue;
+                    CompoundTag nbt = blockEntity.saveWithoutMetadata();
+                    if (!nbt.contains("LootTable", Tag.TAG_STRING)) {
+                        if (blockEntity instanceof RandomizableContainerBlockEntity) {
+                            unpackedRandomContainer = true;
+                        }
+                        continue;
+                    }
+                    ResourceLocation table = ResourceLocation.tryParse(nbt.getString("LootTable"));
+                    if (table != null) roots.add(table);
+                }
+            }
+        }
+        return new LoadedContainerDiscovery(
+                true, unpackedRandomContainer, List.copyOf(roots));
+    }
+
+    private record LoadedContainerDiscovery(
+            boolean allChunksLoaded,
+            boolean hasUnpackedRandomContainer,
+            List<ResourceLocation> roots) {}
 
     private static Set<ResourceLocation> findLootTables(
             MinecraftServer server, ResourceLocation structureId) {
@@ -341,4 +428,14 @@ public final class StructureLootAnalyzer {
             List<ResourceLocation> lootTables,
             List<ResourceLocation> items,
             List<ResourceLocation> resolvedTables) {}
+
+    public record DiscoveryResult(
+            AnalysisStatus status,
+            List<StructureLoot> structures,
+            List<Diagnostic> diagnostics) {
+        public DiscoveryResult {
+            structures = List.copyOf(structures);
+            diagnostics = List.copyOf(diagnostics);
+        }
+    }
 }

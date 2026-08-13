@@ -19,10 +19,12 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.item("struct_marker"), "结构标记器");
         add(TranslateHelper.block("tier_1_mythic_miner"), "一级神话采掘器");
         add(TranslateHelper.container("tier_1_mythic_miner"), "一级神话采掘器");
-        add(
-                TranslateHelper.message("struct_marker.saved"),
-                "已保存 %s 的坐标 %s, %s, %s；找到结构：%s 个");
+        add(TranslateHelper.message("struct_marker.saved"), "已保存 %s 的坐标 %s, %s, %s；找到结构：%s 个");
         add(TranslateHelper.tooltip("struct_marker.dimension"), "维度：%s");
+        add(TranslateHelper.tooltip("struct_marker.dimension_value"), "维度价值：%s");
+        add(TranslateHelper.tooltip("struct_marker.structure_value"), "结构价值：%s");
+        add(TranslateHelper.tooltip("struct_marker.analysis_status"), "战利品分析：%s");
+        add(TranslateHelper.tooltip("struct_marker.legacy"), "旧版价值已隐藏，请重新标记结构");
         add(TranslateHelper.tooltip("struct_marker.structure"), "结构：%s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "结构：无");
         add("config.jade.plugin_dimension_tech.mythic_miner_status", "神话采掘器状态");

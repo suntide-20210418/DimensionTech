@@ -50,7 +50,7 @@ minecraft {
         }
 
         gameTestServer {
-            property 'forge.enabledGameTestNamespaces', mod_id
+            property 'forge.enabledGameTestNamespaces', "${mod_id},minecraft"
             workingDirectory project.file('run/test')
         }
 
@@ -130,6 +130,22 @@ dependencies {
 
     implementation fg.deobf("curse.maven:jei-238222:7391695")
     compileOnly fg.deobf("curse.maven:emi-580555:6420945")
+
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+}
+
+tasks.register('syncGameTestStructures', Sync) {
+    from 'src/test/resources/gameteststructures'
+    into 'run/test/gameteststructures'
+}
+
+tasks.matching { it.name == 'prepareRunGameTestServer' }.configureEach {
+    dependsOn tasks.named('syncGameTestStructures')
 }
 
 tasks.named('processResources', ProcessResources).configure {
