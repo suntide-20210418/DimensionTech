@@ -27,12 +27,16 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BrushableBlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.AABB;
 
 public final class StructureLootAnalyzer {
 
@@ -69,10 +73,10 @@ public final class StructureLootAnalyzer {
                 return new DiscoveryResult(
                         AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
             }
-            if (loaded.hasUnpackedRandomContainer()) {
+            if (loaded.hasUnrecoverableLootHolder()) {
                 diagnostics.add(new Diagnostic(
                         "DISCOVERY_SEMANTICS",
-                        "A container without a recoverable LootTable prevents complete raw loot discovery for structure "
+                        "A loot holder without a recoverable LootTable prevents complete raw loot discovery for structure "
                                 + marked.id()));
                 return new DiscoveryResult(
                         AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
@@ -105,7 +109,7 @@ public final class StructureLootAnalyzer {
         int minChunkZ = SectionPos.blockToSectionCoord(bounds.minZ());
         int maxChunkZ = SectionPos.blockToSectionCoord(bounds.maxZ());
         List<ResourceLocation> roots = new ArrayList<>();
-        boolean unpackedRandomContainer = false;
+        boolean unrecoverableLootHolder = false;
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
                 LevelChunk chunk = level.getChunkSource().getChunkNow(chunkX, chunkZ);
@@ -116,23 +120,56 @@ public final class StructureLootAnalyzer {
                     if (!bounds.isInside(blockEntity.getBlockPos())) continue;
                     CompoundTag nbt = blockEntity.saveWithoutMetadata();
                     if (!nbt.contains("LootTable", Tag.TAG_STRING)) {
-                        if (blockEntity instanceof RandomizableContainerBlockEntity) {
-                            unpackedRandomContainer = true;
+                        if (nbt.contains("LootTable") || isLootHolder(blockEntity)) {
+                            unrecoverableLootHolder = true;
                         }
                         continue;
                     }
                     ResourceLocation table = ResourceLocation.tryParse(nbt.getString("LootTable"));
-                    if (table != null) roots.add(table);
+                    if (table != null) {
+                        roots.add(table);
+                    } else {
+                        unrecoverableLootHolder = true;
+                    }
                 }
             }
         }
+
+        AABB structureBounds =
+                new AABB(
+                        bounds.minX(),
+                        bounds.minY(),
+                        bounds.minZ(),
+                        (double) bounds.maxX() + 1.0D,
+                        (double) bounds.maxY() + 1.0D,
+                        (double) bounds.maxZ() + 1.0D);
+        for (Entity entity :
+                level.getEntities(
+                        (Entity) null,
+                        structureBounds,
+                        candidate ->
+                                candidate instanceof ContainerEntity
+                                        && bounds.isInside(candidate.blockPosition()))) {
+            ContainerEntity container = (ContainerEntity) entity;
+            ResourceLocation table = container.getLootTable();
+            if (table == null) {
+                unrecoverableLootHolder = true;
+            } else {
+                roots.add(table);
+            }
+        }
         return new LoadedContainerDiscovery(
-                true, unpackedRandomContainer, List.copyOf(roots));
+                true, unrecoverableLootHolder, List.copyOf(roots));
+    }
+
+    private static boolean isLootHolder(BlockEntity blockEntity) {
+        return blockEntity instanceof RandomizableContainerBlockEntity
+                || blockEntity instanceof BrushableBlockEntity;
     }
 
     private record LoadedContainerDiscovery(
             boolean allChunksLoaded,
-            boolean hasUnpackedRandomContainer,
+            boolean hasUnrecoverableLootHolder,
             List<ResourceLocation> roots) {}
 
     private static Set<ResourceLocation> findLootTables(

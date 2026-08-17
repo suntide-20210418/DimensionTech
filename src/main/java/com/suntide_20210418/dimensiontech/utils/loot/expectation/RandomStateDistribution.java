@@ -18,8 +18,7 @@ public final class RandomStateDistribution<T> {
         return of(Map.of(new State<>(value, randomState), ExactProbability.ONE));
     }
 
-    public static <T> RandomStateDistribution<T> of(
-            Map<State<T>, ExactProbability> masses) {
+    public static <T> RandomStateDistribution<T> of(Map<State<T>, ExactProbability> masses) {
         return new RandomStateDistribution<>(FiniteDistribution.of(masses));
     }
 
@@ -28,8 +27,7 @@ public final class RandomStateDistribution<T> {
     }
 
     public <R> RandomStateDistribution<R> flatMap(
-            Function<State<T>, RandomStateDistribution<R>> transition,
-            int maxStates) {
+            Function<State<T>, RandomStateDistribution<R>> transition, int maxStates) {
         Objects.requireNonNull(transition, "transition");
         LinkedHashMap<State<R>, ExactProbability> result = new LinkedHashMap<>();
         for (Map.Entry<State<T>, ExactProbability> prior : masses().entrySet()) {
@@ -50,8 +48,7 @@ public final class RandomStateDistribution<T> {
 
     public FiniteDistribution<T> marginal() {
         LinkedHashMap<T, ExactProbability> result = new LinkedHashMap<>();
-        masses().forEach((state, mass) ->
-                result.merge(state.value(), mass, ExactProbability::add));
+        masses().forEach((state, mass) -> result.merge(state.value(), mass, ExactProbability::add));
         return FiniteDistribution.of(result);
     }
 

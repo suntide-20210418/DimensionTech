@@ -28,6 +28,7 @@ public final class ModCreativeModeTabs {
                                     .displayItems(
                                             (parameters, output) -> {
                                                 output.accept(ModItems.STRUCT_MARKER.get());
+                                                output.accept(ModItems.ENCHANTMENT_MARK.get());
                                                 output.accept(ModItems.TIER_1_MYTHIC_MINER.get());
                                             })
                                     .build());

@@ -29,5 +29,7 @@ public final class StackMeasure {
         return Collections.unmodifiableMap(values);
     }
 
-    public boolean isEmpty() { return values.isEmpty(); }
+    public boolean isEmpty() {
+        return values.isEmpty();
+    }
 }

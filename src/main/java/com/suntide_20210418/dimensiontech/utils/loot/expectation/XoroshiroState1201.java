@@ -12,6 +12,12 @@ public record XoroshiroState1201(long seedLo, long seedHi) {
         }
     }
 
+    public static XoroshiroState1201 fromSeed(long seed) {
+        long lowUnmixed = seed ^ GOLDEN_RATIO_64;
+        long highUnmixed = lowUnmixed + SILVER_RATIO_64;
+        return new XoroshiroState1201(mixStafford13(lowUnmixed), mixStafford13(highUnmixed));
+    }
+
     public Draw<Long> nextLong() {
         long low = seedLo;
         long high = seedHi;
@@ -33,8 +39,7 @@ public record XoroshiroState1201(long seedLo, long seedHi) {
         int draws = 0;
         long product;
         long lowBits;
-        long threshold = Integer.toUnsignedLong(
-                Integer.remainderUnsigned(~bound + 1, bound));
+        long threshold = Integer.toUnsignedLong(Integer.remainderUnsigned(~bound + 1, bound));
         do {
             Draw<Integer> draw = state.nextInt();
             state = draw.state();
@@ -72,4 +77,10 @@ public record XoroshiroState1201(long seedLo, long seedHi) {
     }
 
     public record Draw<T>(T value, XoroshiroState1201 state, int drawCount) {}
+
+    private static long mixStafford13(long value) {
+        value = (value ^ value >>> 30) * -4658895280553007687L;
+        value = (value ^ value >>> 27) * -7723592293110705685L;
+        return value ^ value >>> 31;
+    }
 }

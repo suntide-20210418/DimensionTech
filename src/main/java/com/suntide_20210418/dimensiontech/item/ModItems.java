@@ -14,6 +14,8 @@ import net.minecraftforge.registries.RegistryObject;
 public final class ModItems {
     public static final ResourceLocation STRUCT_MARKER_ID =
             ResourceLocationHelper.item("struct_marker");
+    public static final ResourceLocation ENCHANTMENT_MARK_ID =
+            ResourceLocationHelper.item("enchantment_mark");
 
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, DimensionTechMod.MOD_ID);
@@ -22,6 +24,11 @@ public final class ModItems {
             ITEMS.register(
                     ResourceLocationHelper.getPath(STRUCT_MARKER_ID),
                     () -> new StructMarkerItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> ENCHANTMENT_MARK =
+            ITEMS.register(
+                    ResourceLocationHelper.getPath(ENCHANTMENT_MARK_ID),
+                    () -> new EnchantmentMarkItem(new Item.Properties().stacksTo(64)));
 
     public static final RegistryObject<Item> TIER_1_MYTHIC_MINER =
             ITEMS.register(

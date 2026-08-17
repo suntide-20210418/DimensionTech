@@ -5,11 +5,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntUnaryOperator;
 
-/** Finite marginal semantics of Minecraft 1.20.1 RandomSource calls. */
+/** Finite ideal-draw semantics of Minecraft 1.20.1 RandomSource methods. */
 public final class ExactRandomSemantics1201 {
     private static final BigInteger FLOAT_OUTCOMES = BigInteger.ONE.shiftLeft(24);
     private static final int FLOAT_OUTCOME_COUNT = 1 << 24;
+    private static final BigInteger FLOAT_PAIR_OUTCOMES = BigInteger.ONE.shiftLeft(48);
     private static final BigInteger DOUBLE_OUTCOMES = BigInteger.ONE.shiftLeft(53);
 
     private ExactRandomSemantics1201() {}
@@ -74,14 +76,17 @@ public final class ExactRandomSemantics1201 {
             if (successes.compareTo(FLOAT_OUTCOMES) > 0) successes = FLOAT_OUTCOMES;
         }
         ExactProbability success = ExactProbability.of(successes, FLOAT_OUTCOMES);
-        ExactProbability failure = ExactProbability.of(
-                FLOAT_OUTCOMES.subtract(successes), FLOAT_OUTCOMES);
+        ExactProbability failure =
+                ExactProbability.of(FLOAT_OUTCOMES.subtract(successes), FLOAT_OUTCOMES);
         Map<Boolean, ExactProbability> masses = new LinkedHashMap<>();
         if (!failure.isZero()) masses.put(false, failure);
         if (!success.isZero()) masses.put(true, success);
         return new RandomResult<>(
-                FiniteDistribution.of(masses),
-                List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
+                FiniteDistribution.of(masses), List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
+    }
+
+    public static RandomResult<Boolean> nextFloatAtMost(float threshold) {
+        return nextFloatLessThan(Math.nextUp(threshold));
     }
 
     public static RandomResult<Boolean> nextDoubleLessThan(double threshold) {
@@ -92,8 +97,8 @@ public final class ExactRandomSemantics1201 {
             successes = DOUBLE_OUTCOMES;
         } else {
             ExactProbability exact = ExactProbability.fromDouble(threshold);
-            successes = ceilDivide(
-                    exact.numerator().multiply(DOUBLE_OUTCOMES), exact.denominator());
+            successes =
+                    ceilDivide(exact.numerator().multiply(DOUBLE_OUTCOMES), exact.denominator());
             if (successes.compareTo(DOUBLE_OUTCOMES) > 0) successes = DOUBLE_OUTCOMES;
         }
         Map<Boolean, ExactProbability> masses = booleanMasses(successes, DOUBLE_OUTCOMES);
@@ -104,9 +109,10 @@ public final class ExactRandomSemantics1201 {
 
     public static RandomResult<Boolean> nextBoolean() {
         return new RandomResult<>(
-                FiniteDistribution.of(Map.of(
-                        false, ExactProbability.of(1, 2),
-                        true, ExactProbability.of(1, 2))),
+                FiniteDistribution.of(
+                        Map.of(
+                                false, ExactProbability.of(1, 2),
+                                true, ExactProbability.of(1, 2))),
                 List.of(new RandomCall(RandomMethod.NEXT_BOOLEAN, 0)));
     }
 
@@ -138,22 +144,23 @@ public final class ExactRandomSemantics1201 {
     public static RandomResult<Integer> binomial(int trials, float probability) {
         if (trials < 0) throw new IllegalArgumentException("negative trial count");
         RandomResult<Boolean> trial = nextFloatLessThan(probability);
-        ExactProbability success = trial.distribution().masses()
-                .getOrDefault(true, ExactProbability.ZERO);
-        ExactProbability failure = trial.distribution().masses()
-                .getOrDefault(false, ExactProbability.ZERO);
+        ExactProbability success =
+                trial.distribution().masses().getOrDefault(true, ExactProbability.ZERO);
+        ExactProbability failure =
+                trial.distribution().masses().getOrDefault(false, ExactProbability.ZERO);
         LinkedHashMap<Integer, ExactProbability> current = new LinkedHashMap<>();
         current.put(0, ExactProbability.ONE);
         for (int index = 0; index < trials; index++) {
             LinkedHashMap<Integer, ExactProbability> next = new LinkedHashMap<>();
-            current.forEach((count, mass) -> {
-                if (!failure.isZero()) {
-                    next.merge(count, mass.multiply(failure), ExactProbability::add);
-                }
-                if (!success.isZero()) {
-                    next.merge(count + 1, mass.multiply(success), ExactProbability::add);
-                }
-            });
+            current.forEach(
+                    (count, mass) -> {
+                        if (!failure.isZero()) {
+                            next.merge(count, mass.multiply(failure), ExactProbability::add);
+                        }
+                        if (!success.isZero()) {
+                            next.merge(count + 1, mass.multiply(success), ExactProbability::add);
+                        }
+                    });
             current = next;
         }
         List<RandomCall> calls = new ArrayList<>(trials);
@@ -164,8 +171,9 @@ public final class ExactRandomSemantics1201 {
     }
 
     /**
-     * Exact distribution of EnchantmentHelper's two-nextFloat level perturbation.
-     * Iterates the first 24-bit output and binary-searches contiguous buckets of the second.
+     * Exact distribution of EnchantmentHelper's level perturbation. The two bounded-int draws are
+     * first combined into their triangular sum distribution, then the two 24-bit float draws are
+     * counted by contiguous result intervals for each distinct base level.
      */
     public static RandomResult<Integer> enchantmentLevelPerturbation(
             int level, int enchantability, int maxDistinctStates) {
@@ -173,18 +181,33 @@ public final class ExactRandomSemantics1201 {
             return new RandomResult<>(FiniteDistribution.singleton(level), List.of());
         }
         int bound = enchantability / 4 + 1;
+        LinkedHashMap<Integer, Long> baseLevelCounts = new LinkedHashMap<>();
+        int maximumSum = 2 * (bound - 1);
+        for (int sum = 0; sum <= maximumSum; sum++) {
+            long multiplicity = sum < bound ? (long) sum + 1L : (long) maximumSum - sum + 1L;
+            int baseLevel = level + 1 + sum;
+            baseLevelCounts.merge(baseLevel, multiplicity, Long::sum);
+            if (baseLevelCounts.size() > maxDistinctStates) {
+                throw new StateSpaceLimitException(baseLevelCounts.size(), maxDistinctStates);
+            }
+        }
+
         LinkedHashMap<Integer, ExactProbability> adjustedLevels = new LinkedHashMap<>();
-        ExactProbability intBranch = ExactProbability.of(1, (long) bound * bound);
-        for (int firstInt = 0; firstInt < bound; firstInt++) {
-            for (int secondInt = 0; secondInt < bound; secondInt++) {
-                int baseLevel = level + 1 + firstInt + secondInt;
-                Map<Integer, Long> counts = perturbationFloatPairCounts(
-                        baseLevel, maxDistinctStates);
-                for (Map.Entry<Integer, Long> outcome : counts.entrySet()) {
-                    ExactProbability floatBranch = ExactProbability.of(
-                            BigInteger.valueOf(outcome.getValue()), FLOAT_OUTCOMES.multiply(FLOAT_OUTCOMES));
-                    adjustedLevels.merge(
-                            outcome.getKey(), intBranch.multiply(floatBranch), ExactProbability::add);
+        BigInteger combinedOutcomeCount =
+                BigInteger.valueOf((long) bound * bound).multiply(FLOAT_PAIR_OUTCOMES);
+        for (Map.Entry<Integer, Long> base : baseLevelCounts.entrySet()) {
+            Map<Integer, Long> counts =
+                    perturbationFloatPairCounts(base.getKey(), maxDistinctStates);
+            for (Map.Entry<Integer, Long> outcome : counts.entrySet()) {
+                BigInteger branchCount =
+                        BigInteger.valueOf(base.getValue())
+                                .multiply(BigInteger.valueOf(outcome.getValue()));
+                adjustedLevels.merge(
+                        outcome.getKey(),
+                        ExactProbability.of(branchCount, combinedOutcomeCount),
+                        ExactProbability::add);
+                if (adjustedLevels.size() > maxDistinctStates) {
+                    throw new StateSpaceLimitException(adjustedLevels.size(), maxDistinctStates);
                 }
             }
         }
@@ -211,8 +234,9 @@ public final class ExactRandomSemantics1201 {
                 if (perturbedLevelFromFloatBitSum(baseLevel, middle) == value) low = middle;
                 else high = middle - 1;
             }
-            long pairCount = cumulativeFloatPairCount(low, maximumSum)
-                    - cumulativeFloatPairCount(start - 1, maximumSum);
+            long pairCount =
+                    cumulativeFloatPairCount(low, maximumSum)
+                            - cumulativeFloatPairCount(start - 1, maximumSum);
             counts.merge(value, pairCount, Long::sum);
             if (counts.size() > maxDistinctStates) {
                 throw new StateSpaceLimitException(counts.size(), maxDistinctStates);
@@ -245,41 +269,44 @@ public final class ExactRandomSemantics1201 {
         return firstHalf + tailLength * (firstTail + lastTail) / 2L;
     }
 
-    /**
-     * Exact Mth.nextFloat(random,min,max), followed by Java float multiplication and Mth.floor.
-     * Every one of the 2^24 nextFloat outputs is evaluated; this is exhaustive, not sampling.
-     */
+    /** Exact Mth.nextFloat(random,min,max), followed by Java float arithmetic and Mth.floor. */
     public static RandomResult<Integer> uniformFloatTimesLuckFloor(
             float min, float max, float luck, int maxDistinctStates) {
         if (!Float.isFinite(min) || !Float.isFinite(max) || !Float.isFinite(luck)) {
             throw new IllegalArgumentException("non-finite float input");
         }
-        if (luck == 0.0F || min >= max) {
+        if (min >= max) {
             int value = net.minecraft.util.Mth.floor(min * luck);
             return new RandomResult<>(FiniteDistribution.singleton(value), List.of());
         }
-        LinkedHashMap<Integer, Long> counts = new LinkedHashMap<>();
-        float width = max - min;
-        for (int bits = 0; bits < FLOAT_OUTCOME_COUNT; bits++) {
-            float random = bits * 0x1.0p-24F;
-            float sampled = random * width + min;
-            int value = net.minecraft.util.Mth.floor(sampled * luck);
-            counts.merge(value, 1L, Long::sum);
-            if (counts.size() > maxDistinctStates) {
-                throw new StateSpaceLimitException(counts.size(), maxDistinctStates);
-            }
+        if (luck == 0.0F) {
+            return new RandomResult<>(
+                    FiniteDistribution.singleton(0),
+                    List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
         }
+        float width = max - min;
+        if (!Float.isFinite(width)) throw new IllegalArgumentException("non-finite float width");
+        LinkedHashMap<Integer, Long> counts =
+                countContiguousFloatOutcomes(
+                        bits -> {
+                            float random = bits * 0x1.0p-24F;
+                            float sampled = random * width + min;
+                            return net.minecraft.util.Mth.floor(sampled * luck);
+                        },
+                        maxDistinctStates);
         LinkedHashMap<Integer, ExactProbability> masses = new LinkedHashMap<>();
-        counts.forEach((value, count) -> masses.put(
-                value, ExactProbability.of(BigInteger.valueOf(count), FLOAT_OUTCOMES)));
+        counts.forEach(
+                (value, count) ->
+                        masses.put(
+                                value,
+                                ExactProbability.of(BigInteger.valueOf(count), FLOAT_OUTCOMES)));
         return new RandomResult<>(
-                FiniteDistribution.of(masses),
-                List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
+                FiniteDistribution.of(masses), List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
     }
 
     /**
-     * Exact SetItemDamageFunction result for a UniformGenerator backed by constants.
-     * The provider uses Mth.nextFloat and all arithmetic below deliberately remains float.
+     * Exact SetItemDamageFunction result for a UniformGenerator backed by constants. The provider
+     * uses Mth.nextFloat and all arithmetic below deliberately remains float.
      */
     public static RandomResult<Integer> uniformFloatSetDamage(
             float min,
@@ -296,23 +323,24 @@ public final class ExactRandomSemantics1201 {
             return new RandomResult<>(
                     FiniteDistribution.singleton(setDamageValue(min, base, maxDamage)), List.of());
         }
-        LinkedHashMap<Integer, Long> counts = new LinkedHashMap<>();
         float width = max - min;
-        for (int bits = 0; bits < FLOAT_OUTCOME_COUNT; bits++) {
-            float random = bits * 0x1.0p-24F;
-            float sampled = random * width + min;
-            int value = setDamageValue(sampled, base, maxDamage);
-            counts.merge(value, 1L, Long::sum);
-            if (counts.size() > maxDistinctStates) {
-                throw new StateSpaceLimitException(counts.size(), maxDistinctStates);
-            }
-        }
+        if (!Float.isFinite(width)) throw new IllegalArgumentException("non-finite float width");
+        LinkedHashMap<Integer, Long> counts =
+                countContiguousFloatOutcomes(
+                        bits -> {
+                            float random = bits * 0x1.0p-24F;
+                            float sampled = random * width + min;
+                            return setDamageValue(sampled, base, maxDamage);
+                        },
+                        maxDistinctStates);
         LinkedHashMap<Integer, ExactProbability> masses = new LinkedHashMap<>();
-        counts.forEach((value, count) -> masses.put(
-                value, ExactProbability.of(BigInteger.valueOf(count), FLOAT_OUTCOMES)));
+        counts.forEach(
+                (value, count) ->
+                        masses.put(
+                                value,
+                                ExactProbability.of(BigInteger.valueOf(count), FLOAT_OUTCOMES)));
         return new RandomResult<>(
-                FiniteDistribution.of(masses),
-                List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
+                FiniteDistribution.of(masses), List.of(new RandomCall(RandomMethod.NEXT_FLOAT, 0)));
     }
 
     public static int setDamageValue(
@@ -327,6 +355,34 @@ public final class ExactRandomSemantics1201 {
     private static int setDamageValue(float providerValue, float base, int maxDamage) {
         float remaining = net.minecraft.util.Mth.clamp(providerValue + base, 0.0F, 1.0F);
         return net.minecraft.util.Mth.floor((1.0F - remaining) * (float) maxDamage);
+    }
+
+    /**
+     * Counts all 2^24 nextFloat bit outcomes without visiting each one. For the callers above, the
+     * Java-float pipeline is monotone in {@code bits}; therefore every equal integer result forms
+     * one contiguous interval. Binary-searching each interval preserves the exact raw outcome
+     * count, including float rounding at both boundaries.
+     */
+    private static LinkedHashMap<Integer, Long> countContiguousFloatOutcomes(
+            IntUnaryOperator outcome, int maxDistinctStates) {
+        LinkedHashMap<Integer, Long> counts = new LinkedHashMap<>();
+        int start = 0;
+        while (start < FLOAT_OUTCOME_COUNT) {
+            int value = outcome.applyAsInt(start);
+            int low = start;
+            int high = FLOAT_OUTCOME_COUNT - 1;
+            while (low < high) {
+                int middle = low + ((high - low + 1) >>> 1);
+                if (outcome.applyAsInt(middle) == value) low = middle;
+                else high = middle - 1;
+            }
+            counts.put(value, (long) low - start + 1L);
+            if (counts.size() > maxDistinctStates) {
+                throw new StateSpaceLimitException(counts.size(), maxDistinctStates);
+            }
+            start = low + 1;
+        }
+        return counts;
     }
 
     private static BigInteger ceilDivide(BigInteger numerator, BigInteger denominator) {
@@ -353,14 +409,12 @@ public final class ExactRandomSemantics1201 {
         NEXT_INT_BOUND,
         NEXT_FLOAT,
         NEXT_DOUBLE,
-        NEXT_BOOLEAN,
-        SHUFFLE
+        NEXT_BOOLEAN
     }
 
     public record RandomCall(RandomMethod method, int bound) {}
 
-    public record RandomResult<T>(
-            FiniteDistribution<T> distribution, List<RandomCall> calls) {
+    public record RandomResult<T>(FiniteDistribution<T> distribution, List<RandomCall> calls) {
         public RandomResult {
             calls = List.copyOf(calls);
         }

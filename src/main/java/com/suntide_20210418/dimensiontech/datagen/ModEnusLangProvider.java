@@ -17,6 +17,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.keyCategory("main"), "Dimension Tech");
         add(TranslateHelper.key("switch"), "Switch card mode");
         add(TranslateHelper.item("struct_marker"), "Structure Marker");
+        add(TranslateHelper.item("enchantment_mark"), "Enchantment Mark");
         add(TranslateHelper.block("tier_1_mythic_miner"), "Tier 1 Mythic Miner");
         add(TranslateHelper.container("tier_1_mythic_miner"), "Tier 1 Mythic Miner");
         add(
@@ -29,6 +30,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.legacy"), "Legacy value hidden; mark the structure again");
         add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
+        add(TranslateHelper.tooltip("enchantment_mark.enchantment"), "Enchantment: %s");
+        add(TranslateHelper.tooltip("enchantment_mark.unbound"), "Unbound");
         add("config.jade.plugin_dimension_tech.mythic_miner_status", "Mythic Miner Status");
         add("jade.dimension_tech.status.idle", "Idle");
         add("jade.dimension_tech.status.running", "Running");

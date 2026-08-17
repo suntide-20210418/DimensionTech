@@ -2,19 +2,19 @@ package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
-import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import javax.annotation.Nullable;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.IdealRandomProbabilitySpace1201;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -31,6 +31,13 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 public class StructMarkerItem extends Item {
     private static final String MARKER_DATA_TAG = "StructureMarkerData";
     private static final String DIMENSION_TAG = "Dimension";
@@ -42,7 +49,8 @@ public class StructMarkerItem extends Item {
     private static final String ANALYSIS_LUCK_TAG = "AnalysisLuck";
     private static final String DIAGNOSTICS_TAG = "AnalysisDiagnostics";
     private static final String ALGORITHM_VERSION_TAG = "StructureValueAlgorithmVersion";
-    private static final int ALGORITHM_VERSION = 1;
+    private static final String RANDOM_PROBABILITY_SPACE_TAG = "RandomProbabilitySpace";
+    private static final int ALGORITHM_VERSION = 4;
 
     public StructMarkerItem(Properties properties) {
         super(properties);
@@ -130,33 +138,33 @@ public class StructMarkerItem extends Item {
                 TranslateHelper.translate(
                                 TranslateHelper.tooltip("struct_marker.dimension"), dimension)
                         .withStyle(ChatFormatting.GRAY));
-        if (markerData.contains(DIMENSION_VALUE_TAG, Tag.TAG_ANY_NUMERIC)) {
+        if (hasFiniteNumber(markerData, DIMENSION_VALUE_TAG)) {
             tooltip.add(
                     TranslateHelper.translate(
                                     TranslateHelper.tooltip("struct_marker.dimension_value"),
                                     formatValue(markerData.getDouble(DIMENSION_VALUE_TAG)))
                             .withStyle(ChatFormatting.GRAY));
         }
+        AnalysisStatus analysisStatus = analysisStatus(markerData);
         boolean currentAlgorithm = markerData.getInt(ALGORITHM_VERSION_TAG) == ALGORITHM_VERSION;
-        if (currentAlgorithm && markerData.contains(STRUCTURE_VALUE_TAG, Tag.TAG_ANY_NUMERIC)) {
+        if (currentAlgorithm
+                && analysisStatus == AnalysisStatus.EXACT
+                && markerData.contains(STRUCTURE_VALUE_TAG, Tag.TAG_ANY_NUMERIC)) {
             tooltip.add(
                     TranslateHelper.translate(
                                     TranslateHelper.tooltip("struct_marker.structure_value"),
                                     formatValue(markerData.getDouble(STRUCTURE_VALUE_TAG)))
                             .withStyle(ChatFormatting.GOLD));
         }
-        String analysisStatus = currentAlgorithm
-                ? markerData.getString(ANALYSIS_STATUS_TAG)
-                : AnalysisStatus.LEGACY.name();
-        if (!analysisStatus.isEmpty()) {
-            tooltip.add(TranslateHelper.translate(
-                            TranslateHelper.tooltip("struct_marker.analysis_status"),
-                            Component.literal(analysisStatus))
-                    .withStyle(ChatFormatting.DARK_GRAY));
-        }
+        tooltip.add(
+                TranslateHelper.translate(
+                                TranslateHelper.tooltip("struct_marker.analysis_status"),
+                                Component.literal(analysisStatus.name()))
+                        .withStyle(ChatFormatting.DARK_GRAY));
         if (!currentAlgorithm) {
-            tooltip.add(TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.legacy"))
-                    .withStyle(ChatFormatting.YELLOW));
+            tooltip.add(
+                    TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.legacy"))
+                            .withStyle(ChatFormatting.YELLOW));
         }
 
         ListTag structures = markerData.getList(STRUCTURES_TAG, Tag.TAG_COMPOUND);
@@ -197,7 +205,14 @@ public class StructMarkerItem extends Item {
                 new MarkerInfo(
                         level.dimension().location(), position, readMarkedStructures(structures));
         StructureValue value = StructureValueCalculator.calculate(level, markerInfo);
+        writeAnalysisResult(markerData, value);
+        return markerData;
+    }
+
+    /** Writes the versioned exact-analysis payload while keeping unsupported values non-readable. */
+    static void writeAnalysisResult(CompoundTag markerData, StructureValue value) {
         markerData.putInt(ALGORITHM_VERSION_TAG, ALGORITHM_VERSION);
+        markerData.putString(RANDOM_PROBABILITY_SPACE_TAG, IdealRandomProbabilitySpace1201.ID);
         markerData.putDouble(DIMENSION_VALUE_TAG, value.dimensionValue());
         markerData.putString(ANALYSIS_STATUS_TAG, value.status().name());
         markerData.putFloat(ANALYSIS_LUCK_TAG, value.luck());
@@ -213,9 +228,9 @@ public class StructMarkerItem extends Item {
                 entry.putString("JsonPointer", diagnostic.jsonPointer());
             }
             ListTag callPath = new ListTag();
-            diagnostic.callPath().forEach(
-                    pathElement ->
-                            callPath.add(net.minecraft.nbt.StringTag.valueOf(pathElement)));
+            diagnostic
+                    .callPath()
+                    .forEach(pathElement -> callPath.add(StringTag.valueOf(pathElement)));
             entry.put("CallPath", callPath);
             diagnostics.add(entry);
         }
@@ -225,7 +240,38 @@ public class StructMarkerItem extends Item {
         } else {
             markerData.remove(STRUCTURE_VALUE_TAG);
         }
-        return markerData;
+    }
+
+    static AnalysisStatus analysisStatus(CompoundTag markerData) {
+        if (!markerData.contains(ALGORITHM_VERSION_TAG, Tag.TAG_ANY_NUMERIC)
+                || markerData.getInt(ALGORITHM_VERSION_TAG) != ALGORITHM_VERSION) {
+            return AnalysisStatus.LEGACY;
+        }
+        try {
+            AnalysisStatus status = AnalysisStatus.valueOf(markerData.getString(ANALYSIS_STATUS_TAG));
+            if (!markerData.contains(RANDOM_PROBABILITY_SPACE_TAG, Tag.TAG_STRING)
+                    || !IdealRandomProbabilitySpace1201.ID.equals(
+                            markerData.getString(RANDOM_PROBABILITY_SPACE_TAG))
+                    || !hasFiniteNumber(markerData, DIMENSION_VALUE_TAG)
+                    || markerData.getDouble(DIMENSION_VALUE_TAG) < 0.0D
+                    || !hasFiniteNumber(markerData, ANALYSIS_LUCK_TAG)
+                    || !markerData.contains(DIAGNOSTICS_TAG, Tag.TAG_LIST)
+                    || status == AnalysisStatus.LEGACY) {
+                return AnalysisStatus.UNSUPPORTED;
+            }
+            if (status == AnalysisStatus.EXACT
+                    && (!hasFiniteNumber(markerData, STRUCTURE_VALUE_TAG)
+                            || markerData.getDouble(STRUCTURE_VALUE_TAG) < 0.0D)) {
+                return AnalysisStatus.UNSUPPORTED;
+            }
+            return status;
+        } catch (IllegalArgumentException exception) {
+            return AnalysisStatus.UNSUPPORTED;
+        }
+    }
+
+    private static boolean hasFiniteNumber(CompoundTag tag, String key) {
+        return tag.contains(key, Tag.TAG_ANY_NUMERIC) && Double.isFinite(tag.getDouble(key));
     }
 
     private static List<MarkedStructure> readMarkedStructures(ListTag structureTags) {
@@ -257,21 +303,42 @@ public class StructMarkerItem extends Item {
 
     private static ListTag findStructures(ServerLevel level, BlockPos position) {
         ListTag structures = new ListTag();
+        List<CompoundTag> discovered = new ArrayList<>();
         StructureManager structureManager = level.structureManager();
         Registry<Structure> structureRegistry =
                 level.registryAccess().registryOrThrow(Registries.STRUCTURE);
 
         for (Structure structure : structureManager.getAllStructuresAt(position).keySet()) {
-            StructureStart start = structureManager.getStructureAt(position, structure);
-            if (!start.isValid()) {
-                continue;
-            }
+            for (StructureStart start :
+                    structureManager.startsForStructure(SectionPos.of(position), structure)) {
+                if (!start.isValid() || !start.getBoundingBox().isInside(position)) {
+                    continue;
+                }
 
-            ResourceLocation structureId = structureRegistry.getKey(structure);
-            if (structureId != null) {
-                structures.add(createStructureData(structureId, start));
+                ResourceLocation structureId = structureRegistry.getKey(structure);
+                if (structureId != null) {
+                    discovered.add(createStructureData(structureId, start));
+                }
             }
         }
+        discovered.stream()
+                .sorted(
+                        Comparator.comparing((CompoundTag tag) -> tag.getString("Id"))
+                                .thenComparingInt(tag -> tag.getInt("StartChunkX"))
+                                .thenComparingInt(tag -> tag.getInt("StartChunkZ"))
+                                .thenComparingInt(
+                                        tag -> tag.getCompound("Bounds").getInt("MinX"))
+                                .thenComparingInt(
+                                        tag -> tag.getCompound("Bounds").getInt("MinY"))
+                                .thenComparingInt(
+                                        tag -> tag.getCompound("Bounds").getInt("MinZ"))
+                                .thenComparingInt(
+                                        tag -> tag.getCompound("Bounds").getInt("MaxX"))
+                                .thenComparingInt(
+                                        tag -> tag.getCompound("Bounds").getInt("MaxY"))
+                                .thenComparingInt(
+                                        tag -> tag.getCompound("Bounds").getInt("MaxZ")))
+                .forEach(structures::add);
         return structures;
     }
 

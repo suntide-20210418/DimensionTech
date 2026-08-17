@@ -5,6 +5,8 @@ import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
+import com.suntide_20210418.dimensiontech.utils.EnchantmentMarkConverter;
+import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
 import com.suntide_20210418.dimensiontech.utils.LootTableLottery;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
@@ -198,7 +200,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                 null,
                                 getDrawLuck(),
                                 getDrawParallel());
-                loot.forEach(stack -> mergeLootStack(mergedLoot, stack));
+                FullDurabilityLoot.normalize(EnchantmentMarkConverter.convert(loot))
+                        .forEach(stack -> mergeLootStack(mergedLoot, stack));
             }
         }
 
@@ -276,7 +279,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private List<ItemStack> outputLoot(AdjacentOutputs outputs, List<ItemStack> stacks) {
         List<ItemStack> remainders = new ArrayList<>();
         for (ItemStack stack : stacks) {
-            ItemStack remainder = stack.copy();
+            ItemStack remainder = FullDurabilityLoot.normalize(stack);
             for (BlockEntity meInterface : outputs.meInterfaces()) {
                 remainder = Ae2Integration.insertIntoInterfaceNetwork(meInterface, remainder);
                 if (remainder.isEmpty()) {

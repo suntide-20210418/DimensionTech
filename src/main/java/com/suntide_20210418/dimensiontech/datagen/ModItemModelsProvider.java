@@ -14,8 +14,12 @@ public class ModItemModelsProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
-        String itemName = ResourceLocationHelper.getPath(ModItems.STRUCT_MARKER_ID);
-        withExistingParent(itemName, ResourceLocationHelper.vanilla("item/generated"))
-                .texture("layer0", ResourceLocationHelper.itemModelTexture(itemName));
+        String markerName = ResourceLocationHelper.getPath(ModItems.STRUCT_MARKER_ID);
+        withExistingParent(markerName, ResourceLocationHelper.vanilla("item/generated"))
+                .texture("layer0", ResourceLocationHelper.itemModelTexture(markerName));
+
+        String enchantmentMarkName = ResourceLocationHelper.getPath(ModItems.ENCHANTMENT_MARK_ID);
+        withExistingParent(enchantmentMarkName, ResourceLocationHelper.vanilla("item/generated"))
+                .texture("layer0", ResourceLocationHelper.vanilla("item/echo_shard"));
     }
 }

@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import com.mojang.serialization.DataResult;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -16,11 +17,20 @@ public final class PersistentRandomSequenceSnapshot1201 {
         CompoundTag saved = level.getRandomSequences().save(new CompoundTag());
         Tag encoded = saved.get(id.toString());
         if (encoded == null) {
-            DataResult<Tag> initial = RandomSequence.CODEC.encodeStart(
-                    NbtOps.INSTANCE, new RandomSequence(level.getSeed(), id));
-            encoded = initial.result().orElseThrow(() -> new IllegalStateException(
-                    initial.error().map(DataResult.PartialResult::message).orElse(
-                            "Could not encode initial random sequence " + id)));
+            DataResult<Tag> initial =
+                    RandomSequence.CODEC.encodeStart(
+                            NbtOps.INSTANCE, new RandomSequence(level.getSeed(), id));
+            encoded =
+                    initial.result()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    initial.error()
+                                                            .map(DataResult.PartialResult::message)
+                                                            .orElse(
+                                                                    "Could not encode initial"
+                                                                            + " random sequence "
+                                                                            + id)));
         }
         return decode(encoded, id);
     }

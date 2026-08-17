@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+
 import org.junit.jupiter.api.Test;
 
 class XoroshiroState1201Test {
@@ -18,12 +19,14 @@ class XoroshiroState1201Test {
         state = bounded.state();
 
         var floatDraw = state.nextFloat();
-        assertEquals(Float.floatToRawIntBits(runtime.nextFloat()),
+        assertEquals(
+                Float.floatToRawIntBits(runtime.nextFloat()),
                 Float.floatToRawIntBits(floatDraw.value()));
         state = floatDraw.state();
 
         var doubleDraw = state.nextDouble();
-        assertEquals(Double.doubleToRawLongBits(runtime.nextDouble()),
+        assertEquals(
+                Double.doubleToRawLongBits(runtime.nextDouble()),
                 Double.doubleToRawLongBits(doubleDraw.value()));
         state = doubleDraw.state();
 

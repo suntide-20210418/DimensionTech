@@ -11,13 +11,15 @@ public final class Reachability {
             FiniteDistribution<T> distribution, PositiveMassVisitor<T> visitor) {
         Objects.requireNonNull(distribution, "distribution");
         Objects.requireNonNull(visitor, "visitor");
-        distribution.masses().forEach((state, mass) -> {
-            if (!mass.isZero()) visitor.visit(state, mass);
-        });
+        distribution
+                .masses()
+                .forEach(
+                        (state, mass) -> {
+                            if (!mass.isZero()) visitor.visit(state, mass);
+                        });
     }
 
-    public static UnsupportedMechanism unsupported(
-            String type, ExactProbability inboundMass) {
+    public static UnsupportedMechanism unsupported(String type, ExactProbability inboundMass) {
         if (inboundMass.isZero()) {
             throw new IllegalArgumentException("zero-mass nodes must not be interpreted");
         }

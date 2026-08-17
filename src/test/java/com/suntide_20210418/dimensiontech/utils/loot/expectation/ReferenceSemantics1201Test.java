@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.minecraft.resources.ResourceLocation;
+
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 class ReferenceSemantics1201Test {
     private static final ResourceLocation ID =
@@ -12,10 +15,10 @@ class ReferenceSemantics1201Test {
 
     @Test
     void missingAndRecursiveTablesProduceExactEmptyOutputWithWarnings() {
-        LootExpectationResult missing = ReferenceSemantics1201.emptyTable(
-                ReferenceSemantics1201.missingTable(ID));
-        LootExpectationResult recursive = ReferenceSemantics1201.emptyTable(
-                ReferenceSemantics1201.recursiveTable(ID));
+        LootExpectationResult missing =
+                ReferenceSemantics1201.emptyTable(ReferenceSemantics1201.missingTable(ID));
+        LootExpectationResult recursive =
+                ReferenceSemantics1201.emptyTable(ReferenceSemantics1201.recursiveTable(ID));
 
         assertEquals(AnalysisStatus.EXACT, missing.status());
         assertTrue(missing.measure().isEmpty());
@@ -31,6 +34,18 @@ class ReferenceSemantics1201Test {
         assertEquals("false", suffix(ReferenceSemantics1201.recursivePredicate(ID)));
         assertEquals("identity", suffix(ReferenceSemantics1201.missingFunction(ID)));
         assertEquals("identity", suffix(ReferenceSemantics1201.recursiveFunction(ID)));
+    }
+
+    @Test
+    void contextualWarningsRetainOwnerPointerAndCallPath() {
+        ResourceLocation owner =
+                ResourceLocation.fromNamespaceAndPath("dimension_tech", "gametest/root");
+        List<String> path = List.of(owner.toString(), ID.toString());
+        Diagnostic diagnostic = ReferenceSemantics1201.missingFunction(ID, owner, "/functions/0/name", path);
+
+        assertEquals(owner, diagnostic.lootTableId());
+        assertEquals("/functions/0/name", diagnostic.jsonPointer());
+        assertEquals(path, diagnostic.callPath());
     }
 
     private static String suffix(Diagnostic diagnostic) {

@@ -2,24 +2,24 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.google.gson.JsonParser;
+
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
-import com.google.gson.JsonParser;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
 
 class ExactRandomSemantics1201Test {
     @Test
-    void constantIntegerProviderUsesMinecraftFloatFloorInsteadOfJavaTruncation() {
-        assertEquals(
-                -2,
-                JsonLootTableExecutor.constantIntValue(JsonParser.parseString("-1.25")));
+    void constantIntegerProviderUsesNumberProviderFloatRounding() {
+        assertEquals(-1, ExpectationTestSupport.constantIntValue(JsonParser.parseString("-1.25")));
         assertEquals(
                 16_777_216,
-                JsonLootTableExecutor.constantIntValue(JsonParser.parseString("16777217")));
+                ExpectationTestSupport.constantIntValue(JsonParser.parseString("16777217")));
     }
 
     @Test
@@ -30,8 +30,9 @@ class ExactRandomSemantics1201Test {
         assertEquals(ExactProbability.of(1, 3), result.distribution().masses().get(0));
         assertEquals(ExactProbability.of(1, 3), result.distribution().masses().get(2));
         assertEquals(
-                List.of(new ExactRandomSemantics1201.RandomCall(
-                        ExactRandomSemantics1201.RandomMethod.NEXT_INT_BOUND, 3)),
+                List.of(
+                        new ExactRandomSemantics1201.RandomCall(
+                                ExactRandomSemantics1201.RandomMethod.NEXT_INT_BOUND, 3)),
                 result.calls());
     }
 
@@ -64,9 +65,8 @@ class ExactRandomSemantics1201Test {
     void nextFloatComparisonUsesAllTwentyFourOutputBits() {
         var never = ExactRandomSemantics1201.nextFloatLessThan(0.0F).distribution();
         var always = ExactRandomSemantics1201.nextFloatLessThan(1.0F).distribution();
-        var smallestPositive = ExactRandomSemantics1201
-                .nextFloatLessThan(Float.intBitsToFloat(1))
-                .distribution();
+        var smallestPositive =
+                ExactRandomSemantics1201.nextFloatLessThan(Float.intBitsToFloat(1)).distribution();
 
         assertFalse(never.masses().containsKey(true));
         assertFalse(always.masses().containsKey(false));
@@ -84,30 +84,36 @@ class ExactRandomSemantics1201Test {
         assertEquals(ExactProbability.of(1, 2), result.distribution().masses().get(1));
         assertEquals(ExactProbability.of(1, 4), result.distribution().masses().get(2));
         assertEquals(2, result.calls().size());
-        assertTrue(result.calls().stream().allMatch(
-                call -> call.method() == ExactRandomSemantics1201.RandomMethod.NEXT_FLOAT));
+        assertTrue(
+                result.calls().stream()
+                        .allMatch(
+                                call ->
+                                        call.method()
+                                                == ExactRandomSemantics1201.RandomMethod
+                                                        .NEXT_FLOAT));
     }
 
     @Test
-    void zeroLuckCollapsesUniformBonusWithoutRandomCall() {
-        var result = ExactRandomSemantics1201.uniformFloatTimesLuckFloor(
-                0.0F, 3.0F, 0.0F, 10);
+    void zeroLuckCollapsesUniformBonusButStillConsumesNextFloat() {
+        var result = ExactRandomSemantics1201.uniformFloatTimesLuckFloor(0.0F, 3.0F, 0.0F, 10);
 
         assertEquals(Map.of(0, ExactProbability.ONE), result.distribution().masses());
-        assertTrue(result.calls().isEmpty());
+        assertEquals(
+                List.of(
+                        new ExactRandomSemantics1201.RandomCall(
+                                ExactRandomSemantics1201.RandomMethod.NEXT_FLOAT, 0)),
+                result.calls());
     }
 
     @Test
     void uniformFloatBonusEnumeratesEveryFloatOutcomeExactly() {
-        var result = ExactRandomSemantics1201.uniformFloatTimesLuckFloor(
-                0.0F, 2.0F, 1.0F, 10);
+        var result = ExactRandomSemantics1201.uniformFloatTimesLuckFloor(0.0F, 2.0F, 1.0F, 10);
 
         assertEquals(ExactProbability.of(1, 2), result.distribution().masses().get(0));
         assertEquals(ExactProbability.of(1, 2), result.distribution().masses().get(1));
         assertEquals(1, result.calls().size());
         assertEquals(
-                ExactRandomSemantics1201.RandomMethod.NEXT_FLOAT,
-                result.calls().get(0).method());
+                ExactRandomSemantics1201.RandomMethod.NEXT_FLOAT, result.calls().get(0).method());
     }
 
     @Test
@@ -130,11 +136,12 @@ class ExactRandomSemantics1201Test {
         var result = ExactRandomSemantics1201.shuffle(List.of("a", "b", "c"), 10);
 
         assertEquals(6, result.distribution().masses().size());
-        assertTrue(result.distribution().masses().values().stream()
-                .allMatch(mass -> mass.equals(ExactProbability.of(1, 6))));
-        assertEquals(List.of(3, 2), result.calls().stream()
-                .map(ExactRandomSemantics1201.RandomCall::bound)
-                .toList());
+        assertTrue(
+                result.distribution().masses().values().stream()
+                        .allMatch(mass -> mass.equals(ExactProbability.of(1, 6))));
+        assertEquals(
+                List.of(3, 2),
+                result.calls().stream().map(ExactRandomSemantics1201.RandomCall::bound).toList());
     }
 
     @Test
@@ -152,8 +159,8 @@ class ExactRandomSemantics1201Test {
 
     @Test
     void degenerateUniformSetDamageDoesNotCallRandom() {
-        var result = ExactRandomSemantics1201.uniformFloatSetDamage(
-                0.25F, 0.25F, false, 0, 100, 101);
+        var result =
+                ExactRandomSemantics1201.uniformFloatSetDamage(0.25F, 0.25F, false, 0, 100, 101);
 
         assertEquals(Map.of(75, ExactProbability.ONE), result.distribution().masses());
         assertTrue(result.calls().isEmpty());
@@ -182,7 +189,8 @@ class ExactRandomSemantics1201Test {
                         ExactRandomSemantics1201.RandomMethod.NEXT_FLOAT,
                         ExactRandomSemantics1201.RandomMethod.NEXT_FLOAT),
                 result.calls().stream().map(ExactRandomSemantics1201.RandomCall::method).toList());
-        assertEquals(List.of(3, 3, 0, 0),
+        assertEquals(
+                List.of(3, 3, 0, 0),
                 result.calls().stream().map(ExactRandomSemantics1201.RandomCall::bound).toList());
     }
 }
