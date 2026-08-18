@@ -3,12 +3,10 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import net.minecraft.util.Mth;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.util.Mth;
 
 /** Ordered LootPool expansion and selection for one concrete 1.20.1 Xoroshiro state. */
 public final class StatefulLootPool1201 {
@@ -256,7 +254,8 @@ public final class StatefulLootPool1201 {
             return Expansion.exact(List.of(), conditions.randomState(), true);
         }
         if (!entry.has("type")) {
-            return Expansion.unsupported(conditions.randomState(), pointer, "Entry type is missing");
+            return Expansion.unsupported(
+                    conditions.randomState(), pointer, "Entry type is missing");
         }
         String type = stringField(entry, "type");
         if (type == null) {
@@ -308,7 +307,9 @@ public final class StatefulLootPool1201 {
                 expanded = tagExpander.expand(entry);
             } catch (RuntimeException exception) {
                 return Expansion.unsupported(
-                        conditions.randomState(), pointer + "/name", malformedTagMessage(exception));
+                        conditions.randomState(),
+                        pointer + "/name",
+                        malformedTagMessage(exception));
             }
             if (expanded == null) {
                 return Expansion.unsupported(
@@ -317,7 +318,9 @@ public final class StatefulLootPool1201 {
             for (JsonObject value : expanded) {
                 if (value == null) {
                     return Expansion.unsupported(
-                            conditions.randomState(), pointer, "Tag expansion returned a null entry");
+                            conditions.randomState(),
+                            pointer,
+                            "Tag expansion returned a null entry");
                 }
             }
             if (expanded.isEmpty()) {
@@ -384,7 +387,8 @@ public final class StatefulLootPool1201 {
         }
         Integer quality = integerField(entry, "quality", 0);
         if (quality == null) {
-            return WeightResult.unsupported(pointer + "/quality", "Entry quality is not an integer");
+            return WeightResult.unsupported(
+                    pointer + "/quality", "Entry quality is not an integer");
         }
         float adjusted = (float) weight + (float) quality * luck;
         if (!Float.isFinite(adjusted)) {
@@ -397,9 +401,8 @@ public final class StatefulLootPool1201 {
     private static String stringField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             return value.getAsString();
         } catch (RuntimeException exception) {
@@ -410,9 +413,8 @@ public final class StatefulLootPool1201 {
     private static Boolean booleanField(JsonObject object, String name, boolean defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isBoolean()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean())
+            return null;
         try {
             return value.getAsBoolean();
         } catch (RuntimeException exception) {
@@ -423,9 +425,8 @@ public final class StatefulLootPool1201 {
     private static Integer integerField(JsonObject object, String name, int defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isNumber()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber())
+            return null;
         try {
             return value.getAsInt();
         } catch (RuntimeException exception) {

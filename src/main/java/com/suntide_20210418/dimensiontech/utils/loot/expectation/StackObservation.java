@@ -1,10 +1,9 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
+import java.util.Objects;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
-
-import java.util.Objects;
 
 /** The complete terminal observation used by structure-value calculation. */
 public record StackObservation(Item item, int count, Rarity rarity) {

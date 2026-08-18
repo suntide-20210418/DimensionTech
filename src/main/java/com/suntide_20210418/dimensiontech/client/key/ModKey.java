@@ -19,12 +19,13 @@ public final class ModKey {
     public static final String KEY_CATEGORY = TranslateHelper.keyCategory("main");
 
     // 1. 创建按键绑定
-    public static final KeyMapping MODE_SWITCH_KEY = new KeyMapping(
-            TranslateHelper.key("switch"), // key translation key
-            InputConstants.Type.KEYSYM,      // 按键类型
-            GLFW.GLFW_KEY_V,                 // 默认键位（V键）
-            KEY_CATEGORY            // 按键分类
-    );
+    public static final KeyMapping MODE_SWITCH_KEY =
+            new KeyMapping(
+                    TranslateHelper.key("mark_structure"), // key translation key
+                    InputConstants.Type.KEYSYM, // 按键类型
+                    GLFW.GLFW_KEY_V, // 默认键位（V键）
+                    KEY_CATEGORY // 按键分类
+                    );
 
     @SubscribeEvent
     public static void registerKeyBindings(RegisterKeyMappingsEvent event) {

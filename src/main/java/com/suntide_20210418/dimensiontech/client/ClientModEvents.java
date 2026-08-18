@@ -15,8 +15,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
         value = Dist.CLIENT)
 public final class ClientModEvents {
 
-    private ClientModEvents() {
-    }
+    private ClientModEvents() {}
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {

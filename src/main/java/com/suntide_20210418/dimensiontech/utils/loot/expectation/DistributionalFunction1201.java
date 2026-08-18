@@ -6,7 +6,11 @@ import com.google.gson.JsonObject;
 import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactRandomSemantics1201.RandomCall;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactRandomSemantics1201.RandomMethod;
-
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -32,12 +36,6 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 /** Linear StackState function kernels with lazy finite branching. */
 public final class DistributionalFunction1201 {
@@ -230,7 +228,8 @@ public final class DistributionalFunction1201 {
             }
             JsonObject function = element.getAsJsonObject();
             if (!function.has("function")) {
-                return ExpectedEvaluation.unsupported(pointer + "/function", "Function type is missing");
+                return ExpectedEvaluation.unsupported(
+                        pointer + "/function", "Function type is missing");
             }
             if (stringField(function, "function") == null) {
                 return ExpectedEvaluation.unsupported(
@@ -445,12 +444,14 @@ public final class DistributionalFunction1201 {
                         counts.distribution()
                                 .flatMap(
                                         value -> {
-                                            ItemStack output = input.stack();
-                                            int count = add ? output.getCount() + value : value;
-                                            output.setCount(
-                                                    Mth.clamp(count, 0, output.getMaxStackSize()));
+                                            int count = add ? input.count() + value : value;
                                             return RandomTraceDistribution.singleton(
-                                                    new StackState(output));
+                                                    input.withCount(
+                                                            Mth.clamp(
+                                                                    count,
+                                                                    0,
+                                                                    input.stack()
+                                                                            .getMaxStackSize())));
                                         },
                                         maxStates));
             } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
@@ -509,18 +510,19 @@ public final class DistributionalFunction1201 {
                 } else {
                     return Evaluation.unsupported(
                             pointer + "/damage", "Unsupported damage provider");
-            }
-            if (context.fullDurability()) {
-                ItemStack output = FullDurabilityLoot.normalize(input.stack());
-                StackState fullDurability = new StackState(output);
+                }
+                if (context.fullDurability()) {
+                    ItemStack output = FullDurabilityLoot.normalize(input.stack());
+                    StackState fullDurability = new StackState(output);
+                    return Evaluation.exact(
+                            RandomTraceDistribution.fromRandomResult(damages)
+                                    .flatMap(
+                                            ignored ->
+                                                    RandomTraceDistribution.singleton(
+                                                            fullDurability),
+                                            maxStates));
+                }
                 return Evaluation.exact(
-                        RandomTraceDistribution.fromRandomResult(damages)
-                                .flatMap(
-                                        ignored ->
-                                                RandomTraceDistribution.singleton(fullDurability),
-                                        maxStates));
-            }
-            return Evaluation.exact(
                         RandomTraceDistribution.fromRandomResult(damages)
                                 .flatMap(
                                         value -> {
@@ -785,8 +787,7 @@ public final class DistributionalFunction1201 {
                             ? stringField(function, "destination")
                             : "minecraft:on_treasure_maps";
             if (destinationName == null) {
-                return Evaluation.unsupported(
-                        pointer + "/destination", "Invalid structure tag");
+                return Evaluation.unsupported(pointer + "/destination", "Invalid structure tag");
             }
             if (destinationName.startsWith("#")) {
                 destinationName = destinationName.substring(1);
@@ -814,13 +815,11 @@ public final class DistributionalFunction1201 {
                 return Evaluation.unsupported(pointer + "/zoom", "Invalid map zoom");
             }
             if (radiusValue == null) {
-                return Evaluation.unsupported(
-                        pointer + "/search_radius", "Invalid search radius");
+                return Evaluation.unsupported(pointer + "/search_radius", "Invalid search radius");
             }
             if (skipKnownValue == null) {
                 return Evaluation.unsupported(
-                        pointer + "/skip_existing_chunks",
-                        "Invalid skip_existing_chunks boolean");
+                        pointer + "/skip_existing_chunks", "Invalid skip_existing_chunks boolean");
             }
             int zoom = zoomValue;
             int radius = radiusValue;
@@ -927,9 +926,7 @@ public final class DistributionalFunction1201 {
     private static String type(JsonObject object) {
         if (!object.has("type")) return "";
         JsonElement value = object.get("type");
-        return value != null
-                        && value.isJsonPrimitive()
-                        && value.getAsJsonPrimitive().isString()
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
                 ? stringValue(value)
                 : "";
     }
@@ -937,9 +934,7 @@ public final class DistributionalFunction1201 {
     private static String functionType(JsonObject object) {
         if (!object.has("function")) return "";
         JsonElement value = object.get("function");
-        return value != null
-                        && value.isJsonPrimitive()
-                        && value.getAsJsonPrimitive().isString()
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
                 ? stringValue(value)
                 : "";
     }
@@ -947,9 +942,8 @@ public final class DistributionalFunction1201 {
     private static String stringField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             return value.getAsString();
         } catch (RuntimeException exception) {
@@ -975,13 +969,10 @@ public final class DistributionalFunction1201 {
         }
     }
 
-    private static Boolean booleanField(
-            JsonObject object, String name, boolean defaultValue) {
+    private static Boolean booleanField(JsonObject object, String name, boolean defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        return value != null
-                        && value.isJsonPrimitive()
-                        && value.getAsJsonPrimitive().isBoolean()
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean()
                 ? value.getAsBoolean()
                 : null;
     }
@@ -989,9 +980,8 @@ public final class DistributionalFunction1201 {
     private static Integer integerField(JsonObject object, String name, int defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isNumber()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber())
+            return null;
         try {
             return value.getAsInt();
         } catch (RuntimeException exception) {
@@ -1072,8 +1062,7 @@ public final class DistributionalFunction1201 {
 
         public static ExpectedEvaluation unsupported(
                 String pointer, String message, EvaluationFailureKind failureKind) {
-            return new ExpectedEvaluation(
-                    false, null, false, false, pointer, message, failureKind);
+            return new ExpectedEvaluation(false, null, false, false, pointer, message, failureKind);
         }
 
         public static ExpectedEvaluation randomSemantics(String pointer, String message) {

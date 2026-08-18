@@ -3,15 +3,13 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import net.minecraft.util.Mth;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import net.minecraft.util.Mth;
 
 /** Exact finite pool branching with lazy reachability and ordered logical random calls. */
 public final class DistributionalLootPool1201 {
@@ -46,8 +44,7 @@ public final class DistributionalLootPool1201 {
                         poolPointer);
         return result.supported()
                 ? Evaluation.exact(result.distribution())
-                : Evaluation.unsupported(
-                        result.pointer(), result.message(), result.failureKind());
+                : Evaluation.unsupported(result.pointer(), result.message(), result.failureKind());
     }
 
     public static <T> ExecutionEvaluation<T> execute(
@@ -224,7 +221,8 @@ public final class DistributionalLootPool1201 {
         } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
             return ExpectedExecutionEvaluation.randomSemantics(pointer, exception.getMessage());
         } catch (RuntimeException exception) {
-            return ExpectedExecutionEvaluation.unsupported(pointer, malformedJsonMessage(exception));
+            return ExpectedExecutionEvaluation.unsupported(
+                    pointer, malformedJsonMessage(exception));
         }
     }
 
@@ -303,8 +301,7 @@ public final class DistributionalLootPool1201 {
         FiniteDistribution<Integer> rollCounts = FiniteDistribution.of(rollCountMasses);
 
         ExactProbability expectedRolls = ExactProbability.ZERO;
-        for (Map.Entry<Integer, ExactProbability> branch :
-                rollCounts.masses().entrySet()) {
+        for (Map.Entry<Integer, ExactProbability> branch : rollCounts.masses().entrySet()) {
             expectedRolls =
                     expectedRolls.add(
                             branch.getValue().multiply(ExactProbability.of(branch.getKey(), 1)));
@@ -313,10 +310,7 @@ public final class DistributionalLootPool1201 {
             return ExpectedExecutionEvaluation.exact(Map.of(), hasRandomCalls, 0, 0);
         }
         int maxRollCount =
-                rollCounts.masses().keySet().stream()
-                        .mapToInt(Integer::intValue)
-                        .max()
-                        .orElse(0);
+                rollCounts.masses().keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
 
         JsonElement entriesElement = pool.get("entries");
         if (entriesElement != null && !entriesElement.isJsonArray()) {
@@ -325,9 +319,7 @@ public final class DistributionalLootPool1201 {
         }
         RollEvaluation singleRoll =
                 singleRoll(
-                        entriesElement == null
-                                ? new JsonArray()
-                                : entriesElement.getAsJsonArray(),
+                        entriesElement == null ? new JsonArray() : entriesElement.getAsJsonArray(),
                         context,
                         maxStates,
                         tagExpander,
@@ -593,8 +585,7 @@ public final class DistributionalLootPool1201 {
 
         WeightResult weight = effectiveWeight(entry, context.luck(), pointer);
         if (!weight.supported()) {
-            return ExpansionEvaluation.unsupported(
-                    weight.pointer(), weight.message());
+            return ExpansionEvaluation.unsupported(weight.pointer(), weight.message());
         }
         // A non-positive effective weight is a runtime-proven unreachable entry.  Do not inspect
         // type-specific fields (which may be malformed) after this proof.
@@ -801,8 +792,7 @@ public final class DistributionalLootPool1201 {
     private static WeightResult effectiveWeight(JsonObject entry, float luck, String pointer) {
         Integer weight = integerField(entry, "weight", 1);
         if (weight == null) {
-            return WeightResult.unsupported(
-                    pointer + "/weight", "Entry weight is not an integer");
+            return WeightResult.unsupported(pointer + "/weight", "Entry weight is not an integer");
         }
         Integer quality = integerField(entry, "quality", 0);
         if (quality == null) {
@@ -820,9 +810,8 @@ public final class DistributionalLootPool1201 {
     private static String stringField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             return value.getAsString();
         } catch (RuntimeException exception) {
@@ -833,9 +822,8 @@ public final class DistributionalLootPool1201 {
     private static Boolean booleanField(JsonObject object, String name, boolean defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isBoolean()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean())
+            return null;
         try {
             return value.getAsBoolean();
         } catch (RuntimeException exception) {
@@ -846,9 +834,8 @@ public final class DistributionalLootPool1201 {
     private static Integer integerField(JsonObject object, String name, int defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isNumber()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber())
+            return null;
         try {
             return value.getAsInt();
         } catch (RuntimeException exception) {
@@ -923,8 +910,7 @@ public final class DistributionalLootPool1201 {
             return new SelectionEvaluation<>(false, null, pointer, message, failureKind);
         }
 
-        public static <T> SelectionEvaluation<T> randomSemantics(
-                String pointer, String message) {
+        public static <T> SelectionEvaluation<T> randomSemantics(String pointer, String message) {
             return unsupported(pointer, message, EvaluationFailureKind.RANDOM_SEMANTICS);
         }
     }
@@ -1046,8 +1032,7 @@ public final class DistributionalLootPool1201 {
             return new ExecutionEvaluation<>(false, null, pointer, message, failureKind);
         }
 
-        private static <T> ExecutionEvaluation<T> randomSemantics(
-                String pointer, String message) {
+        private static <T> ExecutionEvaluation<T> randomSemantics(String pointer, String message) {
             return unsupported(pointer, message, EvaluationFailureKind.RANDOM_SEMANTICS);
         }
     }

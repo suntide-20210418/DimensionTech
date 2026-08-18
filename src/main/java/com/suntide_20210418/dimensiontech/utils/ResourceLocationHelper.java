@@ -5,8 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class ResourceLocationHelper {
 
-    private ResourceLocationHelper() {
-    }
+    private ResourceLocationHelper() {}
 
     /**
      * 创建带有模组ID前缀的ResourceLocation

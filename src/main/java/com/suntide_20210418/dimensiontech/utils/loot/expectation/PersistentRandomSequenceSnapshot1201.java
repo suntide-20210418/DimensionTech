@@ -1,7 +1,6 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import com.mojang.serialization.DataResult;
-
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;

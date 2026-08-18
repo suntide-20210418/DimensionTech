@@ -24,7 +24,9 @@ public final class ModCreativeModeTabs {
                     () ->
                             CreativeModeTab.builder()
                                     .icon(() -> new ItemStack(ModItems.STRUCT_MARKER.get()))
-                                    .title(TranslateHelper.translate(TranslateHelper.itemGroup("tab")))
+                                    .title(
+                                            TranslateHelper.translate(
+                                                    TranslateHelper.itemGroup("tab")))
                                     .displayItems(
                                             (parameters, output) -> {
                                                 output.accept(ModItems.STRUCT_MARKER.get());

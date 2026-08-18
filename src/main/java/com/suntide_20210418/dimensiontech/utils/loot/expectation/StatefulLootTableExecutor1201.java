@@ -3,7 +3,14 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -13,15 +20,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /** Exact ordered table transition for an explicitly supplied Minecraft 1.20.1 RNG state. */
 public final class StatefulLootTableExecutor1201 {
@@ -99,18 +97,14 @@ public final class StatefulLootTableExecutor1201 {
             return Result.exact(
                     List.of(),
                     initialState,
-                    List.of(
-                            ReferenceSemantics1201.missingTable(
-                                    tableId, tableId, "", callPath)));
+                    List.of(ReferenceSemantics1201.missingTable(tableId, tableId, "", callPath)));
         }
         Object identity = resolved.get().identity();
         if (!activeTables.add(identity)) {
             return Result.exact(
                     List.of(),
                     initialState,
-                    List.of(
-                            ReferenceSemantics1201.recursiveTable(
-                                    tableId, tableId, "", callPath)));
+                    List.of(ReferenceSemantics1201.recursiveTable(tableId, tableId, "", callPath)));
         }
         try {
             JsonElement serialized = resolved.get().json();
@@ -128,10 +122,7 @@ public final class StatefulLootTableExecutor1201 {
                         initialState,
                         List.of(),
                         Diagnostic.unsupportedType(
-                                tableId,
-                                "/pools",
-                                callPath,
-                                "Loot table pools is not an array"));
+                                tableId, "/pools", callPath, "Loot table pools is not an array"));
             }
             JsonArray pools =
                     poolsElement == null ? new JsonArray() : poolsElement.getAsJsonArray();
@@ -140,12 +131,7 @@ public final class StatefulLootTableExecutor1201 {
             ArrayList<Diagnostic> diagnostics = new ArrayList<>();
             PredicateResolver predicateResolver =
                     new PredicateResolver(
-                            source,
-                            context,
-                            activePredicates,
-                            diagnostics,
-                            tableId,
-                            callPath);
+                            source, context, activePredicates, diagnostics, tableId, callPath);
             XoroshiroState1201 state = initialState;
             for (int poolIndex = 0; poolIndex < pools.size(); poolIndex++) {
                 String poolPointer = "/pools/" + poolIndex;
@@ -314,12 +300,7 @@ public final class StatefulLootTableExecutor1201 {
         ArrayList<StackState> outputs = new ArrayList<>();
         PredicateResolver predicateResolver =
                 new PredicateResolver(
-                        source,
-                        context,
-                        activePredicates,
-                        diagnostics,
-                        tableId,
-                        callPath);
+                        source, context, activePredicates, diagnostics, tableId, callPath);
         FunctionResolver functionResolver =
                 new FunctionResolver(
                         source,
@@ -386,9 +367,8 @@ public final class StatefulLootTableExecutor1201 {
     private static String stringField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             return value.getAsString();
         } catch (RuntimeException exception) {

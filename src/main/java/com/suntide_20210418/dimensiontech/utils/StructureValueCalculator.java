@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.utils;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.config.ModConfigs.ItemExpectationMethod;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
@@ -10,28 +11,43 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.DistributionalL
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.LootAnalysisContext;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackMeasure;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKey;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackMeasure;
-
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Rarity;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.function.ToDoubleFunction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
 public final class StructureValueCalculator {
     private StructureValueCalculator() {}
 
     public static StructureValue calculate(ServerLevel level, MarkerInfo markerInfo) {
+        return calculate(level, markerInfo, 0.0F);
+    }
+
+    public static StructureValue calculate(
+            ServerLevel level, MarkerInfo markerInfo, float luck) {
         double dimensionValue = ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension());
-        float luck = ModConfigs.STRUCTURE_VALUE.luck();
         List<Diagnostic> diagnostics = new ArrayList<>();
+        if (!Float.isFinite(luck)) {
+            diagnostics.add(new Diagnostic("VALUE_SEMANTICS", "Machine luck must be finite: " + luck));
+            return new StructureValue(
+                    AnalysisStatus.UNSUPPORTED,
+                    dimensionValue,
+                    0.0D,
+                    new StackMeasure(),
+                    List.copyOf(diagnostics));
+        }
         if (!Double.isFinite(dimensionValue) || dimensionValue < 0.0D) {
             diagnostics.add(
                     new Diagnostic(
@@ -42,18 +58,6 @@ public final class StructureValueCalculator {
                     AnalysisStatus.UNSUPPORTED,
                     0.0D,
                     0.0D,
-                    Float.isFinite(luck) ? luck : 0.0F,
-                    new StackMeasure(),
-                    List.copyOf(diagnostics));
-        }
-        if (!Float.isFinite(luck)) {
-            diagnostics.add(
-                    new Diagnostic("VALUE_SEMANTICS", "Configured luck must be finite: " + luck));
-            return new StructureValue(
-                    AnalysisStatus.UNSUPPORTED,
-                    dimensionValue,
-                    0.0D,
-                    0.0F,
                     new StackMeasure(),
                     List.copyOf(diagnostics));
         }
@@ -65,6 +69,9 @@ public final class StructureValueCalculator {
         AnalysisStatus status = discovery.status();
         List<ResourceLocation> roots = rootTablesForValue(discovery);
         LootAnalysisContext context = LootAnalysisContext.at(level, markerInfo.position(), luck);
+        if (ModConfigs.STRUCTURE_VALUE.itemExpectationMethod() == ItemExpectationMethod.SAMPLING) {
+            return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
+        }
         for (ResourceLocation root : roots) {
             var result =
                     DistributionalLootTableExecutor1201.evaluate(
@@ -82,29 +89,100 @@ public final class StructureValueCalculator {
                 measure = new StackMeasure();
             }
         }
+        if (status != AnalysisStatus.EXACT) {
+            return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
+        }
         double structureValue = 0.0D;
         if (status == AnalysisStatus.EXACT) {
             TerminalValueEvaluation valuation =
                     evaluateTerminalValue(
                             terminalMeasure,
-                            rarity -> ModConfigs.STRUCTURE_VALUE.rarityMultiplier(rarity),
+                            key -> ModConfigs.STRUCTURE_VALUE.itemMultiplier(key),
                             dimensionValue);
             if (!valuation.supported()) {
                 status = AnalysisStatus.UNSUPPORTED;
                 diagnostics.add(valuation.diagnostic());
+                return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
             } else {
-                structureValue = valuation.value();
+                structureValue = finalStructureValue(valuation.value());
             }
         }
         return new StructureValue(
                 status,
                 dimensionValue,
                 status == AnalysisStatus.EXACT ? structureValue : 0.0D,
-                luck,
                 measure,
                 terminalMeasure,
                 fullStackMeasureAvailable,
                 List.copyOf(diagnostics));
+    }
+
+    private static StructureValue sampledValue(
+            ServerLevel level,
+            MarkerInfo markerInfo,
+            DiscoveryResult discovery,
+            double dimensionValue,
+            float luck,
+            List<Diagnostic> diagnostics) {
+        if (discovery.status() != AnalysisStatus.EXACT) {
+            return new StructureValue(
+                    AnalysisStatus.UNSUPPORTED,
+                    dimensionValue,
+                    0.0D,
+                    new StackMeasure(),
+                    List.copyOf(diagnostics));
+        }
+        int samples = ModConfigs.STRUCTURE_VALUE.samplingCount();
+        LinkedHashMap<Item, Long> counts = new LinkedHashMap<>();
+        for (StructureLoot structure : discovery.structures()) {
+            for (ResourceLocation table : structure.lootTables()) {
+                List<ItemStack> outputs =
+                        LootTableLottery.draw(
+                                level,
+                                net.minecraft.world.phys.Vec3.atCenterOf(markerInfo.position()),
+                                List.of(table),
+                                null,
+                                luck,
+                                samples);
+                for (ItemStack stack : outputs) {
+                    if (!stack.isEmpty() && stack.getCount() > 0) {
+                        counts.merge(stack.getItem(), (long) stack.getCount(), Long::sum);
+                    }
+                }
+            }
+        }
+        LinkedHashMap<TerminalStackKey, ExactProbability> masses = new LinkedHashMap<>();
+        for (Map.Entry<Item, Long> entry : counts.entrySet()) {
+            masses.put(
+                    new TerminalStackKey(
+                            entry.getKey(), 1, new ItemStack(entry.getKey()).getRarity()),
+                    ExactProbability.of(entry.getValue(), samples));
+        }
+        TerminalStackMeasure sampledMeasure = TerminalStackMeasure.of(masses);
+        double value =
+                finalStructureValue(
+                        evaluateTerminalValue(
+                                        sampledMeasure,
+                                        key -> ModConfigs.STRUCTURE_VALUE.itemMultiplier(key),
+                                        dimensionValue)
+                                .value());
+        diagnostics.add(
+                new Diagnostic(
+                        "SAMPLING_APPROXIMATION",
+                        "Per-item expectations estimated from " + samples + " Monte Carlo samples"));
+        return new StructureValue(
+                AnalysisStatus.APPROXIMATE,
+                dimensionValue,
+                value,
+                new StackMeasure(),
+                sampledMeasure,
+                false,
+                List.copyOf(diagnostics));
+    }
+
+    /** Applies the final value compression after all configured multipliers are combined. */
+    private static double finalStructureValue(double rawValue) {
+        return Math.sqrt(rawValue) * 50;
     }
 
     /**
@@ -114,7 +192,7 @@ public final class StructureValueCalculator {
      */
     static TerminalValueEvaluation evaluateTerminalValue(
             TerminalStackMeasure terminalMeasure,
-            ToDoubleFunction<Rarity> rarityMultiplier,
+            ToDoubleFunction<TerminalStackKey> rarityMultiplier,
             double dimensionValue) {
         Objects.requireNonNull(terminalMeasure, "terminalMeasure");
         Objects.requireNonNull(rarityMultiplier, "rarityMultiplier");
@@ -127,7 +205,7 @@ public final class StructureValueCalculator {
             /* Keep both configured multipliers and the terminal expectation rational until the
              * value is committed to the legacy double/NBT boundary. */
             ExactProbability exactLootValue =
-                    terminalMeasure.exactRarityWeightedValueFromDouble(rarityMultiplier);
+                    terminalMeasure.exactItemWeightedValueFromDouble(rarityMultiplier);
             ExactProbability exactStructureValue =
                     exactLootValue.multiply(ExactProbability.fromDouble(dimensionValue));
             return TerminalValueEvaluation.exact(exactStructureValue.finiteDoubleValue());
@@ -190,23 +268,53 @@ public final class StructureValueCalculator {
             AnalysisStatus status,
             double dimensionValue,
             double structureValue,
-            float luck,
             StackMeasure measure,
             TerminalStackMeasure terminalMeasure,
             boolean fullStackMeasureAvailable,
             List<Diagnostic> diagnostics) {
+        /** Compatibility overload for callers compiled against the pre-extraction API. */
+        @Deprecated
         public StructureValue(
                 AnalysisStatus status,
                 double dimensionValue,
                 double structureValue,
-                float luck,
+                float ignoredLuck,
+                StackMeasure measure,
+                List<Diagnostic> diagnostics) {
+            this(status, dimensionValue, structureValue, measure, diagnostics);
+        }
+
+        /** Compatibility overload for callers compiled against the pre-extraction API. */
+        @Deprecated
+        public StructureValue(
+                AnalysisStatus status,
+                double dimensionValue,
+                double structureValue,
+                float ignoredLuck,
+                StackMeasure measure,
+                TerminalStackMeasure terminalMeasure,
+                boolean fullStackMeasureAvailable,
+                List<Diagnostic> diagnostics) {
+            this(
+                    status,
+                    dimensionValue,
+                    structureValue,
+                    measure,
+                    terminalMeasure,
+                    fullStackMeasureAvailable,
+                    diagnostics);
+        }
+
+        public StructureValue(
+                AnalysisStatus status,
+                double dimensionValue,
+                double structureValue,
                 StackMeasure measure,
                 List<Diagnostic> diagnostics) {
             this(
                     status,
                     dimensionValue,
                     structureValue,
-                    luck,
                     measure,
                     status == AnalysisStatus.EXACT
                             ? TerminalStackMeasure.from(measure)
@@ -224,10 +332,7 @@ public final class StructureValueCalculator {
                 throw new IllegalArgumentException(
                         "dimension value must be finite and non-negative: " + dimensionValue);
             }
-            if (!Float.isFinite(luck)) {
-                throw new IllegalArgumentException("luck must be finite: " + luck);
-            }
-            if (status != AnalysisStatus.EXACT) {
+            if (status == AnalysisStatus.UNSUPPORTED || status == AnalysisStatus.LEGACY) {
                 structureValue = 0.0D;
                 measure = new StackMeasure();
                 terminalMeasure = TerminalStackMeasure.empty();
@@ -246,6 +351,10 @@ public final class StructureValueCalculator {
 
         public double itemCount(net.minecraft.world.item.Item item) {
             return terminalMeasure.itemCountAsDouble(item);
+        }
+
+        public Map<net.minecraft.world.item.Item, ExactProbability> itemCounts() {
+            return terminalMeasure.exactItemCounts();
         }
     }
 }

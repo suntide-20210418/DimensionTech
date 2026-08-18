@@ -85,7 +85,8 @@ public final class EnchantmentMarkConverter {
                             combinedCounts.merge(enchantmentId, count, Math::addExact));
         } catch (ArithmeticException exception) {
             DimensionTechMod.LOGGER.warn(
-                    "Keeping enchanted loot unchanged because its enchantment mark count overflowed",
+                    "Keeping enchanted loot unchanged because its enchantment mark count"
+                            + " overflowed",
                     exception);
             return false;
         }
@@ -94,7 +95,8 @@ public final class EnchantmentMarkConverter {
             totalMarks = Math.addExact(totalMarks, count);
             if (totalMarks > MAX_MATERIALIZED_MARKS) {
                 DimensionTechMod.LOGGER.warn(
-                        "Keeping enchanted loot unchanged because this draw would create more than {} marks",
+                        "Keeping enchanted loot unchanged because this draw would create more than"
+                                + " {} marks",
                         MAX_MATERIALIZED_MARKS);
                 return false;
             }

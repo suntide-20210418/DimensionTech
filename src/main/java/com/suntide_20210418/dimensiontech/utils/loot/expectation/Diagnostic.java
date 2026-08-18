@@ -1,9 +1,8 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
-import net.minecraft.resources.ResourceLocation;
-
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.resources.ResourceLocation;
 
 public record Diagnostic(
         String code,

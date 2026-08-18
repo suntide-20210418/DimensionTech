@@ -1,35 +1,52 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
-import net.minecraft.resources.ResourceLocation;
-
 import java.util.List;
+import net.minecraft.resources.ResourceLocation;
 
 /** Missing and recursive reference behavior verified against Minecraft 1.20.1. */
 public final class ReferenceSemantics1201 {
     private ReferenceSemantics1201() {}
 
     public static Diagnostic missingTable(ResourceLocation id) {
-        return warning("TABLE", "MISSING_REFERENCE", id, "EMPTY table output", id, "", List.of(id.toString()));
+        return warning(
+                "TABLE",
+                "MISSING_REFERENCE",
+                id,
+                "EMPTY table output",
+                id,
+                "",
+                List.of(id.toString()));
     }
 
     public static Diagnostic recursiveTable(ResourceLocation id) {
-        return warning("TABLE", "RECURSIVE_REFERENCE", id, "EMPTY table output", id, "", List.of(id.toString()));
+        return warning(
+                "TABLE",
+                "RECURSIVE_REFERENCE",
+                id,
+                "EMPTY table output",
+                id,
+                "",
+                List.of(id.toString()));
     }
 
     public static Diagnostic missingPredicate(ResourceLocation id) {
-        return warning("PREDICATE", "MISSING_REFERENCE", id, "false", id, "", List.of(id.toString()));
+        return warning(
+                "PREDICATE", "MISSING_REFERENCE", id, "false", id, "", List.of(id.toString()));
     }
 
     public static Diagnostic recursivePredicate(ResourceLocation id) {
-        return warning("PREDICATE", "RECURSIVE_REFERENCE", id, "false", id, "", List.of(id.toString()));
+        return warning(
+                "PREDICATE", "RECURSIVE_REFERENCE", id, "false", id, "", List.of(id.toString()));
     }
 
     public static Diagnostic missingFunction(ResourceLocation id) {
-        return warning("FUNCTION", "MISSING_REFERENCE", id, "identity", id, "", List.of(id.toString()));
+        return warning(
+                "FUNCTION", "MISSING_REFERENCE", id, "identity", id, "", List.of(id.toString()));
     }
 
     public static Diagnostic recursiveFunction(ResourceLocation id) {
-        return warning("FUNCTION", "RECURSIVE_REFERENCE", id, "identity", id, "", List.of(id.toString()));
+        return warning(
+                "FUNCTION", "RECURSIVE_REFERENCE", id, "identity", id, "", List.of(id.toString()));
     }
 
     public static Diagnostic missingTable(

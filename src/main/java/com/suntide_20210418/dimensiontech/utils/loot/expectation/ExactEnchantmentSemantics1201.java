@@ -3,14 +3,6 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactRandomSemantics1201.RandomCall;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactRandomSemantics1201.RandomMethod;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.RandomTraceDistribution.Outcome;
-
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.item.EnchantedBookItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.EnchantmentInstance;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.EnchantedBookItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 
 /** Exact finite branching of EnchantmentHelper.enchantItem for Minecraft 1.20.1. */
 public final class ExactEnchantmentSemantics1201 {
@@ -29,9 +27,9 @@ public final class ExactEnchantmentSemantics1201 {
     /**
      * Result of the terminal-only enchantment transition.
      *
-     * <p>The transition deliberately does not expose the selected enchantment list.  Once all
-     * stack functions have run, only the terminal item/count/rarity key is observable by the
-     * valuation layer.  A failed result never contains a partial measure.
+     * <p>The transition deliberately does not expose the selected enchantment list. Once all stack
+     * functions have run, only the terminal item/count/rarity key is observable by the valuation
+     * layer. A failed result never contains a partial measure.
      */
     public record TerminalEvaluation(
             boolean supported,
@@ -85,8 +83,8 @@ public final class ExactEnchantmentSemantics1201 {
      *
      * <p>This is intentionally a separate API from {@link #enchantItemsMarginal}: the latter
      * materializes every distinct ordered enchantment list because a later function may inspect
-     * that list.  Here all functions are complete, so the source branches are reduced to exactly
-     * the two relevant events (no available enchantment and at least one available enchantment).
+     * that list. Here all functions are complete, so the source branches are reduced to exactly the
+     * two relevant events (no available enchantment and at least one available enchantment).
      */
     public static TerminalEvaluation enchantItemsTerminal(
             StackMeasure inputs,
@@ -97,9 +95,9 @@ public final class ExactEnchantmentSemantics1201 {
     }
 
     /**
-     * Variant that lets the caller carry whether the level provider itself performed a random
-     * call.  A plain PMF cannot retain that metadata, while the enchantment transition still
-     * reports its own calls exactly.
+     * Variant that lets the caller carry whether the level provider itself performed a random call.
+     * A plain PMF cannot retain that metadata, while the enchantment transition still reports its
+     * own calls exactly.
      */
     public static TerminalEvaluation enchantItemsTerminal(
             StackMeasure inputs,
@@ -114,11 +112,7 @@ public final class ExactEnchantmentSemantics1201 {
                     "", "Terminal state limit must be positive: " + maxStates);
         }
         return aggregateTerminal(
-                inputs.values().entrySet(),
-                levels,
-                treasure,
-                maxStates,
-                levelsHaveRandomCalls);
+                inputs.values().entrySet(), levels, treasure, maxStates, levelsHaveRandomCalls);
     }
 
     /** Exact terminal transition for a normalized finite input PMF. */
@@ -143,16 +137,12 @@ public final class ExactEnchantmentSemantics1201 {
                     "", "Terminal state limit must be positive: " + maxStates);
         }
         return aggregateTerminal(
-                inputs.masses().entrySet(),
-                levels,
-                treasure,
-                maxStates,
-                levelsHaveRandomCalls);
+                inputs.masses().entrySet(), levels, treasure, maxStates, levelsHaveRandomCalls);
     }
 
     /**
      * Preserves random-call metadata when the level provider is already represented by a traced
-     * PMF.  The trace is only used for its call-presence bit; no call trace is discarded before a
+     * PMF. The trace is only used for its call-presence bit; no call trace is discarded before a
      * caller has had an opportunity to account for it.
      */
     public static TerminalEvaluation enchantItemsTerminal(
@@ -162,10 +152,8 @@ public final class ExactEnchantmentSemantics1201 {
             int maxStates) {
         Objects.requireNonNull(levels, "levels");
         boolean levelCalls =
-                levels.masses().keySet().stream()
-                        .anyMatch(outcome -> !outcome.calls().isEmpty());
-        return enchantItemsTerminal(
-                inputs, levels.marginal(), treasure, maxStates, levelCalls);
+                levels.masses().keySet().stream().anyMatch(outcome -> !outcome.calls().isEmpty());
+        return enchantItemsTerminal(inputs, levels.marginal(), treasure, maxStates, levelCalls);
     }
 
     public static TerminalEvaluation enchantItemsTerminal(
@@ -175,10 +163,8 @@ public final class ExactEnchantmentSemantics1201 {
             int maxStates) {
         Objects.requireNonNull(levels, "levels");
         boolean levelCalls =
-                levels.masses().keySet().stream()
-                        .anyMatch(outcome -> !outcome.calls().isEmpty());
-        return enchantItemsTerminal(
-                inputs, levels.marginal(), treasure, maxStates, levelCalls);
+                levels.masses().keySet().stream().anyMatch(outcome -> !outcome.calls().isEmpty());
+        return enchantItemsTerminal(inputs, levels.marginal(), treasure, maxStates, levelCalls);
     }
 
     /** Convenience overload for one runtime stack and one deterministic base level. */
@@ -194,10 +180,7 @@ public final class ExactEnchantmentSemantics1201 {
 
     /** Convenience overload for one complete stack state and a level PMF. */
     public static TerminalEvaluation enchantItemTerminal(
-            StackState input,
-            FiniteDistribution<Integer> levels,
-            boolean treasure,
-            int maxStates) {
+            StackState input, FiniteDistribution<Integer> levels, boolean treasure, int maxStates) {
         Objects.requireNonNull(input, "input");
         return enchantItemsTerminal(
                 FiniteDistribution.singleton(input), levels, treasure, maxStates);
@@ -286,8 +269,7 @@ public final class ExactEnchantmentSemantics1201 {
             hasRandomCalls |= !perturbed.calls().isEmpty();
             for (Map.Entry<Integer, ExactProbability> adjusted :
                     perturbed.distribution().masses().entrySet()) {
-                ExactProbability branchMass =
-                        baseLevel.getValue().multiply(adjusted.getValue());
+                ExactProbability branchMass = baseLevel.getValue().multiply(adjusted.getValue());
                 List<EnchantmentInstance> available =
                         EnchantmentHelper.getAvailableEnchantmentResults(
                                 adjusted.getKey(), input, treasure);
@@ -301,8 +283,7 @@ public final class ExactEnchantmentSemantics1201 {
                 atLeastOne = atLeastOne.add(branchMass);
                 if (nonEmptyKey == null) {
                     EnchantmentInstance first = available.get(0);
-                    ItemStack representative =
-                            apply(input, List.of(SelectedEnchantment.of(first)));
+                    ItemStack representative = apply(input, List.of(SelectedEnchantment.of(first)));
                     if (!usesVanillaRarityMethod(representative.getItem())) {
                         return TerminalInputEvaluation.unsupported(
                                 "",
@@ -347,16 +328,15 @@ public final class ExactEnchantmentSemantics1201 {
         }
         if (values.size() > maxStates) {
             return TerminalInputEvaluation.randomSemantics(
-                    "", "Terminal input state space " + values.size() + " exceeds limit " + maxStates);
+                    "",
+                    "Terminal input state space " + values.size() + " exceeds limit " + maxStates);
         }
         return TerminalInputEvaluation.exact(TerminalStackMeasure.of(values), hasRandomCalls);
     }
 
     private static boolean usesVanillaRarityMethod(net.minecraft.world.item.Item item) {
         try {
-            return item.getClass()
-                            .getMethod("getRarity", ItemStack.class)
-                            .getDeclaringClass()
+            return item.getClass().getMethod("getRarity", ItemStack.class).getDeclaringClass()
                     == net.minecraft.world.item.Item.class;
         } catch (ReflectiveOperationException | SecurityException exception) {
             return false;
@@ -378,12 +358,7 @@ public final class ExactEnchantmentSemantics1201 {
         private static TerminalInputEvaluation unsupported(
                 String pointer, String message, EvaluationFailureKind failureKind) {
             return new TerminalInputEvaluation(
-                    false,
-                    TerminalStackMeasure.empty(),
-                    false,
-                    pointer,
-                    message,
-                    failureKind);
+                    false, TerminalStackMeasure.empty(), false, pointer, message, failureKind);
         }
 
         private static TerminalInputEvaluation randomSemantics(String pointer, String message) {

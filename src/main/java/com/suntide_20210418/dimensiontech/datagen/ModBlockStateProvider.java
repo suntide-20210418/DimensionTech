@@ -19,18 +19,23 @@ public class ModBlockStateProvider extends BlockStateProvider {
     protected void registerStatesAndModels() {
         Block miner = ModBlocks.TIER_1_MYTHIC_MINER.get();
         ModelFile model =
-                models()
-                        .cubeAll(
+                models().cubeAll(
                                 ModBlocks.TIER_1_MYTHIC_MINER_ID.getPath(),
                                 mcLoc("block/raw_iron_block"));
         simpleBlockWithItem(miner, model);
     }
 
     private <T extends Block> void blockItem(RegistryObject<T> block) {
-        simpleBlockItem(block.get(), new ModelFile.UncheckedModelFile(DimensionTechMod.MOD_ID + ":block/" + block.getId().getPath()));
+        simpleBlockItem(
+                block.get(),
+                new ModelFile.UncheckedModelFile(
+                        DimensionTechMod.MOD_ID + ":block/" + block.getId().getPath()));
     }
 
     private <T extends Block> void blockItem(RegistryObject<T> block, String append) {
-        simpleBlockItem(block.get(), new ModelFile.UncheckedModelFile(DimensionTechMod.MOD_ID + ":block/" + block.getId().getPath() + append));
+        simpleBlockItem(
+                block.get(),
+                new ModelFile.UncheckedModelFile(
+                        DimensionTechMod.MOD_ID + ":block/" + block.getId().getPath() + append));
     }
 }

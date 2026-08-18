@@ -36,11 +36,7 @@ public record LootExpectationResult(
     public static LootExpectationResult exactTerminal(
             TerminalStackMeasure terminalMeasure, List<Diagnostic> diagnostics) {
         return new LootExpectationResult(
-                AnalysisStatus.EXACT,
-                new StackMeasure(),
-                terminalMeasure,
-                false,
-                diagnostics);
+                AnalysisStatus.EXACT, new StackMeasure(), terminalMeasure, false, diagnostics);
     }
 
     public StackMeasure requireFullStackMeasure() {

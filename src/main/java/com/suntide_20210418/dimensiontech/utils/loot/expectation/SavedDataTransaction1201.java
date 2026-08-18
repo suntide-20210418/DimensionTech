@@ -1,15 +1,14 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.maps.MapIndex;
 import net.minecraft.world.level.storage.DimensionDataStorage;
-
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
 
 /** Server-thread transaction used to predict map SavedData writes and then restore them. */
 final class SavedDataTransaction1201 {

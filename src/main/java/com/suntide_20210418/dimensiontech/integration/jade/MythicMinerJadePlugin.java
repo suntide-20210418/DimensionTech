@@ -18,7 +18,6 @@ public final class MythicMinerJadePlugin implements IWailaPlugin {
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
-        registration.registerBlockComponent(
-                MythicMinerJadeProvider.INSTANCE, BaseMinerBlock.class);
+        registration.registerBlockComponent(MythicMinerJadeProvider.INSTANCE, BaseMinerBlock.class);
     }
 }

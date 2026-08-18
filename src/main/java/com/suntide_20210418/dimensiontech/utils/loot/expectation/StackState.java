@@ -1,36 +1,44 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
+import java.util.Objects;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Objects;
-
 /** Complete final stack state. Count is stored exactly once here. */
 public final class StackState {
-    private final ItemStack stack;
     private final CompoundTag serialized;
     private final int hashCode;
 
     public StackState(ItemStack stack) {
         ItemStack source = Objects.requireNonNull(stack, "stack");
-        // ItemStack.copy() intentionally returns EMPTY for count <= 0. Raw loot functions may
-        // set a count to zero and then restore it later, so preserve the item and tag state while
-        // taking the immutable snapshot.
-        this.stack = copyPreservingCount(source);
         CompoundTag canonical = new CompoundTag();
-        canonical.put("stack", source.serializeNBT().copy());
+        canonical.put("stack", serializePreservingCount(source));
         // ItemStack.save() stores Count as a byte; keep the exact in-memory count as well.
         canonical.putInt("count", source.getCount());
-        this.serialized = canonical;
-        this.hashCode = serialized.hashCode();
+        this.serialized = canonical.copy();
+        this.hashCode = this.serialized.hashCode();
+    }
+
+    private StackState(CompoundTag serialized) {
+        this.serialized = serialized.copy();
+        this.hashCode = this.serialized.hashCode();
     }
 
     public ItemStack stack() {
-        return copyPreservingCount(stack);
+        ItemStack copy = ItemStack.of(serialized.getCompound("stack").copy());
+        copy.setCount(count());
+        return copy;
     }
 
     public int count() {
-        return stack.getCount();
+        return serialized.getInt("count");
+    }
+
+    /** Changes only the explicit count while retaining the prior item's canonical state. */
+    public StackState withCount(int count) {
+        CompoundTag changed = serialized.copy();
+        changed.putInt("count", count);
+        return new StackState(changed);
     }
 
     @Override
@@ -48,11 +56,15 @@ public final class StackState {
         return serialized.toString();
     }
 
-    private static ItemStack copyPreservingCount(ItemStack source) {
-        CompoundTag snapshot = source.serializeNBT().copy();
-        ItemStack copy = ItemStack.of(snapshot);
-        // The serialized Count field is a byte in vanilla; restore the exact runtime value.
-        copy.setCount(source.getCount());
-        return copy;
+    private static CompoundTag serializePreservingCount(ItemStack source) {
+        ItemStack serializable = source.copy();
+        // The exact count is deliberately stored only in the outer key. Normalize the nested
+        // vanilla Count byte to retain item, tag, and Forge stack data without duplicating count.
+        if (serializable.isEmpty()) {
+            serializable.setCount(1);
+        }
+        CompoundTag serialized = serializable.serializeNBT().copy();
+        serialized.putByte("Count", (byte) 1);
+        return serialized;
     }
 }

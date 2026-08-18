@@ -1,9 +1,5 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -13,15 +9,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 
 /**
  * Executes an ordered sequence of raw loot-table calls over one concrete 1.20.1 RNG stream.
  *
- * <p>A loot table call is a state transition, rather than an isolated expectation.  In
- * particular, the state returned by one root call is the state supplied to the next root call.
- * This class is intentionally separate from {@link StatefulLootTableExecutor1201}: the latter's
- * single-table API remains useful to callers that need one transition and its source-compatible
- * return type does not have to grow a sequence-level state distribution.
+ * <p>A loot table call is a state transition, rather than an isolated expectation. In particular,
+ * the state returned by one root call is the state supplied to the next root call. This class is
+ * intentionally separate from {@link StatefulLootTableExecutor1201}: the latter's single-table API
+ * remains useful to callers that need one transition and its source-compatible return type does not
+ * have to grow a sequence-level state distribution.
  */
 public final class StatefulLootSequenceExecutor1201 {
     private StatefulLootSequenceExecutor1201() {}
@@ -30,7 +29,7 @@ public final class StatefulLootSequenceExecutor1201 {
      * Executes each root in list order and carries the exact continuation state between roots.
      *
      * <p>The whole sequence is enclosed in one SavedData transaction when it runs on a server
-     * level.  This matters for functions such as {@code exploration_map}: state created by an
+     * level. This matters for functions such as {@code exploration_map}: state created by an
      * earlier table is visible to later tables during this hypothetical sequence, while all
      * predicted writes are restored when the sequence finishes.
      */
@@ -64,14 +63,14 @@ public final class StatefulLootSequenceExecutor1201 {
     }
 
     /**
-     * Computes the first-moment output measure for an initial finite state PMF while retaining
-     * the exact PMF of the state after the final root.
+     * Computes the first-moment output measure for an initial finite state PMF while retaining the
+     * exact PMF of the state after the final root.
      *
-     * <p>Each initial state is a deterministic branch.  Branches are executed independently so
-     * a failed branch cannot contaminate another branch's mutable SavedData snapshot.  Final
-     * states are merged only after the table sequence has completed; this is valid because all
-     * future random calls depend on the continuation state, not on the history by which that
-     * state was reached.
+     * <p>Each initial state is a deterministic branch. Branches are executed independently so a
+     * failed branch cannot contaminate another branch's mutable SavedData snapshot. Final states
+     * are merged only after the table sequence has completed; this is valid because all future
+     * random calls depend on the continuation state, not on the history by which that state was
+     * reached.
      */
     public static ExpectationResult expectation(
             MinecraftServer server,
@@ -228,10 +227,7 @@ public final class StatefulLootSequenceExecutor1201 {
 
         private static ExpectationResult unsupported(List<Diagnostic> diagnostics) {
             return new ExpectationResult(
-                    AnalysisStatus.UNSUPPORTED,
-                    new StackMeasure(),
-                    Optional.empty(),
-                    diagnostics);
+                    AnalysisStatus.UNSUPPORTED, new StackMeasure(), Optional.empty(), diagnostics);
         }
     }
 }

@@ -21,13 +21,13 @@ public final class Tier1MythicMinerBlockEntity extends BaseMinerBlockEntity {
     }
 
     @Override
-    protected float getDrawLuck() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.baseLuck();
+    protected int getBaseParallel() {
+        return ModConfigs.TIER_1_MYTHIC_MINER.baseParallel();
     }
 
     @Override
-    public int getDrawParallel() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.baseParallel();
+    protected float getMachineLuck() {
+        return ModConfigs.TIER_1_MYTHIC_MINER.baseLuck();
     }
 
     @Override
@@ -41,7 +41,12 @@ public final class Tier1MythicMinerBlockEntity extends BaseMinerBlockEntity {
     }
 
     @Override
-    public int getProcessingTime() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.processingTime();
+    protected double getMachineEfficiency() {
+        return ModConfigs.TIER_1_MYTHIC_MINER.efficiency();
+    }
+
+    @Override
+    protected double getQuantityReference() {
+        return ModConfigs.TIER_1_MYTHIC_MINER.quantityReference();
     }
 }

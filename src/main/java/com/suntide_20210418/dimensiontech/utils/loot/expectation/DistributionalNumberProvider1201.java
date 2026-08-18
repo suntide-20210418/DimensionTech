@@ -2,7 +2,6 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.loot.LootContext;

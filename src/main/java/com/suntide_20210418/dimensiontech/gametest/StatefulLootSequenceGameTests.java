@@ -8,7 +8,8 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.PersistentRando
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StatefulLootSequenceExecutor1201;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.XoroshiroState1201;
-
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -17,12 +18,8 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Runtime continuation checks for ordered root-table execution. */
 @GameTestHolder(DimensionTechMod.MOD_ID)
@@ -53,12 +50,14 @@ public final class StatefulLootSequenceGameTests {
                 .getServer()
                 .getLootData()
                 .getLootTable(first)
-                .getRandomItemsRaw(runtimeContext, stack -> runtimeOutputs.add(new StackState(stack)));
+                .getRandomItemsRaw(
+                        runtimeContext, stack -> runtimeOutputs.add(new StackState(stack)));
         helper.getLevel()
                 .getServer()
                 .getLootData()
                 .getLootTable(second)
-                .getRandomItemsRaw(runtimeContext, stack -> runtimeOutputs.add(new StackState(stack)));
+                .getRandomItemsRaw(
+                        runtimeContext, stack -> runtimeOutputs.add(new StackState(stack)));
         long runtimeNext = runtimeContext.getRandom().nextLong();
 
         StatefulLootSequenceExecutor1201.Result exact =

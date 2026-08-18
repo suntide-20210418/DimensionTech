@@ -49,15 +49,12 @@ public enum MythicMinerJadeProvider
                 !structures.isEmpty()
                         && miner.getEnergyStorage().getEnergyStored()
                                 >= miner.getEnergyConsumption();
-        data.putString(
-                STATUS, miner.isOutputBlocked() ? "blocked" : running ? "running" : "idle");
+        data.putString(STATUS, miner.isOutputBlocked() ? "blocked" : running ? "running" : "idle");
         ListTag structureTags = new ListTag();
         structures.forEach(structure -> structureTags.add(StringTag.valueOf(structure.toString())));
         data.put(STRUCTURES, structureTags);
         data.putInt(PROGRESS, miner.getProgressPercent());
-        data.putInt(
-                REMAINING_TICKS,
-                Math.max(0, miner.getProcessingTime() - miner.getProgress()));
+        data.putInt(REMAINING_TICKS, Math.max(0, miner.getProcessingTime() - miner.getProgress()));
         data.putInt(PARALLEL, miner.getDrawParallel());
         data.putString(OUTPUT, miner.getOutputState().name().toLowerCase(Locale.ROOT));
         data.putInt(PENDING_ITEMS, miner.getPendingOutputCount());
@@ -127,12 +124,9 @@ public enum MythicMinerJadeProvider
         float progress = Math.max(0.0F, Math.min(1.0F, percent / 100.0F));
         IElementHelper elements = tooltip.getElementHelper();
         IProgressStyle style =
-                elements
-                        .progressStyle()
-                        .color(theme.theme().successColor, theme.theme().infoColor);
+                elements.progressStyle().color(theme.theme().successColor, theme.theme().infoColor);
         tooltip.add(
-                elements
-                        .progress(
+                elements.progress(
                                 progress,
                                 Component.translatable(
                                         "jade.dimension_tech.progress_value", percent),
@@ -159,7 +153,8 @@ public enum MythicMinerJadeProvider
             }
             String translationKey =
                     "jade.dimension_tech.structure." + id.getNamespace() + "." + id.getPath();
-            names.add(Component.translatableWithFallback(translationKey, readablePath(id.getPath())));
+            names.add(
+                    Component.translatableWithFallback(translationKey, readablePath(id.getPath())));
         }
         Component result = Component.empty();
         for (int index = 0; index < names.size(); index++) {

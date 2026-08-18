@@ -3,7 +3,9 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -30,10 +32,6 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 /** Ordered LootItemFunction execution over one stack and one concrete Xoroshiro state. */
 public final class StatefulFunction1201 {
@@ -144,8 +142,7 @@ public final class StatefulFunction1201 {
                     return Result.unsupported(
                             stack, state, pointer + "/name", "Invalid function reference");
                 }
-                Result referenced =
-                        functionReferences.resolve(id, stack, state, pointer + "/name");
+                Result referenced = functionReferences.resolve(id, stack, state, pointer + "/name");
                 if (referenced == null) {
                     return Result.unsupported(
                             stack, state, pointer, "Function resolver returned no result");
@@ -180,12 +177,14 @@ public final class StatefulFunction1201 {
                 return Step.unsupported(
                         input, state, pointer + "/count", "Unsupported count provider");
             }
-            ItemStack output = input.copy();
             Boolean addValue = booleanField(function, "add", false);
             if (addValue == null) {
                 return Step.unsupported(input, state, pointer + "/add", "Invalid add boolean");
             }
-            int value = addValue ? output.getCount() + count.value() : count.value();
+            int value = addValue ? input.getCount() + count.value() : count.value();
+            // Do not copy a zero-count ItemStack: ItemStack.copy() turns it into EMPTY and would
+            // erase the raw item needed by a later set_count in this same function pipeline.
+            ItemStack output = input;
             output.setCount(Mth.clamp(value, 0, output.getMaxStackSize()));
             return Step.exact(output, count.randomState());
         }
@@ -495,9 +494,7 @@ public final class StatefulFunction1201 {
     private static String functionType(JsonObject function) {
         if (!function.has("function")) return "";
         JsonElement value = function.get("function");
-        return value != null
-                        && value.isJsonPrimitive()
-                        && value.getAsJsonPrimitive().isString()
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
                 ? value.getAsString()
                 : "";
     }
@@ -505,9 +502,8 @@ public final class StatefulFunction1201 {
     private static String stringField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             return value.getAsString();
         } catch (RuntimeException exception) {
@@ -518,9 +514,8 @@ public final class StatefulFunction1201 {
     private static ResourceLocation resourceLocationField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             String text = value.getAsString();
             return text.isEmpty() ? null : ResourceLocation.tryParse(text);
@@ -529,13 +524,10 @@ public final class StatefulFunction1201 {
         }
     }
 
-    private static Boolean booleanField(
-            JsonObject object, String name, boolean defaultValue) {
+    private static Boolean booleanField(JsonObject object, String name, boolean defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        return value != null
-                        && value.isJsonPrimitive()
-                        && value.getAsJsonPrimitive().isBoolean()
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean()
                 ? value.getAsBoolean()
                 : null;
     }
@@ -543,9 +535,8 @@ public final class StatefulFunction1201 {
     private static Integer integerField(JsonObject object, String name, int defaultValue) {
         if (!object.has(name)) return defaultValue;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isNumber()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber())
+            return null;
         try {
             return value.getAsInt();
         } catch (RuntimeException exception) {

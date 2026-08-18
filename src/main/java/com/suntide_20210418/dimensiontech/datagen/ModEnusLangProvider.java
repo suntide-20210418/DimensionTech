@@ -20,6 +20,37 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.item("enchantment_mark"), "Enchantment Mark");
         add(TranslateHelper.block("tier_1_mythic_miner"), "Tier 1 Mythic Miner");
         add(TranslateHelper.container("tier_1_mythic_miner"), "Tier 1 Mythic Miner");
+        add("screen.dimension_tech.struct_marker.title", "Structure Marker Analysis");
+        add("screen.dimension_tech.struct_marker.subtitle", "Loot expectations and value overview");
+        add("screen.dimension_tech.struct_marker.dimension", "Dimension: %s");
+        add("screen.dimension_tech.struct_marker.structure", "Structure: %s");
+        add("screen.dimension_tech.struct_marker.dimension_value", "Dimension Value");
+        add("screen.dimension_tech.struct_marker.structure_value", "Structure Value");
+        add("screen.dimension_tech.struct_marker.structures", "Indexed structures: %s");
+        add("screen.dimension_tech.struct_marker.item", "Item");
+        add("screen.dimension_tech.struct_marker.expected", "Expected");
+        add("screen.dimension_tech.struct_marker.multiplier_header", "Multiplier");
+        add("screen.dimension_tech.struct_marker.multiplier", "Multiplier: %s");
+        add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
+        add("screen.dimension_tech.mythic_miner.control", "Mining Console");
+        add("screen.dimension_tech.mythic_miner.markers", "Structure Markers");
+        add("screen.dimension_tech.mythic_miner.slots", "%s slots");
+        add("screen.dimension_tech.mythic_miner.target", "Current Target");
+        add("screen.dimension_tech.mythic_miner.dimension", "Dimension: %s");
+        add("screen.dimension_tech.mythic_miner.progress", "Run Progress");
+        add("screen.dimension_tech.mythic_miner.energy_tooltip", "Energy Status");
+        add("screen.dimension_tech.mythic_miner.energy_value", "Reserve: %s / %s FE");
+        add("screen.dimension_tech.mythic_miner.energy_consumption", "Consumption: %s FE/t");
+        add("screen.dimension_tech.mythic_miner.energy", "Energy Reserve");
+        add("screen.dimension_tech.mythic_miner.parallel", "Parallel Draws");
+        add("screen.dimension_tech.mythic_miner.current_parallel", "Current Parallel");
+        add("screen.dimension_tech.mythic_miner.extra_parallel", "Extra Parallel");
+        add("screen.dimension_tech.mythic_miner.extra_items", "Extra Items");
+        add("screen.dimension_tech.mythic_miner.output", "Output");
+        add("screen.dimension_tech.mythic_miner.output.me_network", "ME Network");
+        add("screen.dimension_tech.mythic_miner.output.item_handler", "Item Container");
+        add("screen.dimension_tech.mythic_miner.output.none", "Unlinked");
+        add("screen.dimension_tech.mythic_miner.inventory", "Player Inventory");
         add(
                 TranslateHelper.message("struct_marker.saved"),
                 "Saved %s at %s, %s, %s; structures found: %s");
@@ -27,7 +58,14 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.dimension_value"), "Dimension value: %s");
         add(TranslateHelper.tooltip("struct_marker.structure_value"), "Structure value: %s");
         add(TranslateHelper.tooltip("struct_marker.analysis_status"), "Loot analysis: %s");
-        add(TranslateHelper.tooltip("struct_marker.legacy"), "Legacy value hidden; mark the structure again");
+        add("screen.dimension_tech.struct_marker.calculation_method", "Calculation method: %s");
+        add("screen.dimension_tech.struct_marker.analysis_status.exact", "Exact");
+        add("screen.dimension_tech.struct_marker.analysis_status.approximate", "Approximate");
+        add("screen.dimension_tech.struct_marker.analysis_status.unsupported", "Unsupported");
+        add("screen.dimension_tech.struct_marker.analysis_status.legacy", "Legacy");
+        add(
+                TranslateHelper.tooltip("struct_marker.legacy"),
+                "Legacy value hidden; mark the structure again");
         add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
         add(TranslateHelper.tooltip("enchantment_mark.enchantment"), "Enchantment: %s");

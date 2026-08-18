@@ -16,14 +16,17 @@ import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 public class MythicMinerMenu extends AbstractContainerMenu {
-    public static final int SLOT_COLUMNS = 9;
-    public static final int CONTAINER_SLOT_Y = 32;
-    public static final int BASE_PLAYER_INVENTORY_Y = 84;
+    public static final int SLOT_COLUMNS = 4;
+    public static final int CONTAINER_SLOT_Y = 64;
+    public static final int BASE_PLAYER_INVENTORY_Y = 228;
+    public static final int MENU_WIDTH = 320;
+    public static final int INVENTORY_START_X = (MENU_WIDTH - 162) / 2;
 
     private final BaseMinerBlockEntity blockEntity;
     private final int containerSlotCount;
     private final int containerRows;
     private final int playerInventoryY;
+    private final int[] telemetry = new int[11];
 
     public MythicMinerMenu(int containerId, Inventory playerInventory, FriendlyByteBuf data) {
         this(containerId, playerInventory, getBlockEntity(playerInventory, data.readBlockPos()));
@@ -40,6 +43,35 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
         addContainerSlots(itemHandler);
         addPlayerInventory(playerInventory);
+        addDataSlots(new net.minecraft.world.inventory.ContainerData() {
+            @Override
+            public int get(int index) {
+                return switch (index) {
+                    case 0 -> blockEntity.getProgress();
+                    case 1 -> blockEntity.getProcessingTime();
+                    case 2 -> blockEntity.getEnergyStorage().getEnergyStored();
+                    case 3 -> blockEntity.getEnergyStorage().getMaxEnergyStored();
+                    case 4 -> blockEntity.getDrawParallel();
+                    case 5 -> blockEntity.getOutputState().ordinal();
+                    case 6 -> blockEntity.getPendingOutputCount();
+                    case 7 -> blockEntity.getBaseParallelCount();
+                    case 8 -> blockEntity.getAccumulatedParallelHundredths();
+                    case 9 -> blockEntity.getAdditionalItemCount();
+                    case 10 -> blockEntity.getEnergyConsumption();
+                    default -> 0;
+                };
+            }
+
+            @Override
+            public void set(int index, int value) {
+                telemetry[index] = value;
+            }
+
+            @Override
+            public int getCount() {
+                return 11;
+            }
+        });
     }
 
     private static BaseMinerBlockEntity getBlockEntity(
@@ -58,7 +90,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
             int column = slot % SLOT_COLUMNS;
             int slotsInRow =
                     row == containerRows - 1 && lastRowSlots != 0 ? lastRowSlots : SLOT_COLUMNS;
-            int rowStartX = 8 + (SLOT_COLUMNS - slotsInRow) * 9;
+            int rowStartX = (MENU_WIDTH - slotsInRow * 18) / 2;
             addSlot(
                     new SlotItemHandler(
                             itemHandler,
@@ -75,14 +107,14 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                         new Slot(
                                 playerInventory,
                                 column + row * 9 + 9,
-                                8 + column * 18,
+                                INVENTORY_START_X + column * 18,
                                 playerInventoryY + row * 18));
             }
         }
 
         int hotbarY = playerInventoryY + 58;
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(playerInventory, column, 8 + column * 18, hotbarY));
+                addSlot(new Slot(playerInventory, column, INVENTORY_START_X + column * 18, hotbarY));
         }
     }
 
@@ -100,6 +132,11 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
     public BaseMinerBlockEntity getBlockEntity() {
         return blockEntity;
+    }
+
+    /** Returns the latest server-synchronized telemetry value for client rendering. */
+    public int getTelemetry(int index) {
+        return index >= 0 && index < telemetry.length ? telemetry[index] : 0;
     }
 
     @Override

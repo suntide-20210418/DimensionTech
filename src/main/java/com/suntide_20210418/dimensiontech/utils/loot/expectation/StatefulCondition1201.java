@@ -3,7 +3,6 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -49,13 +48,7 @@ public final class StatefulCondition1201 {
         XoroshiroState1201 current = state;
         for (int index = 0; index < conditions.getAsJsonArray().size(); index++) {
             JsonElement condition = conditions.getAsJsonArray().get(index);
-            Result result =
-                    test(
-                            condition,
-                            context,
-                            current,
-                            references,
-                            pointer + "/" + index);
+            Result result = test(condition, context, current, references, pointer + "/" + index);
             if (result == null) return null;
             current = result.randomState();
             if (!result.value()) return new Result(false, current);

@@ -5,13 +5,15 @@ import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
-import com.suntide_20210418.dimensiontech.utils.EnchantmentMarkConverter;
 import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
-import com.suntide_20210418.dimensiontech.utils.LootTableLottery;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
+import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
 import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -29,13 +31,12 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
@@ -52,6 +53,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private static final String ENERGY_TAG = "Energy";
     private static final String PROGRESS_TAG = "Progress";
     private static final String PENDING_OUTPUT_TAG = "PendingOutput";
+    private static final String PARALLEL_FRACTION_TAG = "ParallelFractionHundredths";
+    private static final String QUANTITY_FRACTION_TAG = "QuantityFractionHundredths";
+    private static final int DRAWS_PER_PARALLEL = 8;
 
     private final ItemStackHandler itemHandler;
     private final MinerEnergyStorage energyStorage;
@@ -61,6 +65,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private List<CachedMarkerLoot> cachedMarkerLoot = List.of();
     private List<ItemStack> pendingOutput = new ArrayList<>();
     private int progress;
+    private int dynamicProcessingTime = 400;
+    private int dynamicParallelHundredths = 100;
+    private int parallelFractionHundredths;
+    private int quantityFractionHundredths;
 
     protected BaseMinerBlockEntity(
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
@@ -75,15 +83,37 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     protected abstract String getTranslationName();
 
-    protected abstract float getDrawLuck();
+    protected abstract int getBaseParallel();
 
-    public abstract int getDrawParallel();
+    protected abstract float getMachineLuck();
+
+    protected abstract double getMachineEfficiency();
+
+    protected abstract double getQuantityReference();
 
     protected abstract int getEnergyCapacity();
 
     public abstract int getEnergyConsumption();
 
-    public abstract int getProcessingTime();
+    public int getProcessingTime() {
+        return dynamicProcessingTime;
+    }
+
+    public int getDrawParallel() {
+        return Math.max(1, getBaseParallel() * dynamicParallelHundredths / 100);
+    }
+
+    public int getBaseParallelCount() {
+        return getBaseParallel();
+    }
+
+    public int getAccumulatedParallelHundredths() {
+        return parallelFractionHundredths;
+    }
+
+    public int getAdditionalItemCount() {
+        return Math.max(0, getPendingOutputCount());
+    }
 
     public IItemHandler getItemHandler() {
         return itemHandler;
@@ -99,6 +129,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public int getProgressPercent() {
         return (int) Math.min(100L, (long) progress * 100L / getProcessingTime());
+    }
+
+    public int getEnergyStored() {
+        return energyStorage.getEnergyStored();
     }
 
     public boolean isOutputBlocked() {
@@ -148,6 +182,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             return;
         }
 
+        refreshMarkerLootCache(serverLevel.getServer());
+        updateProcessingPlan();
+
         int energyConsumption = getEnergyConsumption();
         if (!energyStorage.canConsume(energyConsumption)) {
             return;
@@ -157,7 +194,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         progress++;
         if (progress >= getProcessingTime()) {
             progress = 0;
-            drawMarkerLoot(serverLevel.getServer());
+            drawMarkerLoot(serverLevel.getServer(), drawParallelForCycle());
         }
         setChanged();
     }
@@ -175,34 +212,39 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return false;
     }
 
-    private void drawMarkerLoot(MinecraftServer server) {
+    private int drawParallelForCycle() {
+        int scaledParallel = getBaseParallel() * dynamicParallelHundredths;
+        int integerPart = scaledParallel / 100;
+        int fractionalPart = scaledParallel % 100;
+        int accumulated = parallelFractionHundredths + fractionalPart;
+        int carry = accumulated / 100;
+        parallelFractionHundredths = accumulated % 100;
+        return Math.max(1, integerPart + carry);
+    }
+
+    private void drawMarkerLoot(MinecraftServer server, int parallel) {
         if (!(level instanceof ServerLevel outputLevel)) {
             return;
         }
 
         refreshMarkerLootCache(server);
         List<ItemStack> mergedLoot = new ArrayList<>();
+        Map<ResourceLocation, ExactProbability> expectedItems = new LinkedHashMap<>();
+        double quantity = 0.0D;
+        ServerLevel randomLevel = null;
         for (CachedMarkerLoot cachedLoot : cachedMarkerLoot) {
             ResourceKey<Level> dimensionKey =
                     ResourceKey.create(Registries.DIMENSION, cachedLoot.dimension());
             ServerLevel lootLevel = server.getLevel(dimensionKey);
-            if (lootLevel == null) {
-                continue;
-            }
-
-            Vec3 origin = Vec3.atCenterOf(cachedLoot.position());
-            for (StructureLoot structureLoot : cachedLoot.structures()) {
-                List<ItemStack> loot =
-                        LootTableLottery.draw(
-                                lootLevel,
-                                origin,
-                                structureLoot.lootTables(),
-                                null,
-                                getDrawLuck(),
-                                getDrawParallel());
-                FullDurabilityLoot.normalize(EnchantmentMarkConverter.convert(loot))
-                        .forEach(stack -> mergeLootStack(mergedLoot, stack));
-            }
+            if (lootLevel == null) continue;
+            if (randomLevel == null) randomLevel = lootLevel;
+            quantity += cachedLoot.quantity();
+            cachedLoot.expectedItems().forEach(
+                    (item, expected) -> expectedItems.merge(item, expected, ExactProbability::add));
+        }
+        if (randomLevel != null && Double.isFinite(quantity) && quantity > 0.0D) {
+            drawExpectedLoot(randomLevel, expectedItems, drawsForQuantity(parallel, quantity))
+                    .forEach(stack -> mergeLootStack(mergedLoot, stack));
         }
 
         AdjacentOutputs outputs = findAdjacentOutputs(outputLevel);
@@ -212,6 +254,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private void refreshMarkerLootCache(MinecraftServer server) {
         CompoundTag currentSnapshot = itemHandler.serializeNBT();
+        currentSnapshot.putFloat("MachineLuck", getMachineLuck());
         if (currentSnapshot.equals(analyzedMarkerSnapshot)) {
             return;
         }
@@ -225,18 +268,127 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
             StructMarkerItem.getMarkerInfo(marker)
                     .filter(markerInfo -> !markerInfo.structures().isEmpty())
-                    .map(markerInfo -> analyzeMarkerLoot(server, markerInfo))
+                    .map(
+                                    markerInfo ->
+                                    analyzeMarkerLoot(server, marker, markerInfo))
                     .ifPresent(refreshedCache::add);
         }
         cachedMarkerLoot = List.copyOf(refreshedCache);
         analyzedMarkerSnapshot = currentSnapshot;
     }
 
-    private CachedMarkerLoot analyzeMarkerLoot(MinecraftServer server, MarkerInfo markerInfo) {
+    private CachedMarkerLoot analyzeMarkerLoot(
+            MinecraftServer server, ItemStack marker, MarkerInfo markerInfo) {
+        ResourceKey<Level> dimensionKey =
+                ResourceKey.create(Registries.DIMENSION, markerInfo.dimension());
+        ServerLevel analysisLevel = server.getLevel(dimensionKey);
+        if (analysisLevel == null) {
+            analysisLevel = level instanceof ServerLevel current ? current : null;
+        }
+        if (analysisLevel == null) {
+            return new CachedMarkerLoot(
+                    markerInfo.dimension(), markerInfo.position(), 0.0D, 0.0D, Map.of());
+        }
+        var analysis =
+                StructureValueCalculator.calculate(analysisLevel, markerInfo, getMachineLuck());
+        Map<ResourceLocation, ExactProbability> expectedItems = new LinkedHashMap<>();
+        analysis.itemCounts().forEach(
+                (item, expected) -> {
+                    ResourceLocation itemId =
+                            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
+                    if (itemId != null) {
+                        expectedItems.put(itemId, expected);
+                    }
+                });
         return new CachedMarkerLoot(
                 markerInfo.dimension(),
                 markerInfo.position(),
-                StructureLootAnalyzer.analyze(server, markerInfo));
+                analysis.structureValue(),
+                analysis.itemCounts().values().stream()
+                        .mapToDouble(ExactProbability::finiteDoubleValue)
+                        .filter(Double::isFinite)
+                        .filter(value -> value > 0.0D)
+                        .sum(),
+                expectedItems);
+    }
+
+    private List<ItemStack> drawExpectedLoot(
+            ServerLevel level, Map<ResourceLocation, ExactProbability> expectedItems, int draws) {
+        List<WeightedItem> weightedItems = new ArrayList<>();
+        double total = 0.0D;
+        for (Map.Entry<ResourceLocation, ExactProbability> entry : expectedItems.entrySet()) {
+            double weight = entry.getValue().finiteDoubleValue();
+            Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
+            if (item == null || !Double.isFinite(weight) || weight <= 0.0D) continue;
+            weightedItems.add(new WeightedItem(item, weight));
+            total += weight;
+        }
+        if (weightedItems.isEmpty() || !Double.isFinite(total) || total <= 0.0D) return List.of();
+
+        List<ItemStack> result = new ArrayList<>();
+        for (int draw = 0; draw < draws; draw++) {
+            double target = level.random.nextDouble() * total;
+            for (WeightedItem weighted : weightedItems) {
+                target -= weighted.weight();
+                if (target <= 0.0D) {
+                    result.add(new ItemStack(weighted.item(), 1));
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private int drawsForQuantity(int parallel, double quantity) {
+        double reference = getQuantityReference();
+        if (!Double.isFinite(reference) || reference <= 0.0D) {
+            return parallel * DRAWS_PER_PARALLEL;
+        }
+        int factorHundredths =
+                BigDecimal.valueOf(quantity)
+                        .divide(BigDecimal.valueOf(reference), 2, RoundingMode.DOWN)
+                        .movePointRight(2)
+                        .min(BigDecimal.valueOf(Integer.MAX_VALUE))
+                        .intValue();
+        long scaled = (long) parallel * DRAWS_PER_PARALLEL * factorHundredths;
+        long whole = scaled / 100L;
+        int accumulated = quantityFractionHundredths + (int) (scaled % 100L);
+        whole += accumulated / 100;
+        quantityFractionHundredths = accumulated % 100;
+        return (int) Math.min(Integer.MAX_VALUE, whole);
+    }
+
+    private void updateProcessingPlan() {
+        double structureValue =
+                cachedMarkerLoot.stream()
+                        .mapToDouble(CachedMarkerLoot::structureValue)
+                        .filter(Double::isFinite)
+                        .filter(value -> value > 0.0D)
+                        .sum();
+        double efficiency = getMachineEfficiency();
+        if (!Double.isFinite(efficiency) || efficiency <= 0.0D || structureValue <= 0.0D) {
+            dynamicProcessingTime = 400;
+            dynamicParallelHundredths = 100;
+            return;
+        }
+
+        double calculatedTicks = structureValue / efficiency;
+        if (!Double.isFinite(calculatedTicks) || calculatedTicks >= 400.0D) {
+            dynamicProcessingTime =
+                    (int) Math.min(Integer.MAX_VALUE, Math.ceil(Math.max(400.0D, calculatedTicks)));
+            dynamicParallelHundredths = 100;
+            return;
+        }
+
+        dynamicProcessingTime = 400;
+        int maxParallelHundredths = Integer.MAX_VALUE / Math.max(1, getBaseParallel());
+        dynamicParallelHundredths =
+                BigDecimal.valueOf(400.0D)
+                        .divide(BigDecimal.valueOf(calculatedTicks), 2, RoundingMode.DOWN)
+                        .movePointRight(2)
+                        .min(BigDecimal.valueOf(maxParallelHundredths))
+                        .intValue();
+        dynamicParallelHundredths = Math.max(100, dynamicParallelHundredths);
     }
 
     private void mergeLootStack(List<ItemStack> mergedLoot, ItemStack stack) {
@@ -303,7 +455,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             List<BlockEntity> meInterfaces, List<IItemHandler> itemHandlers) {}
 
     private record CachedMarkerLoot(
-            ResourceLocation dimension, BlockPos position, List<StructureLoot> structures) {}
+            ResourceLocation dimension,
+            BlockPos position,
+            double structureValue,
+            double quantity,
+            Map<ResourceLocation, ExactProbability> expectedItems) {}
+
+    private record WeightedItem(Item item, double weight) {}
 
     private ItemStackHandler createItemHandler() {
         int slotCount = getSlotCount();
@@ -330,6 +488,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
         tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
         tag.putInt(PROGRESS_TAG, progress);
+        tag.putInt(PARALLEL_FRACTION_TAG, parallelFractionHundredths);
+        tag.putInt(QUANTITY_FRACTION_TAG, quantityFractionHundredths);
         ListTag pendingOutputTag = new ListTag();
         pendingOutput.forEach(stack -> pendingOutputTag.add(stack.save(new CompoundTag())));
         tag.put(PENDING_OUTPUT_TAG, pendingOutputTag);
@@ -347,6 +507,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             energyStorage.setEnergy(tag.getInt(ENERGY_TAG));
         }
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));
+        parallelFractionHundredths = Math.max(0, Math.min(99, tag.getInt(PARALLEL_FRACTION_TAG)));
+        quantityFractionHundredths = Math.max(0, Math.min(99, tag.getInt(QUANTITY_FRACTION_TAG)));
         List<ItemStack> loadedPendingOutput = new ArrayList<>();
         ListTag pendingOutputTag = tag.getList(PENDING_OUTPUT_TAG, Tag.TAG_COMPOUND);
         pendingOutputTag.forEach(

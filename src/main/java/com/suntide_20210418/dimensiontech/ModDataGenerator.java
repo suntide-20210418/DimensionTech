@@ -1,6 +1,8 @@
 package com.suntide_20210418.dimensiontech;
 
 import com.suntide_20210418.dimensiontech.datagen.*;
+import java.util.List;
+import java.util.Set;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.loot.LootTableProvider;
@@ -9,9 +11,6 @@ import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-
-import java.util.List;
-import java.util.Set;
 
 @Mod.EventBusSubscriber(modid = DimensionTechMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ModDataGenerator {
@@ -22,14 +21,20 @@ public final class ModDataGenerator {
         ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
 
         generator.addProvider(event.includeServer(), new ModRecipesProvider(packOutput));
-        generator.addProvider(event.includeServer(), new LootTableProvider(packOutput, Set.of(), List.of(
-                new LootTableProvider.SubProviderEntry(ModBlockLootTablesProvider::new, LootContextParamSets.BLOCK)
-        )));
-
+        generator.addProvider(
+                event.includeServer(),
+                new LootTableProvider(
+                        packOutput,
+                        Set.of(),
+                        List.of(
+                                new LootTableProvider.SubProviderEntry(
+                                        ModBlockLootTablesProvider::new,
+                                        LootContextParamSets.BLOCK))));
 
         generator.addProvider(
                 event.includeClient(), new ModItemModelsProvider(packOutput, existingFileHelper));
-        generator.addProvider(event.includeClient(), new ModBlockStateProvider(packOutput, existingFileHelper));
+        generator.addProvider(
+                event.includeClient(), new ModBlockStateProvider(packOutput, existingFileHelper));
         generator.addProvider(event.includeClient(), new ModEnusLangProvider(packOutput));
         generator.addProvider(event.includeClient(), new ModZhcnLangProvider(packOutput));
     }

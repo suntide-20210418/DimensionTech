@@ -13,7 +13,5 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
     }
 
     @Override
-    protected void buildRecipes(@NotNull Consumer<FinishedRecipe> writer) {
-
-    }
+    protected void buildRecipes(@NotNull Consumer<FinishedRecipe> writer) {}
 }

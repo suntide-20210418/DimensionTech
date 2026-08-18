@@ -7,7 +7,6 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.LootAnalysisCon
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StatefulFunction1201;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.XoroshiroState1201;
-
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
@@ -26,7 +25,9 @@ public final class EnchantRandomlySemanticsGameTests {
             GameTestHelper helper) {
         LootAnalysisContext context =
                 LootAnalysisContext.at(
-                        helper.getLevel(), helper.absolutePos(net.minecraft.core.BlockPos.ZERO), 0.0F);
+                        helper.getLevel(),
+                        helper.absolutePos(net.minecraft.core.BlockPos.ZERO),
+                        0.0F);
         var function =
                 JsonParser.parseString(
                         "[{\"function\":\"minecraft:enchant_randomly\","
@@ -68,16 +69,18 @@ public final class EnchantRandomlySemanticsGameTests {
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty")
-    public static void malformedEnchantRandomlyFieldsReturnStructuredPointers(GameTestHelper helper) {
+    public static void malformedEnchantRandomlyFieldsReturnStructuredPointers(
+            GameTestHelper helper) {
         LootAnalysisContext context =
                 LootAnalysisContext.at(
-                        helper.getLevel(), helper.absolutePos(net.minecraft.core.BlockPos.ZERO), 0.0F);
+                        helper.getLevel(),
+                        helper.absolutePos(net.minecraft.core.BlockPos.ZERO),
+                        0.0F);
         ItemStack input = new ItemStack(Items.STONE);
 
         var malformedCandidates =
                 JsonParser.parseString(
-                        "[{\"function\":\"minecraft:enchant_randomly\","
-                                + "\"enchantments\":{}}]");
+                        "[{\"function\":\"minecraft:enchant_randomly\"," + "\"enchantments\":{}}]");
         var distributional =
                 DistributionalFunction1201.applyAll(
                         new StackState(input), malformedCandidates, context, 100, "/functions");
@@ -127,7 +130,7 @@ public final class EnchantRandomlySemanticsGameTests {
         var typeResult =
                 DistributionalFunction1201.applyAll(
                         new StackState(input), malformedType, context, 100, "/functions");
-        if (typeResult.supported() || !"/functions/0".equals(typeResult.pointer())) {
+        if (typeResult.supported() || !"/functions/0/function".equals(typeResult.pointer())) {
             helper.fail("Malformed function type escaped as an exception: " + typeResult);
         }
         helper.succeed();

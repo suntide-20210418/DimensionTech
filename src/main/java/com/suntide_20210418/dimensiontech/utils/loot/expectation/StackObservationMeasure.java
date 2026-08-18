@@ -1,13 +1,12 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Rarity;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.ToDoubleFunction;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 
 /** Expected occurrence measure after all stack-inspecting functions have completed. */
 public final class StackObservationMeasure {

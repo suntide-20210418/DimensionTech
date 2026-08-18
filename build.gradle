@@ -58,6 +58,7 @@ minecraft {
 
         gameTestServer {
             property 'forge.enabledGameTestNamespaces', "${mod_id},minecraft"
+            property 'dimension_tech.vanilla_loot_runtime', vanillaLootRuntime.toString()
             workingDirectory project.file(vanillaLootRuntime
                     ? 'run/vanilla-loot-gametest'
                     : 'run/gametest')

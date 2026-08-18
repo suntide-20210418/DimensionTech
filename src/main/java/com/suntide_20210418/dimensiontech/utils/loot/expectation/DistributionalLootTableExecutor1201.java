@@ -3,16 +3,6 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraftforge.registries.ForgeRegistries;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -22,6 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /** Runtime LootData AST execution over finite logical RandomSource call branches. */
 public final class DistributionalLootTableExecutor1201 {
@@ -72,11 +70,11 @@ public final class DistributionalLootTableExecutor1201 {
                             tableId,
                             "",
                             List.of(tableId.toString()),
-                            "Concrete RandomSource expectation requires an explicit initial RNG-state"
-                                    + " distribution; the fresh-draw marginal result is not a"
-                                    + " certificate"));
+                            "Concrete RandomSource expectation requires an explicit initial"
+                                + " RNG-state distribution; the fresh-draw marginal result is not a"
+                                + " certificate"));
             return new LootExpectationResult(
-                AnalysisStatus.UNSUPPORTED, new StackMeasure(), diagnostics);
+                    AnalysisStatus.UNSUPPORTED, new StackMeasure(), diagnostics);
         }
         return idealProductionResult(logical);
     }
@@ -164,10 +162,7 @@ public final class DistributionalLootTableExecutor1201 {
         } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
             diagnostics.add(
                     Diagnostic.randomSemantics(
-                            tableId,
-                            "",
-                            List.of(tableId.toString()),
-                            exception.getMessage()));
+                            tableId, "", List.of(tableId.toString()), exception.getMessage()));
             return LogicalResult.unsupported(List.copyOf(diagnostics));
         } catch (RuntimeException exception) {
             diagnostics.add(
@@ -224,10 +219,7 @@ public final class DistributionalLootTableExecutor1201 {
         } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
             diagnostics.add(
                     Diagnostic.randomSemantics(
-                            tableId,
-                            "",
-                            List.of(tableId.toString()),
-                            exception.getMessage()));
+                            tableId, "", List.of(tableId.toString()), exception.getMessage()));
             return LogicalResult.unsupported(List.copyOf(diagnostics));
         } catch (RuntimeException exception) {
             diagnostics.add(
@@ -253,17 +245,13 @@ public final class DistributionalLootTableExecutor1201 {
             boolean allowTerminalCompression) {
         Optional<RuntimeLootAstSource.RuntimeAst<LootTable>> resolved = source.table(tableId);
         if (resolved.isEmpty()) {
-            diagnostics.add(
-                    ReferenceSemantics1201.missingTable(
-                            tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1201.missingTable(tableId, tableId, "", callPath));
             return ExpectedTableEvaluation.exact(
                     new StackMeasure(), TerminalStackMeasure.empty(), true, false, 0, 0);
         }
         Object identity = resolved.get().identity();
         if (!activeTables.add(identity)) {
-            diagnostics.add(
-                    ReferenceSemantics1201.recursiveTable(
-                            tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1201.recursiveTable(tableId, tableId, "", callPath));
             return ExpectedTableEvaluation.exact(
                     new StackMeasure(), TerminalStackMeasure.empty(), true, false, 0, 0);
         }
@@ -358,9 +346,7 @@ public final class DistributionalLootTableExecutor1201 {
                             poolResult.failureKind(),
                             diagnostics);
                     return ExpectedTableEvaluation.unsupported(
-                            poolResult.pointer(),
-                            poolResult.message(),
-                            poolResult.failureKind());
+                            poolResult.pointer(), poolResult.message(), poolResult.failureKind());
                 }
                 for (Map.Entry<ExpectedOutput, ExactProbability> occurrence :
                         poolResult.occurrences().entrySet()) {
@@ -548,17 +534,21 @@ public final class DistributionalLootTableExecutor1201 {
             return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
                     Map.of(), hasRandomCalls, maxOutputs, maxMapAllocations);
         }
-        String invalidFunctions = invalidFunctionListPointer(
-                entryFunctionsElement,
-                pointer + "/functions",
-                poolFunctionsElement,
-                poolFunctionsPointer,
-                tableFunctionsElement,
-                tableFunctionsPointer);
+        String invalidFunctions =
+                invalidFunctionListPointer(
+                        entryFunctionsElement,
+                        pointer + "/functions",
+                        poolFunctionsElement,
+                        poolFunctionsPointer,
+                        tableFunctionsElement,
+                        tableFunctionsPointer);
         if (invalidFunctions != null) {
-            String layer = invalidFunctions.equals(pointer + "/functions")
-                    ? "Loot entry"
-                    : invalidFunctions.equals(poolFunctionsPointer) ? "Loot pool" : "Loot table";
+            String layer =
+                    invalidFunctions.equals(pointer + "/functions")
+                            ? "Loot entry"
+                            : invalidFunctions.equals(poolFunctionsPointer)
+                                    ? "Loot pool"
+                                    : "Loot table";
             return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
                     invalidFunctions, layer + " functions is not an array");
         }
@@ -625,8 +615,7 @@ public final class DistributionalLootTableExecutor1201 {
                 }
                 LinkedHashMap<ExpectedOutput, ExactProbability> terminalOutputs =
                         new LinkedHashMap<>();
-                terminal
-                        .terminalMeasure()
+                terminal.terminalMeasure()
                         .values()
                         .forEach(
                                 (key, mass) ->
@@ -733,17 +722,13 @@ public final class DistributionalLootTableExecutor1201 {
                             functionResolver);
             if (!transformed.supported()) {
                 return ExpectedLayerEvaluation.unsupported(
-                        transformed.pointer(),
-                        transformed.message(),
-                        transformed.failureKind());
+                        transformed.pointer(), transformed.message(), transformed.failureKind());
             }
             mayAllocateMap |= transformed.mayAllocateMap();
             hasRandomCalls |= transformed.hasRandomCalls();
             for (Map.Entry<StackState, ExactProbability> branch :
                     transformed.distribution().masses().entrySet()) {
-                result.add(
-                        branch.getKey(),
-                        inputBranch.getValue().multiply(branch.getValue()));
+                result.add(branch.getKey(), inputBranch.getValue().multiply(branch.getValue()));
             }
             if (result.values().size() > maxStates) {
                 return ExpectedLayerEvaluation.randomSemantics(
@@ -775,16 +760,12 @@ public final class DistributionalLootTableExecutor1201 {
             Set<Diagnostic> diagnostics) {
         Optional<RuntimeLootAstSource.RuntimeAst<LootTable>> resolved = source.table(tableId);
         if (resolved.isEmpty()) {
-            diagnostics.add(
-                    ReferenceSemantics1201.missingTable(
-                            tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1201.missingTable(tableId, tableId, "", callPath));
             return TableEvaluation.exact(RandomTraceDistribution.singleton(List.of()));
         }
         Object identity = resolved.get().identity();
         if (!activeTables.add(identity)) {
-            diagnostics.add(
-                    ReferenceSemantics1201.recursiveTable(
-                            tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1201.recursiveTable(tableId, tableId, "", callPath));
             return TableEvaluation.exact(RandomTraceDistribution.singleton(List.of()));
         }
         try {
@@ -997,21 +978,24 @@ public final class DistributionalLootTableExecutor1201 {
                 generated.distribution().marginal().masses().keySet().stream()
                         .anyMatch(stacks -> !stacks.isEmpty());
         if (!hasGeneratedStack) {
-            return DistributionalLootPool1201.SelectionEvaluation.exact(
-                    generated.distribution());
+            return DistributionalLootPool1201.SelectionEvaluation.exact(generated.distribution());
         }
         JsonElement entryFunctionsElement = entry.get("functions");
-        String invalidFunctions = invalidFunctionListPointer(
-                entryFunctionsElement,
-                pointer + "/functions",
-                poolFunctionsElement,
-                poolFunctionsPointer,
-                tableFunctionsElement,
-                tableFunctionsPointer);
+        String invalidFunctions =
+                invalidFunctionListPointer(
+                        entryFunctionsElement,
+                        pointer + "/functions",
+                        poolFunctionsElement,
+                        poolFunctionsPointer,
+                        tableFunctionsElement,
+                        tableFunctionsPointer);
         if (invalidFunctions != null) {
-            String layer = invalidFunctions.equals(pointer + "/functions")
-                    ? "Loot entry"
-                    : invalidFunctions.equals(poolFunctionsPointer) ? "Loot pool" : "Loot table";
+            String layer =
+                    invalidFunctions.equals(pointer + "/functions")
+                            ? "Loot entry"
+                            : invalidFunctions.equals(poolFunctionsPointer)
+                                    ? "Loot pool"
+                                    : "Loot table";
             return DistributionalLootPool1201.SelectionEvaluation.unsupported(
                     invalidFunctions, layer + " functions is not an array");
         }
@@ -1079,9 +1063,7 @@ public final class DistributionalLootTableExecutor1201 {
                             functions);
             if (!transformed.supported()) {
                 return TableEvaluation.unsupported(
-                        transformed.pointer(),
-                        transformed.message(),
-                        transformed.failureKind());
+                        transformed.pointer(), transformed.message(), transformed.failureKind());
             }
             try {
                 RandomTraceDistribution<StackState> stackDistribution = transformed.distribution();
@@ -1236,9 +1218,8 @@ public final class DistributionalLootTableExecutor1201 {
     private static String stringField(JsonObject object, String name) {
         if (!object.has(name)) return null;
         JsonElement value = object.get(name);
-        if (value == null
-                || !value.isJsonPrimitive()
-                || !value.getAsJsonPrimitive().isString()) return null;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            return null;
         try {
             return value.getAsString();
         } catch (RuntimeException exception) {
@@ -1260,8 +1241,7 @@ public final class DistributionalLootTableExecutor1201 {
         JsonObject function = element.getAsJsonObject();
         return function.has("function")
                 && function.get("function").isJsonPrimitive()
-                && "minecraft:enchant_with_levels".equals(
-                        function.get("function").getAsString());
+                && "minecraft:enchant_with_levels".equals(function.get("function").getAsString());
     }
 
     private static TableEvaluation unsupported(
@@ -1586,14 +1566,7 @@ public final class DistributionalLootTableExecutor1201 {
                 int maxOutputs,
                 int maxMapAllocations) {
             return new ExpectedLayerEvaluation(
-                    true,
-                    measure,
-                    hasRandomCalls,
-                    maxOutputs,
-                    maxMapAllocations,
-                    "",
-                    "",
-                    null);
+                    true, measure, hasRandomCalls, maxOutputs, maxMapAllocations, "", "", null);
         }
 
         private static ExpectedLayerEvaluation unsupported(String pointer, String message) {

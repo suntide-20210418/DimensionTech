@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.client.key;
 
+import com.suntide_20210418.dimensiontech.client.StructMarkerClient;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
@@ -11,7 +12,7 @@ public class KeyEvent {
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
         if (ModKey.MODE_SWITCH_KEY.consumeClick()) {
-
+            StructMarkerClient.markHeldMarker();
         }
     }
 }

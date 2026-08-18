@@ -3,7 +3,7 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
+import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -13,8 +13,6 @@ import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
-import java.util.Optional;
 
 /** Serializes the server's loaded loot objects, including Forge load-event modifications. */
 public final class RuntimeLootAstSource {

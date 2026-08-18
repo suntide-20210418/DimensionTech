@@ -1,8 +1,5 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Rarity;
-
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -10,6 +7,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 
 /**
  * Immutable expected-occurrence measure over terminal valuation equivalence classes.
@@ -114,6 +113,19 @@ public final class TerminalStackMeasure {
         return exactItemCount(item).finiteDoubleValue();
     }
 
+    /** Returns exact expected counts aggregated by item, discarding stack-specific state. */
+    public Map<Item, ExactProbability> exactItemCounts() {
+        LinkedHashMap<Item, ExactProbability> result = new LinkedHashMap<>();
+        for (Map.Entry<TerminalStackKey, ExactProbability> entry : values.entrySet()) {
+            TerminalStackKey key = entry.getKey();
+            ExactProbability count = weightedMass(entry.getValue(), key.count(), "stack count");
+            if (!count.isZero()) {
+                result.merge(key.item(), count, ExactProbability::add);
+            }
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
     /**
      * Exact rarity-weighted value for non-negative integral rarity multipliers, including the
      * configured vanilla-style 1/10/50/100 multipliers.
@@ -150,6 +162,24 @@ public final class TerminalStackMeasure {
             if (!Double.isFinite(multiplier) || multiplier < 0.0D) {
                 throw new IllegalArgumentException(
                         "rarity multiplier must be finite and non-negative: " + multiplier);
+            }
+            ExactProbability counted = weightedMass(entry.getValue(), key.count(), "stack count");
+            total = total.add(counted.multiply(ExactProbability.fromDouble(multiplier)));
+        }
+        return total;
+    }
+
+    /** Computes the weighted value using the full terminal item key, including item overrides. */
+    public ExactProbability exactItemWeightedValueFromDouble(
+            ToDoubleFunction<TerminalStackKey> itemMultiplier) {
+        Objects.requireNonNull(itemMultiplier, "itemMultiplier");
+        ExactProbability total = ExactProbability.ZERO;
+        for (Map.Entry<TerminalStackKey, ExactProbability> entry : values.entrySet()) {
+            TerminalStackKey key = entry.getKey();
+            double multiplier = itemMultiplier.applyAsDouble(key);
+            if (!Double.isFinite(multiplier) || multiplier < 0.0D) {
+                throw new IllegalArgumentException(
+                        "item multiplier must be finite and non-negative: " + multiplier);
             }
             ExactProbability counted = weightedMass(entry.getValue(), key.count(), "stack count");
             total = total.add(counted.multiply(ExactProbability.fromDouble(multiplier)));

@@ -18,25 +18,18 @@ import java.util.Optional;
 import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.core.SectionPos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BrushableBlockEntity;
-import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.phys.AABB;
 
 public final class StructureLootAnalyzer {
 
@@ -59,126 +52,67 @@ public final class StructureLootAnalyzer {
         return List.copyOf(results);
     }
 
-    /** Discovery result for value analysis; unlike {@link #analyze}, failure is never an empty list. */
-    public static DiscoveryResult discoverForValue(
-            ServerLevel level, MarkerInfo markerInfo) {
+    /**
+     * Discovery result for value analysis; unlike {@link #analyze}, failure is never an empty list.
+     */
+    public static DiscoveryResult discoverForValue(ServerLevel level, MarkerInfo markerInfo) {
         List<StructureLoot> structures = new ArrayList<>();
         List<Diagnostic> diagnostics = new ArrayList<>();
         for (MarkedStructure marked : markerInfo.structures()) {
-            LoadedContainerDiscovery loaded = loadedContainerLootTables(level, marked);
-            if (!loaded.allChunksLoaded()) {
-                diagnostics.add(new Diagnostic(
-                        "DISCOVERY_SEMANTICS",
-                        "Not every chunk is loaded for structure " + marked.id()));
+            Set<ResourceLocation> roots = findLootTables(level.getServer(), marked.id());
+            if (roots.isEmpty()) {
+                roots = findLoadedContainerLootTables(level, marked.bounds());
+            }
+            if (roots.isEmpty()) {
+                diagnostics.add(
+                        new Diagnostic(
+                                "DISCOVERY_SEMANTICS",
+                                "No LootTable root could be found in structure templates or loaded "
+                                        + "containers for structure "
+                                        + marked.id()));
                 return new DiscoveryResult(
                         AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
             }
-            if (loaded.hasUnrecoverableLootHolder()) {
-                diagnostics.add(new Diagnostic(
-                        "DISCOVERY_SEMANTICS",
-                        "A loot holder without a recoverable LootTable prevents complete raw loot discovery for structure "
-                                + marked.id()));
-                return new DiscoveryResult(
-                        AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
-            }
-            if (loaded.roots().isEmpty()) {
-                diagnostics.add(new Diagnostic(
-                        "DISCOVERY_SEMANTICS",
-                        "No runtime container LootTable root could be proven for structure "
-                                + marked.id()
-                                + "; Java-placed or already-unpacked loot cannot be excluded"));
-                return new DiscoveryResult(
-                        AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
-            }
-            LootTableItems items = resolveLootTableItems(
-                    level.getServer(), new HashSet<>(loaded.roots()));
-            structures.add(new StructureLoot(
-                    marked.id(),
-                    loaded.roots(),
-                    sorted(items.items()),
-                    sorted(items.resolvedTables())));
+            LootTableItems items =
+                    resolveLootTableItems(level.getServer(), roots);
+            structures.add(
+                    new StructureLoot(
+                            marked.id(),
+                            sorted(roots),
+                            sorted(items.items()),
+                            sorted(items.resolvedTables())));
         }
         return new DiscoveryResult(AnalysisStatus.EXACT, List.copyOf(structures), List.of());
     }
 
-    private static LoadedContainerDiscovery loadedContainerLootTables(
-            ServerLevel level, MarkedStructure marked) {
-        var bounds = marked.bounds();
-        int minChunkX = SectionPos.blockToSectionCoord(bounds.minX());
-        int maxChunkX = SectionPos.blockToSectionCoord(bounds.maxX());
-        int minChunkZ = SectionPos.blockToSectionCoord(bounds.minZ());
-        int maxChunkZ = SectionPos.blockToSectionCoord(bounds.maxZ());
-        List<ResourceLocation> roots = new ArrayList<>();
-        boolean unrecoverableLootHolder = false;
-        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
-            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                LevelChunk chunk = level.getChunkSource().getChunkNow(chunkX, chunkZ);
-                if (chunk == null) {
-                    return new LoadedContainerDiscovery(false, false, List.of());
-                }
-                for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-                    if (!bounds.isInside(blockEntity.getBlockPos())) continue;
-                    CompoundTag nbt = blockEntity.saveWithoutMetadata();
-                    if (!nbt.contains("LootTable", Tag.TAG_STRING)) {
-                        if (nbt.contains("LootTable") || isLootHolder(blockEntity)) {
-                            unrecoverableLootHolder = true;
-                        }
-                        continue;
-                    }
-                    ResourceLocation table = ResourceLocation.tryParse(nbt.getString("LootTable"));
-                    if (table != null) {
-                        roots.add(table);
-                    } else {
-                        unrecoverableLootHolder = true;
-                    }
+    private static Set<ResourceLocation> findLoadedContainerLootTables(
+            ServerLevel level, net.minecraft.world.level.levelgen.structure.BoundingBox bounds) {
+        Set<ResourceLocation> lootTables = new HashSet<>();
+        BlockPos.MutableBlockPos position = new BlockPos.MutableBlockPos();
+        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+            for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
+                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                    position.set(x, y, z);
+                    if (!level.hasChunkAt(position)) continue;
+                    var blockEntity = level.getBlockEntity(position);
+                    if (blockEntity == null) continue;
+                    CompoundTag tag = blockEntity.saveWithoutMetadata();
+                    if (!tag.contains("LootTable", Tag.TAG_STRING)) continue;
+                    ResourceLocation lootTable =
+                            ResourceLocation.tryParse(tag.getString("LootTable"));
+                    if (lootTable != null) lootTables.add(lootTable);
                 }
             }
         }
-
-        AABB structureBounds =
-                new AABB(
-                        bounds.minX(),
-                        bounds.minY(),
-                        bounds.minZ(),
-                        (double) bounds.maxX() + 1.0D,
-                        (double) bounds.maxY() + 1.0D,
-                        (double) bounds.maxZ() + 1.0D);
-        for (Entity entity :
-                level.getEntities(
-                        (Entity) null,
-                        structureBounds,
-                        candidate ->
-                                candidate instanceof ContainerEntity
-                                        && bounds.isInside(candidate.blockPosition()))) {
-            ContainerEntity container = (ContainerEntity) entity;
-            ResourceLocation table = container.getLootTable();
-            if (table == null) {
-                unrecoverableLootHolder = true;
-            } else {
-                roots.add(table);
-            }
-        }
-        return new LoadedContainerDiscovery(
-                true, unrecoverableLootHolder, List.copyOf(roots));
+        return lootTables;
     }
-
-    private static boolean isLootHolder(BlockEntity blockEntity) {
-        return blockEntity instanceof RandomizableContainerBlockEntity
-                || blockEntity instanceof BrushableBlockEntity;
-    }
-
-    private record LoadedContainerDiscovery(
-            boolean allChunksLoaded,
-            boolean hasUnrecoverableLootHolder,
-            List<ResourceLocation> roots) {}
 
     private static Set<ResourceLocation> findLootTables(
             MinecraftServer server, ResourceLocation structureId) {
 
         Set<ResourceLocation> templateIds = new HashSet<>();
         Set<ResourceLocation> visitedPools = new HashSet<>();
-        findStructureTemplates(
-                server.getResourceManager(), structureId, visitedPools, templateIds);
+        findStructureTemplates(server.getResourceManager(), structureId, visitedPools, templateIds);
         if (server.getStructureManager().get(structureId).isPresent()) {
             templateIds.add(structureId);
         }
@@ -252,8 +186,10 @@ public final class StructureLootAnalyzer {
         collectPoolElements(pool, poolId, templateIds);
 
         if (pool.has("fallback") && pool.get("fallback").isJsonPrimitive()) {
-            ResourceLocation fallback = ResourceLocation.tryParse(pool.get("fallback").getAsString());
-            if (fallback != null && !fallback.equals(ResourceLocationHelper.loc("minecraft", "empty"))) {
+            ResourceLocation fallback =
+                    ResourceLocation.tryParse(pool.get("fallback").getAsString());
+            if (fallback != null
+                    && !fallback.equals(ResourceLocationHelper.loc("minecraft", "empty"))) {
                 collectTemplatePool(resourceManager, fallback, visitedPools, templateIds);
             }
         }
@@ -315,9 +251,7 @@ public final class StructureLootAnalyzer {
             }
         } else if (tag instanceof ListTag listTag) {
             listTag.forEach(
-                    child ->
-                            scanTemplateNbt(
-                                    child, templateId, lootTables, referencedPools));
+                    child -> scanTemplateNbt(child, templateId, lootTables, referencedPools));
         }
     }
 
@@ -336,8 +270,7 @@ public final class StructureLootAnalyzer {
 
     private static ResourceLocation dataResource(
             ResourceLocation id, String directory, String extension) {
-        return ResourceLocationHelper.loc(
-                id.getNamespace(), directory + id.getPath() + extension);
+        return ResourceLocationHelper.loc(id.getNamespace(), directory + id.getPath() + extension);
     }
 
     private static LootTableItems resolveLootTableItems(
@@ -440,8 +373,13 @@ public final class StructureLootAnalyzer {
         TagKey<Item> tagKey = TagKey.create(Registries.ITEM, tagId);
         BuiltInRegistries.ITEM
                 .getTag(tagKey)
-                .ifPresent(holders -> holders.forEach(
-                        holder -> items.add(BuiltInRegistries.ITEM.getKey(holder.value()))));
+                .ifPresent(
+                        holders ->
+                                holders.forEach(
+                                        holder ->
+                                                items.add(
+                                                        BuiltInRegistries.ITEM.getKey(
+                                                                holder.value()))));
     }
 
     private static void addItem(
@@ -467,9 +405,7 @@ public final class StructureLootAnalyzer {
             List<ResourceLocation> resolvedTables) {}
 
     public record DiscoveryResult(
-            AnalysisStatus status,
-            List<StructureLoot> structures,
-            List<Diagnostic> diagnostics) {
+            AnalysisStatus status, List<StructureLoot> structures, List<Diagnostic> diagnostics) {
         public DiscoveryResult {
             structures = List.copyOf(structures);
             diagnostics = List.copyOf(diagnostics);

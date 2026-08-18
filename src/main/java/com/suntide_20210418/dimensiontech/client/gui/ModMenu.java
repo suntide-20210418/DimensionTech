@@ -15,10 +15,8 @@ public final class ModMenu {
 
     public static final RegistryObject<MenuType<MythicMinerMenu>> MYTHIC_MINER =
             MENU_TYPES.register(
-                    ResourceLocationHelper.getPath(
-                            ResourceLocationHelper.modLoc("mythic_miner")),
+                    ResourceLocationHelper.getPath(ResourceLocationHelper.modLoc("mythic_miner")),
                     () -> IForgeMenuType.create(MythicMinerMenu::new));
 
-    private ModMenu() {
-    }
+    private ModMenu() {}
 }

@@ -14,8 +14,7 @@ import net.minecraft.network.chat.MutableComponent;
  */
 public final class TranslateHelper {
 
-    private TranslateHelper() {
-    }
+    private TranslateHelper() {}
 
     public static MutableComponent translate(String key, Object... args) {
         return Component.translatable(key, args);
@@ -69,7 +68,8 @@ public final class TranslateHelper {
     }
 
     private static String normalize(String value) {
-        String normalized = value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        String normalized =
+                value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
         if (normalized.isEmpty()) {
             throw new IllegalArgumentException("Translation key name cannot be blank");
         }
