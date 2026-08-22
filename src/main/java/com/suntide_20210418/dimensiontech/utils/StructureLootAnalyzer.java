@@ -16,9 +16,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -36,53 +36,44 @@ public final class StructureLootAnalyzer {
     private StructureLootAnalyzer() {}
 
     public static List<StructureLoot> analyze(MinecraftServer server, MarkerInfo markerInfo) {
-        List<StructureLoot> results = new ArrayList<>();
-        for (MarkedStructure markedStructure : markerInfo.structures()) {
-            Set<ResourceLocation> lootTables = findLootTables(server, markedStructure.id());
-
-            LootTableItems tableItems = resolveLootTableItems(server, lootTables);
-            StructureLoot structureLoot =
-                    new StructureLoot(
-                            markedStructure.id(),
-                            sorted(lootTables),
-                            sorted(tableItems.items()),
-                            sorted(tableItems.resolvedTables()));
-            results.add(structureLoot);
-        }
-        return List.copyOf(results);
+        MarkedStructure markedStructure = markerInfo.structure();
+        Set<ResourceLocation> lootTables = findLootTables(server, markedStructure.id());
+        LootTableItems tableItems = resolveLootTableItems(server, lootTables);
+        return List.of(
+                new StructureLoot(
+                        markedStructure.id(),
+                        sorted(lootTables),
+                        sorted(tableItems.items()),
+                        sorted(tableItems.resolvedTables())));
     }
 
     /**
      * Discovery result for value analysis; unlike {@link #analyze}, failure is never an empty list.
      */
     public static DiscoveryResult discoverForValue(ServerLevel level, MarkerInfo markerInfo) {
-        List<StructureLoot> structures = new ArrayList<>();
         List<Diagnostic> diagnostics = new ArrayList<>();
-        for (MarkedStructure marked : markerInfo.structures()) {
-            Set<ResourceLocation> roots = findLootTables(level.getServer(), marked.id());
-            if (roots.isEmpty()) {
-                roots = findLoadedContainerLootTables(level, marked.bounds());
-            }
-            if (roots.isEmpty()) {
-                diagnostics.add(
-                        new Diagnostic(
-                                "DISCOVERY_SEMANTICS",
-                                "No LootTable root could be found in structure templates or loaded "
-                                        + "containers for structure "
-                                        + marked.id()));
-                return new DiscoveryResult(
-                        AnalysisStatus.UNSUPPORTED, structures, List.copyOf(diagnostics));
-            }
-            LootTableItems items =
-                    resolveLootTableItems(level.getServer(), roots);
-            structures.add(
-                    new StructureLoot(
-                            marked.id(),
-                            sorted(roots),
-                            sorted(items.items()),
-                            sorted(items.resolvedTables())));
+        MarkedStructure marked = markerInfo.structure();
+        Set<ResourceLocation> roots = findLootTables(level.getServer(), marked.id());
+        if (roots.isEmpty()) {
+            roots = findLoadedContainerLootTables(level, marked.bounds());
         }
-        return new DiscoveryResult(AnalysisStatus.EXACT, List.copyOf(structures), List.of());
+        if (roots.isEmpty()) {
+            diagnostics.add(
+                    new Diagnostic(
+                            "DISCOVERY_SEMANTICS",
+                            "No LootTable root could be found in structure templates or loaded "
+                                    + "containers for structure "
+                                    + marked.id()));
+            return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), diagnostics);
+        }
+        LootTableItems items = resolveLootTableItems(level.getServer(), roots);
+        StructureLoot structure =
+                new StructureLoot(
+                        marked.id(),
+                        sorted(roots),
+                        sorted(items.items()),
+                        sorted(items.resolvedTables()));
+        return new DiscoveryResult(AnalysisStatus.EXACT, List.of(structure), List.of());
     }
 
     private static Set<ResourceLocation> findLoadedContainerLootTables(

@@ -21,5 +21,9 @@ public class ModItemModelsProvider extends ItemModelProvider {
         String enchantmentMarkName = ResourceLocationHelper.getPath(ModItems.ENCHANTMENT_MARK_ID);
         withExistingParent(enchantmentMarkName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.vanilla("item/echo_shard"));
+
+        String coreName = ResourceLocationHelper.getPath(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
+        withExistingParent(coreName, ResourceLocationHelper.vanilla("item/generated"))
+                .texture("layer0", ResourceLocationHelper.vanilla("item/echo_shard"));
     }
 }

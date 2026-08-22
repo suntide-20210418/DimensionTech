@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "dimension_tech:block/tier_4_mythic_miner",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "dimension_tech:block/tier_4_mythic_miner"
+    },
+    "facing=south": {
+      "model": "dimension_tech:block/tier_4_mythic_miner",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "dimension_tech:block/tier_4_mythic_miner",
+      "y": 270
+    }
+  }
+}

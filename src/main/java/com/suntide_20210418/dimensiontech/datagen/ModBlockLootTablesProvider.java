@@ -15,7 +15,9 @@ public class ModBlockLootTablesProvider extends BlockLootSubProvider {
 
     @Override
     public void generate() {
-        dropSelf(ModBlocks.TIER_1_MYTHIC_MINER.get());
+        // Every registered block has a corresponding BlockItem, so generate a
+        // self-drop table for the complete registry (including tiered miners).
+        ModBlocks.BLOCKS.getEntries().forEach(entry -> dropSelf(entry.get()));
     }
 
     @Override

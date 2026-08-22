@@ -6,6 +6,7 @@ import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -31,7 +32,37 @@ public final class ModCreativeModeTabs {
                                             (parameters, output) -> {
                                                 output.accept(ModItems.STRUCT_MARKER.get());
                                                 output.accept(ModItems.ENCHANTMENT_MARK.get());
+                                                output.accept(
+                                                        ModItems.DIMENSION_DECONSTRUCTION_CORE
+                                                                .get());
                                                 output.accept(ModItems.TIER_1_MYTHIC_MINER.get());
+                                                output.accept(ModItems.TIER_2_MYTHIC_MINER.get());
+                                                output.accept(ModItems.TIER_3_MYTHIC_MINER.get());
+                                                output.accept(ModItems.TIER_4_MYTHIC_MINER.get());
+                                                output.accept(ModItems.TIER_5_MYTHIC_MINER.get());
+                                                output.accept(ModItems.TIER_6_MYTHIC_MINER.get());
+                                                output.accept(ModItems.MYTHIC_MINER_CASING.get());
+                                                output.accept(
+                                                        ModItems.MYTHIC_MINER_STRUCTURE.get());
+                                                output.accept(ModItems.UPGRADE_NONE.get());
+                                                for (RegistryObject<Item> upgrade :
+                                                        ModItems.UPGRADE_EFFICIENCY_TIERS)
+                                                    output.accept(upgrade.get());
+                                                for (RegistryObject<Item> upgrade :
+                                                        ModItems.UPGRADE_ENERGY_TIERS)
+                                                    output.accept(upgrade.get());
+                                                for (RegistryObject<Item> upgrade :
+                                                        ModItems.UPGRADE_PARALLEL_TIERS)
+                                                    output.accept(upgrade.get());
+                                                for (RegistryObject<Item> upgrade :
+                                                        ModItems.UPGRADE_LUCK_TIERS)
+                                                    output.accept(upgrade.get());
+                                                for (RegistryObject<Item> upgrade :
+                                                        ModItems.UPGRADE_AGGREGATE_TIERS)
+                                                    output.accept(upgrade.get());
+                                                for (RegistryObject<Item> focus :
+                                                        ModItems.DIMENSION_FOCUS)
+                                                    output.accept(focus.get());
                                             })
                                     .build());
 

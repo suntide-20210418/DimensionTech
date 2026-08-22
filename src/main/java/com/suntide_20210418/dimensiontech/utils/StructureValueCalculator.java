@@ -15,17 +15,16 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKe
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackMeasure;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.function.ToDoubleFunction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.ItemStack;
 
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
 public final class StructureValueCalculator {
@@ -35,12 +34,12 @@ public final class StructureValueCalculator {
         return calculate(level, markerInfo, 0.0F);
     }
 
-    public static StructureValue calculate(
-            ServerLevel level, MarkerInfo markerInfo, float luck) {
+    public static StructureValue calculate(ServerLevel level, MarkerInfo markerInfo, float luck) {
         double dimensionValue = ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension());
         List<Diagnostic> diagnostics = new ArrayList<>();
         if (!Float.isFinite(luck)) {
-            diagnostics.add(new Diagnostic("VALUE_SEMANTICS", "Machine luck must be finite: " + luck));
+            diagnostics.add(
+                    new Diagnostic("VALUE_SEMANTICS", "Machine luck must be finite: " + luck));
             return new StructureValue(
                     AnalysisStatus.UNSUPPORTED,
                     dimensionValue,
@@ -102,7 +101,8 @@ public final class StructureValueCalculator {
             if (!valuation.supported()) {
                 status = AnalysisStatus.UNSUPPORTED;
                 diagnostics.add(valuation.diagnostic());
-                return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
+                return sampledValue(
+                        level, markerInfo, discovery, dimensionValue, luck, diagnostics);
             } else {
                 structureValue = finalStructureValue(valuation.value());
             }
@@ -169,7 +169,9 @@ public final class StructureValueCalculator {
         diagnostics.add(
                 new Diagnostic(
                         "SAMPLING_APPROXIMATION",
-                        "Per-item expectations estimated from " + samples + " Monte Carlo samples"));
+                        "Per-item expectations estimated from "
+                                + samples
+                                + " Monte Carlo samples"));
         return new StructureValue(
                 AnalysisStatus.APPROXIMATE,
                 dimensionValue,

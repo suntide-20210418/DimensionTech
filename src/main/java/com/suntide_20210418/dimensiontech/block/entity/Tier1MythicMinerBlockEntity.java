@@ -12,7 +12,7 @@ public final class Tier1MythicMinerBlockEntity extends BaseMinerBlockEntity {
 
     @Override
     protected int getSlotCount() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.slotCount();
+        return ModConfigs.TIERS[0].slotCount();
     }
 
     @Override
@@ -22,31 +22,31 @@ public final class Tier1MythicMinerBlockEntity extends BaseMinerBlockEntity {
 
     @Override
     protected int getBaseParallel() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.baseParallel();
+        return ModConfigs.TIERS[0].baseParallel();
     }
 
     @Override
     protected float getMachineLuck() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.baseLuck();
+        return ModConfigs.TIERS[0].baseLuck();
     }
 
     @Override
     protected int getEnergyCapacity() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.energyCapacity();
+        return ModConfigs.TIERS[0].energyCapacity();
     }
 
     @Override
     public int getEnergyConsumption() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.energyConsumption();
+        return ModConfigs.TIERS[0].energyConsumption();
     }
 
     @Override
     protected double getMachineEfficiency() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.efficiency();
+        return ModConfigs.TIERS[0].efficiency();
     }
 
     @Override
     protected double getQuantityReference() {
-        return ModConfigs.TIER_1_MYTHIC_MINER.quantityReference();
+        return ModConfigs.TIERS[0].quantityReference();
     }
 }

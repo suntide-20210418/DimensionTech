@@ -24,7 +24,6 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKe
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackMeasure;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.XoroshiroState1201;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,7 +34,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootDataType;

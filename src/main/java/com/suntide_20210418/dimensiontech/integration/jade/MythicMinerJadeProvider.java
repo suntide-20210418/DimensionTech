@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.integration.jade;
 
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity.OutputState;
+import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,13 +31,26 @@ public enum MythicMinerJadeProvider
     private static final ResourceLocation UID =
             ResourceLocationHelper.modLoc("mythic_miner_status");
     private static final String STATUS = "Status";
-    private static final String STRUCTURES = "Structures";
-    private static final String PROGRESS = "Progress";
-    private static final String REMAINING_TICKS = "RemainingTicks";
-    private static final String PARALLEL = "Parallel";
+    private static final String SLOTS = "Slots";
+    private static final String SLOT_INDEX = "Index";
+    private static final String SLOT_STRUCTURE = "Structure";
+    private static final String SLOT_PROGRESS = "Progress";
+    private static final String SLOT_PROCESSING = "Processing";
+    private static final String SLOT_PARALLEL = "Parallel";
+    private static final String SLOT_EXTERNAL_PARALLEL = "ExternalParallelHundredths";
+    private static final String SLOT_ACTUAL_TICKS = "ActualTicks";
+    private static final String SLOT_PREVIOUS_TICKS = "PreviousTicks";
+    private static final String SLOT_PREVIOUS_PARALLEL = "PreviousParallelHundredths";
     private static final String OUTPUT = "Output";
     private static final String PENDING_ITEMS = "PendingItems";
     private static final String ENERGY_CONSUMPTION = "EnergyConsumption";
+    private static final String BASE_EFFICIENCY = "BaseEfficiency";
+    private static final String BASE_CAPACITY = "BaseCapacity";
+    private static final String BASE_CONSUMPTION = "BaseConsumption";
+    private static final String BASE_PARALLEL = "BaseParallel";
+    private static final String BASE_LUCK = "BaseLuck";
+    private static final String SLOT_COUNT = "SlotCount";
+    private static final String WORKING_COUNT = "WorkingCount";
 
     @Override
     public void appendServerData(CompoundTag data, BlockAccessor accessor) {
@@ -44,21 +58,54 @@ public enum MythicMinerJadeProvider
             return;
         }
 
-        List<ResourceLocation> structures = miner.getMarkedStructures();
         boolean running =
-                !structures.isEmpty()
+                miner.isStructureComplete()
                         && miner.getEnergyStorage().getEnergyStored()
-                                >= miner.getEnergyConsumption();
+                                >= miner.getEffectiveEnergyConsumption();
         data.putString(STATUS, miner.isOutputBlocked() ? "blocked" : running ? "running" : "idle");
-        ListTag structureTags = new ListTag();
-        structures.forEach(structure -> structureTags.add(StringTag.valueOf(structure.toString())));
-        data.put(STRUCTURES, structureTags);
-        data.putInt(PROGRESS, miner.getProgressPercent());
-        data.putInt(REMAINING_TICKS, Math.max(0, miner.getProcessingTime() - miner.getProgress()));
-        data.putInt(PARALLEL, miner.getDrawParallel());
+        ListTag slotTags = new ListTag();
+        int workingCount = 0;
+        for (int slot = 0; slot < miner.getItemHandler().getSlots(); slot++) {
+            var markerInfo =
+                    StructMarkerItem.getMarkerInfo(miner.getItemHandler().getStackInSlot(slot));
+            if (markerInfo.isEmpty()) {
+                continue;
+            }
+            CompoundTag slotTag = new CompoundTag();
+            slotTag.putInt(SLOT_INDEX, slot + 1);
+            slotTag.putString(SLOT_STRUCTURE, markerInfo.get().structure().id().toString());
+            // Jade shows logical server ticks, not accelerated execution calls.
+            slotTag.putInt(SLOT_PROGRESS, miner.getSlotLogicalProgress(slot));
+            slotTag.putInt(SLOT_PROCESSING, miner.getSlotProcessingTime(slot));
+            slotTag.putInt(SLOT_PARALLEL, miner.getSlotDrawParallel(slot));
+            slotTag.putInt(
+                    SLOT_EXTERNAL_PARALLEL,
+                    miner.getSlotExternalAccelerationParallelHundredths(slot));
+            slotTag.putInt(
+                    SLOT_ACTUAL_TICKS,
+                    miner.getSlotCurrentExternalAccelerationMachineTicks(slot));
+            slotTag.putInt(
+                    SLOT_PREVIOUS_TICKS,
+                    miner.getSlotPreviousExternalAccelerationMachineTicks(slot));
+            slotTag.putInt(
+                    SLOT_PREVIOUS_PARALLEL,
+                    miner.getSlotPreviousExternalAccelerationParallelHundredths(slot));
+            slotTags.add(slotTag);
+            if (miner.getSlotProcessingTime(slot) > 0) {
+                workingCount++;
+            }
+        }
+        data.put(SLOTS, slotTags);
+        data.putInt(SLOT_COUNT, miner.getItemHandler().getSlots());
+        data.putInt(WORKING_COUNT, workingCount);
         data.putString(OUTPUT, miner.getOutputState().name().toLowerCase(Locale.ROOT));
         data.putInt(PENDING_ITEMS, miner.getPendingOutputCount());
-        data.putInt(ENERGY_CONSUMPTION, miner.getEnergyConsumption());
+        data.putInt(ENERGY_CONSUMPTION, miner.getEffectiveEnergyConsumption());
+        data.putDouble(BASE_EFFICIENCY, miner.getBaseMachineEfficiency());
+        data.putInt(BASE_CAPACITY, miner.getBaseEnergyCapacity());
+        data.putInt(BASE_CONSUMPTION, miner.getEnergyConsumption());
+        data.putInt(BASE_PARALLEL, miner.getBaseParallelCount());
+        data.putFloat(BASE_LUCK, miner.getBaseMachineLuck());
     }
 
     @Override
@@ -71,22 +118,68 @@ public enum MythicMinerJadeProvider
         String status = data.getString(STATUS);
         IThemeHelper theme = IThemeHelper.get();
         tooltip.add(line("status", themedStatus(theme, status)));
-        tooltip.add(line("structure", structureNames(data.getList(STRUCTURES, Tag.TAG_STRING))));
-
-        if ("running".equals(status)) {
+        tooltip.add(Component.empty());
+        tooltip.add(line("base_parameters", theme.info(Component.translatable("jade.dimension_tech.parameters"))));
+        tooltip.add(line("efficiency", Component.literal(formatDecimal(data.getDouble(BASE_EFFICIENCY)))));
+        tooltip.add(line("capacity", Component.literal(data.getInt(BASE_CAPACITY) + " FE")));
+        tooltip.add(line("base_consumption", Component.literal(data.getInt(BASE_CONSUMPTION) + " FE/t")));
+        tooltip.add(line("base_parallel", Component.literal(Integer.toString(data.getInt(BASE_PARALLEL)))));
+        tooltip.add(line("luck", Component.literal(formatDecimal(data.getFloat(BASE_LUCK)))));
+        tooltip.add(
+                Component.translatable(
+                        "jade.dimension_tech.slot_usage",
+                        data.getInt(WORKING_COUNT),
+                        data.getInt(SLOT_COUNT)));
+        ListTag slots = data.getList(SLOTS, Tag.TAG_COMPOUND);
+        for (Tag tag : slots) {
+            CompoundTag slot = (CompoundTag) tag;
             tooltip.add(Component.empty());
-            addProgressBar(tooltip, data.getInt(PROGRESS), theme);
+            tooltip.add(
+                    Component.translatable(
+                            "jade.dimension_tech.slot",
+                            slot.getInt(SLOT_INDEX),
+                            slotStructureName(slot)));
+            int processing = Math.max(0, slot.getInt(SLOT_PROCESSING));
+            int progress = Math.max(0, Math.min(processing, slot.getInt(SLOT_PROGRESS)));
+            addProgressBar(tooltip, progress, processing, theme);
             tooltip.add(
                     line(
-                            "remaining",
+                            "slot_progress",
                             theme.info(
                                     Component.translatable(
-                                            "jade.dimension_tech.seconds",
-                                            String.format(
-                                                    Locale.ROOT,
-                                                    "%.1f",
-                                                    data.getInt(REMAINING_TICKS) / 20.0D)))));
-        } else if ("blocked".equals(status)) {
+                                            "jade.dimension_tech.slot_progress_value",
+                                            progress,
+                                            processing))));
+            tooltip.add(
+                    line(
+                            "slot_parallel",
+                            theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_PARALLEL))))));
+            tooltip.add(
+                    line(
+                            "external_parallel",
+                            theme.info(
+                                    Component.literal(
+                                            formatDecimal(
+                                                    slot.getInt(SLOT_EXTERNAL_PARALLEL)
+                                                            / 100.0D)))));
+            tooltip.add(
+                    line(
+                            "actual_ticks",
+                            theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_ACTUAL_TICKS))))));
+            tooltip.add(
+                    line(
+                            "previous_ticks",
+                            theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_PREVIOUS_TICKS))))));
+            tooltip.add(
+                    line(
+                            "previous_parallel",
+                            theme.info(
+                                    Component.literal(
+                                            formatDecimal(
+                                                    slot.getInt(SLOT_PREVIOUS_PARALLEL)
+                                                            / 100.0D)))));
+        }
+        if ("blocked".equals(status)) {
             tooltip.add(Component.empty());
             tooltip.add(
                     line(
@@ -97,8 +190,6 @@ public enum MythicMinerJadeProvider
                                             data.getInt(PENDING_ITEMS)))));
         }
 
-        tooltip.add(Component.empty());
-        tooltip.add(line("parallel", Component.literal(Integer.toString(data.getInt(PARALLEL)))));
         tooltip.add(line("output", outputName(data.getString(OUTPUT))));
         tooltip.add(
                 line(
@@ -120,20 +211,38 @@ public enum MythicMinerJadeProvider
         };
     }
 
-    private static void addProgressBar(ITooltip tooltip, int percent, IThemeHelper theme) {
-        float progress = Math.max(0.0F, Math.min(1.0F, percent / 100.0F));
+    private static void addProgressBar(
+            ITooltip tooltip, int progressTicks, int processingTicks, IThemeHelper theme) {
+        float progress =
+                processingTicks <= 0
+                        ? 0.0F
+                        : Math.max(0.0F, Math.min(1.0F, (float) progressTicks / processingTicks));
         IElementHelper elements = tooltip.getElementHelper();
-        IProgressStyle style =
-                elements.progressStyle().color(theme.theme().successColor, theme.theme().infoColor);
+        IProgressStyle style = elements.progressStyle().color(0xFF22D3EE, 0xFF164E63);
         tooltip.add(
                 elements.progress(
                                 progress,
                                 Component.translatable(
-                                        "jade.dimension_tech.progress_value", percent),
+                                        "jade.dimension_tech.slot_progress_percent",
+                                        Math.round(progress * 100.0F)),
                                 style,
                                 BoxStyle.DEFAULT,
                                 false)
                         .tag(UID));
+    }
+
+    private static Component slotStructureName(CompoundTag slot) {
+        return structureNames(singleStructure(slot.getString(SLOT_STRUCTURE)));
+    }
+
+    private static String formatDecimal(double value) {
+        return String.format(Locale.ROOT, "%.2f", value);
+    }
+
+    private static ListTag singleStructure(String structure) {
+        ListTag result = new ListTag();
+        result.add(StringTag.valueOf(structure));
+        return result;
     }
 
     private static Component line(String key, Component value) {

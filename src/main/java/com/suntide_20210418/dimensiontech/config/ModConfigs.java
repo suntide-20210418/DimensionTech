@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.config;
 
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKey;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -18,14 +18,46 @@ public final class ModConfigs {
     }
 
     public static final ForgeConfigSpec COMMON_SPEC;
-    public static final MythicMinerTierConfig TIER_1_MYTHIC_MINER;
+    public static final MythicMinerTierConfig[] TIERS;
+    public static final MythicMinerUpgradeTierConfig[] UPGRADE_TIERS;
+    public static final MythicMinerUpgradeTierConfig[] AGGREGATE_UPGRADE_TIERS;
     public static final StructureValueConfig STRUCTURE_VALUE;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.comment("Mythic miner settings by tier").push("mythicMiner");
-        TIER_1_MYTHIC_MINER =
-                new MythicMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100_000, 100);
+        TIERS =
+                new MythicMinerTierConfig[] {
+                    new MythicMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100000, 1024, 1.0D),
+                    new MythicMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 200000, 4096, 2.0D),
+                    new MythicMinerTierConfig(builder, "tier3", 5, 2.0D, 3, 400000, 16384, 3.0D),
+                    new MythicMinerTierConfig(builder, "tier4", 7, 4.0D, 4, 1600000, 65536, 4.0D),
+                    new MythicMinerTierConfig(builder, "tier5", 9, 8.0D, 6, 6400000, 262144, 5.0D),
+                    new MythicMinerTierConfig(builder, "tier6", 11, 16.0D, 9, 25600000, 1048576, 6.0D)
+                };
+        builder.pop();
+        builder.comment("Mythic miner upgrade values by tier").push("mythicMinerUpgrades");
+        UPGRADE_TIERS =
+                new MythicMinerUpgradeTierConfig[] {
+                    new MythicMinerUpgradeTierConfig(builder, "tier1", 20, 20, 5, 20, 50),
+                    new MythicMinerUpgradeTierConfig(builder, "tier2", 40, 40, 10, 40, 100),
+                    new MythicMinerUpgradeTierConfig(builder, "tier3", 60, 60, 15, 60, 150),
+                    new MythicMinerUpgradeTierConfig(builder, "tier4", 80, 80, 20, 80, 200),
+                    new MythicMinerUpgradeTierConfig(builder, "tier5", 100, 100, 25, 100, 250),
+                    new MythicMinerUpgradeTierConfig(builder, "tier6", 120, 120, 30, 120, 300)
+                };
+        builder.pop();
+        builder.comment("Mythic miner aggregate upgrade values by tier")
+                .push("mythicMinerAggregateUpgrades");
+        AGGREGATE_UPGRADE_TIERS =
+                new MythicMinerUpgradeTierConfig[] {
+                    new MythicMinerUpgradeTierConfig(builder, "tier1", 15, 15, 2, 15, 25),
+                    new MythicMinerUpgradeTierConfig(builder, "tier2", 30, 30, 3, 30, 50),
+                    new MythicMinerUpgradeTierConfig(builder, "tier3", 45, 45, 4, 45, 75),
+                    new MythicMinerUpgradeTierConfig(builder, "tier4", 60, 60, 5, 60, 100),
+                    new MythicMinerUpgradeTierConfig(builder, "tier5", 75, 75, 6, 75, 125),
+                    new MythicMinerUpgradeTierConfig(builder, "tier6", 90, 90, 7, 90, 150)
+                };
         builder.pop();
         STRUCTURE_VALUE = new StructureValueConfig(builder);
         COMMON_SPEC = builder.build();
@@ -56,10 +88,12 @@ public final class ModConfigs {
             itemExpectationMethod =
                     builder.comment(
                                     "Per-item expectation method",
-                                    "EXACT_THEN_SAMPLING prefers exact analysis and falls back to Monte Carlo",
+                                    "EXACT_THEN_SAMPLING prefers exact analysis and falls back to"
+                                            + " Monte Carlo",
                                     "SAMPLING always uses Monte Carlo")
                             .defineEnum(
-                                    "itemExpectationMethod", ItemExpectationMethod.EXACT_THEN_SAMPLING);
+                                    "itemExpectationMethod",
+                                    ItemExpectationMethod.EXACT_THEN_SAMPLING);
             samplingCount =
                     builder.comment("Monte Carlo samples per loot table")
                             .defineInRange("samplingCount", 1000, 1, 1_000_000);
@@ -81,16 +115,17 @@ public final class ModConfigs {
                                     "Regexes are matched against the complete item ID",
                                     "Items not matched here use their rarity multiplier above")
                             .defineListAllowEmpty(
-                                    "itemMultipliers", List.of(
+                                    "itemMultipliers",
+                                    List.of(
                                             "iron=2.0",
                                             "gold=5.0",
                                             "diamond=10.0",
                                             "netherite=20.0",
-                                            "allthemodium=50.0",
-                                            "vibranium=100.0",
-                                            "unobtainium=500.0",
-                                            "upgrade_smithing_template=50.0"
-                                    ), StructureValueConfig::isItemMultiplierEntry);
+                                            "allthemodium_=50.0",
+                                            "vibranium_=100.0",
+                                            "unobtainium_=500.0",
+                                            "upgrade_smithing_template=50.0"),
+                                    StructureValueConfig::isItemMultiplierEntry);
             builder.pop();
         }
 
@@ -124,8 +159,7 @@ public final class ModConfigs {
             try {
                 double multiplier = Double.parseDouble(entry.substring(separator + 1).trim());
                 Pattern.compile(entry.substring(0, separator).trim());
-                return Double.isFinite(multiplier)
-                        && multiplier >= 0.0D;
+                return Double.isFinite(multiplier) && multiplier >= 0.0D;
             } catch (NumberFormatException | PatternSyntaxException exception) {
                 return false;
             }
@@ -213,7 +247,8 @@ public final class ModConfigs {
                 double defaultLuck,
                 int defaultSlotCount,
                 int defaultEnergyCapacity,
-                int defaultEnergyConsumption) {
+                int defaultEnergyConsumption,
+                double defaultEfficiency) {
             builder.push(tier);
             baseParallel =
                     builder.comment("Base number of loot draws per loot table")
@@ -237,7 +272,8 @@ public final class ModConfigs {
                                     Integer.MAX_VALUE);
             efficiency =
                     builder.comment("Machine efficiency used to convert structure value to ticks")
-                            .defineInRange("efficiency", 1.0D, 0.000001D, Double.MAX_VALUE);
+                            .defineInRange(
+                                    "efficiency", defaultEfficiency, 0.000001D, Double.MAX_VALUE);
             quantityReference =
                     builder.comment("Reference expected item quantity for output scaling")
                             .defineInRange("quantityReference", 16.0D, 0.000001D, Double.MAX_VALUE);
@@ -270,6 +306,64 @@ public final class ModConfigs {
 
         public double quantityReference() {
             return quantityReference.get();
+        }
+    }
+
+    public static final class MythicMinerUpgradeTierConfig {
+        private final ForgeConfigSpec.DoubleValue efficiencyIncreasePercent;
+        private final ForgeConfigSpec.DoubleValue energyCapacityIncreasePercent;
+        private final ForgeConfigSpec.DoubleValue energyConsumptionReductionPercent;
+        private final ForgeConfigSpec.DoubleValue parallelIncreasePercent;
+        private final ForgeConfigSpec.DoubleValue luckIncreasePercent;
+
+        private MythicMinerUpgradeTierConfig(
+                ForgeConfigSpec.Builder builder,
+                String tier,
+                double efficiency,
+                double capacity,
+                double consumptionReduction,
+                double parallel,
+                double luck) {
+            builder.push(tier);
+            efficiencyIncreasePercent =
+                    percent(builder, "efficiencyIncreasePercent", efficiency, 10_000.0D);
+            energyCapacityIncreasePercent =
+                    percent(builder, "energyCapacityIncreasePercent", capacity, 10_000.0D);
+            energyConsumptionReductionPercent =
+                    percent(
+                            builder,
+                            "energyConsumptionReductionPercent",
+                            consumptionReduction,
+                            99.0D);
+            parallelIncreasePercent =
+                    percent(builder, "parallelIncreasePercent", parallel, 10_000.0D);
+            luckIncreasePercent = percent(builder, "luckIncreasePercent", luck, 10_000.0D);
+            builder.pop();
+        }
+
+        private static ForgeConfigSpec.DoubleValue percent(
+                ForgeConfigSpec.Builder builder, String name, double value, double maximum) {
+            return builder.defineInRange(name, value, 0.0D, maximum);
+        }
+
+        public double efficiencyIncreasePercent() {
+            return efficiencyIncreasePercent.get();
+        }
+
+        public double energyCapacityIncreasePercent() {
+            return energyCapacityIncreasePercent.get();
+        }
+
+        public double energyConsumptionReductionPercent() {
+            return energyConsumptionReductionPercent.get();
+        }
+
+        public double parallelIncreasePercent() {
+            return parallelIncreasePercent.get();
+        }
+
+        public double luckIncreasePercent() {
+            return luckIncreasePercent.get();
         }
     }
 }

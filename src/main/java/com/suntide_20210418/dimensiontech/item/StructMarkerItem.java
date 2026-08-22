@@ -8,9 +8,9 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.IdealRandomProbabilitySpace1201;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +45,8 @@ public class StructMarkerItem extends Item {
     private static final String MARKER_DATA_TAG = "StructureMarkerData";
     private static final String DIMENSION_TAG = "Dimension";
     private static final String POSITION_TAG = "Position";
-    private static final String STRUCTURES_TAG = "Structures";
+    private static final String STRUCTURE_TAG = "Structure";
+    private static final String LEGACY_STRUCTURES_TAG = "Structures";
     private static final String DIMENSION_VALUE_TAG = "DimensionValue";
     private static final String STRUCTURE_VALUE_TAG = "StructureValue";
     private static final String EXPECTED_ITEM_COUNTS_TAG = "ExpectedItemCounts";
@@ -77,28 +78,8 @@ public class StructMarkerItem extends Item {
                         positionData.getInt("X"),
                         positionData.getInt("Y"),
                         positionData.getInt("Z"));
-        List<MarkedStructure> structures = new ArrayList<>();
-        ListTag structureTags = markerData.getList(STRUCTURES_TAG, Tag.TAG_COMPOUND);
-        for (int index = 0; index < structureTags.size(); index++) {
-            CompoundTag structureData = structureTags.getCompound(index);
-            ResourceLocation structureId = ResourceLocation.tryParse(structureData.getString("Id"));
-            if (structureId == null || !structureData.contains("Bounds", Tag.TAG_COMPOUND)) {
-                continue;
-            }
-
-            CompoundTag bounds = structureData.getCompound("Bounds");
-            structures.add(
-                    new MarkedStructure(
-                            structureId,
-                            new BoundingBox(
-                                    bounds.getInt("MinX"),
-                                    bounds.getInt("MinY"),
-                                    bounds.getInt("MinZ"),
-                                    bounds.getInt("MaxX"),
-                                    bounds.getInt("MaxY"),
-                                    bounds.getInt("MaxZ"))));
-        }
-        return Optional.of(new MarkerInfo(dimension, position, List.copyOf(structures)));
+        return readMarkedStructure(markerData)
+                .map(structure -> new MarkerInfo(dimension, position, structure));
     }
 
     /** Reads the per-item expectations persisted by the last successful analysis. */
@@ -121,7 +102,8 @@ public class StructMarkerItem extends Item {
                                 new BigInteger(entry.getString("Denominator")));
                 result.merge(item, expected, ExactProbability::add);
             } catch (IllegalArgumentException exception) {
-                // Ignore malformed entries so a damaged optional payload cannot invalidate a marker.
+                // Ignore malformed entries so a damaged optional payload cannot invalidate a
+                // marker.
             }
         }
         return Map.copyOf(result);
@@ -131,20 +113,23 @@ public class StructMarkerItem extends Item {
     public InteractionResultHolder<ItemStack> use(
             Level level, Player player, InteractionHand usedHand) {
         ItemStack itemStack = player.getItemInHand(usedHand);
-        if (level instanceof ServerLevel && player.isShiftKeyDown()) {
-            clearMarker(itemStack);
-        }
-        if (level instanceof ServerLevel serverLevel && !player.isShiftKeyDown()) {
+        if (level instanceof ServerLevel serverLevel) {
             refreshAnalysisIfNeeded(serverLevel, itemStack);
             com.suntide_20210418.dimensiontech.network.ModNetwork.openRefreshedMarker(
-                    (net.minecraft.server.level.ServerPlayer) player, itemStack);
+                    (net.minecraft.server.level.ServerPlayer) player, itemStack, usedHand);
         }
 
         return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
     }
 
-    public static void markAt(ServerLevel level, ItemStack itemStack, BlockPos position) {
-        itemStack.getOrCreateTag().put(MARKER_DATA_TAG, createMarkerData(level, position));
+    public static boolean markAt(
+            ServerLevel level, ItemStack itemStack, BlockPos position, int selectionIndex) {
+        List<MarkedStructure> structures = findStructuresAt(level, position);
+        if (selectionIndex < 0 || selectionIndex >= structures.size()) return false;
+        Optional<CompoundTag> markerData =
+                createMarkerData(level, position, structures.get(selectionIndex));
+        markerData.ifPresent(data -> itemStack.getOrCreateTag().put(MARKER_DATA_TAG, data));
+        return markerData.isPresent();
     }
 
     public static void clearMarker(ItemStack itemStack) {
@@ -161,7 +146,11 @@ public class StructMarkerItem extends Item {
         getMarkerInfo(itemStack)
                 .ifPresent(
                         markerInfo -> {
-                            CompoundTag markerData = itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
+                            CompoundTag markerData =
+                                    itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
+                            markerData.put(
+                                    STRUCTURE_TAG, createStructureData(markerInfo.structure()));
+                            markerData.remove(LEGACY_STRUCTURES_TAG);
                             writeAnalysisResult(
                                     markerData,
                                     StructureValueCalculator.calculate(level, markerInfo));
@@ -181,16 +170,13 @@ public class StructMarkerItem extends Item {
     }
 
     private static String analysisFingerprint(MarkerInfo markerInfo) {
-        StringBuilder value = new StringBuilder(ModConfigs.STRUCTURE_VALUE.calculationFingerprint());
+        StringBuilder value =
+                new StringBuilder(ModConfigs.STRUCTURE_VALUE.calculationFingerprint());
         value.append('|').append(markerInfo.dimension()).append('|').append(markerInfo.position());
-        markerInfo.structures().stream()
-                .sorted(Comparator.comparing(structure -> structure.id().toString()))
-                .forEach(
-                        structure ->
-                                value.append('|')
-                                        .append(structure.id())
-                                        .append('|')
-                                        .append(structure.bounds()));
+        value.append('|')
+                .append(markerInfo.structure().id())
+                .append('|')
+                .append(markerInfo.structure().bounds());
         return Integer.toHexString(value.toString().hashCode());
     }
 
@@ -255,29 +241,31 @@ public class StructMarkerItem extends Item {
                             .withStyle(ChatFormatting.YELLOW));
         }
 
-        ListTag structures = markerData.getList(STRUCTURES_TAG, Tag.TAG_COMPOUND);
-        boolean hasStructure = false;
-        for (int index = 0; index < structures.size(); index++) {
-            String structureId = structures.getCompound(index).getString("Id");
-            if (!structureId.isEmpty()) {
-                hasStructure = true;
-                tooltip.add(
-                        TranslateHelper.translate(
-                                        TranslateHelper.tooltip("struct_marker.structure"),
-                                        Component.literal(structureId)
-                                                .withStyle(ChatFormatting.LIGHT_PURPLE))
-                                .withStyle(ChatFormatting.GRAY));
-            }
-        }
-
-        if (!hasStructure) {
-            tooltip.add(
-                    TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.no_structure"))
-                            .withStyle(ChatFormatting.DARK_GRAY));
-        }
+        getMarkerInfo(itemStack)
+                .ifPresentOrElse(
+                        info ->
+                                tooltip.add(
+                                        TranslateHelper.translate(
+                                                        TranslateHelper.tooltip(
+                                                                "struct_marker.structure"),
+                                                        Component.literal(
+                                                                        info.structure()
+                                                                                .id()
+                                                                                .toString())
+                                                                .withStyle(
+                                                                        ChatFormatting
+                                                                                .LIGHT_PURPLE))
+                                                .withStyle(ChatFormatting.GRAY)),
+                        () ->
+                                tooltip.add(
+                                        TranslateHelper.translate(
+                                                        TranslateHelper.tooltip(
+                                                                "struct_marker.no_structure"))
+                                                .withStyle(ChatFormatting.DARK_GRAY)));
     }
 
-    private static CompoundTag createMarkerData(ServerLevel level, BlockPos position) {
+    private static Optional<CompoundTag> createMarkerData(
+            ServerLevel level, BlockPos position, MarkedStructure selectedStructure) {
         CompoundTag markerData = new CompoundTag();
         markerData.putString(DIMENSION_TAG, level.dimension().location().toString());
 
@@ -287,15 +275,13 @@ public class StructMarkerItem extends Item {
         positionData.putInt("Z", position.getZ());
         markerData.put(POSITION_TAG, positionData);
 
-        ListTag structures = findStructures(level, position);
-        markerData.put(STRUCTURES_TAG, structures);
+        markerData.put(STRUCTURE_TAG, createStructureData(selectedStructure));
         MarkerInfo markerInfo =
-                new MarkerInfo(
-                        level.dimension().location(), position, readMarkedStructures(structures));
+                new MarkerInfo(level.dimension().location(), position, selectedStructure);
         StructureValue value = StructureValueCalculator.calculate(level, markerInfo);
         writeAnalysisResult(markerData, value);
         markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(markerInfo));
-        return markerData;
+        return Optional.of(markerData);
     }
 
     /**
@@ -381,35 +367,42 @@ public class StructMarkerItem extends Item {
         return tag.contains(key, Tag.TAG_ANY_NUMERIC) && Double.isFinite(tag.getDouble(key));
     }
 
-    private static List<MarkedStructure> readMarkedStructures(ListTag structureTags) {
-        List<MarkedStructure> structures = new ArrayList<>();
-        for (int index = 0; index < structureTags.size(); index++) {
-            CompoundTag structureData = structureTags.getCompound(index);
-            ResourceLocation structureId = ResourceLocation.tryParse(structureData.getString("Id"));
-            if (structureId == null || !structureData.contains("Bounds", Tag.TAG_COMPOUND)) {
-                continue;
-            }
-            CompoundTag bounds = structureData.getCompound("Bounds");
-            structures.add(
-                    new MarkedStructure(
-                            structureId,
-                            new BoundingBox(
-                                    bounds.getInt("MinX"),
-                                    bounds.getInt("MinY"),
-                                    bounds.getInt("MinZ"),
-                                    bounds.getInt("MaxX"),
-                                    bounds.getInt("MaxY"),
-                                    bounds.getInt("MaxZ"))));
+    private static Optional<MarkedStructure> readMarkedStructure(CompoundTag markerData) {
+        if (markerData.contains(STRUCTURE_TAG, Tag.TAG_COMPOUND)) {
+            return readStructure(markerData.getCompound(STRUCTURE_TAG));
         }
-        return List.copyOf(structures);
+        ListTag legacyStructures = markerData.getList(LEGACY_STRUCTURES_TAG, Tag.TAG_COMPOUND);
+        return legacyStructures.stream()
+                .filter(CompoundTag.class::isInstance)
+                .map(CompoundTag.class::cast)
+                .map(StructMarkerItem::readStructure)
+                .flatMap(Optional::stream)
+                .min(MARKED_STRUCTURE_ORDER);
+    }
+
+    private static Optional<MarkedStructure> readStructure(CompoundTag structureData) {
+        ResourceLocation structureId = ResourceLocation.tryParse(structureData.getString("Id"));
+        if (structureId == null || !structureData.contains("Bounds", Tag.TAG_COMPOUND)) {
+            return Optional.empty();
+        }
+        CompoundTag bounds = structureData.getCompound("Bounds");
+        return Optional.of(
+                new MarkedStructure(
+                        structureId,
+                        new BoundingBox(
+                                bounds.getInt("MinX"),
+                                bounds.getInt("MinY"),
+                                bounds.getInt("MinZ"),
+                                bounds.getInt("MaxX"),
+                                bounds.getInt("MaxY"),
+                                bounds.getInt("MaxZ"))));
     }
 
     private static String formatValue(double value) {
         return String.format(java.util.Locale.ROOT, "%.2f", value);
     }
 
-    private static ListTag findStructures(ServerLevel level, BlockPos position) {
-        ListTag structures = new ListTag();
+    public static List<MarkedStructure> findStructuresAt(ServerLevel level, BlockPos position) {
         List<CompoundTag> discovered = new ArrayList<>();
         StructureManager structureManager = level.structureManager();
         Registry<Structure> structureRegistry =
@@ -428,19 +421,11 @@ public class StructMarkerItem extends Item {
                 }
             }
         }
-        discovered.stream()
-                .sorted(
-                        Comparator.comparing((CompoundTag tag) -> tag.getString("Id"))
-                                .thenComparingInt(tag -> tag.getInt("StartChunkX"))
-                                .thenComparingInt(tag -> tag.getInt("StartChunkZ"))
-                                .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MinX"))
-                                .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MinY"))
-                                .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MinZ"))
-                                .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxX"))
-                                .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxY"))
-                                .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxZ")))
-                .forEach(structures::add);
-        return structures;
+        return discovered.stream()
+                .sorted(STRUCTURE_DATA_ORDER)
+                .map(StructMarkerItem::readStructure)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     private static CompoundTag createStructureData(
@@ -464,8 +449,43 @@ public class StructMarkerItem extends Item {
         return structureData;
     }
 
+    private static CompoundTag createStructureData(MarkedStructure structure) {
+        CompoundTag structureData = new CompoundTag();
+        structureData.putString("Id", structure.id().toString());
+        BoundingBox boundingBox = structure.bounds();
+        CompoundTag boundsData = new CompoundTag();
+        boundsData.putInt("MinX", boundingBox.minX());
+        boundsData.putInt("MinY", boundingBox.minY());
+        boundsData.putInt("MinZ", boundingBox.minZ());
+        boundsData.putInt("MaxX", boundingBox.maxX());
+        boundsData.putInt("MaxY", boundingBox.maxY());
+        boundsData.putInt("MaxZ", boundingBox.maxZ());
+        structureData.put("Bounds", boundsData);
+        return structureData;
+    }
+
+    private static final Comparator<CompoundTag> STRUCTURE_DATA_ORDER =
+            Comparator.comparing((CompoundTag tag) -> tag.getString("Id"))
+                    .thenComparingInt(tag -> tag.getInt("StartChunkX"))
+                    .thenComparingInt(tag -> tag.getInt("StartChunkZ"))
+                    .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MinX"))
+                    .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MinY"))
+                    .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MinZ"))
+                    .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxX"))
+                    .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxY"))
+                    .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxZ"));
+
+    private static final Comparator<MarkedStructure> MARKED_STRUCTURE_ORDER =
+            Comparator.comparing((MarkedStructure structure) -> structure.id().toString())
+                    .thenComparingInt(structure -> structure.bounds().minX())
+                    .thenComparingInt(structure -> structure.bounds().minY())
+                    .thenComparingInt(structure -> structure.bounds().minZ())
+                    .thenComparingInt(structure -> structure.bounds().maxX())
+                    .thenComparingInt(structure -> structure.bounds().maxY())
+                    .thenComparingInt(structure -> structure.bounds().maxZ());
+
     public record MarkerInfo(
-            ResourceLocation dimension, BlockPos position, List<MarkedStructure> structures) {}
+            ResourceLocation dimension, BlockPos position, MarkedStructure structure) {}
 
     public record MarkedStructure(ResourceLocation id, BoundingBox bounds) {}
 }

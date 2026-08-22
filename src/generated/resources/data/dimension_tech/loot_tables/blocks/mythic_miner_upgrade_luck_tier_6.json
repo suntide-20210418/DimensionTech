@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "dimension_tech:mythic_miner_upgrade_luck_tier_6"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "dimension_tech:blocks/mythic_miner_upgrade_luck_tier_6"
+}

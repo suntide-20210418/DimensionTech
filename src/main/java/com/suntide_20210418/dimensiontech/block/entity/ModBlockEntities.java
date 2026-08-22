@@ -22,6 +22,51 @@ public final class ModBlockEntities {
                                                     Tier1MythicMinerBlockEntity::new,
                                                     ModBlocks.TIER_1_MYTHIC_MINER.get())
                                             .build(null));
+    public static final RegistryObject<BlockEntityType<Tier2MythicMinerBlockEntity>>
+            TIER_2_MYTHIC_MINER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "tier_2_mythic_miner",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    Tier2MythicMinerBlockEntity::new,
+                                                    ModBlocks.TIER_2_MYTHIC_MINER.get())
+                                            .build(null));
+    public static final RegistryObject<BlockEntityType<Tier3MythicMinerBlockEntity>>
+            TIER_3_MYTHIC_MINER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "tier_3_mythic_miner",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    Tier3MythicMinerBlockEntity::new,
+                                                    ModBlocks.TIER_3_MYTHIC_MINER.get())
+                                            .build(null));
+    public static final RegistryObject<BlockEntityType<Tier4MythicMinerBlockEntity>>
+            TIER_4_MYTHIC_MINER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "tier_4_mythic_miner",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    Tier4MythicMinerBlockEntity::new,
+                                                    ModBlocks.TIER_4_MYTHIC_MINER.get())
+                                            .build(null));
+    public static final RegistryObject<BlockEntityType<Tier5MythicMinerBlockEntity>>
+            TIER_5_MYTHIC_MINER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "tier_5_mythic_miner",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    Tier5MythicMinerBlockEntity::new,
+                                                    ModBlocks.TIER_5_MYTHIC_MINER.get())
+                                            .build(null));
+    public static final RegistryObject<BlockEntityType<Tier6MythicMinerBlockEntity>>
+            TIER_6_MYTHIC_MINER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "tier_6_mythic_miner",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    Tier6MythicMinerBlockEntity::new,
+                                                    ModBlocks.TIER_6_MYTHIC_MINER.get())
+                                            .build(null));
 
     private ModBlockEntities() {}
 

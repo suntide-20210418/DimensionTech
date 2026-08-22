@@ -13,6 +13,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -102,6 +104,46 @@ public final class StructMarkerItemGameTests {
             helper.fail("Current payload with NaN value was accepted");
         }
         helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty")
+    public static void legacyMultiStructureMarkerReadsOneDeterministicStructure(
+            GameTestHelper helper) {
+        ItemStack marker = new ItemStack(Items.STICK);
+        CompoundTag markerData = marker.getOrCreateTagElement("StructureMarkerData");
+        markerData.putString("Dimension", "minecraft:overworld");
+        CompoundTag position = new CompoundTag();
+        position.putInt("X", 0);
+        position.putInt("Y", 64);
+        position.putInt("Z", 0);
+        markerData.put("Position", position);
+        ListTag structures = new ListTag();
+        structures.add(structure("minecraft:village_plains", 10));
+        structures.add(structure("minecraft:ancient_city", -10));
+        markerData.put("Structures", structures);
+
+        StructMarkerItem.MarkerInfo info = StructMarkerItem.getMarkerInfo(marker).orElse(null);
+        if (info == null
+                || !ResourceLocation.fromNamespaceAndPath("minecraft", "ancient_city")
+                        .equals(info.structure().id())) {
+            helper.fail("Legacy marker did not resolve to exactly one deterministic structure");
+            return;
+        }
+        helper.succeed();
+    }
+
+    private static CompoundTag structure(String id, int minX) {
+        CompoundTag structure = new CompoundTag();
+        structure.putString("Id", id);
+        CompoundTag bounds = new CompoundTag();
+        bounds.putInt("MinX", minX);
+        bounds.putInt("MinY", 0);
+        bounds.putInt("MinZ", 0);
+        bounds.putInt("MaxX", minX + 5);
+        bounds.putInt("MaxY", 5);
+        bounds.putInt("MaxZ", 5);
+        structure.put("Bounds", bounds);
+        return structure;
     }
 
     private static CompoundTag exactMarker() {

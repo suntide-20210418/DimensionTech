@@ -1,6 +1,10 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.block.BaseMinerBlock;
+import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
+import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
+import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
@@ -9,18 +13,21 @@ import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
-import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Map;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -52,9 +59,15 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private static final String INVENTORY_TAG = "Inventory";
     private static final String ENERGY_TAG = "Energy";
     private static final String PROGRESS_TAG = "Progress";
+    private static final String SLOT_PROGRESS_TAG = "SlotProgress";
     private static final String PENDING_OUTPUT_TAG = "PendingOutput";
     private static final String PARALLEL_FRACTION_TAG = "ParallelFractionHundredths";
     private static final String QUANTITY_FRACTION_TAG = "QuantityFractionHundredths";
+    private static final String SLOT_PARALLEL_FRACTION_TAG = "SlotParallelFractionHundredths";
+    private static final String SLOT_QUANTITY_FRACTION_TAG = "SlotQuantityFractionHundredths";
+    private static final String EXTERNAL_ACCELERATION_STATES_TAG = "ExternalTickAccelerationStates";
+    private static final String EQUIPMENT_DISMANTLING_TAG = "EquipmentDismantling";
+    private static final String SLOT_ENABLED_TAG = "SlotEnabled";
     private static final int DRAWS_PER_PARALLEL = 8;
 
     private final ItemStackHandler itemHandler;
@@ -64,16 +77,38 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private CompoundTag analyzedMarkerSnapshot;
     private List<CachedMarkerLoot> cachedMarkerLoot = List.of();
     private List<ItemStack> pendingOutput = new ArrayList<>();
-    private int progress;
-    private int dynamicProcessingTime = 400;
-    private int dynamicParallelHundredths = 100;
-    private int parallelFractionHundredths;
-    private int quantityFractionHundredths;
+    private final MythicMinerSlotProgress slotProgress;
+    private final int[] slotProcessingTimes;
+    private final int[] slotParallelHundredths;
+    private final int[] slotParallelFractionHundredths;
+    private final int[] slotQuantityFractionHundredths;
+    private final boolean[] slotEnabled;
+    private final MythicMinerExternalTickAcceleration[] externalTickAcceleration;
+    private RedstoneMode redstoneMode = RedstoneMode.ALWAYS;
+    private int redstoneThreshold = 8;
+    private OutputState configuredOutputState = OutputState.ITEM_HANDLER;
+    private int outputFaceMask = (1 << Direction.values().length) - 1;
+    private boolean equipmentDismantling;
+    private final Set<ResourceLocation> disabledExpectedItems = new HashSet<>();
+    private boolean structureComplete;
+    private UpgradeBonuses upgradeBonuses = UpgradeBonuses.NONE;
 
     protected BaseMinerBlockEntity(
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
         super(type, position, blockState);
         this.itemHandler = createItemHandler();
+        int slotCount = itemHandler.getSlots();
+        this.slotProgress = new MythicMinerSlotProgress(slotCount);
+        this.slotProcessingTimes = new int[slotCount];
+        this.slotParallelHundredths = new int[slotCount];
+        this.slotParallelFractionHundredths = new int[slotCount];
+        this.slotQuantityFractionHundredths = new int[slotCount];
+        this.externalTickAcceleration = new MythicMinerExternalTickAcceleration[slotCount];
+        for (int slot = 0; slot < slotCount; slot++) {
+            this.externalTickAcceleration[slot] = new MythicMinerExternalTickAcceleration();
+        }
+        this.slotEnabled = new boolean[slotCount];
+        java.util.Arrays.fill(this.slotEnabled, true);
         this.energyStorage = new MinerEnergyStorage(getEnergyCapacity());
         this.itemHandlerCapability = LazyOptional.of(() -> itemHandler);
         this.energyCapability = LazyOptional.of(() -> energyStorage);
@@ -96,23 +131,217 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public abstract int getEnergyConsumption();
 
     public int getProcessingTime() {
-        return dynamicProcessingTime;
+        int slot = firstActiveSlot();
+        return slot >= 0 ? getSlotProcessingTime(slot) : 400;
     }
 
     public int getDrawParallel() {
-        return Math.max(1, getBaseParallel() * dynamicParallelHundredths / 100);
+        int slot = firstActiveSlot();
+        return slot >= 0
+                ? getSlotDrawParallel(slot)
+                : MythicMinerUpgradeMath.totalParallel(
+                        getBaseParallel(), 100, upgradeBonuses.parallelMultiplierHundredths());
+    }
+
+    public int getEffectiveBaseParallel() {
+        return MythicMinerUpgradeMath.upgradedBaseParallel(
+                getBaseParallel(), upgradeBonuses.parallelMultiplierHundredths());
+    }
+
+    public int getExtraEfficiencyParallel() {
+        int slot = firstActiveSlot();
+        return slot >= 0
+                ? MythicMinerUpgradeMath.extraEfficiencyParallel(
+                        getBaseParallel(),
+                        slotParallelHundredths[slot],
+                        upgradeBonuses.parallelMultiplierHundredths())
+                : 0;
+    }
+
+    public int getExternalAccelerationParallelHundredths() {
+        int slot = firstActiveSlot();
+        return slot >= 0 ? getSlotExternalAccelerationParallelHundredths(slot) : 0;
+    }
+
+    public int getCurrentExternalAccelerationMachineTicks() {
+        int slot = firstActiveSlot();
+        return slot >= 0 ? getSlotCurrentExternalAccelerationMachineTicks(slot) : 0;
+    }
+
+    public int getSlotExternalAccelerationParallelHundredths(int slot) {
+        return validSlot(slot) ? externalTickAcceleration[slot].currentExtraParallelHundredths() : 0;
+    }
+
+    public int getSlotCurrentExternalAccelerationMachineTicks(int slot) {
+        return validSlot(slot) ? externalTickAcceleration[slot].currentActualTicks() : 0;
+    }
+
+    public int getSlotCurrentNaturalTicks(int slot) {
+        return validSlot(slot) ? externalTickAcceleration[slot].currentNaturalTicks() : 0;
+    }
+
+    /** Logical progress in the current machine cycle, independent of acceleration calls. */
+    public int getSlotLogicalProgress(int slot) {
+        return validSlot(slot) ? externalTickAcceleration[slot].currentCycleNaturalTicks() : 0;
+    }
+
+    public int getSlotPreviousExternalAccelerationMachineTicks(int slot) {
+        return validSlot(slot) ? externalTickAcceleration[slot].previousActualTicks() : 0;
+    }
+
+    public int getSlotPreviousExternalAccelerationParallelHundredths(int slot) {
+        return validSlot(slot) ? externalTickAcceleration[slot].previousExtraParallelHundredths() : 0;
     }
 
     public int getBaseParallelCount() {
         return getBaseParallel();
     }
 
+    public int getEffectiveEnergyConsumption() {
+        return Math.max(
+                1,
+                (int)
+                        Math.ceil(
+                                getEnergyConsumption()
+                                        * upgradeBonuses.energyConsumptionMultiplier()));
+    }
+
+    public double getEffectiveMachineEfficiency() {
+        return getMachineEfficiency() * upgradeBonuses.efficiencyMultiplier();
+    }
+
+    public double getBaseMachineEfficiency() {
+        return getMachineEfficiency();
+    }
+
+    public float getBaseMachineLuck() {
+        return getMachineLuck();
+    }
+
+    public int getBaseEnergyCapacity() {
+        return getEnergyCapacity();
+    }
+
+    public float getEffectiveMachineLuck() {
+        return MythicMinerUpgradeMath.effectiveLuck(
+                getMachineLuck(), upgradeBonuses.luckIncreasePercent());
+    }
+
+    public double getEfficiencyUpgradePercent() {
+        return (upgradeBonuses.efficiencyMultiplier() - 1.0D) * 100.0D;
+    }
+
+    public double getEnergyCapacityUpgradePercent() {
+        return (upgradeBonuses.energyCapacityMultiplier() - 1.0D) * 100.0D;
+    }
+
+    public double getEnergyConsumptionReductionPercent() {
+        return (1.0D - upgradeBonuses.energyConsumptionMultiplier()) * 100.0D;
+    }
+
+    public double getParallelUpgradePercent() {
+        return upgradeBonuses.parallelMultiplierHundredths() - 100.0D;
+    }
+
+    public double getLuckUpgradePercent() {
+        return upgradeBonuses.luckIncreasePercent();
+    }
+
+    public int getUpgradeCount(MythicMinerUpgradeBlock.Type type) {
+        return switch (type) {
+            case EFFICIENCY -> upgradeBonuses.efficiencyUpgradeCount();
+            case ENERGY -> upgradeBonuses.energyUpgradeCount();
+            case PARALLEL -> upgradeBonuses.parallelUpgradeCount();
+            case LUCK -> upgradeBonuses.luckUpgradeCount();
+            case AGGREGATE -> upgradeBonuses.aggregateUpgradeCount();
+            case NONE -> 0;
+        };
+    }
+
+    public int getTotalUpgradeCount() {
+        return upgradeBonuses.efficiencyUpgradeCount()
+                + upgradeBonuses.energyUpgradeCount()
+                + upgradeBonuses.parallelUpgradeCount()
+                + upgradeBonuses.luckUpgradeCount()
+                + upgradeBonuses.aggregateUpgradeCount();
+    }
+
     public int getAccumulatedParallelHundredths() {
-        return parallelFractionHundredths;
+        int slot = firstActiveSlot();
+        return slot >= 0 ? slotParallelFractionHundredths[slot] : 0;
     }
 
     public int getAdditionalItemCount() {
         return Math.max(0, getPendingOutputCount());
+    }
+
+    public RedstoneMode getRedstoneMode() {
+        return redstoneMode;
+    }
+
+    public int getRedstoneThreshold() {
+        return redstoneThreshold;
+    }
+
+    public void cycleRedstoneMode() {
+        redstoneMode =
+                RedstoneMode.values()[(redstoneMode.ordinal() + 1) % RedstoneMode.values().length];
+        setChanged();
+    }
+
+    public void cycleOutputState() {
+        configuredOutputState =
+                configuredOutputState == OutputState.ITEM_HANDLER
+                        ? OutputState.ME_NETWORK
+                        : OutputState.ITEM_HANDLER;
+        setChanged();
+    }
+
+    public boolean supportsEquipmentDismantling() {
+        return getBlockState().getBlock() instanceof BaseMinerBlock miner && miner.minerTier() >= 3;
+    }
+
+    public boolean isEquipmentDismantlingEnabled() {
+        return supportsEquipmentDismantling() && equipmentDismantling;
+    }
+
+    public void toggleEquipmentDismantling() {
+        if (supportsEquipmentDismantling()) {
+            equipmentDismantling = !equipmentDismantling;
+            setChanged();
+        }
+    }
+
+    public int getOutputFaceMask() {
+        return outputFaceMask;
+    }
+
+    public boolean isOutputFaceEnabled(Direction direction) {
+        return (outputFaceMask & (1 << toWorldDirection(direction).ordinal())) != 0;
+    }
+
+    public void toggleOutputFace(Direction direction) {
+        outputFaceMask ^= 1 << toWorldDirection(direction).ordinal();
+        setChanged();
+    }
+
+    public Direction toWorldDirection(Direction logicalDirection) {
+        if (level == null
+                || !level.getBlockState(worldPosition).hasProperty(BaseMinerBlock.FACING)) {
+            return logicalDirection;
+        }
+        Direction front = level.getBlockState(worldPosition).getValue(BaseMinerBlock.FACING);
+        return switch (logicalDirection) {
+            case NORTH -> front;
+            case SOUTH -> front.getOpposite();
+            case EAST -> front.getClockWise();
+            case WEST -> front.getCounterClockWise();
+            default -> logicalDirection;
+        };
+    }
+
+    public boolean isWorldOutputFaceEnabled(Direction worldDirection) {
+        return (outputFaceMask & (1 << worldDirection.ordinal())) != 0;
     }
 
     public IItemHandler getItemHandler() {
@@ -124,11 +353,98 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getProgress() {
-        return progress;
+        int slot = firstActiveSlot();
+        return slot >= 0 ? getSlotProgress(slot) : 0;
     }
 
     public int getProgressPercent() {
-        return (int) Math.min(100L, (long) progress * 100L / getProcessingTime());
+        return (int) Math.min(100L, (long) getProgress() * 100L / getProcessingTime());
+    }
+
+    public int getSlotProgress(int slot) {
+        return validSlot(slot) ? slotProgress.get(slot) : 0;
+    }
+
+    public int getSlotProcessingTime(int slot) {
+        return validSlot(slot) && slotEnabled[slot] ? slotProcessingTimes[slot] : 0;
+    }
+
+    public boolean isSlotEnabled(int slot) {
+        return validSlot(slot) && slotEnabled[slot];
+    }
+
+    public void toggleSlotEnabled(int slot) {
+        if (!validSlot(slot)) return;
+        slotEnabled[slot] = !slotEnabled[slot];
+        setChanged();
+    }
+
+    public int getSlotDrawParallel(int slot) {
+        if (!validSlot(slot) || !slotEnabled[slot] || slotProcessingTimes[slot] <= 0) {
+            return 0;
+        }
+        return (int)
+                Math.max(
+                        1L,
+                        Math.min(
+                                Integer.MAX_VALUE,
+                                slotDisplayParallelHundredths(slot) / 100L));
+    }
+
+    public MythicMinerAnalysisSnapshot getMarkerAnalysisSnapshot(int slot) {
+        if (!(level instanceof ServerLevel serverLevel) || !validSlot(slot)) {
+            return MythicMinerAnalysisSnapshot.EMPTY;
+        }
+        refreshMarkerLootCache(serverLevel.getServer());
+        updateProcessingPlans();
+        CachedMarkerLoot cachedLoot = cachedLootForSlot(slot);
+        if (cachedLoot == null || cachedLoot.quantity() <= 0.0D) {
+            return MythicMinerAnalysisSnapshot.EMPTY;
+        }
+
+        double averageParallel = slotAverageParallelHundredths(slot) / 100.0D;
+        int quantityFactor =
+                MythicMinerExpectationMath.quantityFactorHundredths(
+                        cachedLoot.quantity(), getQuantityReference());
+        double expectedDraws =
+                MythicMinerExpectationMath.expectedDraws(
+                        averageParallel, DRAWS_PER_PARALLEL, quantityFactor);
+        Map<ResourceLocation, Double> effectiveExpectations = new LinkedHashMap<>();
+        cachedLoot.expectedItems()
+                .forEach(
+                        (item, weight) -> {
+                            double expected =
+                                    MythicMinerExpectationMath.expectedItemCount(
+                                            weight.finiteDoubleValue(),
+                                            cachedLoot.quantity(),
+                                            expectedDraws);
+                            if (Double.isFinite(expected) && expected > 0.0D) {
+                                effectiveExpectations.put(item, expected);
+                            }
+                        });
+        boolean dismantling = isEquipmentDismantlingEnabled();
+        Map<ResourceLocation, Double> displayedExpectations =
+                dismantling
+                        ? EquipmentDismantler.dismantleExpectations(
+                                serverLevel, effectiveExpectations)
+                        : effectiveExpectations;
+        return new MythicMinerAnalysisSnapshot(
+                cachedLoot.dimensionValue(),
+                cachedLoot.structureValue(),
+                dismantling,
+                displayedExpectations,
+                disabledExpectedItems);
+    }
+
+    public void toggleExpectedItem(ResourceLocation itemId) {
+        if (!disabledExpectedItems.add(itemId)) {
+            disabledExpectedItems.remove(itemId);
+        }
+        setChanged();
+    }
+
+    public boolean isExpectedItemDisabled(ResourceLocation itemId) {
+        return disabledExpectedItems.contains(itemId);
     }
 
     public int getEnergyStored() {
@@ -147,31 +463,35 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         List<ResourceLocation> structures = new ArrayList<>();
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             StructMarkerItem.getMarkerInfo(itemHandler.getStackInSlot(slot))
-                    .ifPresent(
-                            markerInfo ->
-                                    markerInfo.structures().stream()
-                                            .map(StructMarkerItem.MarkedStructure::id)
-                                            .forEach(structures::add));
+                    .map(markerInfo -> markerInfo.structure().id())
+                    .ifPresent(structures::add);
         }
         return structures.stream().distinct().toList();
     }
 
     public OutputState getOutputState() {
-        if (!(level instanceof ServerLevel serverLevel)) {
+        if (!(level instanceof ServerLevel)) {
             return OutputState.NONE;
         }
-        AdjacentOutputs outputs = findAdjacentOutputs(serverLevel);
-        if (!outputs.meInterfaces().isEmpty()) {
-            return OutputState.ME_NETWORK;
-        }
-        if (!outputs.itemHandlers().isEmpty()) {
-            return OutputState.ITEM_HANDLER;
-        }
-        return OutputState.NONE;
+        return configuredOutputState;
     }
 
     public void serverTick() {
         if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        boolean complete = isStructureComplete(serverLevel);
+        if (complete != structureComplete) {
+            structureComplete = complete;
+            setChanged();
+        }
+        if (!complete) {
+            applyUpgradeBonuses(UpgradeBonuses.NONE);
+            return;
+        }
+        applyUpgradeBonuses(calculateUpgradeBonuses(serverLevel));
+        int signal = level.getBestNeighborSignal(worldPosition);
+        if (!redstoneMode.allows(signal, redstoneThreshold)) {
             return;
         }
         if (!pendingOutput.isEmpty()) {
@@ -182,69 +502,204 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             return;
         }
 
-        refreshMarkerLootCache(serverLevel.getServer());
-        updateProcessingPlan();
-
-        int energyConsumption = getEnergyConsumption();
+        int energyConsumption = getEffectiveEnergyConsumption();
         if (!energyStorage.canConsume(energyConsumption)) {
             return;
         }
 
         energyStorage.consume(energyConsumption);
-        progress++;
-        if (progress >= getProcessingTime()) {
-            progress = 0;
-            drawMarkerLoot(serverLevel.getServer(), drawParallelForCycle());
+        refreshMarkerLootCache(serverLevel.getServer());
+        updateProcessingPlans();
+        List<CompletedMarker> completedMarkers = new ArrayList<>();
+        for (CachedMarkerLoot cachedLoot : cachedMarkerLoot) {
+            int slot = cachedLoot.slot();
+            if (!slotEnabled[slot]) {
+                continue;
+            }
+            MythicMinerExternalTickAcceleration.Observation accelerationObservation =
+                    externalTickAcceleration[slot]
+                            .observe(serverLevel.getGameTime(), slotProcessingTimes[slot]);
+            // Progress is measured in machine ticks. Natural server ticks are only the
+            // sampling window used to estimate external acceleration and must not drive
+            // the machine's progress bar.
+            slotProgress.set(slot, accelerationObservation.progressTicks());
+            if (accelerationObservation.complete()) {
+                completedMarkers.add(
+                        new CompletedMarker(cachedLoot, drawParallelForCycle(slot)));
+            }
+        }
+        if (!completedMarkers.isEmpty()) {
+            drawMarkerLoot(serverLevel.getServer(), completedMarkers);
         }
         setChanged();
+    }
+
+    public boolean isStructureComplete() {
+        if (level instanceof ServerLevel serverLevel) {
+            structureComplete = isStructureComplete(serverLevel);
+        }
+        return structureComplete;
+    }
+
+    private boolean isStructureComplete(ServerLevel serverLevel) {
+        int tier =
+                getBlockState().getBlock() instanceof BaseMinerBlock miner ? miner.minerTier() : 1;
+        return MythicMinerMultiblock.isComplete(serverLevel, worldPosition, tier);
+    }
+
+    private UpgradeBonuses calculateUpgradeBonuses(ServerLevel serverLevel) {
+        double efficiencyPercent = 0.0D;
+        double capacityPercent = 0.0D;
+        double parallelPercent = 0.0D;
+        double luckPercent = 0.0D;
+        double additiveConsumptionReductionPercent = 0.0D;
+        double consumptionMultiplier = 1.0D;
+        int efficiencyUpgradeCount = 0;
+        int energyUpgradeCount = 0;
+        int parallelUpgradeCount = 0;
+        int luckUpgradeCount = 0;
+        int aggregateUpgradeCount = 0;
+        for (MythicMinerUpgradeBlock block :
+                MythicMinerMultiblock.upgrades(serverLevel, worldPosition)) {
+            switch (block.getType()) {
+                case EFFICIENCY -> {
+                    efficiencyUpgradeCount++;
+                    efficiencyPercent +=
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
+                                    .efficiencyIncreasePercent();
+                }
+                case ENERGY -> {
+                    energyUpgradeCount++;
+                    ModConfigs.MythicMinerUpgradeTierConfig config =
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1];
+                    capacityPercent += config.energyCapacityIncreasePercent();
+                    consumptionMultiplier *=
+                            1.0D - config.energyConsumptionReductionPercent() / 100.0D;
+                }
+                case PARALLEL -> {
+                    parallelUpgradeCount++;
+                    parallelPercent +=
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
+                                    .parallelIncreasePercent();
+                }
+                case LUCK -> {
+                    luckUpgradeCount++;
+                    luckPercent +=
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1].luckIncreasePercent();
+                }
+                case AGGREGATE -> {
+                    aggregateUpgradeCount++;
+                    ModConfigs.MythicMinerUpgradeTierConfig config =
+                            ModConfigs.AGGREGATE_UPGRADE_TIERS[block.getTier() - 1];
+                    efficiencyPercent += config.efficiencyIncreasePercent();
+                    capacityPercent += config.energyCapacityIncreasePercent();
+                    additiveConsumptionReductionPercent +=
+                            config.energyConsumptionReductionPercent();
+                    parallelPercent += config.parallelIncreasePercent();
+                    luckPercent += config.luckIncreasePercent();
+                }
+                case NONE -> {}
+            }
+        }
+        consumptionMultiplier *=
+                Math.max(0.0D, 1.0D - additiveConsumptionReductionPercent / 100.0D);
+        int parallelMultiplierHundredths =
+                (int) Math.min(Integer.MAX_VALUE, Math.round(100.0D + parallelPercent));
+        return new UpgradeBonuses(
+                1.0D + efficiencyPercent / 100.0D,
+                1.0D + capacityPercent / 100.0D,
+                Math.max(100, parallelMultiplierHundredths),
+                luckPercent,
+                Math.max(0.0D, consumptionMultiplier),
+                efficiencyUpgradeCount,
+                energyUpgradeCount,
+                parallelUpgradeCount,
+                luckUpgradeCount,
+                aggregateUpgradeCount);
+    }
+
+    private void applyUpgradeBonuses(UpgradeBonuses bonuses) {
+        upgradeBonuses = bonuses;
+        long capacity = Math.round(getEnergyCapacity() * bonuses.energyCapacityMultiplier());
+        energyStorage.setCapacity((int) Math.max(1L, Math.min(Integer.MAX_VALUE, capacity)));
     }
 
     private boolean hasValidMarker() {
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             ItemStack marker = itemHandler.getStackInSlot(slot);
             if (marker.is(ModItems.STRUCT_MARKER.get())
-                    && StructMarkerItem.getMarkerInfo(marker)
-                            .filter(markerInfo -> !markerInfo.structures().isEmpty())
-                            .isPresent()) {
+                    && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
                 return true;
             }
         }
         return false;
     }
 
-    private int drawParallelForCycle() {
-        int scaledParallel = getBaseParallel() * dynamicParallelHundredths;
-        int integerPart = scaledParallel / 100;
-        int fractionalPart = scaledParallel % 100;
-        int accumulated = parallelFractionHundredths + fractionalPart;
+    private int drawParallelForCycle(int slot) {
+        long scaledParallel = slotAverageParallelHundredths(slot);
+        long integerPart = scaledParallel / 100L;
+        int fractionalPart = (int) (scaledParallel % 100L);
+        int accumulated = slotParallelFractionHundredths[slot] + fractionalPart;
         int carry = accumulated / 100;
-        parallelFractionHundredths = accumulated % 100;
-        return Math.max(1, integerPart + carry);
+        slotParallelFractionHundredths[slot] = accumulated % 100;
+        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, integerPart + carry));
     }
 
-    private void drawMarkerLoot(MinecraftServer server, int parallel) {
+    private long slotAverageParallelHundredths(int slot) {
+        long machineParallelHundredths =
+                (long) getBaseParallel()
+                        * slotParallelHundredths[slot]
+                        * upgradeBonuses.parallelMultiplierHundredths()
+                        / 100L;
+        return Math.min(
+                (long) Integer.MAX_VALUE * 100L,
+                machineParallelHundredths
+                        + externalTickAcceleration[slot].settledExtraParallelHundredths());
+    }
+
+    private long slotDisplayParallelHundredths(int slot) {
+        long machineParallelHundredths =
+                (long) getBaseParallel()
+                        * slotParallelHundredths[slot]
+                        * upgradeBonuses.parallelMultiplierHundredths()
+                        / 100L;
+        return Math.min(
+                (long) Integer.MAX_VALUE * 100L,
+                machineParallelHundredths
+                        + externalTickAcceleration[slot].currentExtraParallelHundredths());
+    }
+
+    private void drawMarkerLoot(MinecraftServer server, List<CompletedMarker> completedMarkers) {
         if (!(level instanceof ServerLevel outputLevel)) {
             return;
         }
 
         refreshMarkerLootCache(server);
         List<ItemStack> mergedLoot = new ArrayList<>();
-        Map<ResourceLocation, ExactProbability> expectedItems = new LinkedHashMap<>();
-        double quantity = 0.0D;
-        ServerLevel randomLevel = null;
-        for (CachedMarkerLoot cachedLoot : cachedMarkerLoot) {
+        for (CompletedMarker completed : completedMarkers) {
+            CachedMarkerLoot cachedLoot = completed.loot();
             ResourceKey<Level> dimensionKey =
                     ResourceKey.create(Registries.DIMENSION, cachedLoot.dimension());
             ServerLevel lootLevel = server.getLevel(dimensionKey);
             if (lootLevel == null) continue;
-            if (randomLevel == null) randomLevel = lootLevel;
-            quantity += cachedLoot.quantity();
-            cachedLoot.expectedItems().forEach(
-                    (item, expected) -> expectedItems.merge(item, expected, ExactProbability::add));
-        }
-        if (randomLevel != null && Double.isFinite(quantity) && quantity > 0.0D) {
-            drawExpectedLoot(randomLevel, expectedItems, drawsForQuantity(parallel, quantity))
-                    .forEach(stack -> mergeLootStack(mergedLoot, stack));
+            double quantity = cachedLoot.quantity();
+            if (!Double.isFinite(quantity) || quantity <= 0.0D) continue;
+            List<ItemStack> generatedLoot =
+                    drawExpectedLoot(
+                            lootLevel,
+                            cachedLoot.expectedItems(),
+                            drawsForQuantity(cachedLoot.slot(), completed.parallel(), quantity));
+            for (ItemStack generated : generatedLoot) {
+                List<ItemStack> output =
+                        isEquipmentDismantlingEnabled()
+                                ? EquipmentDismantler.dismantle(lootLevel, generated)
+                                : List.of(generated);
+                output.stream()
+                        .filter(stack -> !isExpectedItemDisabled(
+                                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(
+                                        stack.getItem())))
+                        .forEach(stack -> mergeLootStack(mergedLoot, stack));
+            }
         }
 
         AdjacentOutputs outputs = findAdjacentOutputs(outputLevel);
@@ -254,7 +709,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private void refreshMarkerLootCache(MinecraftServer server) {
         CompoundTag currentSnapshot = itemHandler.serializeNBT();
-        currentSnapshot.putFloat("MachineLuck", getMachineLuck());
+        currentSnapshot.putFloat("MachineLuck", getEffectiveMachineLuck());
         if (currentSnapshot.equals(analyzedMarkerSnapshot)) {
             return;
         }
@@ -263,22 +718,27 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             ItemStack marker = itemHandler.getStackInSlot(slot);
             if (!marker.is(ModItems.STRUCT_MARKER.get())) {
+                resetSlotState(slot);
                 continue;
             }
 
-            StructMarkerItem.getMarkerInfo(marker)
-                    .filter(markerInfo -> !markerInfo.structures().isEmpty())
-                    .map(
-                                    markerInfo ->
-                                    analyzeMarkerLoot(server, marker, markerInfo))
-                    .ifPresent(refreshedCache::add);
+            CachedMarkerLoot previous = cachedLootForSlot(slot);
+            if (previous == null || !ItemStack.isSameItemSameTags(previous.marker(), marker)) {
+                resetSlotState(slot);
+            }
+            var markerInfo = StructMarkerItem.getMarkerInfo(marker);
+            if (markerInfo.isEmpty()) {
+                resetSlotState(slot);
+                continue;
+            }
+            refreshedCache.add(analyzeMarkerLoot(server, slot, marker, markerInfo.get()));
         }
         cachedMarkerLoot = List.copyOf(refreshedCache);
         analyzedMarkerSnapshot = currentSnapshot;
     }
 
     private CachedMarkerLoot analyzeMarkerLoot(
-            MinecraftServer server, ItemStack marker, MarkerInfo markerInfo) {
+            MinecraftServer server, int slot, ItemStack marker, MarkerInfo markerInfo) {
         ResourceKey<Level> dimensionKey =
                 ResourceKey.create(Registries.DIMENSION, markerInfo.dimension());
         ServerLevel analysisLevel = server.getLevel(dimensionKey);
@@ -287,22 +747,35 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         }
         if (analysisLevel == null) {
             return new CachedMarkerLoot(
-                    markerInfo.dimension(), markerInfo.position(), 0.0D, 0.0D, Map.of());
+                    slot,
+                    marker.copy(),
+                    markerInfo.dimension(),
+                    markerInfo.position(),
+                    0.0D,
+                    0.0D,
+                    0.0D,
+                    Map.of());
         }
         var analysis =
-                StructureValueCalculator.calculate(analysisLevel, markerInfo, getMachineLuck());
+                StructureValueCalculator.calculate(
+                        analysisLevel, markerInfo, getEffectiveMachineLuck());
         Map<ResourceLocation, ExactProbability> expectedItems = new LinkedHashMap<>();
-        analysis.itemCounts().forEach(
-                (item, expected) -> {
-                    ResourceLocation itemId =
-                            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
-                    if (itemId != null) {
-                        expectedItems.put(itemId, expected);
-                    }
-                });
+        analysis.itemCounts()
+                .forEach(
+                        (item, expected) -> {
+                            ResourceLocation itemId =
+                                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(
+                                            item);
+                            if (itemId != null) {
+                                expectedItems.put(itemId, expected);
+                            }
+                        });
         return new CachedMarkerLoot(
+                slot,
+                marker.copy(),
                 markerInfo.dimension(),
                 markerInfo.position(),
+                analysis.dimensionValue(),
                 analysis.structureValue(),
                 analysis.itemCounts().values().stream()
                         .mapToDouble(ExactProbability::finiteDoubleValue)
@@ -318,8 +791,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         double total = 0.0D;
         for (Map.Entry<ResourceLocation, ExactProbability> entry : expectedItems.entrySet()) {
             double weight = entry.getValue().finiteDoubleValue();
-            Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
+            Item item =
+                    net.minecraft.core.registries.BuiltInRegistries.ITEM
+                            .getOptional(entry.getKey())
+                            .orElse(null);
             if (item == null || !Double.isFinite(weight) || weight <= 0.0D) continue;
+            if (isExpectedItemDisabled(entry.getKey())) continue;
             weightedItems.add(new WeightedItem(item, weight));
             total += weight;
         }
@@ -339,56 +816,64 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return result;
     }
 
-    private int drawsForQuantity(int parallel, double quantity) {
-        double reference = getQuantityReference();
-        if (!Double.isFinite(reference) || reference <= 0.0D) {
-            return parallel * DRAWS_PER_PARALLEL;
-        }
+    private int drawsForQuantity(int slot, int parallel, double quantity) {
         int factorHundredths =
-                BigDecimal.valueOf(quantity)
-                        .divide(BigDecimal.valueOf(reference), 2, RoundingMode.DOWN)
-                        .movePointRight(2)
-                        .min(BigDecimal.valueOf(Integer.MAX_VALUE))
-                        .intValue();
+                MythicMinerExpectationMath.quantityFactorHundredths(
+                        quantity, getQuantityReference());
         long scaled = (long) parallel * DRAWS_PER_PARALLEL * factorHundredths;
         long whole = scaled / 100L;
-        int accumulated = quantityFractionHundredths + (int) (scaled % 100L);
+        int accumulated = slotQuantityFractionHundredths[slot] + (int) (scaled % 100L);
         whole += accumulated / 100;
-        quantityFractionHundredths = accumulated % 100;
+        slotQuantityFractionHundredths[slot] = accumulated % 100;
         return (int) Math.min(Integer.MAX_VALUE, whole);
     }
 
-    private void updateProcessingPlan() {
-        double structureValue =
-                cachedMarkerLoot.stream()
-                        .mapToDouble(CachedMarkerLoot::structureValue)
-                        .filter(Double::isFinite)
-                        .filter(value -> value > 0.0D)
-                        .sum();
-        double efficiency = getMachineEfficiency();
+    private void updateProcessingPlans() {
+        java.util.Arrays.fill(slotProcessingTimes, 0);
+        java.util.Arrays.fill(slotParallelHundredths, 0);
+        for (CachedMarkerLoot cachedLoot : cachedMarkerLoot) {
+            if (slotEnabled[cachedLoot.slot()]) {
+                updateProcessingPlan(cachedLoot.slot(), cachedLoot.structureValue());
+            }
+        }
+    }
+
+    private void updateProcessingPlan(int slot, double structureValue) {
+        double efficiency = getEffectiveMachineEfficiency();
         if (!Double.isFinite(efficiency) || efficiency <= 0.0D || structureValue <= 0.0D) {
-            dynamicProcessingTime = 400;
-            dynamicParallelHundredths = 100;
+            slotProcessingTimes[slot] = 400;
+            slotParallelHundredths[slot] = 100;
+            slotProgress.clamp(slot, slotProcessingTimes[slot]);
             return;
         }
 
         double calculatedTicks = structureValue / efficiency;
-        if (!Double.isFinite(calculatedTicks) || calculatedTicks >= 400.0D) {
-            dynamicProcessingTime =
+        if (!Double.isFinite(calculatedTicks)) {
+            slotProcessingTimes[slot] =
                     (int) Math.min(Integer.MAX_VALUE, Math.ceil(Math.max(400.0D, calculatedTicks)));
-            dynamicParallelHundredths = 100;
+            slotParallelHundredths[slot] = 100;
+            slotProgress.clamp(slot, slotProcessingTimes[slot]);
             return;
         }
 
-        dynamicProcessingTime = 400;
+        if (calculatedTicks >= 400.0D) {
+            slotProcessingTimes[slot] =
+                    (int) Math.min(Integer.MAX_VALUE, Math.ceil(calculatedTicks));
+            slotParallelHundredths[slot] = 100;
+            slotProgress.clamp(slot, slotProcessingTimes[slot]);
+            return;
+        }
+
+        slotProcessingTimes[slot] = 400;
         int maxParallelHundredths = Integer.MAX_VALUE / Math.max(1, getBaseParallel());
-        dynamicParallelHundredths =
+        slotParallelHundredths[slot] =
                 BigDecimal.valueOf(400.0D)
                         .divide(BigDecimal.valueOf(calculatedTicks), 2, RoundingMode.DOWN)
                         .movePointRight(2)
                         .min(BigDecimal.valueOf(maxParallelHundredths))
                         .intValue();
-        dynamicParallelHundredths = Math.max(100, dynamicParallelHundredths);
+        slotParallelHundredths[slot] = Math.max(100, slotParallelHundredths[slot]);
+        slotProgress.clamp(slot, slotProcessingTimes[slot]);
     }
 
     private void mergeLootStack(List<ItemStack> mergedLoot, ItemStack stack) {
@@ -408,6 +893,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         List<BlockEntity> meInterfaces = new ArrayList<>();
         List<IItemHandler> handlers = new ArrayList<>();
         for (Direction direction : Direction.values()) {
+            if (!isWorldOutputFaceEnabled(direction)) {
+                continue;
+            }
             BlockEntity adjacent = outputLevel.getBlockEntity(worldPosition.relative(direction));
             if (adjacent == null) {
                 continue;
@@ -432,17 +920,22 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         List<ItemStack> remainders = new ArrayList<>();
         for (ItemStack stack : stacks) {
             ItemStack remainder = FullDurabilityLoot.normalize(stack);
-            for (BlockEntity meInterface : outputs.meInterfaces()) {
-                remainder = Ae2Integration.insertIntoInterfaceNetwork(meInterface, remainder);
-                if (remainder.isEmpty()) {
-                    break;
+            if (configuredOutputState == OutputState.ME_NETWORK) {
+                for (BlockEntity meInterface : outputs.meInterfaces()) {
+                    remainder = Ae2Integration.insertIntoInterfaceNetwork(meInterface, remainder);
+                    if (remainder.isEmpty()) {
+                        break;
+                    }
                 }
             }
-            for (IItemHandler outputHandler : outputs.itemHandlers()) {
-                if (remainder.isEmpty()) {
-                    break;
+            if (configuredOutputState == OutputState.ITEM_HANDLER) {
+                for (IItemHandler outputHandler : outputs.itemHandlers()) {
+                    if (remainder.isEmpty()) {
+                        break;
+                    }
+                    remainder =
+                            ItemHandlerHelper.insertItemStacked(outputHandler, remainder, false);
                 }
-                remainder = ItemHandlerHelper.insertItemStacked(outputHandler, remainder, false);
             }
             if (!remainder.isEmpty()) {
                 remainders.add(remainder);
@@ -451,17 +944,75 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return List.copyOf(remainders);
     }
 
+    private int firstActiveSlot() {
+        for (int slot = 0; slot < slotProcessingTimes.length; slot++) {
+            if (slotProcessingTimes[slot] > 0) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    private boolean validSlot(int slot) {
+        return slot >= 0 && slot < slotProcessingTimes.length;
+    }
+
+    private CachedMarkerLoot cachedLootForSlot(int slot) {
+        for (CachedMarkerLoot cachedLoot : cachedMarkerLoot) {
+            if (cachedLoot.slot() == slot) {
+                return cachedLoot;
+            }
+        }
+        return null;
+    }
+
+    private void resetSlotState(int slot) {
+        slotProgress.reset(slot);
+        slotProcessingTimes[slot] = 0;
+        slotParallelHundredths[slot] = 0;
+        slotParallelFractionHundredths[slot] = 0;
+        slotQuantityFractionHundredths[slot] = 0;
+        externalTickAcceleration[slot] = new MythicMinerExternalTickAcceleration();
+    }
+
+    private static void loadFractions(int[] target, int[] saved) {
+        java.util.Arrays.fill(target, 0);
+        for (int slot = 0; slot < Math.min(target.length, saved.length); slot++) {
+            target[slot] = Math.max(0, Math.min(99, saved[slot]));
+        }
+    }
+
     private record AdjacentOutputs(
             List<BlockEntity> meInterfaces, List<IItemHandler> itemHandlers) {}
 
     private record CachedMarkerLoot(
+            int slot,
+            ItemStack marker,
             ResourceLocation dimension,
             BlockPos position,
+            double dimensionValue,
             double structureValue,
             double quantity,
             Map<ResourceLocation, ExactProbability> expectedItems) {}
 
+    private record CompletedMarker(CachedMarkerLoot loot, int parallel) {}
+
     private record WeightedItem(Item item, double weight) {}
+
+    private record UpgradeBonuses(
+            double efficiencyMultiplier,
+            double energyCapacityMultiplier,
+            int parallelMultiplierHundredths,
+            double luckIncreasePercent,
+            double energyConsumptionMultiplier,
+            int efficiencyUpgradeCount,
+            int energyUpgradeCount,
+            int parallelUpgradeCount,
+            int luckUpgradeCount,
+            int aggregateUpgradeCount) {
+        private static final UpgradeBonuses NONE =
+                new UpgradeBonuses(1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0);
+    }
 
     private ItemStackHandler createItemHandler() {
         int slotCount = getSlotCount();
@@ -477,6 +1028,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
             @Override
             protected void onContentsChanged(int slot) {
+                analyzedMarkerSnapshot = null;
+                ItemStack marker = getStackInSlot(slot);
+                if (!marker.is(ModItems.STRUCT_MARKER.get())
+                        || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
+                    resetSlotState(slot);
+                }
                 setChanged();
             }
         };
@@ -487,9 +1044,53 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         super.saveAdditional(tag);
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
         tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
-        tag.putInt(PROGRESS_TAG, progress);
-        tag.putInt(PARALLEL_FRACTION_TAG, parallelFractionHundredths);
-        tag.putInt(QUANTITY_FRACTION_TAG, quantityFractionHundredths);
+        tag.putInt(PROGRESS_TAG, getProgress());
+        tag.putIntArray(SLOT_PROGRESS_TAG, slotProgress.save());
+        tag.putInt(PARALLEL_FRACTION_TAG, getAccumulatedParallelHundredths());
+        tag.putIntArray(SLOT_PARALLEL_FRACTION_TAG, slotParallelFractionHundredths);
+        int firstActiveSlot = firstActiveSlot();
+        tag.putInt(
+                QUANTITY_FRACTION_TAG,
+                firstActiveSlot >= 0 ? slotQuantityFractionHundredths[firstActiveSlot] : 0);
+        tag.putIntArray(SLOT_QUANTITY_FRACTION_TAG, slotQuantityFractionHundredths);
+        ListTag accelerationStates = new ListTag();
+        for (MythicMinerExternalTickAcceleration acceleration : externalTickAcceleration) {
+            MythicMinerExternalTickAcceleration.State state = acceleration.save();
+            CompoundTag accelerationTag = new CompoundTag();
+            accelerationTag.putLong("LastGameTime", state.lastGameTime());
+            accelerationTag.putInt(
+                    "CallsInCurrentNaturalTick", state.callsInCurrentNaturalTick());
+            accelerationTag.putInt(
+                    "CallsInPreviousCompleteNaturalTick",
+                    state.callsInPreviousCompleteNaturalTick());
+            accelerationTag.putInt("StatisticsActualTicks", state.statisticsActualTicks());
+            accelerationTag.putInt("StatisticsNaturalTicks", state.statisticsNaturalTicks());
+            accelerationTag.putInt("ActualTicks", state.actualTicks());
+            accelerationTag.putInt("NaturalTicks", state.naturalTicks());
+            accelerationTag.putInt(
+                    "SettledExtraParallelHundredths", state.settledExtraParallelHundredths());
+            accelerationTag.putInt("PreviousActualTicks", state.previousActualTicks());
+            accelerationTag.putInt(
+                    "PreviousExtraParallelHundredths", state.previousExtraParallelHundredths());
+            accelerationTag.putBoolean(
+                    "ExternalParallelEligible", state.externalParallelEligible());
+            accelerationStates.add(accelerationTag);
+        }
+        tag.put(EXTERNAL_ACCELERATION_STATES_TAG, accelerationStates);
+        tag.putInt("RedstoneMode", redstoneMode.ordinal());
+        tag.putInt("RedstoneThreshold", redstoneThreshold);
+        tag.putInt("ConfiguredOutputState", configuredOutputState.ordinal());
+        tag.putInt("OutputFaceMask", outputFaceMask);
+        tag.putBoolean(EQUIPMENT_DISMANTLING_TAG, equipmentDismantling);
+        int[] enabledSlots = new int[slotEnabled.length];
+        for (int index = 0; index < slotEnabled.length; index++) {
+            enabledSlots[index] = slotEnabled[index] ? 1 : 0;
+        }
+        tag.putIntArray(SLOT_ENABLED_TAG, enabledSlots);
+        ListTag disabledItems = new ListTag();
+        this.disabledExpectedItems.forEach(
+                item -> disabledItems.add(StringTag.valueOf(item.toString())));
+        tag.put("DisabledExpectedItems", disabledItems);
         ListTag pendingOutputTag = new ListTag();
         pendingOutput.forEach(stack -> pendingOutputTag.add(stack.save(new CompoundTag())));
         tag.put(PENDING_OUTPUT_TAG, pendingOutputTag);
@@ -506,9 +1107,90 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (tag.contains(ENERGY_TAG, Tag.TAG_INT)) {
             energyStorage.setEnergy(tag.getInt(ENERGY_TAG));
         }
-        progress = Math.max(0, tag.getInt(PROGRESS_TAG));
-        parallelFractionHundredths = Math.max(0, Math.min(99, tag.getInt(PARALLEL_FRACTION_TAG)));
-        quantityFractionHundredths = Math.max(0, Math.min(99, tag.getInt(QUANTITY_FRACTION_TAG)));
+        if (tag.contains(SLOT_PROGRESS_TAG, Tag.TAG_INT_ARRAY)) {
+            slotProgress.load(tag.getIntArray(SLOT_PROGRESS_TAG));
+        } else {
+            slotProgress.load(new int[] {Math.max(0, tag.getInt(PROGRESS_TAG))});
+        }
+        if (tag.contains(SLOT_PARALLEL_FRACTION_TAG, Tag.TAG_INT_ARRAY)) {
+            loadFractions(
+                    slotParallelFractionHundredths,
+                    tag.getIntArray(SLOT_PARALLEL_FRACTION_TAG));
+        } else {
+            loadFractions(
+                    slotParallelFractionHundredths,
+                    new int[] {tag.getInt(PARALLEL_FRACTION_TAG)});
+        }
+        if (tag.contains(SLOT_QUANTITY_FRACTION_TAG, Tag.TAG_INT_ARRAY)) {
+            loadFractions(
+                    slotQuantityFractionHundredths,
+                    tag.getIntArray(SLOT_QUANTITY_FRACTION_TAG));
+        } else {
+            loadFractions(
+                    slotQuantityFractionHundredths,
+                    new int[] {tag.getInt(QUANTITY_FRACTION_TAG)});
+        }
+        if (tag.contains(EXTERNAL_ACCELERATION_STATES_TAG, Tag.TAG_LIST)) {
+            ListTag accelerationStates =
+                    tag.getList(EXTERNAL_ACCELERATION_STATES_TAG, Tag.TAG_COMPOUND);
+            for (int slot = 0; slot < Math.min(accelerationStates.size(), externalTickAcceleration.length); slot++) {
+                CompoundTag accelerationTag = accelerationStates.getCompound(slot);
+                externalTickAcceleration[slot].load(
+                        new MythicMinerExternalTickAcceleration.State(
+                                accelerationTag.getLong("LastGameTime"),
+                                accelerationTag.getInt("CallsInCurrentNaturalTick"),
+                                accelerationTag.getInt("CallsInPreviousCompleteNaturalTick"),
+                                accelerationTag.getInt("StatisticsActualTicks"),
+                                accelerationTag.getInt("StatisticsNaturalTicks"),
+                                accelerationTag.getInt("ActualTicks"),
+                                accelerationTag.getInt("NaturalTicks"),
+                                accelerationTag.getInt("SettledExtraParallelHundredths"),
+                                accelerationTag.getInt("PreviousActualTicks"),
+                                accelerationTag.getInt("PreviousExtraParallelHundredths"),
+                                !accelerationTag.contains("ExternalParallelEligible")
+                                        || accelerationTag.getBoolean("ExternalParallelEligible")));
+            }
+        }
+        redstoneMode =
+                RedstoneMode.values()[
+                        Math.max(
+                                0,
+                                Math.min(
+                                        RedstoneMode.values().length - 1,
+                                        tag.getInt("RedstoneMode")))];
+        redstoneThreshold =
+                Math.max(
+                        0,
+                        Math.min(
+                                15,
+                                tag.contains("RedstoneThreshold", Tag.TAG_INT)
+                                        ? tag.getInt("RedstoneThreshold")
+                                        : 8));
+        int outputOrdinal =
+                tag.contains("ConfiguredOutputState", Tag.TAG_INT)
+                        ? tag.getInt("ConfiguredOutputState")
+                        : OutputState.ITEM_HANDLER.ordinal();
+        configuredOutputState =
+                outputOrdinal == OutputState.ME_NETWORK.ordinal()
+                        ? OutputState.ME_NETWORK
+                        : OutputState.ITEM_HANDLER;
+        outputFaceMask =
+                tag.contains("OutputFaceMask", Tag.TAG_INT)
+                        ? tag.getInt("OutputFaceMask") & ((1 << Direction.values().length) - 1)
+                        : (1 << Direction.values().length) - 1;
+        equipmentDismantling = tag.getBoolean(EQUIPMENT_DISMANTLING_TAG);
+        java.util.Arrays.fill(slotEnabled, true);
+        if (tag.contains(SLOT_ENABLED_TAG, Tag.TAG_INT_ARRAY)) {
+            int[] enabledSlots = tag.getIntArray(SLOT_ENABLED_TAG);
+            for (int index = 0; index < Math.min(slotEnabled.length, enabledSlots.length); index++) {
+                slotEnabled[index] = enabledSlots[index] != 0;
+            }
+        }
+        disabledExpectedItems.clear();
+        for (Tag item : tag.getList("DisabledExpectedItems", Tag.TAG_STRING)) {
+            ResourceLocation id = ResourceLocation.tryParse(item.getAsString());
+            if (id != null) disabledExpectedItems.add(id);
+        }
         List<ItemStack> loadedPendingOutput = new ArrayList<>();
         ListTag pendingOutputTag = tag.getList(PENDING_OUTPUT_TAG, Tag.TAG_COMPOUND);
         pendingOutputTag.forEach(
@@ -566,8 +1248,37 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         NONE
     }
 
+    public enum RedstoneMode {
+        ALWAYS {
+            @Override
+            boolean allows(int signal, int threshold) {
+                return true;
+            }
+        },
+        SIGNAL {
+            @Override
+            boolean allows(int signal, int threshold) {
+                return signal >= threshold;
+            }
+        },
+        NO_SIGNAL {
+            @Override
+            boolean allows(int signal, int threshold) {
+                return signal < threshold;
+            }
+        },
+        NEVER {
+            @Override
+            boolean allows(int signal, int threshold) {
+                return false;
+            }
+        };
+
+        abstract boolean allows(int signal, int threshold);
+    }
+
     private final class MinerEnergyStorage implements IEnergyStorage {
-        private final int capacity;
+        private int capacity;
         private int energy;
 
         private MinerEnergyStorage(int capacity) {
@@ -614,6 +1325,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
         private void setEnergy(int energy) {
             this.energy = Math.min(capacity, Math.max(0, energy));
+        }
+
+        private void setCapacity(int capacity) {
+            this.capacity = Math.max(1, capacity);
+            energy = Math.min(energy, this.capacity);
         }
 
         private boolean canConsume(int amount) {
