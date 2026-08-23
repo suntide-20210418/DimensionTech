@@ -140,19 +140,20 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             }
         }
         if (page == Page.WORK && control < 0) {
-            int centerY = topPos + 118;
-            int firstX = leftPos + imageWidth / 2 - 28;
+            int centerY = topPos + 86
+                    + (menu.isExternalAccelerationActive() ? 70 : 54) + 5;
+            int firstX = leftPos + imageWidth / 2 - 88;
             if (logicalMouseY >= centerY && logicalMouseY < centerY + 24) {
-                if (logicalMouseX >= firstX && logicalMouseX < firstX + 24) control = 3;
+                if (logicalMouseX >= firstX && logicalMouseX < firstX + 88) control = 3;
                 else if (menu.supportsEquipmentDismantling()
-                        && logicalMouseX >= firstX + 30 && logicalMouseX < firstX + 54) control = 4;
+                        && logicalMouseX >= firstX + 94 && logicalMouseX < firstX + 182) control = 4;
             }
         }
         if (control >= 0) {
             graphics.renderTooltip(
                     font, controlTooltip(control), Optional.empty(), mouseX, mouseY);
         }
-        if (page == Page.WORK && logicalMouseX >= leftPos + ENERGY_X
+        if (logicalMouseX >= leftPos + ENERGY_X
                 && logicalMouseX <= leftPos + ENERGY_X + 14
                 && logicalMouseY >= topPos + ENERGY_TOP
                 && logicalMouseY <= topPos + ENERGY_TOP + ENERGY_HEIGHT) {
@@ -365,31 +366,6 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 showParallelBreakdown = !showParallelBreakdown;
                 return true;
             }
-            for (int index = 0; index < menu.getContainerSlotCount(); index++) {
-                Slot slot = menu.slots.get(index);
-                int barX = MythicMinerLayout.progressBarX(slot.x);
-                int barY = MythicMinerLayout.progressBarY(slot.y);
-                if (inside(
-                        x,
-                        y,
-                        barX,
-                        barY,
-                        MythicMinerLayout.PROGRESS_WIDTH,
-                        MythicMinerLayout.PROGRESS_HEIGHT)) {
-                    int nextSelection =
-                            StructMarkerItem.getMarkerInfo(slot.getItem()).isPresent() ? index : -1;
-                    if (nextSelection != selectedMarkerSlot) {
-                        markerInfoScroll = 0;
-                        clearEffectiveAnalysis();
-                    }
-                    selectedMarkerSlot = nextSelection;
-                    if (selectedMarkerSlot >= 0) {
-                        ModNetwork.requestMythicMinerAnalysis(
-                                menu.containerId, selectedMarkerSlot);
-                    }
-                    return true;
-                }
-            }
             if (page != Page.WORK) return true;
             if (x >= -29 && x < -5 && y >= 38 && y < 62) {
                 Minecraft.getInstance().setScreen(new OutputFaceScreen(this, menu));
@@ -403,16 +379,19 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 2);
                 return true;
             }
-            int centerControlX = imageWidth / 2 - 28;
-            if (x >= centerControlX && x < centerControlX + 24 && y >= 118 && y < 142) {
+            int centerControlX = imageWidth / 2 - 88;
+            int centerControlY = 86
+                    + (menu.isExternalAccelerationActive() ? 70 : 54) + 5;
+            if (x >= centerControlX && x < centerControlX + 88
+                    && y >= centerControlY && y < centerControlY + 24) {
                 Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 3);
                 return true;
             }
             if (menu.supportsEquipmentDismantling()
-                    && x >= centerControlX + 30
-                    && x < centerControlX + 54
-                    && y >= 118
-                    && y < 142) {
+                    && x >= centerControlX + 94
+                    && x < centerControlX + 182
+                    && y >= centerControlY
+                    && y < centerControlY + 24) {
                 Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 4);
                 return true;
             }
@@ -555,16 +534,6 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     Long.toString(menu.getExternalEquivalentAccelerationTicks()), GREEN);
         }
         drawCentralWorkControls(graphics, overviewY + overviewHeight + 5);
-
-        int progressY = overviewY + overviewHeight + 38;
-        int columnWidth = width / 2;
-        for (int index = 0; index < menu.getContainerSlotCount(); index++) {
-            int column = index % 2;
-            int row = index / 2;
-            int rowY = progressY + row * 18;
-            int rowX = x + column * columnWidth;
-            drawWorkProgressRow(graphics, rowX, rowY, columnWidth - 6, index);
-        }
     }
 
     private void drawOverviewMetric(
@@ -573,49 +542,31 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         graphics.drawString(font, value, x + 20, y + 1, color, false);
     }
 
-    private void drawWorkProgressRow(GuiGraphics graphics, int x, int y, int width, int slotIndex) {
-        Slot slot = menu.slots.get(slotIndex);
-        boolean configured = StructMarkerItem.getMarkerInfo(slot.getItem()).isPresent();
-        graphics.renderItem(slot.getItem(), x, y - 3);
-        graphics.drawString(font, Integer.toString(slotIndex + 1), x + 18, y + 1, MUTED, false);
-        int barX = x + 31;
-        int barWidth = Math.max(24, width - 72);
-        graphics.fill(barX, y + 2, barX + barWidth, y + 6, PANEL_INSET);
-        if (configured) {
-            long progress = menu.getMarkerProgress(slotIndex);
-            int processing = Math.max(1, menu.getMarkerProcessingTime(slotIndex));
-            int filled = (int) Math.min(barWidth, barWidth * progress / processing);
-            graphics.fill(barX, y + 2, barX + filled, y + 6, CYAN);
-        }
-        graphics.drawString(
-                font,
-                configured
-                        ? Component.translatable(
-                                "screen.dimension_tech.mythic_miner.overview.progress",
-                                menu.getMarkerProgress(slotIndex),
-                                menu.getMarkerProcessingTime(slotIndex))
-                        : Component.literal("-"),
-                barX + barWidth + 4,
-                y + 1,
-                configured ? TEXT : MUTED,
-                false);
-    }
-
     private void drawCentralWorkControls(GuiGraphics graphics, int y) {
-        int firstX = imageWidth / 2 - 28;
+        int firstX = imageWidth / 2 - 88;
         drawCenteredControl(graphics, firstX, y, 3);
         if (menu.supportsEquipmentDismantling()) {
-            drawCenteredControl(graphics, firstX + 30, y, 4);
+            drawCenteredControl(graphics, firstX + 94, y, 4);
         }
     }
 
     private void drawCenteredControl(GuiGraphics graphics, int x, int y, int control) {
-        graphics.fill(x - 1, y - 1, x + 25, y + 25, RULE);
-        graphics.fill(x, y, x + 24, y + 24, PANEL_RAISED);
+        int width = 88;
+        graphics.fill(x - 1, y - 1, x + width + 1, y + 25, RULE);
+        graphics.fill(x, y, x + width, y + 24, PANEL_RAISED);
         ItemStack icon = control == 3 ? new ItemStack(Items.BRICKS) : new ItemStack(Items.ANVIL);
         graphics.renderItem(icon, x + 4, y + 4);
+        graphics.drawString(
+                font,
+                Component.translatable(control == 3
+                        ? "screen.dimension_tech.mythic_miner.place_structure"
+                        : "screen.dimension_tech.mythic_miner.equipment_dismantling"),
+                x + 24,
+                y + 8,
+                TEXT,
+                false);
         if (control == 4) {
-            graphics.fill(x + 3, y + 21, x + 21, y + 23,
+            graphics.fill(x + 3, y + 21, x + width - 3, y + 23,
                     menu.isEquipmentDismantlingEnabled() ? CYAN : RULE);
         }
     }
