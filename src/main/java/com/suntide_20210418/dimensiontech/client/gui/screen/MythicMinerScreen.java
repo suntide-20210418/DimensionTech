@@ -103,7 +103,27 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int logicalMouseY = toLogical(mouseY);
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
+        int[] savedSlotX = null;
+        int[] savedSlotY = null;
+        if (page != Page.WORK) {
+            savedSlotX = new int[menu.slots.size()];
+            savedSlotY = new int[menu.slots.size()];
+            for (int index = 0; index < menu.slots.size(); index++) {
+                Slot slot = menu.slots.get(index);
+                savedSlotX[index] = slot.x;
+                savedSlotY[index] = slot.y;
+                slot.x = -1000;
+                slot.y = -1000;
+            }
+        }
         super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
+        if (savedSlotX != null) {
+            for (int index = 0; index < menu.slots.size(); index++) {
+                Slot slot = menu.slots.get(index);
+                slot.x = savedSlotX[index];
+                slot.y = savedSlotY[index];
+            }
+        }
         if (page == Page.WORK) {
             drawControlButtons(graphics, logicalMouseX, logicalMouseY);
         }
@@ -501,12 +521,6 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             graphics.drawCenteredString(
                     font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, MUTED);
         }
-    }
-
-    @Override
-    protected void renderSlot(GuiGraphics graphics, Slot slot) {
-        if (page != Page.WORK) return;
-        super.renderSlot(graphics, slot);
     }
 
     private void drawPage(GuiGraphics graphics, int mouseX, int mouseY) {
