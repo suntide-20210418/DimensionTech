@@ -15,11 +15,10 @@ public final class MythicMinerLayout {
     /** Leaves room below the four-row attribute dashboard, including external acceleration. */
     public static final int BASE_PLAYER_INVENTORY_Y = 276;
     public static final int BASE_MARKER_BAY_HEIGHT = 40;
-    public static final int FIXED_MARKER_BAY_HEIGHT =
-            BASE_MARKER_BAY_HEIGHT + 2 * MARKER_ROW_STRIDE;
+    public static final int FIXED_MARKER_BAY_HEIGHT = BASE_MARKER_BAY_HEIGHT;
     public static final int MARKER_BAY_HORIZONTAL_PADDING = 16;
     public static final int FIXED_MARKER_BAY_WIDTH =
-            MARKER_BAY_HORIZONTAL_PADDING + PROGRESS_WIDTH + 2 * MARKER_COLUMN_STRIDE;
+            MARKER_BAY_HORIZONTAL_PADDING + PROGRESS_WIDTH + 10 * MARKER_COLUMN_STRIDE;
     public static final int MARKER_INFO_GAP = 8;
     public static final int CONTENT_RIGHT_MARGIN = 28;
     public static final int ATTRIBUTE_GAP = 10;
@@ -27,19 +26,7 @@ public final class MythicMinerLayout {
     private MythicMinerLayout() {}
 
     public static int columnsForSlotCount(int slotCount) {
-        if (slotCount <= 1) {
-            return 1;
-        }
-        if (slotCount <= 3) {
-            return slotCount;
-        }
-        if (slotCount == 4) {
-            return 2;
-        }
-        if (slotCount <= 9) {
-            return 3;
-        }
-        return 4;
+        return Math.max(1, slotCount);
     }
 
     public static int rowsForSlotCount(int slotCount) {
