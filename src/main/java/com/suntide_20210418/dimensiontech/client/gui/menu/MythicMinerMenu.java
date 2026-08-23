@@ -66,7 +66,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_2 = 49;
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_3 = 50;
     private static final int TELEMETRY_BASE_COUNT = 51;
-    private static final int SLOT_TELEMETRY_STRIDE = 22;
+    private static final int SLOT_TELEMETRY_STRIDE = 26;
     private static final int SLOT_PROGRESS_LOW = 0;
     private static final int SLOT_PROGRESS_HIGH = 1;
     private static final int SLOT_PROCESSING_LOW = 2;
@@ -89,6 +89,10 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int SLOT_PREVIOUS_PARALLEL_LOW = 19;
     private static final int SLOT_PREVIOUS_PARALLEL_HIGH = 20;
     private static final int SLOT_WAITING_FOR_NATURAL_WINDOW = 21;
+    private static final int SLOT_EQUIVALENT_0 = 22;
+    private static final int SLOT_EQUIVALENT_1 = 23;
+    private static final int SLOT_EQUIVALENT_2 = 24;
+    private static final int SLOT_EQUIVALENT_3 = 25;
 
     private final int[] telemetry;
 
@@ -452,6 +456,11 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                 SLOT_ACTUAL_TICKS_3);
     }
 
+    public long getMarkerExternalEquivalentAccelerationTicks(int slot) {
+        return combineSlotLongWords(
+                slot, SLOT_EQUIVALENT_0, SLOT_EQUIVALENT_1, SLOT_EQUIVALENT_2, SLOT_EQUIVALENT_3);
+    }
+
     public long getMarkerCurrentNaturalTicks(int slot) {
         return combineSlotLongWords(slot, SLOT_NATURAL_TICKS_LOW, SLOT_NATURAL_TICKS_HIGH, -1, -1);
     }
@@ -628,6 +637,10 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                     highWord(blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(slot));
             case SLOT_WAITING_FOR_NATURAL_WINDOW ->
                     blockEntity.isSlotWaitingForNaturalWindow(slot) ? 1 : 0;
+            case SLOT_EQUIVALENT_0 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 0);
+            case SLOT_EQUIVALENT_1 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 16);
+            case SLOT_EQUIVALENT_2 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 32);
+            case SLOT_EQUIVALENT_3 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 48);
             default -> 0;
         };
     }

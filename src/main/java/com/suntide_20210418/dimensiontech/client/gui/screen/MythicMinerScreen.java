@@ -25,6 +25,8 @@ import net.minecraft.world.item.Items;
 
 /** Compact mining console with centered marker lanes and live machine telemetry. */
 public final class MythicMinerScreen extends AbstractContainerScreen<MythicMinerMenu> {
+    private enum Page { WORK, INFO, ATTRIBUTES }
+
     private static final int WIDTH = 320;
     private static final int PANEL = 0xFF11181D;
     private static final int PANEL_INSET = 0xFF0B1115;
@@ -59,6 +61,9 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     private List<ExpectedItemRow> expectedItemRows = List.of();
     private Set<ResourceLocation> disabledExpectedItems = Set.of();
     private boolean showParallelBreakdown;
+    private Page page = Page.WORK;
+    private static final int TAB_Y = 20;
+    private static final int TAB_HEIGHT = 12;
 
     public MythicMinerScreen(MythicMinerMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -99,21 +104,23 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
         super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
-        drawControlButtons(graphics, logicalMouseX, logicalMouseY);
+        if (page == Page.WORK) {
+            drawControlButtons(graphics, logicalMouseX, logicalMouseY);
+        }
         if (menu.getTelemetry(14) == 0) {
             graphics.drawCenteredString(
                     font,
                     Component.translatable(
                             "screen.dimension_tech.mythic_miner.structure_incomplete"),
                     leftPos + imageWidth / 2,
-                    topPos + 25,
+                    topPos + 36,
                     0xFFE45B51);
         }
         graphics.pose().popPose();
 
         renderTooltip(graphics, mouseX, mouseY);
         int control = -1;
-        for (int index = 0; index < controlCount(); index++) {
+        for (int index = 0; page == Page.WORK && index < controlCount(); index++) {
             int buttonY = topPos + 38 + index * 29;
             if (logicalMouseX >= leftPos - 29
                     && logicalMouseX < leftPos - 5
@@ -127,7 +134,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             graphics.renderTooltip(
                     font, controlTooltip(control), Optional.empty(), mouseX, mouseY);
         }
-        if (logicalMouseX >= leftPos + ENERGY_X
+        if (page == Page.WORK && logicalMouseX >= leftPos + ENERGY_X
                 && logicalMouseX <= leftPos + ENERGY_X + 14
                 && logicalMouseY >= topPos + ENERGY_TOP
                 && logicalMouseY <= topPos + ENERGY_TOP + ENERGY_HEIGHT) {
@@ -145,7 +152,12 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                             menu.getEffectiveEnergyConsumption()));
             graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
         }
-        renderAttributeTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
+        if (page == Page.ATTRIBUTES) {
+            renderAttributeTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
+        }
+        if (page == Page.INFO) {
+            renderInfoTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
+        }
         if (selectedMarkerSlot >= 0
                 && insideMarkerSlotToggle(
                         logicalMouseX - leftPos, logicalMouseY - topPos)) {
@@ -158,7 +170,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     mouseX,
                     mouseY);
         }
-        for (int index = 0; index < menu.getContainerSlotCount(); index++) {
+        for (int index = 0; page == Page.WORK && index < menu.getContainerSlotCount(); index++) {
             Slot slot = menu.slots.get(index);
             int barX = leftPos + MythicMinerLayout.progressBarX(slot.x);
             int barY = topPos + MythicMinerLayout.progressBarY(slot.y);
@@ -182,12 +194,12 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                         Component.translatable(
                                 "screen.dimension_tech.mythic_miner.marker_info.natural_ticks",
                                 configuredMarker ? menu.getMarkerCurrentNaturalTicks(index) : 0));
-                tooltip.add(
-                        Component.translatable(
-                                "screen.dimension_tech.mythic_miner.marker_info.actual_ticks",
-                                configuredMarker
-                                        ? menu.getMarkerCurrentExternalAccelerationMachineTicks(index)
-                                        : 0));
+                if (configuredMarker && menu.isMarkerExternalAccelerationActive(index)) {
+                    tooltip.add(
+                            Component.translatable(
+                                    "screen.dimension_tech.mythic_miner.marker_info.actual_ticks",
+                                    menu.getMarkerCurrentExternalAccelerationMachineTicks(index)));
+                }
                 graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
                 break;
             }
@@ -316,6 +328,18 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         mouseX /= uiScale;
         mouseY /= uiScale;
+        if (button == 0 && selectPageAt(mouseX, mouseY)) {
+            return true;
+        }
+        if (page == Page.INFO && button == 0) {
+            double x = mouseX - leftPos;
+            double y = mouseY - topPos;
+            int selected = infoSlotAt(x, y);
+            if (selected >= 0) {
+                selectMarkerSlot(selected);
+                return true;
+            }
+        }
         if (button == 0) {
             double x = mouseX - leftPos;
             double y = mouseY - topPos;
@@ -357,6 +381,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     return true;
                 }
             }
+            if (page != Page.WORK) return true;
             if (x >= -29 && x < -5 && y >= 38 && y < 62) {
                 Minecraft.getInstance().setScreen(new OutputFaceScreen(this, menu));
                 return true;
@@ -396,23 +421,35 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 return true;
             }
         }
+        if (page != Page.WORK) {
+            return true;
+        }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (page != Page.WORK) return true;
         return super.mouseReleased(mouseX / uiScale, mouseY / uiScale, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (page != Page.WORK && keyCode != 256) return true;
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean mouseDragged(
             double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (page != Page.WORK) return true;
         return super.mouseDragged(
                 mouseX / uiScale, mouseY / uiScale, button, dragX / uiScale, dragY / uiScale);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (page != Page.INFO) return true;
         double logicalMouseX = mouseX / uiScale;
         double logicalMouseY = mouseY / uiScale;
         int infoX = leftPos + MythicMinerLayout.markerInfoX(menu.getContainerSlotCount());
@@ -447,21 +484,142 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         drawPanel(graphics, 0, 0, imageWidth, imageHeight);
         drawHeader(graphics);
         drawEnergyRail(graphics);
-        drawMarkerBay(graphics);
-        drawMarkerInfo(graphics, mouseX - leftPos, mouseY - topPos);
-        drawAttributes(graphics);
-        drawPlayerDivider(graphics);
+        drawPage(graphics, mouseX - leftPos, mouseY - topPos);
+        if (page == Page.WORK) drawPlayerDivider(graphics);
         for (int index = 0; index < menu.slots.size(); index++) {
             Slot slot = menu.slots.get(index);
-            drawSlotFrame(graphics, slot.x, slot.y, index < menu.getContainerSlotCount());
+            if (page == Page.WORK) {
+                drawSlotFrame(graphics, slot.x, slot.y, index < menu.getContainerSlotCount());
+            }
         }
         graphics.pose().popPose();
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawCenteredString(
-                font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, MUTED);
+        if (page == Page.WORK) {
+            graphics.drawCenteredString(
+                    font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, MUTED);
+        }
+    }
+
+    @Override
+    protected void renderSlot(GuiGraphics graphics, Slot slot) {
+        if (page != Page.WORK) return;
+        super.renderSlot(graphics, slot);
+    }
+
+    private void drawPage(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (page == Page.WORK) {
+            drawMarkerBay(graphics);
+            drawMarkerInfo(graphics, mouseX, mouseY);
+            return;
+        }
+        if (page == Page.INFO) {
+            drawInfoPage(graphics);
+        } else {
+            drawAttributesPage(graphics);
+        }
+    }
+
+    private void drawInfoPage(GuiGraphics graphics) {
+        int x = 28;
+        int y = 42;
+        int width = imageWidth - 56;
+        int height = menu.getPlayerInventoryY() + 70 - y;
+        graphics.fill(x, y, x + width, y + height, PANEL_RAISED);
+        graphics.fill(x, y, x + width, y + 2, CYAN_DARK);
+        graphics.drawString(font, Component.translatable("screen.dimension_tech.mythic_miner.info.slots"), x + 8, y + 8, MUTED, false);
+        int slotX = x + 8;
+        for (int index = 0; index < menu.getContainerSlotCount(); index++) {
+            int buttonX = slotX + index * 24;
+            boolean selected = index == selectedMarkerSlot;
+            graphics.fill(buttonX, y + 22, buttonX + 20, y + 42, selected ? CYAN_DARK : RULE);
+            graphics.fill(buttonX + 1, y + 23, buttonX + 19, y + 41, PANEL_INSET);
+            graphics.drawCenteredString(font, Integer.toString(index + 1), buttonX + 10, y + 28, selected ? TEXT : MUTED);
+        }
+        if (selectedMarkerSlot < 0) {
+            graphics.drawCenteredString(font, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.select"), x + width / 2, y + 82, MUTED);
+            return;
+        }
+        int detailY = y + 58;
+        drawInfoLine(graphics, x + 8, detailY, Items.BRICKS, "screen.dimension_tech.mythic_miner.info.structure", menu.getMarkerProcessingTime(selectedMarkerSlot));
+        drawInfoLine(graphics, x + 8, detailY + 18, Items.CLOCK, "screen.dimension_tech.mythic_miner.info.natural", menu.getMarkerCurrentNaturalTicks(selectedMarkerSlot));
+        boolean externalActive = menu.isMarkerExternalAccelerationActive(selectedMarkerSlot);
+        if (externalActive) {
+            drawInfoLine(graphics, x + 8, detailY + 36, Items.LIGHTNING_ROD, "screen.dimension_tech.mythic_miner.info.actual", menu.getMarkerCurrentExternalAccelerationMachineTicks(selectedMarkerSlot));
+            drawInfoLine(graphics, x + 8, detailY + 54, Items.SPECTRAL_ARROW, "screen.dimension_tech.mythic_miner.info.external", menu.getMarkerExternalEquivalentAccelerationTicks(selectedMarkerSlot));
+        }
+        if (externalActive && menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot)) {
+            graphics.drawString(font, Component.translatable("screen.dimension_tech.mythic_miner.waiting_for_natural_window"), x + 8, detailY + 74, AMBER, false);
+        }
+    }
+
+    private void drawInfoLine(GuiGraphics graphics, int x, int y, Item item, String key, Object value) {
+        graphics.renderItem(new ItemStack(item), x, y - 3);
+        graphics.drawString(font, Component.translatable(key, value), x + 22, y, TEXT, false);
+    }
+
+    private void renderInfoTooltip(
+            GuiGraphics graphics, int logicalMouseX, int logicalMouseY, int screenMouseX, int screenMouseY) {
+        if (selectedMarkerSlot < 0) return;
+        int x = leftPos + 28 + 8;
+        int y = topPos + 42 + 58;
+        if (inside(logicalMouseX, logicalMouseY, x, y - 4, 18, 18)) {
+            graphics.renderTooltip(font, Component.translatable("screen.dimension_tech.mythic_miner.info.structure"), screenMouseX, screenMouseY);
+        } else if (inside(logicalMouseX, logicalMouseY, x, y + 14, 18, 18)) {
+            graphics.renderTooltip(font, Component.translatable("screen.dimension_tech.mythic_miner.info.natural"), screenMouseX, screenMouseY);
+        } else if (menu.isMarkerExternalAccelerationActive(selectedMarkerSlot)
+                && inside(logicalMouseX, logicalMouseY, x, y + 32, 18, 18)) {
+            graphics.renderTooltip(font, Component.translatable("screen.dimension_tech.mythic_miner.info.actual"), screenMouseX, screenMouseY);
+        }
+    }
+
+    private void drawAttributesPage(GuiGraphics graphics) {
+        int x = 28;
+        int y = 42;
+        int width = imageWidth - 56;
+        int height = menu.getPlayerInventoryY() + 70 - y;
+        graphics.fill(x, y, x + width, y + height, PANEL_RAISED);
+        graphics.fill(x, y, x + width, y + 2, CYAN_DARK);
+        drawAttributeCell(graphics, x + 8, y + 12, width / 2 - 12, Component.translatable("screen.dimension_tech.mythic_miner.attribute.efficiency"), menu.getEfficiencyUpgradeCount() + menu.getAggregateUpgradeCount(), formatDecimal(menu.getEfficiencyHundredths()), menu.getEfficiencyBonusHundredths(), false, CYAN);
+        drawAttributeCell(graphics, x + width / 2 + 4, y + 12, width / 2 - 12, Component.translatable("screen.dimension_tech.mythic_miner.attribute.capacity"), menu.getEnergyUpgradeCount() + menu.getAggregateUpgradeCount(), compactNumber(menu.getEnergyCapacity()) + " FE", menu.getCapacityBonusHundredths(), false, AMBER);
+        drawAttributeCell(graphics, x + 8, y + 41, width / 2 - 12, Component.translatable("screen.dimension_tech.mythic_miner.attribute.consumption"), menu.getEnergyUpgradeCount() + menu.getAggregateUpgradeCount(), compactNumber(menu.getEffectiveEnergyConsumption()) + " FE/t", menu.getConsumptionReductionHundredths(), true, AMBER);
+        drawAttributeCell(graphics, x + width / 2 + 4, y + 41, width / 2 - 12, Component.translatable("screen.dimension_tech.mythic_miner.attribute.parallel"), menu.getParallelUpgradeCount() + menu.getAggregateUpgradeCount(), compactNumber(menu.getBaseParallel()), menu.getParallelBonusHundredths(), false, CYAN);
+        drawAttributeCell(graphics, x + 8, y + 70, width / 2 - 12, Component.translatable("screen.dimension_tech.mythic_miner.attribute.luck"), menu.getLuckUpgradeCount() + menu.getAggregateUpgradeCount(), formatDecimal(menu.getLuckHundredths()), menu.getLuckBonusHundredths(), false, CYAN);
+        drawUpgradeSummaryCell(graphics, x + width / 2 + 4, y + 70, width / 2 - 12);
+        if (menu.isExternalAccelerationActive()) drawExternalAccelerationCell(graphics, x + 8, y + 110, width - 16);
+    }
+
+    private boolean selectPageAt(double mouseX, double mouseY) {
+        double x = mouseX - leftPos;
+        double y = mouseY - topPos;
+        if (y < TAB_Y || y >= TAB_Y + TAB_HEIGHT) return false;
+        int tabWidth = imageWidth / 3;
+        if (x < 0 || x >= imageWidth) return false;
+        page = x < tabWidth ? Page.WORK : x < tabWidth * 2 ? Page.INFO : Page.ATTRIBUTES;
+        markerInfoScroll = 0;
+        return true;
+    }
+
+    private int infoSlotAt(double x, double y) {
+        int startX = 28 + 8;
+        int startY = 42 + 22;
+        if (y < startY || y >= startY + 20) return -1;
+        int index = (int) ((x - startX) / 24);
+        return index >= 0 && index < menu.getContainerSlotCount() && x >= startX ? index : -1;
+    }
+
+    private void selectMarkerSlot(int slot) {
+        if (slot < 0 || slot >= menu.getContainerSlotCount()) return;
+        if (selectedMarkerSlot != slot) {
+            markerInfoScroll = 0;
+            clearEffectiveAnalysis();
+        }
+        selectedMarkerSlot = slot;
+        if (StructMarkerItem.getMarkerInfo(menu.slots.get(slot).getItem()).isPresent()) {
+            ModNetwork.requestMythicMinerAnalysis(menu.containerId, slot);
+        }
     }
 
     private void drawPanel(GuiGraphics graphics, int x, int y, int width, int height) {
@@ -472,8 +630,17 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private void drawHeader(GuiGraphics graphics) {
-        graphics.drawCenteredString(font, title, imageWidth / 2, 14, TEXT);
-        graphics.fill(24, 31, imageWidth - 24, 32, RULE);
+        graphics.drawString(font, title, 8, 8, TEXT, false);
+        int tabWidth = imageWidth / 3;
+        String[] labels = {"screen.dimension_tech.mythic_miner.tab.work", "screen.dimension_tech.mythic_miner.tab.info", "screen.dimension_tech.mythic_miner.tab.attributes"};
+        Page[] pages = Page.values();
+        for (int index = 0; index < pages.length; index++) {
+            int x = index * tabWidth;
+            boolean selected = page == pages[index];
+            graphics.drawCenteredString(font, Component.translatable(labels[index]), x + tabWidth / 2, TAB_Y, selected ? TEXT : MUTED);
+            if (selected) graphics.fill(x + 8, TAB_Y + 10, x + tabWidth - 8, TAB_Y + 11, CYAN);
+        }
+        graphics.fill(24, 34, imageWidth - 24, 35, RULE);
     }
 
     private void drawMarkerBay(GuiGraphics graphics) {
@@ -654,6 +821,9 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
         long progress = menu.getMarkerProgress(selectedMarkerSlot);
         int processingTime = menu.getMarkerProcessingTime(selectedMarkerSlot);
+        boolean externalActive = menu.isMarkerExternalAccelerationActive(selectedMarkerSlot);
+        boolean waitingForNaturalWindow =
+                externalActive && menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot);
         drawClippedInfoLine(
                 graphics,
                 Component.translatable(
@@ -664,7 +834,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 contentY + 55,
                 contentWidth,
                 TEXT);
-        if (menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot)) {
+        if (externalActive && menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot)) {
             drawClippedInfoLine(
                     graphics,
                     Component.translatable(
@@ -674,8 +844,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     contentWidth,
                     AMBER);
         }
-        boolean waitingForNaturalWindow = menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot);
-        int progressY = contentY + 67;
+        int progressY = contentY + (waitingForNaturalWindow ? 89 : 67);
         graphics.fill(
                 viewportX + 2,
                 progressY,
@@ -733,64 +902,42 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     contentWidth - 2,
                     AMBER);
             detailY += 12;
-            drawParallelBreakdownLine(
-                    graphics,
-                    Component.translatable(
-                            "screen.dimension_tech.mythic_miner.marker_info.parallel.external",
-                            formatDecimal(
-                                    menu.getMarkerExternalAccelerationParallelHundredths(
-                                            selectedMarkerSlot))),
-                    detailLineX,
-                    detailY,
-                    contentWidth - 2,
-                    GREEN);
-            detailY += 12;
+            if (externalActive) {
+                drawParallelBreakdownLine(
+                        graphics,
+                        Component.translatable(
+                                "screen.dimension_tech.mythic_miner.marker_info.parallel.external",
+                                formatDecimal(
+                                        menu.getMarkerExternalAccelerationParallelHundredths(
+                                                selectedMarkerSlot))),
+                        detailLineX,
+                        detailY,
+                        contentWidth - 2,
+                        GREEN);
+                detailY += 12;
+            }
         }
-        drawClippedInfoLine(
-                graphics,
-                Component.translatable(
-                        "screen.dimension_tech.mythic_miner.marker_info.previous_cycle_ticks",
-                        menu.getMarkerPreviousExternalAccelerationMachineTicks(
-                                selectedMarkerSlot)),
-                viewportX + 2,
-                detailY,
-                contentWidth,
-                AMBER);
-        detailY += 12;
-        drawClippedInfoLine(
-                graphics,
-                Component.translatable(
-                        "screen.dimension_tech.mythic_miner.marker_info.previous_cycle_parallel",
-                        formatDecimal(
-                                menu.getMarkerPreviousExternalAccelerationParallelHundredths(
-                                        selectedMarkerSlot))),
-                viewportX + 2,
-                detailY,
-                contentWidth,
-                GREEN);
-        detailY += 12;
-        drawClippedInfoLine(
-                graphics,
-                Component.translatable(
-                        "screen.dimension_tech.mythic_miner.marker_info.actual_ticks",
-                        menu.getMarkerCurrentExternalAccelerationMachineTicks(
-                                selectedMarkerSlot)),
-                viewportX + 2,
-                detailY,
-                contentWidth,
-                TEXT);
-        detailY += 12;
-        drawClippedInfoLine(
-                graphics,
-                Component.translatable(
-                        "screen.dimension_tech.mythic_miner.marker_info.actual_parallel",
-                        formatDecimal(
-                                menu.getMarkerExternalAccelerationParallelHundredths(
-                                        selectedMarkerSlot))),
-                viewportX + 2,
-                detailY,
-                contentWidth,
-                GREEN);
+        if (externalActive) {
+            drawClippedInfoLine(graphics, Component.translatable(
+                    "screen.dimension_tech.mythic_miner.marker_info.previous_cycle_ticks",
+                    menu.getMarkerPreviousExternalAccelerationMachineTicks(selectedMarkerSlot)),
+                    viewportX + 2, detailY, contentWidth, AMBER);
+            detailY += 12;
+            drawClippedInfoLine(graphics, Component.translatable(
+                    "screen.dimension_tech.mythic_miner.marker_info.previous_cycle_parallel",
+                    formatDecimal(menu.getMarkerPreviousExternalAccelerationParallelHundredths(selectedMarkerSlot))),
+                    viewportX + 2, detailY, contentWidth, GREEN);
+            detailY += 12;
+            drawClippedInfoLine(graphics, Component.translatable(
+                    "screen.dimension_tech.mythic_miner.marker_info.actual_ticks",
+                    menu.getMarkerCurrentExternalAccelerationMachineTicks(selectedMarkerSlot)),
+                    viewportX + 2, detailY, contentWidth, TEXT);
+            detailY += 12;
+            drawClippedInfoLine(graphics, Component.translatable(
+                    "screen.dimension_tech.mythic_miner.marker_info.actual_parallel",
+                    formatDecimal(menu.getMarkerExternalAccelerationParallelHundredths(selectedMarkerSlot))),
+                    viewportX + 2, detailY, contentWidth, GREEN);
+        }
         graphics.fill(
                 viewportX + 2, detailY + 12, viewportX + 2 + contentWidth, detailY + 13, RULE);
         drawClippedInfoLine(

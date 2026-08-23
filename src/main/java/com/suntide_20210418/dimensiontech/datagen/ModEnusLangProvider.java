@@ -133,6 +133,14 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.attribute.parallel", "Parallel");
         add("screen.dimension_tech.mythic_miner.attribute.luck", "Luck");
         add("screen.dimension_tech.mythic_miner.attribute.external_acceleration", "External acceleration");
+        add("screen.dimension_tech.mythic_miner.tab.work", "Work");
+        add("screen.dimension_tech.mythic_miner.tab.info", "Info");
+        add("screen.dimension_tech.mythic_miner.tab.attributes", "Attributes");
+        add("screen.dimension_tech.mythic_miner.info.slots", "Marker slots");
+        add("screen.dimension_tech.mythic_miner.info.structure", "Structure / cycle: %s tick");
+        add("screen.dimension_tech.mythic_miner.info.natural", "Natural ticks: %s");
+        add("screen.dimension_tech.mythic_miner.info.actual", "Actual ticks: %s");
+        add("screen.dimension_tech.mythic_miner.info.external", "External acceleration: %sx");
         add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "Waiting for natural tick window (400 ticks)");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "Upgrade Blocks");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
