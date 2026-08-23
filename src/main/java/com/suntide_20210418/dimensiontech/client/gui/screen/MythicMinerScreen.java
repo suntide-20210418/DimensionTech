@@ -530,7 +530,9 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int x = 28;
         int width = imageWidth - 56;
         int overviewY = 86;
-        graphics.fill(x, overviewY, x + width, overviewY + 27, PANEL_RAISED);
+        boolean externalActive = menu.isExternalAccelerationActive();
+        int overviewHeight = externalActive ? 70 : 54;
+        graphics.fill(x, overviewY, x + width, overviewY + overviewHeight, PANEL_RAISED);
         graphics.fill(x, overviewY, x + width, overviewY + 2, CYAN_DARK);
         graphics.drawString(
                 font,
@@ -539,16 +541,22 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 overviewY + 5,
                 MUTED,
                 false);
-        Component energy = Component.translatable(
-                "screen.dimension_tech.mythic_miner.overview.energy",
-                menu.getEnergyStored(), menu.getEnergyCapacity());
-        Component parallel = Component.translatable(
-                "screen.dimension_tech.mythic_miner.overview.parallel", menu.getTotalParallel());
-        graphics.drawString(font, energy, x + 7, overviewY + 15, TEXT, false);
-        graphics.drawString(font, parallel, x + width / 2, overviewY + 15, TEXT, false);
-        drawCentralWorkControls(graphics, overviewY + 32);
+        int half = width / 2;
+        drawOverviewMetric(graphics, x + 7, overviewY + 14, Items.REDSTONE,
+                formatDecimal(menu.getEfficiencyHundredths()), CYAN);
+        drawOverviewMetric(graphics, x + half, overviewY + 14, Items.RABBIT_FOOT,
+                formatDecimal(menu.getLuckHundredths()), CYAN);
+        drawOverviewMetric(graphics, x + 7, overviewY + 29, Items.ARROW,
+                Integer.toString(menu.getBaseParallel()), CYAN);
+        drawOverviewMetric(graphics, x + half, overviewY + 29, Items.ANVIL,
+                Integer.toString(menu.getTotalUpgradeCount()), TEXT);
+        if (externalActive) {
+            drawOverviewMetric(graphics, x + 7, overviewY + 44, Items.LIGHTNING_ROD,
+                    Long.toString(menu.getExternalEquivalentAccelerationTicks()), GREEN);
+        }
+        drawCentralWorkControls(graphics, overviewY + overviewHeight + 5);
 
-        int progressY = overviewY + 65;
+        int progressY = overviewY + overviewHeight + 38;
         int columnWidth = width / 2;
         for (int index = 0; index < menu.getContainerSlotCount(); index++) {
             int column = index % 2;
@@ -557,6 +565,12 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             int rowX = x + column * columnWidth;
             drawWorkProgressRow(graphics, rowX, rowY, columnWidth - 6, index);
         }
+    }
+
+    private void drawOverviewMetric(
+            GuiGraphics graphics, int x, int y, Item icon, String value, int color) {
+        graphics.renderItem(new ItemStack(icon), x, y - 3);
+        graphics.drawString(font, value, x + 20, y + 1, color, false);
     }
 
     private void drawWorkProgressRow(GuiGraphics graphics, int x, int y, int width, int slotIndex) {

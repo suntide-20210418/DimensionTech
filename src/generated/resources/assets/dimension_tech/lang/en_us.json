@@ -129,8 +129,6 @@
   "screen.dimension_tech.mythic_miner.info.actual": "Actual ticks: %s",
   "screen.dimension_tech.mythic_miner.info.external": "External acceleration: %sx",
   "screen.dimension_tech.mythic_miner.overview": "Machine overview",
-  "screen.dimension_tech.mythic_miner.overview.energy": "Energy: %s / %s",
-  "screen.dimension_tech.mythic_miner.overview.parallel": "Parallel: %s",
   "screen.dimension_tech.mythic_miner.overview.progress": "%s / %s tick",
   "screen.dimension_tech.mythic_miner.waiting_for_natural_window": "Waiting for natural tick window (400 ticks)",
   "screen.dimension_tech.mythic_miner.attribute.luck_value": "Effective luck: %s",
