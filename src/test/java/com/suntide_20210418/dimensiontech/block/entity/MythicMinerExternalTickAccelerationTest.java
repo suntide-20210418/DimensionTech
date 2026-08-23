@@ -8,14 +8,30 @@ import org.junit.jupiter.api.Test;
 
 class MythicMinerExternalTickAccelerationTest {
     @Test
+    void equivalentAccelerationExcludesTheNaturalTickBaselineCall() {
+        for (int multiplier = 2; multiplier <= 256; multiplier <<= 1) {
+            MythicMinerExternalTickAcceleration acceleration =
+                    new MythicMinerExternalTickAcceleration();
+            for (int call = 0; call < multiplier + 1; call++) {
+                acceleration.observe(0L, 40_000);
+            }
+            acceleration.observe(1L, 40_000);
+            assertEquals(
+                    multiplier,
+                    acceleration.currentEquivalentAccelerationTicks(),
+                    "unexpected equivalent acceleration for " + multiplier + "x");
+        }
+    }
+
+    @Test
     void sameNaturalTickCountsOneLogicalTickAndEveryCallAsActualTick() {
         MythicMinerExternalTickAcceleration acceleration =
                 new MythicMinerExternalTickAcceleration();
-        for (int call = 0; call < 256; call++) {
+        for (int call = 0; call < 257; call++) {
             acceleration.observe(0L, 400);
         }
         assertEquals(1L, acceleration.currentNaturalTicks());
-        assertEquals(256L, acceleration.currentActualTicks());
+        assertEquals(257L, acceleration.currentActualTicks());
         acceleration.observe(1L, 400);
         assertEquals(256L, acceleration.currentEquivalentAccelerationTicks());
     }

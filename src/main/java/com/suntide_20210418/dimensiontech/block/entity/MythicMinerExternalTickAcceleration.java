@@ -21,7 +21,13 @@ final class MythicMinerExternalTickAcceleration {
         externalParallelEligible = cycleTicks > 0;
         long effectiveCycleTicks = Math.max(MINIMUM_NATURAL_TICKS, (long) cycleTicks);
         if (newNaturalTick) {
-            equivalentAccelerationTicks = Math.max(0L, actualTicks - actualTicksAtNaturalTickStart);
+            // Every natural tick already performs one ordinary serverTick call. The
+            // equivalent external acceleration reports the additional accelerated calls,
+            // so remove that baseline call while retaining a minimum of 1x.
+            long callsSinceNaturalTick = actualTicks - actualTicksAtNaturalTickStart;
+            equivalentAccelerationTicks = callsSinceNaturalTick <= 0L
+                    ? 0L
+                    : Math.max(1L, callsSinceNaturalTick - 1L);
             actualTicksAtNaturalTickStart = actualTicks;
             lastGameTime = gameTime;
             naturalTicks = saturatedIncrement(naturalTicks);
