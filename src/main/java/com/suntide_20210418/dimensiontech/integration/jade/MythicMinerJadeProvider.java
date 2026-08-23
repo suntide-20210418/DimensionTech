@@ -43,6 +43,7 @@ public enum MythicMinerJadeProvider
     private static final String SLOT_PREVIOUS_TICKS = "PreviousTicks";
     private static final String SLOT_PREVIOUS_PARALLEL = "PreviousParallelHundredths";
     private static final String SLOT_WAITING = "WaitingForNaturalWindow";
+    private static final String SLOT_NATURAL_TICKS = "NaturalTicks";
     private static final String OUTPUT = "Output";
     private static final String PENDING_ITEMS = "PendingItems";
     private static final String ENERGY_CONSUMPTION = "EnergyConsumption";
@@ -81,6 +82,7 @@ public enum MythicMinerJadeProvider
             slotTag.putInt(SLOT_PROCESSING, miner.getSlotProcessingTime(slot));
             slotTag.putInt(SLOT_PARALLEL, miner.getSlotDrawParallel(slot));
             slotTag.putBoolean(SLOT_WAITING, miner.isSlotWaitingForNaturalWindow(slot));
+            slotTag.putLong(SLOT_NATURAL_TICKS, miner.getSlotCurrentNaturalTicks(slot));
             slotTag.putInt(
                     SLOT_EXTERNAL_PARALLEL,
                     miner.getSlotExternalAccelerationParallelHundredths(slot));
@@ -172,29 +174,18 @@ public enum MythicMinerJadeProvider
                     line(
                             "slot_parallel",
                             theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_PARALLEL))))));
-            tooltip.add(
-                    line(
-                            "external_parallel",
-                            theme.info(
-                                    Component.literal(
-                                            formatDecimal(
-                                                    slot.getInt(SLOT_EXTERNAL_PARALLEL)
-                                                            / 100.0D)))));
-            tooltip.add(
-                    line(
-                            "external_equivalent_acceleration",
-                            theme.info(
-                                    Component.literal(
-                                            formatDecimal(
-                                                    slot.getLong(SLOT_EXTERNAL_EQUIVALENT))))));
-            tooltip.add(
-                    line(
-                            "actual_ticks",
-                            theme.info(Component.literal(Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
-            tooltip.add(
-                    line(
-                            "previous_ticks",
-                            theme.info(Component.literal(Long.toString(slot.getLong(SLOT_PREVIOUS_TICKS))))));
+            boolean externalActive =
+                    slot.getLong(SLOT_ACTUAL_TICKS) != slot.getLong(SLOT_NATURAL_TICKS);
+            if (externalActive) {
+                tooltip.add(line("external_parallel", theme.info(Component.literal(
+                        formatDecimal(slot.getInt(SLOT_EXTERNAL_PARALLEL) / 100.0D)))));
+                tooltip.add(line("external_equivalent_acceleration", theme.info(Component.literal(
+                        formatDecimal(slot.getLong(SLOT_EXTERNAL_EQUIVALENT))))));
+                tooltip.add(line("actual_ticks", theme.info(Component.literal(
+                        Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
+                tooltip.add(line("previous_ticks", theme.info(Component.literal(
+                        Long.toString(slot.getLong(SLOT_PREVIOUS_TICKS))))));
+            }
             tooltip.add(
                     line(
                             "previous_parallel",

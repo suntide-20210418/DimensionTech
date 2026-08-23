@@ -670,11 +670,12 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     Component.translatable(
                             "screen.dimension_tech.mythic_miner.waiting_for_natural_window"),
                     viewportX + 2,
-                    contentY + 67,
+                    contentY + 77,
                     contentWidth,
                     AMBER);
         }
-        int progressY = contentY + (menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot) ? 79 : 67);
+        boolean waitingForNaturalWindow = menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot);
+        int progressY = contentY + 67;
         graphics.fill(
                 viewportX + 2,
                 progressY,
@@ -708,7 +709,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 parallelSummary.y(),
                 parallelSummary.width(),
                 CYAN);
-        int detailY = contentY + 89;
+        int detailY = contentY + (waitingForNaturalWindow ? 101 : 89);
         if (showParallelBreakdown) {
             int detailLineX = viewportX + 4;
             graphics.fill(detailLineX, detailY + 4, detailLineX + 1, detailY + 29, RULE);
@@ -836,7 +837,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int infoWidth = MythicMinerLayout.markerInfoWidth(menu.getContainerSlotCount(), imageWidth);
         return new InfoBounds(
                 infoX + MARKER_INFO_PADDING + 2,
-                MythicMinerLayout.MARKER_BAY_Y + MARKER_INFO_PADDING - markerInfoScroll + 77,
+                MythicMinerLayout.MARKER_BAY_Y + MARKER_INFO_PADDING - markerInfoScroll + 77
+                        + (menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot) ? 12 : 0),
                 Math.max(1, infoWidth - MARKER_INFO_PADDING * 2 - 5),
                 12);
     }
@@ -1147,7 +1149,9 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 false,
                 CYAN);
         drawUpgradeSummaryCell(graphics, x + cellWidth, y + 58, width - cellWidth);
-        drawExternalAccelerationCell(graphics, x, y + 87, width);
+        if (menu.isExternalAccelerationActive()) {
+            drawExternalAccelerationCell(graphics, x, y + 87, width);
+        }
     }
 
     private void drawExternalAccelerationCell(GuiGraphics graphics, int x, int y, int width) {

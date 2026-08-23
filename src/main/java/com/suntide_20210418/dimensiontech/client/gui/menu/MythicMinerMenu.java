@@ -415,6 +415,18 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return getSlotTelemetryValue(slot, SLOT_WAITING_FOR_NATURAL_WINDOW) != 0;
     }
 
+    public boolean isMarkerExternalAccelerationActive(int slot) {
+        return getMarkerCurrentExternalAccelerationMachineTicks(slot)
+                != getMarkerCurrentNaturalTicks(slot);
+    }
+
+    public boolean isExternalAccelerationActive() {
+        for (int slot = 0; slot < containerSlotCount; slot++) {
+            if (isMarkerExternalAccelerationActive(slot)) return true;
+        }
+        return false;
+    }
+
     public int getMarkerTotalParallel(int slot) {
         return combineSlotWords(slot, SLOT_PARALLEL_LOW, SLOT_PARALLEL_HIGH);
     }
