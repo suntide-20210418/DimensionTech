@@ -200,6 +200,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return validSlot(slot) ? externalTickAcceleration[slot].currentCycleNaturalTicks() : 0;
     }
 
+    public boolean isSlotWaitingForNaturalWindow(int slot) {
+        return validSlot(slot) && externalTickAcceleration[slot].waitingForNaturalWindow();
+    }
+
     public long getSlotPreviousExternalAccelerationMachineTicks(int slot) {
         return validSlot(slot) ? externalTickAcceleration[slot].previousActualTicks() : 0;
     }

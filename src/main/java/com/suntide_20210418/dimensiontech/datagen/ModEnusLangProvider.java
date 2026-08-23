@@ -133,6 +133,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.attribute.parallel", "Parallel");
         add("screen.dimension_tech.mythic_miner.attribute.luck", "Luck");
         add("screen.dimension_tech.mythic_miner.attribute.external_acceleration", "External acceleration");
+        add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "Waiting for natural tick window (400 ticks)");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "Upgrade Blocks");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.mythic_miner.attribute.total_short", "Total %s");
@@ -272,6 +273,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jade.dimension_tech.parallel", "Parallel: %s");
         add("jade.dimension_tech.external_parallel", "External acceleration parallel: %s");
         add("jade.dimension_tech.external_equivalent_acceleration", "External equivalent acceleration: %sx");
+        add("jade.dimension_tech.waiting_for_natural_window", "Waiting for natural tick window (400 ticks)");
         add("jade.dimension_tech.actual_ticks", "Machine ticks in current window: %s");
         add("jade.dimension_tech.previous_ticks", "Previous cycle machine ticks: %s");
         add("jade.dimension_tech.previous_parallel", "Previous cycle external parallel: %s");

@@ -66,7 +66,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_2 = 49;
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_3 = 50;
     private static final int TELEMETRY_BASE_COUNT = 51;
-    private static final int SLOT_TELEMETRY_STRIDE = 21;
+    private static final int SLOT_TELEMETRY_STRIDE = 22;
     private static final int SLOT_PROGRESS_LOW = 0;
     private static final int SLOT_PROGRESS_HIGH = 1;
     private static final int SLOT_PROCESSING_LOW = 2;
@@ -88,6 +88,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int SLOT_PREVIOUS_TICKS_3 = 18;
     private static final int SLOT_PREVIOUS_PARALLEL_LOW = 19;
     private static final int SLOT_PREVIOUS_PARALLEL_HIGH = 20;
+    private static final int SLOT_WAITING_FOR_NATURAL_WINDOW = 21;
 
     private final int[] telemetry;
 
@@ -405,7 +406,13 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     public int getMarkerProcessingTime(int slot) {
-        return combineSlotWords(slot, SLOT_PROCESSING_LOW, SLOT_PROCESSING_HIGH);
+        return isMarkerWaitingForNaturalWindow(slot)
+                ? 400
+                : combineSlotWords(slot, SLOT_PROCESSING_LOW, SLOT_PROCESSING_HIGH);
+    }
+
+    public boolean isMarkerWaitingForNaturalWindow(int slot) {
+        return getSlotTelemetryValue(slot, SLOT_WAITING_FOR_NATURAL_WINDOW) != 0;
     }
 
     public int getMarkerTotalParallel(int slot) {
@@ -607,6 +614,8 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                     lowWord(blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(slot));
             case SLOT_PREVIOUS_PARALLEL_HIGH ->
                     highWord(blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(slot));
+            case SLOT_WAITING_FOR_NATURAL_WINDOW ->
+                    blockEntity.isSlotWaitingForNaturalWindow(slot) ? 1 : 0;
             default -> 0;
         };
     }

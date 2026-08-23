@@ -174,6 +174,10 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                                 "screen.dimension_tech.mythic_miner.marker_progress",
                                 configuredMarker ? menu.getMarkerProgress(index) : 0,
                                 configuredMarker ? menu.getMarkerProcessingTime(index) : 0));
+                if (configuredMarker && menu.isMarkerWaitingForNaturalWindow(index)) {
+                    tooltip.add(Component.translatable(
+                            "screen.dimension_tech.mythic_miner.waiting_for_natural_window"));
+                }
                 tooltip.add(
                         Component.translatable(
                                 "screen.dimension_tech.mythic_miner.marker_info.natural_ticks",
@@ -660,7 +664,17 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 contentY + 55,
                 contentWidth,
                 TEXT);
-        int progressY = contentY + 67;
+        if (menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot)) {
+            drawClippedInfoLine(
+                    graphics,
+                    Component.translatable(
+                            "screen.dimension_tech.mythic_miner.waiting_for_natural_window"),
+                    viewportX + 2,
+                    contentY + 67,
+                    contentWidth,
+                    AMBER);
+        }
+        int progressY = contentY + (menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot) ? 79 : 67);
         graphics.fill(
                 viewportX + 2,
                 progressY,

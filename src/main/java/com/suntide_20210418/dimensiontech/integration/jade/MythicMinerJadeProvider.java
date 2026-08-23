@@ -42,6 +42,7 @@ public enum MythicMinerJadeProvider
     private static final String SLOT_ACTUAL_TICKS = "ActualTicks";
     private static final String SLOT_PREVIOUS_TICKS = "PreviousTicks";
     private static final String SLOT_PREVIOUS_PARALLEL = "PreviousParallelHundredths";
+    private static final String SLOT_WAITING = "WaitingForNaturalWindow";
     private static final String OUTPUT = "Output";
     private static final String PENDING_ITEMS = "PendingItems";
     private static final String ENERGY_CONSUMPTION = "EnergyConsumption";
@@ -79,6 +80,7 @@ public enum MythicMinerJadeProvider
             slotTag.putLong(SLOT_PROGRESS, miner.getSlotLogicalProgress(slot));
             slotTag.putInt(SLOT_PROCESSING, miner.getSlotProcessingTime(slot));
             slotTag.putInt(SLOT_PARALLEL, miner.getSlotDrawParallel(slot));
+            slotTag.putBoolean(SLOT_WAITING, miner.isSlotWaitingForNaturalWindow(slot));
             slotTag.putInt(
                     SLOT_EXTERNAL_PARALLEL,
                     miner.getSlotExternalAccelerationParallelHundredths(slot));
@@ -144,6 +146,8 @@ public enum MythicMinerJadeProvider
                             slot.getInt(SLOT_INDEX),
                             slotStructureName(slot)));
             int processing = Math.max(0, slot.getInt(SLOT_PROCESSING));
+            boolean waiting = slot.getBoolean(SLOT_WAITING);
+            if (waiting) processing = 400;
             int progress =
                     (int) Math.max(
                             0L,
@@ -157,6 +161,13 @@ public enum MythicMinerJadeProvider
                                             "jade.dimension_tech.slot_progress_value",
                                             progress,
                                             processing))));
+            if (waiting) {
+                tooltip.add(
+                        line(
+                                "waiting_for_natural_window",
+                                theme.info(Component.translatable(
+                                        "jade.dimension_tech.waiting_for_natural_window"))));
+            }
             tooltip.add(
                     line(
                             "slot_parallel",
@@ -175,7 +186,7 @@ public enum MythicMinerJadeProvider
                             theme.info(
                                     Component.literal(
                                             formatDecimal(
-                                                    slot.getLong(SLOT_EXTERNAL_EQUIVALENT)))));
+                                                    slot.getLong(SLOT_EXTERNAL_EQUIVALENT))))));
             tooltip.add(
                     line(
                             "actual_ticks",

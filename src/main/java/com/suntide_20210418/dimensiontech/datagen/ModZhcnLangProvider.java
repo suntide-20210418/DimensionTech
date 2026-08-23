@@ -113,6 +113,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.attribute.parallel", "并行");
         add("screen.dimension_tech.mythic_miner.attribute.luck", "幸运值");
         add("screen.dimension_tech.mythic_miner.attribute.external_acceleration", "外部等效加速");
+        add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "等待自然 tick 窗口（400 tick）");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "升级方块");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.mythic_miner.attribute.total_short", "总计 %s");
@@ -240,6 +241,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.parallel", "并行：%s");
         add("jade.dimension_tech.external_parallel", "外部加速并行：%s");
         add("jade.dimension_tech.external_equivalent_acceleration", "外部等效加速：%sx");
+        add("jade.dimension_tech.waiting_for_natural_window", "等待自然 tick 窗口（400 tick）");
         add("jade.dimension_tech.actual_ticks", "本周期实际机器 tick：%s");
         add("jade.dimension_tech.previous_ticks", "上一周期实际机器 tick：%s");
         add("jade.dimension_tech.previous_parallel", "上一周期外部加速并行：%s");
