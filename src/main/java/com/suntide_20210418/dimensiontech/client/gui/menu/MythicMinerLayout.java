@@ -3,9 +3,9 @@ package com.suntide_20210418.dimensiontech.client.gui.menu;
 /** Shared marker-slot geometry used by the menu and its screen. */
 public final class MythicMinerLayout {
     public static final int MARKER_BAY_X = 28;
-    public static final int MARKER_BAY_Y = 38;
+    public static final int MARKER_BAY_Y = 48;
     public static final int MARKER_SLOT_X_OFFSET = 9;
-    public static final int MARKER_SLOT_Y = 48;
+    public static final int MARKER_SLOT_Y = 58;
     public static final int MARKER_COLUMN_STRIDE = 23;
     public static final int MARKER_ROW_STRIDE = 27;
     public static final int PROGRESS_X_OFFSET = -1;

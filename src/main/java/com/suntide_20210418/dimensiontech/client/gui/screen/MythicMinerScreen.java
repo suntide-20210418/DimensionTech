@@ -43,7 +43,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     private static final int RED = 0xFFE45B51;
     private static final int SLOT_FACE = 0xFF33434A;
     private static final int ENERGY_X = 5;
-    private static final int ENERGY_TOP = 36;
+    private static final int ENERGY_TOP = 46;
     private static final int ENERGY_HEIGHT = 164;
     private static final int LEFT_CONTROLS_WIDTH = 30;
     private static final int SCREEN_MARGIN = 8;
@@ -66,7 +66,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     private Set<ResourceLocation> disabledExpectedItems = Set.of();
     private boolean showParallelBreakdown;
     private Page page = Page.WORK;
-    private static final int TAB_Y = 23;
+    private static final int TAB_Y = 33;
     private static final int TAB_HEIGHT = 12;
 
     public MythicMinerScreen(MythicMinerMenu menu, Inventory playerInventory, Component title) {
@@ -107,8 +107,9 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int logicalMouseY = toLogical(mouseY);
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
-        super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
-        if (page != Page.WORK) {
+        if (page == Page.WORK) {
+            super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
+        } else {
             graphics.pose().pushPose();
             graphics.pose().translate(leftPos, topPos, 0.0D);
             drawPanel(graphics, 0, 0, imageWidth, imageHeight);
@@ -126,7 +127,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     Component.translatable(
                             "screen.dimension_tech.mythic_miner.structure_incomplete"),
                     leftPos + imageWidth / 2,
-                    topPos + 36,
+                    topPos + 46,
                     0xFFE45B51);
         }
         graphics.pose().popPose();
@@ -134,7 +135,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         renderTooltip(graphics, mouseX, mouseY);
         int control = -1;
         for (int index = 0; page == Page.WORK && index < Math.min(3, controlCount()); index++) {
-            int buttonY = topPos + 38 + index * 29;
+            int buttonY = topPos + 48 + index * 29;
             if (logicalMouseX >= leftPos - 29
                     && logicalMouseX < leftPos - 5
                     && logicalMouseY >= buttonY
@@ -144,7 +145,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             }
         }
         if (page == Page.WORK && control < 0) {
-            int centerY = topPos + 86
+            int centerY = topPos + 96
                     + (menu.isExternalAccelerationActive() ? 70 : 54) + 5;
             int firstX = leftPos + imageWidth / 2 - 88;
             if (logicalMouseY >= centerY && logicalMouseY < centerY + 24) {
@@ -279,7 +280,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     private void drawControlButtons(GuiGraphics graphics, int mouseX, int mouseY) {
         int x = -29;
-        int[] ys = {38, 67, 96, 125, 154};
+        int[] ys = {48, 77, 106, 135, 164};
         for (int i = 0; i < Math.min(3, controlCount()); i++) {
             boolean hovered =
                     mouseX >= leftPos + x
@@ -381,20 +382,20 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     return true;
                 }
             }
-            if (x >= -29 && x < -5 && y >= 38 && y < 62) {
+            if (x >= -29 && x < -5 && y >= 48 && y < 72) {
                 Minecraft.getInstance().setScreen(new OutputFaceScreen(this, menu));
                 return true;
             }
-            if (x >= -29 && x < -5 && y >= 67 && y < 91) {
+            if (x >= -29 && x < -5 && y >= 77 && y < 101) {
                 Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 1);
                 return true;
             }
-            if (x >= -29 && x < -5 && y >= 96 && y < 120) {
+            if (x >= -29 && x < -5 && y >= 106 && y < 130) {
                 Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 2);
                 return true;
             }
             int centerControlX = imageWidth / 2 - 88;
-            int centerControlY = 86
+            int centerControlY = 96
                     + (menu.isExternalAccelerationActive() ? 70 : 54) + 5;
             if (x >= centerControlX && x < centerControlX + 88
                     && y >= centerControlY && y < centerControlY + 24) {
@@ -466,7 +467,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         }
         if (page != Page.INFO) return true;
         int infoX = leftPos + 33;
-        int infoY = topPos + 94;
+        int infoY = topPos + 104;
         int infoWidth = imageWidth - 66;
         int infoHeight = imageHeight - 102;
         if (inside(
@@ -532,7 +533,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     private void drawWorkOverview(GuiGraphics graphics) {
         int x = 28;
         int width = imageWidth - 56;
-        int overviewY = 86;
+        int overviewY = 96;
         boolean externalActive = menu.isExternalAccelerationActive();
         int overviewHeight = externalActive ? 70 : 54;
         graphics.fill(x, overviewY, x + width, overviewY + overviewHeight, PANEL_RAISED);
@@ -599,7 +600,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     private void drawInfoPage(GuiGraphics graphics, int mouseX, int mouseY) {
         int x = 28;
-        int y = 42;
+        int y = 52;
         int width = imageWidth - 56;
         int height = menu.getPlayerInventoryY() + 70 - y;
         graphics.fill(x, y, x + width, y + height, PANEL_RAISED);
@@ -639,6 +640,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         graphics.fill(toggleX, toggleY, toggleX + 17, toggleY + 17, PANEL_INSET);
         graphics.fill(toggleX, toggleY, toggleX + 2, toggleY + 17, enabled ? CYAN : RED);
         graphics.drawCenteredString(font, Component.literal(enabled ? "I" : "X"), toggleX + 8, toggleY + 4, enabled ? CYAN : RED);
+        graphics.renderItem(new ItemStack(Items.BRICKS), viewportX + viewportWidth - 18, contentY + 2);
         StructMarkerItem.MarkerInfo info = StructMarkerItem.getMarkerInfo(menu.slots.get(selectedMarkerSlot).getItem()).orElse(null);
         if (info != null) {
             drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.structure", selectedMarkerSlot + 1, info.structure().id()), viewportX + 2, contentY, viewportWidth - 24, TEXT);
@@ -647,6 +649,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.dimension_value", formatAnalysisValue(effectiveDimensionValue)), viewportX + 2, contentY + 29, viewportWidth - 4, CYAN);
         drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.structure_value", formatAnalysisValue(effectiveStructureValue)), viewportX + 2, contentY + 42, viewportWidth - 4, AMBER);
         drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_progress", menu.getMarkerProgress(selectedMarkerSlot), menu.getMarkerProcessingTime(selectedMarkerSlot)), viewportX + 2, contentY + 58, viewportWidth - 4, TEXT);
+        graphics.fill(viewportX + 2, contentY + 69, viewportX + viewportWidth - 22, contentY + 70, RULE);
+        graphics.renderItem(new ItemStack(Items.CLOCK), viewportX + viewportWidth - 18, contentY + 72);
         if (waiting) drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.waiting_for_natural_window"), viewportX + 2, contentY + 72, viewportWidth - 4, AMBER);
         int lineY = contentY + (waiting ? 88 : 74);
         drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.natural_ticks", menu.getMarkerCurrentNaturalTicks(selectedMarkerSlot)), viewportX + 2, lineY, viewportWidth - 4, CYAN);
@@ -666,6 +670,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             lineY += 13;
             drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.actual_parallel", formatDecimal(menu.getMarkerExternalAccelerationParallelHundredths(selectedMarkerSlot))), viewportX + 2, lineY, viewportWidth - 4, GREEN);
         }
+        graphics.fill(viewportX + 2, contentY + expectedY - 22, viewportX + viewportWidth - 22, contentY + expectedY - 21, RULE);
+        graphics.renderItem(new ItemStack(Items.CHEST), viewportX + viewportWidth - 18, contentY + expectedY - 18);
         drawClippedInfoLine(graphics, Component.translatable("screen.dimension_tech.mythic_miner.marker_info.expected_items"), viewportX + 2, contentY + expectedY - 14, viewportWidth - 4, AMBER);
         hoveredExpectedItem = ItemStack.EMPTY;
         drawExpectedItemRows(graphics, viewportX + 2, contentY + expectedY, viewportWidth - 4, viewportY, viewportHeight, mouseX, mouseY);
@@ -688,7 +694,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             GuiGraphics graphics, int logicalMouseX, int logicalMouseY, int screenMouseX, int screenMouseY) {
         if (selectedMarkerSlot < 0) return;
         int x = leftPos + 28 + 8;
-        int y = topPos + 42 + 58;
+        int y = topPos + 52 + 58;
         if (inside(logicalMouseX, logicalMouseY, x, y - 4, 18, 18)) {
             graphics.renderTooltip(font, Component.translatable("screen.dimension_tech.mythic_miner.info.structure"), screenMouseX, screenMouseY);
         } else if (inside(logicalMouseX, logicalMouseY, x, y + 14, 18, 18)) {
@@ -701,7 +707,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     private void drawAttributesPage(GuiGraphics graphics) {
         int x = 28;
-        int y = 42;
+        int y = 52;
         int width = imageWidth - 56;
         int height = menu.getPlayerInventoryY() + 70 - y;
         graphics.fill(x, y, x + width, y + height, PANEL_RAISED);
@@ -812,7 +818,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     private int infoSlotAt(double x, double y) {
         int startX = 36;
-        int startY = 64;
+        int startY = 74;
         if (y < startY || y >= startY + 20) return -1;
         int index = (int) ((x - startX) / 24);
         if (x >= startX && index >= 0 && index < menu.getContainerSlotCount()) return index;
@@ -839,7 +845,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private void drawHeader(GuiGraphics graphics) {
-        graphics.drawString(font, title, 8, 8, TEXT, false);
+        graphics.drawString(font, title, 8, 18, TEXT, false);
         int tabWidth = imageWidth / 3;
         String[] labels = {"screen.dimension_tech.mythic_miner.tab.work", "screen.dimension_tech.mythic_miner.tab.info", "screen.dimension_tech.mythic_miner.tab.attributes"};
         Page[] pages = Page.values();
@@ -1203,7 +1209,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int infoWidth = imageWidth - 72;
         return new InfoBounds(
                 infoX + 2,
-                42 + 58 - markerInfoScroll
+                52 + 58 - markerInfoScroll
                         + (menu.isMarkerWaitingForNaturalWindow(selectedMarkerSlot) ? 88 : 74)
                         + 13
                         + (menu.isMarkerExternalAccelerationActive(selectedMarkerSlot) ? 39 : 0),
@@ -1224,7 +1230,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 mouseX,
                 mouseY,
                 infoX,
-                42 + 58,
+                52 + 58,
                 infoWidth,
                 infoHeight);
     }
@@ -1297,7 +1303,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int x = 28;
         int width = imageWidth - 56;
         int toggleX = x + 8 + width - 16 - 20;
-        int toggleY = 42 + 58 + 3 - markerInfoScroll;
+        int toggleY = 52 + 58 + 3 - markerInfoScroll;
         return inside(mouseX, mouseY, toggleX, toggleY, 18, 18);
     }
 
@@ -1373,7 +1379,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             return -1;
         }
         int x = 38;
-        int y = 42 + 58 + markerInfoExpectedY() - markerInfoScroll;
+        int y = 52 + 58 + markerInfoExpectedY() - markerInfoScroll;
         int width = imageWidth - 66;
         int index = (int) Math.floor((mouseY - y) / (double) MARKER_INFO_ROW_HEIGHT);
         return index >= 0
@@ -1589,7 +1595,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             int screenMouseX,
             int screenMouseY) {
         int x = leftPos + 36;
-        int y = topPos + 54;
+        int y = topPos + 64;
         int width = imageWidth - 72;
         int cellWidth = width / 2 - 12;
         int aggregateCount = menu.getAggregateUpgradeCount();
