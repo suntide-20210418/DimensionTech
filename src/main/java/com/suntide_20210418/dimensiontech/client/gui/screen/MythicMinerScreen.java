@@ -88,7 +88,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     @Override
     protected void containerTick() {
         super.containerTick();
-        if (selectedMarkerSlot >= 0
+        if (page == Page.INFO && selectedMarkerSlot >= 0
                 && receivedAnalysisSlot == selectedMarkerSlot
                 && receivedAnalysisDismantling != menu.isEquipmentDismantlingEnabled()) {
             clearEffectiveAnalysis();
@@ -167,7 +167,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         if (page == Page.INFO) {
             renderInfoTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
         }
-        if (selectedMarkerSlot >= 0
+        if (page == Page.INFO && selectedMarkerSlot >= 0
                 && insideMarkerSlotToggle(
                         logicalMouseX - leftPos, logicalMouseY - topPos)) {
             graphics.renderTooltip(
@@ -353,7 +353,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             double x = mouseX - leftPos;
             double y = mouseY - topPos;
             InfoBounds parallelSummary = parallelSummaryBounds();
-            if (selectedMarkerSlot >= 0
+            if (page == Page.INFO && selectedMarkerSlot >= 0
                     && inside(
                             x,
                             y,
@@ -515,11 +515,17 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     private void drawPage(GuiGraphics graphics, int mouseX, int mouseY) {
         if (page == Page.WORK) {
             drawMarkerBay(graphics);
-            drawMarkerInfo(graphics, mouseX, mouseY);
             return;
         }
         if (page == Page.INFO) {
-            drawInfoPage(graphics);
+            int panelX = 28;
+            int panelY = 42;
+            int panelWidth = imageWidth - 56;
+            int panelHeight = menu.getPlayerInventoryY() + 70 - panelY;
+            graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PANEL_RAISED);
+            graphics.fill(panelX, panelY, panelX + panelWidth, panelY + 2, CYAN_DARK);
+            drawMarkerBay(graphics);
+            drawMarkerInfo(graphics, mouseX, mouseY);
         } else {
             drawAttributesPage(graphics);
         }
@@ -606,11 +612,11 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private int infoSlotAt(double x, double y) {
-        int startX = 28 + 8;
-        int startY = 42 + 22;
-        if (y < startY || y >= startY + 20) return -1;
-        int index = (int) ((x - startX) / 24);
-        return index >= 0 && index < menu.getContainerSlotCount() && x >= startX ? index : -1;
+        for (int index = 0; index < menu.getContainerSlotCount(); index++) {
+            Slot slot = menu.slots.get(index);
+            if (inside(x, y, slot.x, slot.y, 18, 18)) return index;
+        }
+        return -1;
     }
 
     private void selectMarkerSlot(int slot) {
@@ -664,6 +670,13 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             int barX = MythicMinerLayout.progressBarX(slotX);
             int barY = MythicMinerLayout.progressBarY(slotY);
             boolean configuredMarker = StructMarkerItem.getMarkerInfo(slot.getItem()).isPresent();
+            if (page == Page.INFO && configuredMarker) {
+                if (index == selectedMarkerSlot) {
+                    graphics.fill(slotX - 1, slotY - 1, slotX + 18, slotY + 18, CYAN);
+                }
+                graphics.renderItem(slot.getItem(), slotX, slotY);
+                graphics.drawString(font, Integer.toString(index + 1), slotX + 18, slotY + 4, MUTED, false);
+            }
             if (index == selectedMarkerSlot && configuredMarker) {
                 graphics.fill(
                         barX - 1,
