@@ -127,6 +127,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.overview.progress", "%s / %s tick");
         add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "等待自然 tick 窗口（400 tick）");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "升级方块");
+        add("screen.dimension_tech.mythic_miner.attribute.installed", "当前安装的升级");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.mythic_miner.attribute.total_short", "总计 %s");
         add("screen.dimension_tech.mythic_miner.attribute.summary_counts", "专精 %s | 聚合 %s");

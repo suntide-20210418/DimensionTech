@@ -147,6 +147,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.overview.progress", "%s / %s tick");
         add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "Waiting for natural tick window (400 ticks)");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "Upgrade Blocks");
+        add("screen.dimension_tech.mythic_miner.attribute.installed", "Installed upgrades");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.mythic_miner.attribute.total_short", "Total %s");
         add("screen.dimension_tech.mythic_miner.attribute.summary_counts", "Focus %s | Combo %s");

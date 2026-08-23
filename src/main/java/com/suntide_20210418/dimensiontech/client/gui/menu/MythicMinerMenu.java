@@ -65,7 +65,10 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_1 = 48;
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_2 = 49;
     private static final int EXTERNAL_EQUIVALENT_ACCELERATION_3 = 50;
-    private static final int TELEMETRY_BASE_COUNT = 51;
+    private static final int WORKING_THREAD_COUNT = 51;
+    private static final int UPGRADE_TIER_COUNT_START = 52;
+    private static final int UPGRADE_TIER_COUNT_SIZE = 30;
+    private static final int TELEMETRY_BASE_COUNT = UPGRADE_TIER_COUNT_START + UPGRADE_TIER_COUNT_SIZE;
     private static final int SLOT_TELEMETRY_STRIDE = 26;
     private static final int SLOT_PROGRESS_LOW = 0;
     private static final int SLOT_PROGRESS_HIGH = 1;
@@ -246,6 +249,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                                     word(blockEntity.getExternalEquivalentAccelerationTicks(), 32);
                             case EXTERNAL_EQUIVALENT_ACCELERATION_3 ->
                                     word(blockEntity.getExternalEquivalentAccelerationTicks(), 48);
+                            case WORKING_THREAD_COUNT -> blockEntity.getWorkingThreadCount();
                             default -> getSlotTelemetryWord(index);
                         };
                     }
@@ -483,7 +487,13 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     public int getWorkingThreadCount() {
-        return blockEntity.getWorkingThreadCount();
+        return getTelemetry(WORKING_THREAD_COUNT);
+    }
+
+    public int getUpgradeCount(MythicMinerUpgradeBlock.Type type, int tier) {
+        if (type == MythicMinerUpgradeBlock.Type.NONE || tier < 1 || tier > 6) return 0;
+        int index = UPGRADE_TIER_COUNT_START + (type.ordinal() - 1) * 6 + tier - 1;
+        return getTelemetry(index);
     }
 
     public boolean supportsEquipmentDismantling() {
@@ -595,6 +605,12 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     private int getSlotTelemetryWord(int index) {
+        if (index >= UPGRADE_TIER_COUNT_START && index < TELEMETRY_BASE_COUNT) {
+            int local = index - UPGRADE_TIER_COUNT_START;
+            MythicMinerUpgradeBlock.Type type =
+                    MythicMinerUpgradeBlock.Type.values()[local / 6 + 1];
+            return blockEntity.getUpgradeCount(type, local % 6 + 1);
+        }
         int relativeIndex = index - TELEMETRY_BASE_COUNT;
         if (relativeIndex < 0) {
             return 0;

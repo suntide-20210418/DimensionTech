@@ -141,6 +141,7 @@
   "screen.dimension_tech.mythic_miner.attribute.upgrade_breakdown": "Focused upgrades: %s, aggregate upgrades: %s",
   "screen.dimension_tech.mythic_miner.attribute.upgrade_count": "×%s",
   "screen.dimension_tech.mythic_miner.attribute.upgrades": "Upgrade Blocks",
+  "screen.dimension_tech.mythic_miner.attribute.installed": "Installed upgrades",
   "screen.dimension_tech.mythic_miner.control": "Mining Console",
   "screen.dimension_tech.mythic_miner.dimension": "Dimension: %s",
   "screen.dimension_tech.mythic_miner.energy": "Energy Reserve",

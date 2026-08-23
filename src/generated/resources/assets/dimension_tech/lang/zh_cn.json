@@ -141,6 +141,7 @@
   "screen.dimension_tech.mythic_miner.attribute.upgrade_breakdown": "专精升级：%s，聚合升级：%s",
   "screen.dimension_tech.mythic_miner.attribute.upgrade_count": "×%s",
   "screen.dimension_tech.mythic_miner.attribute.upgrades": "升级方块",
+  "screen.dimension_tech.mythic_miner.attribute.installed": "当前安装的升级",
   "screen.dimension_tech.mythic_miner.control": "采掘控制台",
   "screen.dimension_tech.mythic_miner.dimension": "维度：%s",
   "screen.dimension_tech.mythic_miner.energy": "能量储备",

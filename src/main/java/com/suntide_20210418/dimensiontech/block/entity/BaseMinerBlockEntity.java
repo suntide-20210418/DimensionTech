@@ -295,6 +295,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         };
     }
 
+    public int getUpgradeCount(MythicMinerUpgradeBlock.Type type, int tier) {
+        if (tier < 1 || tier > 6 || type == MythicMinerUpgradeBlock.Type.NONE) {
+            return 0;
+        }
+        return upgradeBonuses.countFor(type, tier);
+    }
+
     public int getTotalUpgradeCount() {
         return upgradeBonuses.efficiencyUpgradeCount()
                 + upgradeBonuses.energyUpgradeCount()
@@ -603,8 +610,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         int parallelUpgradeCount = 0;
         int luckUpgradeCount = 0;
         int aggregateUpgradeCount = 0;
+        int[] upgradeCountsByTypeAndTier = new int[MythicMinerUpgradeBlock.Type.values().length * 6];
         for (MythicMinerUpgradeBlock block :
                 MythicMinerMultiblock.upgrades(serverLevel, worldPosition)) {
+            if (block.getType() != MythicMinerUpgradeBlock.Type.NONE) {
+                upgradeCountsByTypeAndTier[(block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
+            }
             switch (block.getType()) {
                 case EFFICIENCY -> {
                     efficiencyUpgradeCount++;
@@ -659,7 +670,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 energyUpgradeCount,
                 parallelUpgradeCount,
                 luckUpgradeCount,
-                aggregateUpgradeCount);
+                aggregateUpgradeCount,
+                upgradeCountsByTypeAndTier);
     }
 
     private void applyUpgradeBonuses(UpgradeBonuses bonuses) {
@@ -1065,9 +1077,19 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             int energyUpgradeCount,
             int parallelUpgradeCount,
             int luckUpgradeCount,
-            int aggregateUpgradeCount) {
+            int aggregateUpgradeCount,
+            int[] upgradeCountsByTypeAndTier) {
         private static final UpgradeBonuses NONE =
-                new UpgradeBonuses(1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0);
+                new UpgradeBonuses(
+                        1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0,
+                        new int[MythicMinerUpgradeBlock.Type.values().length * 6]);
+
+        private int countFor(MythicMinerUpgradeBlock.Type type, int tier) {
+            int index = (type.ordinal() - 1) * 6 + tier - 1;
+            return index >= 0 && index < upgradeCountsByTypeAndTier.length
+                    ? upgradeCountsByTypeAndTier[index]
+                    : 0;
+        }
     }
 
     private ItemStackHandler createItemHandler() {
