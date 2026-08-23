@@ -103,26 +103,15 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int logicalMouseY = toLogical(mouseY);
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
-        int[] savedSlotX = null;
-        int[] savedSlotY = null;
-        if (page != Page.WORK) {
-            savedSlotX = new int[menu.slots.size()];
-            savedSlotY = new int[menu.slots.size()];
-            for (int index = 0; index < menu.slots.size(); index++) {
-                Slot slot = menu.slots.get(index);
-                savedSlotX[index] = slot.x;
-                savedSlotY[index] = slot.y;
-                slot.x = -1000;
-                slot.y = -1000;
-            }
-        }
         super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
-        if (savedSlotX != null) {
-            for (int index = 0; index < menu.slots.size(); index++) {
-                Slot slot = menu.slots.get(index);
-                slot.x = savedSlotX[index];
-                slot.y = savedSlotY[index];
-            }
+        if (page != Page.WORK) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(leftPos, topPos, 0.0D);
+            drawPanel(graphics, 0, 0, imageWidth, imageHeight);
+            drawHeader(graphics);
+            drawEnergyRail(graphics);
+            drawPage(graphics, logicalMouseX - leftPos, logicalMouseY - topPos);
+            graphics.pose().popPose();
         }
         if (page == Page.WORK) {
             drawControlButtons(graphics, logicalMouseX, logicalMouseY);
