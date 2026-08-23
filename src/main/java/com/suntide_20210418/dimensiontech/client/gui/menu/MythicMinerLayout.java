@@ -12,7 +12,8 @@ public final class MythicMinerLayout {
     public static final int PROGRESS_Y_OFFSET = 19;
     public static final int PROGRESS_WIDTH = 18;
     public static final int PROGRESS_HEIGHT = 3;
-    public static final int BASE_PLAYER_INVENTORY_Y = 258;
+    /** Leaves room below the four-row attribute dashboard, including external acceleration. */
+    public static final int BASE_PLAYER_INVENTORY_Y = 276;
     public static final int BASE_MARKER_BAY_HEIGHT = 40;
     public static final int FIXED_MARKER_BAY_HEIGHT =
             BASE_MARKER_BAY_HEIGHT + 2 * MARKER_ROW_STRIDE;
