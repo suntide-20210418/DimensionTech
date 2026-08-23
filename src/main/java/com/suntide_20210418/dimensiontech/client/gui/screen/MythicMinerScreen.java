@@ -482,7 +482,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int progressWidth = MythicMinerLayout.PROGRESS_WIDTH;
         for (int index = 0; index < menu.getContainerSlotCount(); index++) {
             Slot slot = menu.slots.get(index);
-            int progress = menu.getMarkerProgress(index);
+            long progress = menu.getMarkerProgress(index);
             int processingTime = menu.getMarkerProcessingTime(index);
             int processing = Math.max(1, processingTime);
             int slotX = slot.x;
@@ -648,7 +648,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 contentWidth,
                 AMBER);
 
-        int progress = menu.getMarkerProgress(selectedMarkerSlot);
+        long progress = menu.getMarkerProgress(selectedMarkerSlot);
         int processingTime = menu.getMarkerProcessingTime(selectedMarkerSlot);
         drawClippedInfoLine(
                 graphics,
@@ -1133,6 +1133,28 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                 false,
                 CYAN);
         drawUpgradeSummaryCell(graphics, x + cellWidth, y + 58, width - cellWidth);
+        drawExternalAccelerationCell(graphics, x, y + 87, width);
+    }
+
+    private void drawExternalAccelerationCell(GuiGraphics graphics, int x, int y, int width) {
+        graphics.fill(x, y, x + width, y + 27, PANEL_INSET);
+        graphics.fill(x, y, x + 2, y + 27, GREEN);
+        graphics.fill(x + width - 1, y, x + width, y + 27, RULE);
+        graphics.drawString(
+                font,
+                Component.translatable(
+                        "screen.dimension_tech.mythic_miner.attribute.external_acceleration"),
+                x + 7,
+                y + 4,
+                MUTED,
+                false);
+        graphics.drawString(
+                font,
+                Long.toString(menu.getExternalEquivalentAccelerationTicks()) + "x",
+                x + 7,
+                y + 15,
+                TEXT,
+                false);
     }
 
     private void drawAttributeCell(

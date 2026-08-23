@@ -68,6 +68,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private static final String EXTERNAL_ACCELERATION_STATES_TAG = "ExternalTickAccelerationStates";
     private static final String EQUIPMENT_DISMANTLING_TAG = "EquipmentDismantling";
     private static final String SLOT_ENABLED_TAG = "SlotEnabled";
+    private static final String LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG =
+            "LastEnergyConsumptionGameTime";
     private static final int DRAWS_PER_PARALLEL = 8;
 
     private final ItemStackHandler itemHandler;
@@ -92,6 +94,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final Set<ResourceLocation> disabledExpectedItems = new HashSet<>();
     private boolean structureComplete;
     private UpgradeBonuses upgradeBonuses = UpgradeBonuses.NONE;
+    /** Natural game time for which this machine has already paid its energy cost. */
+    private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
 
     protected BaseMinerBlockEntity(
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
@@ -163,7 +167,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return slot >= 0 ? getSlotExternalAccelerationParallelHundredths(slot) : 0;
     }
 
-    public int getCurrentExternalAccelerationMachineTicks() {
+    public long getCurrentExternalAccelerationMachineTicks() {
         int slot = firstActiveSlot();
         return slot >= 0 ? getSlotCurrentExternalAccelerationMachineTicks(slot) : 0;
     }
@@ -172,20 +176,31 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return validSlot(slot) ? externalTickAcceleration[slot].currentExtraParallelHundredths() : 0;
     }
 
-    public int getSlotCurrentExternalAccelerationMachineTicks(int slot) {
+    public long getSlotExternalEquivalentAccelerationTicks(int slot) {
+        return validSlot(slot)
+                ? externalTickAcceleration[slot].currentEquivalentAccelerationTicks()
+                : 0;
+    }
+
+    public long getExternalEquivalentAccelerationTicks() {
+        int slot = firstActiveSlot();
+        return slot >= 0 ? getSlotExternalEquivalentAccelerationTicks(slot) : 0L;
+    }
+
+    public long getSlotCurrentExternalAccelerationMachineTicks(int slot) {
         return validSlot(slot) ? externalTickAcceleration[slot].currentActualTicks() : 0;
     }
 
-    public int getSlotCurrentNaturalTicks(int slot) {
+    public long getSlotCurrentNaturalTicks(int slot) {
         return validSlot(slot) ? externalTickAcceleration[slot].currentNaturalTicks() : 0;
     }
 
     /** Logical progress in the current machine cycle, independent of acceleration calls. */
-    public int getSlotLogicalProgress(int slot) {
+    public long getSlotLogicalProgress(int slot) {
         return validSlot(slot) ? externalTickAcceleration[slot].currentCycleNaturalTicks() : 0;
     }
 
-    public int getSlotPreviousExternalAccelerationMachineTicks(int slot) {
+    public long getSlotPreviousExternalAccelerationMachineTicks(int slot) {
         return validSlot(slot) ? externalTickAcceleration[slot].previousActualTicks() : 0;
     }
 
@@ -197,13 +212,30 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return getBaseParallel();
     }
 
-    public int getEffectiveEnergyConsumption() {
+    /** Energy consumed by one working marker slot per machine tick. */
+    public int getEffectiveThreadEnergyConsumption() {
         return Math.max(
                 1,
                 (int)
                         Math.ceil(
                                 getEnergyConsumption()
                                         * upgradeBonuses.energyConsumptionMultiplier()));
+    }
+
+    /** Total energy consumed per machine tick by all currently working slots. */
+    public int getEffectiveEnergyConsumption() {
+        long total = (long) getEffectiveThreadEnergyConsumption() * getWorkingThreadCount();
+        return (int) Math.min(Integer.MAX_VALUE, total);
+    }
+
+    public int getWorkingThreadCount() {
+        int working = 0;
+        for (int slot = 0; slot < slotProcessingTimes.length; slot++) {
+            if (slotEnabled[slot] && slotProcessingTimes[slot] > 0) {
+                working++;
+            }
+        }
+        return working;
     }
 
     public double getEffectiveMachineEfficiency() {
@@ -502,14 +534,17 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             return;
         }
 
-        int energyConsumption = getEffectiveEnergyConsumption();
-        if (!energyStorage.canConsume(energyConsumption)) {
-            return;
-        }
-
-        energyStorage.consume(energyConsumption);
         refreshMarkerLootCache(serverLevel.getServer());
         updateProcessingPlans();
+        long gameTime = serverLevel.getGameTime();
+        int energyConsumption = getEffectiveEnergyConsumption();
+        if (gameTime != lastEnergyConsumptionGameTime) {
+            if (energyConsumption <= 0 || !energyStorage.canConsume(energyConsumption)) {
+                return;
+            }
+            energyStorage.consume(energyConsumption);
+            lastEnergyConsumptionGameTime = gameTime;
+        }
         List<CompletedMarker> completedMarkers = new ArrayList<>();
         for (CachedMarkerLoot cachedLoot : cachedMarkerLoot) {
             int slot = cachedLoot.slot();
@@ -519,10 +554,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             MythicMinerExternalTickAcceleration.Observation accelerationObservation =
                     externalTickAcceleration[slot]
                             .observe(serverLevel.getGameTime(), slotProcessingTimes[slot]);
-            // Progress is measured in machine ticks. Natural server ticks are only the
-            // sampling window used to estimate external acceleration and must not drive
-            // the machine's progress bar.
-            slotProgress.set(slot, accelerationObservation.progressTicks());
+            // Persist the player-facing logical progress; accelerated execution is exposed
+            // separately through the long actual-tick telemetry.
+            slotProgress.set(
+                    slot,
+                    (int)
+                            Math.min(
+                                    Integer.MAX_VALUE,
+                                    accelerationObservation.logicalProgressTicks()));
             if (accelerationObservation.complete()) {
                 completedMarkers.add(
                         new CompletedMarker(cachedLoot, drawParallelForCycle(slot)));
@@ -982,6 +1021,18 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         }
     }
 
+    private static long readLongCompat(CompoundTag tag, String key, String legacyKey) {
+        if (tag.contains(key, Tag.TAG_LONG)) return Math.max(0L, tag.getLong(key));
+        if (tag.contains(key, Tag.TAG_INT)) return Math.max(0L, tag.getInt(key));
+        if (legacyKey != null && tag.contains(legacyKey, Tag.TAG_LONG)) {
+            return Math.max(0L, tag.getLong(legacyKey));
+        }
+        if (legacyKey != null && tag.contains(legacyKey, Tag.TAG_INT)) {
+            return Math.max(0L, tag.getInt(legacyKey));
+        }
+        return 0L;
+    }
+
     private record AdjacentOutputs(
             List<BlockEntity> meInterfaces, List<IItemHandler> itemHandlers) {}
 
@@ -1044,6 +1095,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         super.saveAdditional(tag);
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
         tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
+        tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
         tag.putInt(PROGRESS_TAG, getProgress());
         tag.putIntArray(SLOT_PROGRESS_TAG, slotProgress.save());
         tag.putInt(PARALLEL_FRACTION_TAG, getAccumulatedParallelHundredths());
@@ -1058,18 +1110,16 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             MythicMinerExternalTickAcceleration.State state = acceleration.save();
             CompoundTag accelerationTag = new CompoundTag();
             accelerationTag.putLong("LastGameTime", state.lastGameTime());
-            accelerationTag.putInt(
-                    "CallsInCurrentNaturalTick", state.callsInCurrentNaturalTick());
-            accelerationTag.putInt(
-                    "CallsInPreviousCompleteNaturalTick",
-                    state.callsInPreviousCompleteNaturalTick());
-            accelerationTag.putInt("StatisticsActualTicks", state.statisticsActualTicks());
-            accelerationTag.putInt("StatisticsNaturalTicks", state.statisticsNaturalTicks());
-            accelerationTag.putInt("ActualTicks", state.actualTicks());
-            accelerationTag.putInt("NaturalTicks", state.naturalTicks());
+            accelerationTag.putLong("ActualTicks", state.actualTicks());
+            accelerationTag.putLong("NaturalTicks", state.naturalTicks());
+            accelerationTag.putLong(
+                    "ActualTicksAtNaturalTickStart", state.actualTicksAtNaturalTickStart());
+            accelerationTag.putLong(
+                    "EquivalentAccelerationTicks", state.equivalentAccelerationTicks());
+            accelerationTag.putBoolean("TargetReached", state.targetReached());
             accelerationTag.putInt(
                     "SettledExtraParallelHundredths", state.settledExtraParallelHundredths());
-            accelerationTag.putInt("PreviousActualTicks", state.previousActualTicks());
+            accelerationTag.putLong("PreviousActualTicks", state.previousActualTicks());
             accelerationTag.putInt(
                     "PreviousExtraParallelHundredths", state.previousExtraParallelHundredths());
             accelerationTag.putBoolean(
@@ -1107,6 +1157,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (tag.contains(ENERGY_TAG, Tag.TAG_INT)) {
             energyStorage.setEnergy(tag.getInt(ENERGY_TAG));
         }
+        lastEnergyConsumptionGameTime =
+                tag.contains(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, Tag.TAG_LONG)
+                        ? tag.getLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG)
+                        : Long.MIN_VALUE;
         if (tag.contains(SLOT_PROGRESS_TAG, Tag.TAG_INT_ARRAY)) {
             slotProgress.load(tag.getIntArray(SLOT_PROGRESS_TAG));
         } else {
@@ -1138,14 +1192,29 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 externalTickAcceleration[slot].load(
                         new MythicMinerExternalTickAcceleration.State(
                                 accelerationTag.getLong("LastGameTime"),
-                                accelerationTag.getInt("CallsInCurrentNaturalTick"),
-                                accelerationTag.getInt("CallsInPreviousCompleteNaturalTick"),
-                                accelerationTag.getInt("StatisticsActualTicks"),
-                                accelerationTag.getInt("StatisticsNaturalTicks"),
-                                accelerationTag.getInt("ActualTicks"),
-                                accelerationTag.getInt("NaturalTicks"),
+                                readLongCompat(
+                                        accelerationTag, "ActualTicks", "StatisticsActualTicks"),
+                                readLongCompat(
+                                        accelerationTag, "NaturalTicks", "StatisticsNaturalTicks"),
+                                readLongCompat(
+                                        accelerationTag, "ActualTicksAtNaturalTickStart", null),
+                                readLongCompat(
+                                        accelerationTag, "EquivalentAccelerationTicks", null),
+                                accelerationTag.contains("TargetReached", Tag.TAG_BYTE)
+                                        ? accelerationTag.getBoolean("TargetReached")
+                                        : readLongCompat(
+                                                        accelerationTag,
+                                                        "ActualTicks",
+                                                        "StatisticsActualTicks")
+                                                >= MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS
+                                                && readLongCompat(
+                                                                accelerationTag,
+                                                                "NaturalTicks",
+                                                                "StatisticsNaturalTicks")
+                                                        < MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS,
                                 accelerationTag.getInt("SettledExtraParallelHundredths"),
-                                accelerationTag.getInt("PreviousActualTicks"),
+                                readLongCompat(
+                                        accelerationTag, "PreviousActualTicks", null),
                                 accelerationTag.getInt("PreviousExtraParallelHundredths"),
                                 !accelerationTag.contains("ExternalParallelEligible")
                                         || accelerationTag.getBoolean("ExternalParallelEligible")));

@@ -59,8 +59,14 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int EXTERNAL_ACCELERATION_PARALLEL_HIGH = 42;
     private static final int EXTERNAL_ACCELERATION_TICKS_LOW = 43;
     private static final int EXTERNAL_ACCELERATION_TICKS_HIGH = 44;
-    private static final int TELEMETRY_BASE_COUNT = 45;
-    private static final int SLOT_TELEMETRY_STRIDE = 17;
+    private static final int EXTERNAL_ACCELERATION_TICKS_LOW_HIGH = 45;
+    private static final int EXTERNAL_ACCELERATION_TICKS_HIGH_HIGH = 46;
+    private static final int EXTERNAL_EQUIVALENT_ACCELERATION_0 = 47;
+    private static final int EXTERNAL_EQUIVALENT_ACCELERATION_1 = 48;
+    private static final int EXTERNAL_EQUIVALENT_ACCELERATION_2 = 49;
+    private static final int EXTERNAL_EQUIVALENT_ACCELERATION_3 = 50;
+    private static final int TELEMETRY_BASE_COUNT = 51;
+    private static final int SLOT_TELEMETRY_STRIDE = 21;
     private static final int SLOT_PROGRESS_LOW = 0;
     private static final int SLOT_PROGRESS_HIGH = 1;
     private static final int SLOT_PROCESSING_LOW = 2;
@@ -72,12 +78,16 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int SLOT_EXTERNAL_PARALLEL_HIGH = 8;
     private static final int SLOT_NATURAL_TICKS_LOW = 9;
     private static final int SLOT_NATURAL_TICKS_HIGH = 10;
-    private static final int SLOT_ACTUAL_TICKS_LOW = 11;
-    private static final int SLOT_ACTUAL_TICKS_HIGH = 12;
-    private static final int SLOT_PREVIOUS_TICKS_LOW = 13;
-    private static final int SLOT_PREVIOUS_TICKS_HIGH = 14;
-    private static final int SLOT_PREVIOUS_PARALLEL_LOW = 15;
-    private static final int SLOT_PREVIOUS_PARALLEL_HIGH = 16;
+    private static final int SLOT_ACTUAL_TICKS_0 = 11;
+    private static final int SLOT_ACTUAL_TICKS_1 = 12;
+    private static final int SLOT_ACTUAL_TICKS_2 = 13;
+    private static final int SLOT_ACTUAL_TICKS_3 = 14;
+    private static final int SLOT_PREVIOUS_TICKS_0 = 15;
+    private static final int SLOT_PREVIOUS_TICKS_1 = 16;
+    private static final int SLOT_PREVIOUS_TICKS_2 = 17;
+    private static final int SLOT_PREVIOUS_TICKS_3 = 18;
+    private static final int SLOT_PREVIOUS_PARALLEL_LOW = 19;
+    private static final int SLOT_PREVIOUS_PARALLEL_HIGH = 20;
 
     private final int[] telemetry;
 
@@ -105,7 +115,12 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                         return switch (index) {
                             case 0 -> {
                                 int slot = firstActiveSlot();
-                                yield slot >= 0 ? blockEntity.getSlotLogicalProgress(slot) : 0;
+                                // ContainerData is an int-based legacy channel. The complete
+                                // logical tick value is synchronized through slot telemetry;
+                                // this slot carries only its low word for compatibility.
+                                yield slot >= 0
+                                        ? lowWord(blockEntity.getSlotLogicalProgress(slot))
+                                        : 0;
                             }
                             case 1 -> blockEntity.getProcessingTime();
                             case 2 -> lowWord(blockEntity.getEnergyStorage().getEnergyStored());
@@ -203,13 +218,29 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                                             blockEntity
                                                     .getExternalAccelerationParallelHundredths());
                             case EXTERNAL_ACCELERATION_TICKS_LOW ->
-                                    lowWord(
-                                            blockEntity
-                                                    .getCurrentExternalAccelerationMachineTicks());
+                                    word(
+                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            0);
                             case EXTERNAL_ACCELERATION_TICKS_HIGH ->
-                                    highWord(
-                                            blockEntity
-                                                    .getCurrentExternalAccelerationMachineTicks());
+                                    word(
+                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            16);
+                            case EXTERNAL_ACCELERATION_TICKS_LOW_HIGH ->
+                                    word(
+                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            32);
+                            case EXTERNAL_ACCELERATION_TICKS_HIGH_HIGH ->
+                                    word(
+                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            48);
+                            case EXTERNAL_EQUIVALENT_ACCELERATION_0 ->
+                                    word(blockEntity.getExternalEquivalentAccelerationTicks(), 0);
+                            case EXTERNAL_EQUIVALENT_ACCELERATION_1 ->
+                                    word(blockEntity.getExternalEquivalentAccelerationTicks(), 16);
+                            case EXTERNAL_EQUIVALENT_ACCELERATION_2 ->
+                                    word(blockEntity.getExternalEquivalentAccelerationTicks(), 32);
+                            case EXTERNAL_EQUIVALENT_ACCELERATION_3 ->
+                                    word(blockEntity.getExternalEquivalentAccelerationTicks(), 48);
                             default -> getSlotTelemetryWord(index);
                         };
                     }
@@ -353,12 +384,24 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                 EXTERNAL_ACCELERATION_PARALLEL_LOW, EXTERNAL_ACCELERATION_PARALLEL_HIGH);
     }
 
-    public int getCurrentExternalAccelerationMachineTicks() {
-        return combineWords(EXTERNAL_ACCELERATION_TICKS_LOW, EXTERNAL_ACCELERATION_TICKS_HIGH);
+    public long getExternalEquivalentAccelerationTicks() {
+        return combineLongWords(
+                EXTERNAL_EQUIVALENT_ACCELERATION_0,
+                EXTERNAL_EQUIVALENT_ACCELERATION_1,
+                EXTERNAL_EQUIVALENT_ACCELERATION_2,
+                EXTERNAL_EQUIVALENT_ACCELERATION_3);
     }
 
-    public int getMarkerProgress(int slot) {
-        return combineSlotWords(slot, SLOT_PROGRESS_LOW, SLOT_PROGRESS_HIGH);
+    public long getCurrentExternalAccelerationMachineTicks() {
+        return combineLongWords(
+                EXTERNAL_ACCELERATION_TICKS_LOW,
+                EXTERNAL_ACCELERATION_TICKS_HIGH,
+                EXTERNAL_ACCELERATION_TICKS_LOW_HIGH,
+                EXTERNAL_ACCELERATION_TICKS_HIGH_HIGH);
+    }
+
+    public long getMarkerProgress(int slot) {
+        return combineSlotLongWords(slot, SLOT_PROGRESS_LOW, SLOT_PROGRESS_HIGH, -1, -1);
     }
 
     public int getMarkerProcessingTime(int slot) {
@@ -381,16 +424,26 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return combineSlotWords(slot, SLOT_EXTERNAL_PARALLEL_LOW, SLOT_EXTERNAL_PARALLEL_HIGH);
     }
 
-    public int getMarkerCurrentExternalAccelerationMachineTicks(int slot) {
-        return combineSlotWords(slot, SLOT_ACTUAL_TICKS_LOW, SLOT_ACTUAL_TICKS_HIGH);
+    public long getMarkerCurrentExternalAccelerationMachineTicks(int slot) {
+        return combineSlotLongWords(
+                slot,
+                SLOT_ACTUAL_TICKS_0,
+                SLOT_ACTUAL_TICKS_1,
+                SLOT_ACTUAL_TICKS_2,
+                SLOT_ACTUAL_TICKS_3);
     }
 
-    public int getMarkerCurrentNaturalTicks(int slot) {
-        return combineSlotWords(slot, SLOT_NATURAL_TICKS_LOW, SLOT_NATURAL_TICKS_HIGH);
+    public long getMarkerCurrentNaturalTicks(int slot) {
+        return combineSlotLongWords(slot, SLOT_NATURAL_TICKS_LOW, SLOT_NATURAL_TICKS_HIGH, -1, -1);
     }
 
-    public int getMarkerPreviousExternalAccelerationMachineTicks(int slot) {
-        return combineSlotWords(slot, SLOT_PREVIOUS_TICKS_LOW, SLOT_PREVIOUS_TICKS_HIGH);
+    public long getMarkerPreviousExternalAccelerationMachineTicks(int slot) {
+        return combineSlotLongWords(
+                slot,
+                SLOT_PREVIOUS_TICKS_0,
+                SLOT_PREVIOUS_TICKS_1,
+                SLOT_PREVIOUS_TICKS_2,
+                SLOT_PREVIOUS_TICKS_3);
     }
 
     public int getMarkerPreviousExternalAccelerationParallelHundredths(int slot) {
@@ -477,6 +530,24 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return combineWords(start + lowOffset, start + highOffset);
     }
 
+    private long combineLongWords(int word0, int word1, int word2, int word3) {
+        return (telemetry[word0] & 0xFFFFL)
+                | ((telemetry[word1] & 0xFFFFL) << 16)
+                | ((telemetry[word2] & 0xFFFFL) << 32)
+                | ((telemetry[word3] & 0xFFFFL) << 48);
+    }
+
+    private long combineSlotLongWords(
+            int slot, int word0Offset, int word1Offset, int word2Offset, int word3Offset) {
+        if (slot < 0 || slot >= containerSlotCount) return 0L;
+        int start = TELEMETRY_BASE_COUNT + slot * SLOT_TELEMETRY_STRIDE;
+        long value = telemetry[start + word0Offset] & 0xFFFFL;
+        if (word1Offset >= 0) value |= (telemetry[start + word1Offset] & 0xFFFFL) << 16;
+        if (word2Offset >= 0) value |= (telemetry[start + word2Offset] & 0xFFFFL) << 32;
+        if (word3Offset >= 0) value |= (telemetry[start + word3Offset] & 0xFFFFL) << 48;
+        return value;
+    }
+
     private int getSlotTelemetryValue(int slot, int offset) {
         if (slot < 0 || slot >= containerSlotCount) return 0;
         return telemetry[TELEMETRY_BASE_COUNT + slot * SLOT_TELEMETRY_STRIDE + offset];
@@ -516,14 +587,22 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                     lowWord(blockEntity.getSlotCurrentNaturalTicks(slot));
             case SLOT_NATURAL_TICKS_HIGH ->
                     highWord(blockEntity.getSlotCurrentNaturalTicks(slot));
-            case SLOT_ACTUAL_TICKS_LOW ->
-                    lowWord(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot));
-            case SLOT_ACTUAL_TICKS_HIGH ->
-                    highWord(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot));
-            case SLOT_PREVIOUS_TICKS_LOW ->
-                    lowWord(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot));
-            case SLOT_PREVIOUS_TICKS_HIGH ->
-                    highWord(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot));
+            case SLOT_ACTUAL_TICKS_0 ->
+                    word(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot), 0);
+            case SLOT_ACTUAL_TICKS_1 ->
+                    word(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot), 16);
+            case SLOT_ACTUAL_TICKS_2 ->
+                    word(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot), 32);
+            case SLOT_ACTUAL_TICKS_3 ->
+                    word(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot), 48);
+            case SLOT_PREVIOUS_TICKS_0 ->
+                    word(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot), 0);
+            case SLOT_PREVIOUS_TICKS_1 ->
+                    word(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot), 16);
+            case SLOT_PREVIOUS_TICKS_2 ->
+                    word(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot), 32);
+            case SLOT_PREVIOUS_TICKS_3 ->
+                    word(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot), 48);
             case SLOT_PREVIOUS_PARALLEL_LOW ->
                     lowWord(blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(slot));
             case SLOT_PREVIOUS_PARALLEL_HIGH ->
@@ -536,8 +615,20 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return value & 0xFFFF;
     }
 
+    private static int lowWord(long value) {
+        return (int) (value & 0xFFFFL);
+    }
+
     private static int highWord(int value) {
         return value >>> 16;
+    }
+
+    private static int highWord(long value) {
+        return (int) ((value >>> 16) & 0xFFFFL);
+    }
+
+    private static int word(long value, int shift) {
+        return (int) ((value >>> shift) & 0xFFFFL);
     }
 
     private static int toHundredths(double value) {

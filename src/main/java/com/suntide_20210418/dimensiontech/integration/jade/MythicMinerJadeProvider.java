@@ -38,6 +38,7 @@ public enum MythicMinerJadeProvider
     private static final String SLOT_PROCESSING = "Processing";
     private static final String SLOT_PARALLEL = "Parallel";
     private static final String SLOT_EXTERNAL_PARALLEL = "ExternalParallelHundredths";
+    private static final String SLOT_EXTERNAL_EQUIVALENT = "ExternalEquivalentAccelerationTicks";
     private static final String SLOT_ACTUAL_TICKS = "ActualTicks";
     private static final String SLOT_PREVIOUS_TICKS = "PreviousTicks";
     private static final String SLOT_PREVIOUS_PARALLEL = "PreviousParallelHundredths";
@@ -75,16 +76,19 @@ public enum MythicMinerJadeProvider
             slotTag.putInt(SLOT_INDEX, slot + 1);
             slotTag.putString(SLOT_STRUCTURE, markerInfo.get().structure().id().toString());
             // Jade shows logical server ticks, not accelerated execution calls.
-            slotTag.putInt(SLOT_PROGRESS, miner.getSlotLogicalProgress(slot));
+            slotTag.putLong(SLOT_PROGRESS, miner.getSlotLogicalProgress(slot));
             slotTag.putInt(SLOT_PROCESSING, miner.getSlotProcessingTime(slot));
             slotTag.putInt(SLOT_PARALLEL, miner.getSlotDrawParallel(slot));
             slotTag.putInt(
                     SLOT_EXTERNAL_PARALLEL,
                     miner.getSlotExternalAccelerationParallelHundredths(slot));
-            slotTag.putInt(
+            slotTag.putLong(
+                    SLOT_EXTERNAL_EQUIVALENT,
+                    miner.getSlotExternalEquivalentAccelerationTicks(slot));
+            slotTag.putLong(
                     SLOT_ACTUAL_TICKS,
                     miner.getSlotCurrentExternalAccelerationMachineTicks(slot));
-            slotTag.putInt(
+            slotTag.putLong(
                     SLOT_PREVIOUS_TICKS,
                     miner.getSlotPreviousExternalAccelerationMachineTicks(slot));
             slotTag.putInt(
@@ -140,7 +144,10 @@ public enum MythicMinerJadeProvider
                             slot.getInt(SLOT_INDEX),
                             slotStructureName(slot)));
             int processing = Math.max(0, slot.getInt(SLOT_PROCESSING));
-            int progress = Math.max(0, Math.min(processing, slot.getInt(SLOT_PROGRESS)));
+            int progress =
+                    (int) Math.max(
+                            0L,
+                            Math.min((long) processing, slot.getLong(SLOT_PROGRESS)));
             addProgressBar(tooltip, progress, processing, theme);
             tooltip.add(
                     line(
@@ -164,12 +171,19 @@ public enum MythicMinerJadeProvider
                                                             / 100.0D)))));
             tooltip.add(
                     line(
+                            "external_equivalent_acceleration",
+                            theme.info(
+                                    Component.literal(
+                                            formatDecimal(
+                                                    slot.getLong(SLOT_EXTERNAL_EQUIVALENT)))));
+            tooltip.add(
+                    line(
                             "actual_ticks",
-                            theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_ACTUAL_TICKS))))));
+                            theme.info(Component.literal(Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
             tooltip.add(
                     line(
                             "previous_ticks",
-                            theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_PREVIOUS_TICKS))))));
+                            theme.info(Component.literal(Long.toString(slot.getLong(SLOT_PREVIOUS_TICKS))))));
             tooltip.add(
                     line(
                             "previous_parallel",
