@@ -70,7 +70,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private static final String SLOT_ENABLED_TAG = "SlotEnabled";
     private static final String LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG =
             "LastEnergyConsumptionGameTime";
-    private static final String TICK_DIAGNOSTICS_TAG = "TickDiagnostics";
     private static final int DRAWS_PER_PARALLEL = 8;
 
     private final ItemStackHandler itemHandler;
@@ -97,13 +96,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private UpgradeBonuses upgradeBonuses = UpgradeBonuses.NONE;
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
-    private long serverTickInvocations;
-    private long accelerationObserveInvocations;
-    private long skippedStructureIncomplete;
-    private long skippedRedstone;
-    private long skippedPendingOutput;
-    private long skippedInvalidMarker;
-    private long skippedEnergy;
 
     protected BaseMinerBlockEntity(
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
@@ -212,33 +204,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return validSlot(slot) ? externalTickAcceleration[slot].previousActualTicks() : 0;
     }
 
-    public long getServerTickInvocations() {
-        return serverTickInvocations;
-    }
-
-    public long getAccelerationObserveInvocations() {
-        return accelerationObserveInvocations;
-    }
-
-    public long getSkippedStructureIncomplete() {
-        return skippedStructureIncomplete;
-    }
-
-    public long getSkippedRedstone() {
-        return skippedRedstone;
-    }
-
-    public long getSkippedPendingOutput() {
-        return skippedPendingOutput;
-    }
-
-    public long getSkippedInvalidMarker() {
-        return skippedInvalidMarker;
-    }
-
-    public long getSkippedEnergy() {
-        return skippedEnergy;
-    }
 
     public int getSlotPreviousExternalAccelerationParallelHundredths(int slot) {
         return validSlot(slot) ? externalTickAcceleration[slot].previousExtraParallelHundredths() : 0;
@@ -548,30 +513,25 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
-        serverTickInvocations = saturatedCounterIncrement(serverTickInvocations);
         boolean complete = isStructureComplete(serverLevel);
         if (complete != structureComplete) {
             structureComplete = complete;
             setChanged();
         }
         if (!complete) {
-            skippedStructureIncomplete = saturatedCounterIncrement(skippedStructureIncomplete);
             applyUpgradeBonuses(UpgradeBonuses.NONE);
             return;
         }
         applyUpgradeBonuses(calculateUpgradeBonuses(serverLevel));
         int signal = level.getBestNeighborSignal(worldPosition);
         if (!redstoneMode.allows(signal, redstoneThreshold)) {
-            skippedRedstone = saturatedCounterIncrement(skippedRedstone);
             return;
         }
         if (!pendingOutput.isEmpty()) {
-            skippedPendingOutput = saturatedCounterIncrement(skippedPendingOutput);
             retryPendingOutput(serverLevel);
             return;
         }
         if (!hasValidMarker()) {
-            skippedInvalidMarker = saturatedCounterIncrement(skippedInvalidMarker);
             return;
         }
 
@@ -581,7 +541,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         int energyConsumption = getEffectiveEnergyConsumption();
         if (gameTime != lastEnergyConsumptionGameTime) {
             if (energyConsumption <= 0 || !energyStorage.canConsume(energyConsumption)) {
-                skippedEnergy = saturatedCounterIncrement(skippedEnergy);
                 return;
             }
             energyStorage.consume(energyConsumption);
@@ -593,8 +552,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             if (!slotEnabled[slot]) {
                 continue;
             }
-            accelerationObserveInvocations =
-                    saturatedCounterIncrement(accelerationObserveInvocations);
             MythicMinerExternalTickAcceleration.Observation accelerationObservation =
                     externalTickAcceleration[slot]
                             .observe(serverLevel.getGameTime(), slotProcessingTimes[slot]);
@@ -1077,13 +1034,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return 0L;
     }
 
-    private static long saturatedCounterIncrement(long value) {
-        if (value < 0L || value == Long.MAX_VALUE) {
-            return value < 0L ? 0L : value;
-        }
-        return value + 1L;
-    }
-
     private record AdjacentOutputs(
             List<BlockEntity> meInterfaces, List<IItemHandler> itemHandlers) {}
 
@@ -1147,15 +1097,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
         tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
         tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
-        CompoundTag diagnostics = new CompoundTag();
-        diagnostics.putLong("ServerTickInvocations", serverTickInvocations);
-        diagnostics.putLong("AccelerationObserveInvocations", accelerationObserveInvocations);
-        diagnostics.putLong("SkippedStructureIncomplete", skippedStructureIncomplete);
-        diagnostics.putLong("SkippedRedstone", skippedRedstone);
-        diagnostics.putLong("SkippedPendingOutput", skippedPendingOutput);
-        diagnostics.putLong("SkippedInvalidMarker", skippedInvalidMarker);
-        diagnostics.putLong("SkippedEnergy", skippedEnergy);
-        tag.put(TICK_DIAGNOSTICS_TAG, diagnostics);
         tag.putInt(PROGRESS_TAG, getProgress());
         tag.putIntArray(SLOT_PROGRESS_TAG, slotProgress.save());
         tag.putInt(PARALLEL_FRACTION_TAG, getAccumulatedParallelHundredths());
@@ -1221,18 +1162,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 tag.contains(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, Tag.TAG_LONG)
                         ? tag.getLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG)
                         : Long.MIN_VALUE;
-        if (tag.contains(TICK_DIAGNOSTICS_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag diagnostics = tag.getCompound(TICK_DIAGNOSTICS_TAG);
-            serverTickInvocations = readLongCompat(diagnostics, "ServerTickInvocations", null);
-            accelerationObserveInvocations =
-                    readLongCompat(diagnostics, "AccelerationObserveInvocations", null);
-            skippedStructureIncomplete =
-                    readLongCompat(diagnostics, "SkippedStructureIncomplete", null);
-            skippedRedstone = readLongCompat(diagnostics, "SkippedRedstone", null);
-            skippedPendingOutput = readLongCompat(diagnostics, "SkippedPendingOutput", null);
-            skippedInvalidMarker = readLongCompat(diagnostics, "SkippedInvalidMarker", null);
-            skippedEnergy = readLongCompat(diagnostics, "SkippedEnergy", null);
-        }
         if (tag.contains(SLOT_PROGRESS_TAG, Tag.TAG_INT_ARRAY)) {
             slotProgress.load(tag.getIntArray(SLOT_PROGRESS_TAG));
         } else {

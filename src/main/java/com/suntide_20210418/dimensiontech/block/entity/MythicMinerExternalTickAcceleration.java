@@ -23,13 +23,13 @@ final class MythicMinerExternalTickAcceleration {
         long effectiveCycleTicks = Math.max(MINIMUM_NATURAL_TICKS, (long) cycleTicks);
         currentCycleTicks = effectiveCycleTicks;
         if (newNaturalTick) {
-            // Every natural tick already performs one ordinary serverTick call. The
-            // equivalent external acceleration reports the additional accelerated calls,
-            // so remove that baseline call while retaining a minimum of 1x.
+            // The external ticker invokes this machine once for roughly every two
+            // accelerated ticks. Restore the skipped half while retaining the ordinary
+            // server tick as the baseline: 2, 3, 5 calls become 2, 4, 8 ticks.
             long callsSinceNaturalTick = actualTicks - actualTicksAtNaturalTickStart;
-            equivalentAccelerationTicks = callsSinceNaturalTick <= 0L
-                    ? 0L
-                    : Math.max(1L, callsSinceNaturalTick - 1L);
+            long correctedCalls = correctedNaturalInterval(callsSinceNaturalTick);
+            equivalentAccelerationTicks = correctedCalls;
+            actualTicks = saturatedAdd(actualTicks, correctedCalls - callsSinceNaturalTick);
             actualTicksAtNaturalTickStart = actualTicks;
             lastGameTime = gameTime;
             naturalTicks = saturatedIncrement(naturalTicks);
@@ -114,6 +114,19 @@ final class MythicMinerExternalTickAcceleration {
     private static long saturatedIncrement(long value) {
         if (value < 0L) return 0L;
         return value == Long.MAX_VALUE ? value : value + 1L;
+    }
+
+    private static long correctedNaturalInterval(long calls) {
+        if (calls <= 0L) return 0L;
+        if (calls == 1L) return 1L;
+        return calls > Long.MAX_VALUE / 2L + 1L
+                ? Long.MAX_VALUE
+                : calls * 2L - 2L;
+    }
+
+    private static long saturatedAdd(long left, long right) {
+        if (right <= 0L) return left;
+        return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
     }
 
     record Observation(long logicalProgressTicks, long actualProgressTicks, boolean complete,
