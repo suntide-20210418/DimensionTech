@@ -68,6 +68,20 @@ class MythicMinerExternalTickAccelerationTest {
     }
 
     @Test
+    void acceleratedParallelUsesConfiguredCycleTicksAsDenominator() {
+        MythicMinerExternalTickAcceleration acceleration =
+                new MythicMinerExternalTickAcceleration();
+        MythicMinerExternalTickAcceleration.Observation observation = null;
+        for (long gameTime = 0; gameTime < 400; gameTime++) {
+            for (int call = 0; call < 256; call++) {
+                observation = acceleration.observe(gameTime, 40_000);
+            }
+        }
+        assertTrue(observation.complete());
+        assertEquals(124, observation.completedParallel());
+    }
+
+    @Test
     void targetReachedExactlyAt400NaturalTicksDoesNotUseParallel() {
         MythicMinerExternalTickAcceleration acceleration =
                 new MythicMinerExternalTickAcceleration();

@@ -11,6 +11,7 @@ final class MythicMinerExternalTickAcceleration {
     private long actualTicksAtNaturalTickStart;
     private long equivalentAccelerationTicks;
     private boolean targetReached;
+    private long currentCycleTicks;
     private int settledExtraParallelHundredths;
     private long previousActualTicks;
     private int previousExtraParallelHundredths;
@@ -20,6 +21,7 @@ final class MythicMinerExternalTickAcceleration {
         boolean newNaturalTick = gameTime != lastGameTime;
         externalParallelEligible = cycleTicks > 0;
         long effectiveCycleTicks = Math.max(MINIMUM_NATURAL_TICKS, (long) cycleTicks);
+        currentCycleTicks = effectiveCycleTicks;
         if (newNaturalTick) {
             // Every natural tick already performs one ordinary serverTick call. The
             // equivalent external acceleration reports the additional accelerated calls,
@@ -45,7 +47,7 @@ final class MythicMinerExternalTickAcceleration {
         if (targetReached && naturalTicks >= MINIMUM_NATURAL_TICKS) {
             complete = true;
             completedParallel = externalParallelEligible
-                    ? extraParallelForRatio(actualTicks, MINIMUM_NATURAL_TICKS)
+                    ? extraParallelForRatio(actualTicks, effectiveCycleTicks)
                     : 0;
         } else if (reachedCycleTicks && naturalTicks >= MINIMUM_NATURAL_TICKS) {
             complete = true;
@@ -75,7 +77,7 @@ final class MythicMinerExternalTickAcceleration {
     int currentExtraParallelHundredths() {
         return targetReached && externalParallelEligible && naturalTicks > 0L
                         && naturalTicks < MINIMUM_NATURAL_TICKS
-                ? extraParallelForRatio(actualTicks, MINIMUM_NATURAL_TICKS)
+                ? extraParallelForRatio(actualTicks, currentCycleTicks)
                 : 0;
     }
 
