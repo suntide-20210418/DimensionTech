@@ -57,6 +57,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         for (int tier = 1; tier <= 6; tier++)
             add("block.dimension_tech.dimension_focus_tier_" + tier, "Dimension Focus " + tier);
         add("screen.dimension_tech.mythic_miner.place_structure", "Place Multiblock Structure");
+        add("screen.dimension_tech.mythic_miner.place_structure_short", "Build");
+        add("screen.dimension_tech.mythic_miner.overview.working", "Working: %s / %s");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "Equipment Dismantling");
         add("screen.dimension_tech.mythic_miner.enabled", "Enabled");
         add("screen.dimension_tech.mythic_miner.disabled", "Disabled");

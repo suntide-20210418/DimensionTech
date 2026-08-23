@@ -482,6 +482,10 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return getSlotTelemetryValue(slot, SLOT_ENABLED) != 0;
     }
 
+    public int getWorkingThreadCount() {
+        return blockEntity.getWorkingThreadCount();
+    }
+
     public boolean supportsEquipmentDismantling() {
         return blockEntity.supportsEquipmentDismantling();
     }

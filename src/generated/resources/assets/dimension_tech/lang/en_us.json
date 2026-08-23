@@ -195,6 +195,8 @@
   "screen.dimension_tech.mythic_miner.enabled": "Enabled",
   "screen.dimension_tech.mythic_miner.equipment_dismantling": "Equipment Dismantling",
   "screen.dimension_tech.mythic_miner.place_structure": "Place Multiblock Structure",
+  "screen.dimension_tech.mythic_miner.place_structure_short": "Build",
+  "screen.dimension_tech.mythic_miner.overview.working": "Working: %s / %s",
   "screen.dimension_tech.mythic_miner.redstone": "Redstone",
   "screen.dimension_tech.mythic_miner.redstone.always": "Always on",
   "screen.dimension_tech.mythic_miner.redstone.never": "Never",

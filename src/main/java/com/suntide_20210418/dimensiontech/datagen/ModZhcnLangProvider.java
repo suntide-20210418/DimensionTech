@@ -48,7 +48,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("block.dimension_tech.mythic_miner_upgrade_none", "无升级方块");
         for (int tier = 1; tier <= 6; tier++)
             add("block.dimension_tech.dimension_focus_tier_" + tier, "维度聚焦方块 " + tier);
-        add("screen.dimension_tech.mythic_miner.place_structure", "一键放置多方块结构");
+        add("screen.dimension_tech.mythic_miner.place_structure", "一键搭建");
+        add("screen.dimension_tech.mythic_miner.place_structure_short", "一键搭建");
+        add("screen.dimension_tech.mythic_miner.overview.working", "工作中：%s / %s");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "装备分解");
         add("screen.dimension_tech.mythic_miner.enabled", "已开启");
         add("screen.dimension_tech.mythic_miner.disabled", "已关闭");
