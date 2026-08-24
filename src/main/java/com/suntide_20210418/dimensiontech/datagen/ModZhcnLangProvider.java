@@ -51,6 +51,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.place_structure", "一键搭建");
         add("screen.dimension_tech.mythic_miner.place_structure_short", "一键搭建");
         add("screen.dimension_tech.mythic_miner.overview.working", "工作中：%s / %s");
+        add("screen.dimension_tech.mythic_miner.overview.active", "工作槽位");
+        add("screen.dimension_tech.mythic_miner.overview.total_parallel", "总并行");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "装备分解");
         add("screen.dimension_tech.mythic_miner.enabled", "已开启");
         add("screen.dimension_tech.mythic_miner.disabled", "已关闭");
@@ -123,6 +125,11 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.natural", "自然 tick：%s");
         add("screen.dimension_tech.mythic_miner.info.actual", "实际 tick：%s");
         add("screen.dimension_tech.mythic_miner.info.external", "外部等效加速：%sx");
+        add("screen.dimension_tech.mythic_miner.info.total_parallel", "总并行：%s");
+        add("screen.dimension_tech.mythic_miner.info.section.marker", "标记器属性");
+        add("screen.dimension_tech.mythic_miner.info.section.work", "工作状况");
+        add("screen.dimension_tech.mythic_miner.info.section.products", "产物信息和操作");
+        add("screen.dimension_tech.mythic_miner.marker_progress_toggle", "点击%s");
         add("screen.dimension_tech.mythic_miner.overview", "机器总览");
         add("screen.dimension_tech.mythic_miner.overview.progress", "%s / %s tick");
         add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "等待自然 tick 窗口（400 tick）");

@@ -59,6 +59,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.place_structure", "Place Multiblock Structure");
         add("screen.dimension_tech.mythic_miner.place_structure_short", "Build");
         add("screen.dimension_tech.mythic_miner.overview.working", "Working: %s / %s");
+        add("screen.dimension_tech.mythic_miner.overview.active", "Active");
+        add("screen.dimension_tech.mythic_miner.overview.total_parallel", "Total parallel");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "Equipment Dismantling");
         add("screen.dimension_tech.mythic_miner.enabled", "Enabled");
         add("screen.dimension_tech.mythic_miner.disabled", "Disabled");
@@ -143,6 +145,11 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.natural", "Natural ticks: %s");
         add("screen.dimension_tech.mythic_miner.info.actual", "Actual ticks: %s");
         add("screen.dimension_tech.mythic_miner.info.external", "External acceleration: %sx");
+        add("screen.dimension_tech.mythic_miner.info.total_parallel", "Total parallel: %s");
+        add("screen.dimension_tech.mythic_miner.info.section.marker", "Marker properties");
+        add("screen.dimension_tech.mythic_miner.info.section.work", "Work status");
+        add("screen.dimension_tech.mythic_miner.info.section.products", "Products and actions");
+        add("screen.dimension_tech.mythic_miner.marker_progress_toggle", "Click to %s");
         add("screen.dimension_tech.mythic_miner.overview", "Machine overview");
         add("screen.dimension_tech.mythic_miner.overview.progress", "%s / %s tick");
         add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "Waiting for natural tick window (400 ticks)");
