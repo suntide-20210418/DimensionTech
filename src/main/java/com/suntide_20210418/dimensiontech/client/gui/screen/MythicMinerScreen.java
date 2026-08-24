@@ -754,15 +754,35 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int height = menu.getPlayerInventoryY() + 70 - y;
         graphics.fill(x, y, x + width, y + height, PANEL_RAISED);
         graphics.fill(x, y, x + width, y + 2, CYAN_DARK);
-        int headerY = y + 8;
-        graphics.fill(x + 8, headerY, x + width - 8, headerY + 24, PANEL_INSET);
-        graphics.renderItem(new ItemStack(Items.COMPARATOR), x + 11, headerY + 4);
+        int cellWidth = width / 2 - 12;
+        drawAttributeCell(graphics, x + 8, y + 12, cellWidth,
+                Component.translatable("screen.dimension_tech.mythic_miner.attribute.efficiency"),
+                menu.getEfficiencyUpgradeCount() + menu.getAggregateUpgradeCount(),
+                formatDecimal(menu.getEfficiencyHundredths()), menu.getEfficiencyBonusHundredths(), false, CYAN);
+        drawAttributeCell(graphics, x + width / 2 + 4, y + 12, cellWidth,
+                Component.translatable("screen.dimension_tech.mythic_miner.attribute.capacity"),
+                menu.getEnergyUpgradeCount() + menu.getAggregateUpgradeCount(),
+                compactNumber(menu.getEnergyCapacity()) + " FE", menu.getCapacityBonusHundredths(), false, AMBER);
+        drawAttributeCell(graphics, x + 8, y + 41, cellWidth,
+                Component.translatable("screen.dimension_tech.mythic_miner.attribute.consumption"),
+                menu.getEnergyUpgradeCount() + menu.getAggregateUpgradeCount(),
+                compactNumber(menu.getEffectiveEnergyConsumption()) + " FE/t", menu.getConsumptionReductionHundredths(), true, AMBER);
+        drawAttributeCell(graphics, x + width / 2 + 4, y + 41, cellWidth,
+                Component.translatable("screen.dimension_tech.mythic_miner.attribute.parallel"),
+                menu.getParallelUpgradeCount() + menu.getAggregateUpgradeCount(),
+                compactNumber(menu.getBaseParallel()), menu.getParallelBonusHundredths(), false, CYAN);
+        drawAttributeCell(graphics, x + 8, y + 70, cellWidth,
+                Component.translatable("screen.dimension_tech.mythic_miner.attribute.luck"),
+                menu.getLuckUpgradeCount() + menu.getAggregateUpgradeCount(),
+                formatDecimal(menu.getLuckHundredths()), menu.getLuckBonusHundredths(), false, CYAN);
+        drawUpgradeSummaryCell(graphics, x + width / 2 + 4, y + 70, cellWidth);
+        int listTop = y + 108;
+        graphics.fill(x + 8, listTop, x + width - 8, listTop + 1, RULE);
+        graphics.renderItem(new ItemStack(Items.COMPARATOR), x + 8, listTop + 5);
         graphics.drawString(font,
                 Component.translatable("screen.dimension_tech.mythic_miner.attribute.installed"),
-                x + 31, headerY + 8, TEXT, false);
-        int listTop = y + 42;
-        graphics.fill(x + 8, listTop, x + width - 8, listTop + 1, RULE);
-        int viewportY = listTop + 7;
+                x + 28, listTop + 9, MUTED, false);
+        int viewportY = listTop + 20;
         int viewportHeight = Math.max(1, height - (viewportY - y) - 8);
         int upgradeContentHeight = 0;
         for (MythicMinerUpgradeBlock.Type type : upgradeTypes()) {
@@ -808,7 +828,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private int attributeUpgradeViewportY() {
-        return INFO_PANEL_Y + 49;
+        return INFO_PANEL_Y + 128;
     }
 
     private void drawUpgradeDetailRow(GuiGraphics graphics, int x, int y, int width,
@@ -1705,7 +1725,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             int screenMouseY) {
         int x = leftPos + 36;
         int y = topPos + 64;
-        int width = imageWidth - 72;
+        int width = imageWidth - 56;
         int cellWidth = width / 2 - 12;
         int aggregateCount = menu.getAggregateUpgradeCount();
         List<Component> tooltip = null;
