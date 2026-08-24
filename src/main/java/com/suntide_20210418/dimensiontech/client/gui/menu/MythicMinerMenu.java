@@ -465,6 +465,13 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                 slot, SLOT_EQUIVALENT_0, SLOT_EQUIVALENT_1, SLOT_EQUIVALENT_2, SLOT_EQUIVALENT_3);
     }
 
+    public double getMarkerCurrentCycleExternalEquivalentAcceleration(int slot) {
+        long naturalTicks = getMarkerCurrentNaturalTicks(slot);
+        return naturalTicks <= 0L
+                ? 0.0D
+                : getMarkerCurrentExternalAccelerationMachineTicks(slot) / (double) naturalTicks;
+    }
+
     public long getMarkerCurrentNaturalTicks(int slot) {
         return combineSlotLongWords(slot, SLOT_NATURAL_TICKS_LOW, SLOT_NATURAL_TICKS_HIGH, -1, -1);
     }

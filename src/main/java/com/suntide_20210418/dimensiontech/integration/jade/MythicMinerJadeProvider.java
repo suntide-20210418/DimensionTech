@@ -180,7 +180,7 @@ public enum MythicMinerJadeProvider
                 tooltip.add(line("external_parallel", theme.info(Component.literal(
                         formatDecimal(slot.getInt(SLOT_EXTERNAL_PARALLEL) / 100.0D)))));
                 tooltip.add(line("external_equivalent_acceleration", theme.info(Component.literal(
-                        formatDecimal(slot.getLong(SLOT_EXTERNAL_EQUIVALENT))))));
+                        formatDecimal(currentCycleEquivalentAcceleration(slot))))));
                 tooltip.add(line("actual_ticks", theme.info(Component.literal(
                         Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
                 tooltip.add(line("previous_ticks", theme.info(Component.literal(
@@ -216,6 +216,13 @@ public enum MythicMinerJadeProvider
         if ("blocked".equals(status)) {
             tooltip.add(line("reason", theme.danger(blockedReason(data.getString(OUTPUT)))));
         }
+    }
+
+    private static double currentCycleEquivalentAcceleration(CompoundTag slot) {
+        long naturalTicks = slot.getLong(SLOT_NATURAL_TICKS);
+        return naturalTicks <= 0L
+                ? 0.0D
+                : slot.getLong(SLOT_ACTUAL_TICKS) / (double) naturalTicks;
     }
 
     private static Component themedStatus(IThemeHelper theme, String status) {

@@ -144,7 +144,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.structure", "Structure / cycle: %s tick");
         add("screen.dimension_tech.mythic_miner.info.natural", "Natural ticks: %s");
         add("screen.dimension_tech.mythic_miner.info.actual", "Actual ticks: %s");
-        add("screen.dimension_tech.mythic_miner.info.external", "External acceleration: %sx");
+        add("screen.dimension_tech.mythic_miner.info.external", "Current cycle external acceleration: %sx");
         add("screen.dimension_tech.mythic_miner.info.total_parallel", "Total parallel: %s");
         add("screen.dimension_tech.mythic_miner.info.section.marker", "Marker properties");
         add("screen.dimension_tech.mythic_miner.info.section.work", "Work status");
@@ -292,7 +292,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jade.dimension_tech.remaining", "Remaining: %s seconds");
         add("jade.dimension_tech.parallel", "Parallel: %s");
         add("jade.dimension_tech.external_parallel", "External acceleration parallel: %s");
-        add("jade.dimension_tech.external_equivalent_acceleration", "External equivalent acceleration: %sx");
+        add("jade.dimension_tech.external_equivalent_acceleration", "Current cycle external acceleration: %sx");
         add("jade.dimension_tech.waiting_for_natural_window", "Waiting for natural tick window (400 ticks)");
         add("jade.dimension_tech.actual_ticks", "Machine ticks in current window: %s");
         add("jade.dimension_tech.previous_ticks", "Previous cycle machine ticks: %s");

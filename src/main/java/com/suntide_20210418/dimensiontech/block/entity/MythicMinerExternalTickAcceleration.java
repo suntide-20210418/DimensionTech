@@ -75,6 +75,9 @@ final class MythicMinerExternalTickAcceleration {
         return targetReached && naturalTicks < MINIMUM_NATURAL_TICKS;
     }
     long currentEquivalentAccelerationTicks() { return equivalentAccelerationTicks; }
+    double currentCycleEquivalentAcceleration() {
+        return naturalTicks <= 0L ? 0.0D : actualTicks / (double) naturalTicks;
+    }
     int settledExtraParallelHundredths() { return settledExtraParallelHundredths; }
 
     int currentExtraParallelHundredths() {

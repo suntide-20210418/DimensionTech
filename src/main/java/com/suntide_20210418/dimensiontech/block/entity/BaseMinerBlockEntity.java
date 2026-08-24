@@ -182,6 +182,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 : 0;
     }
 
+    public double getSlotCurrentCycleExternalEquivalentAcceleration(int slot) {
+        return slot >= 0 && slot < externalTickAcceleration.length
+                ? externalTickAcceleration[slot].currentCycleEquivalentAcceleration()
+                : 0.0D;
+    }
+
     public long getExternalEquivalentAccelerationTicks() {
         int slot = firstActiveSlot();
         return slot >= 0 ? getSlotExternalEquivalentAccelerationTicks(slot) : 0L;

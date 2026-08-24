@@ -124,7 +124,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.structure", "结构 / 周期：%s tick");
         add("screen.dimension_tech.mythic_miner.info.natural", "自然 tick：%s");
         add("screen.dimension_tech.mythic_miner.info.actual", "实际 tick：%s");
-        add("screen.dimension_tech.mythic_miner.info.external", "外部等效加速：%sx");
+        add("screen.dimension_tech.mythic_miner.info.external", "本周期外部等效加速：%sx");
         add("screen.dimension_tech.mythic_miner.info.total_parallel", "总并行：%s");
         add("screen.dimension_tech.mythic_miner.info.section.marker", "标记器属性");
         add("screen.dimension_tech.mythic_miner.info.section.work", "工作状况");
@@ -260,7 +260,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.remaining", "剩余：%s 秒");
         add("jade.dimension_tech.parallel", "并行：%s");
         add("jade.dimension_tech.external_parallel", "外部加速并行：%s");
-        add("jade.dimension_tech.external_equivalent_acceleration", "外部等效加速：%sx");
+        add("jade.dimension_tech.external_equivalent_acceleration", "本周期外部等效加速：%sx");
         add("jade.dimension_tech.waiting_for_natural_window", "等待自然 tick 窗口（400 tick）");
         add("jade.dimension_tech.actual_ticks", "本周期实际机器 tick：%s");
         add("jade.dimension_tech.previous_ticks", "上一周期实际机器 tick：%s");
