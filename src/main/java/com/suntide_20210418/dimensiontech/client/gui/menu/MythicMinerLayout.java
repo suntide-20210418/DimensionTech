@@ -12,21 +12,37 @@ public final class MythicMinerLayout {
     public static final int PROGRESS_Y_OFFSET = 19;
     public static final int PROGRESS_WIDTH = 18;
     public static final int PROGRESS_HEIGHT = 3;
-    /** Leaves room below the four-row attribute dashboard, including external acceleration. */
-    public static final int BASE_PLAYER_INVENTORY_Y = 210;
+
+    /** Leaves room below the fixed marker bay and the compact dashboard. */
+    public static final int BASE_PLAYER_INVENTORY_Y = 258;
+
     public static final int BASE_MARKER_BAY_HEIGHT = 40;
-    public static final int FIXED_MARKER_BAY_HEIGHT = BASE_MARKER_BAY_HEIGHT;
+    public static final int MARKER_BAY_ROW_HEIGHT = 27;
+    public static final int FIXED_MARKER_BAY_HEIGHT = 94;
     public static final int MARKER_BAY_HORIZONTAL_PADDING = 16;
     public static final int FIXED_MARKER_BAY_WIDTH =
-            MARKER_BAY_HORIZONTAL_PADDING + PROGRESS_WIDTH + 10 * MARKER_COLUMN_STRIDE;
+            MARKER_BAY_HORIZONTAL_PADDING + PROGRESS_WIDTH + 2 * MARKER_COLUMN_STRIDE;
     public static final int MARKER_INFO_GAP = 8;
     public static final int CONTENT_RIGHT_MARGIN = 28;
-    public static final int ATTRIBUTE_GAP = 10;
+    public static final int FLUID_PANEL_WIDTH = 48;
+    public static final int FLUID_PANEL_GAP = 8;
+    public static final int FLUID_PANEL_X = 264;
+    public static final int FLUID_TANK_OFFSET_Y = 24;
+    public static final int FLUID_CONTROLS_OFFSET_Y = 72;
+    public static final int FLUID_TANK_X = 279;
+    public static final int FLUID_TANK_Y = 72;
+    public static final int FLUID_TANK_WIDTH = 18;
+    public static final int FLUID_TANK_HEIGHT = 42;
+    public static final int ATTRIBUTE_GAP = 0;
 
     private MythicMinerLayout() {}
 
+    public static boolean hasFluidInput(int tier) {
+        return tier >= 2;
+    }
+
     public static int columnsForSlotCount(int slotCount) {
-        return Math.max(1, slotCount);
+        return Math.min(3, Math.max(1, slotCount));
     }
 
     public static int rowsForSlotCount(int slotCount) {
@@ -38,10 +54,7 @@ public final class MythicMinerLayout {
         int columns = columnsForSlotCount(slotCount);
         int contentWidth = PROGRESS_WIDTH + (columns - 1) * MARKER_COLUMN_STRIDE;
         int centeredOffset = (FIXED_MARKER_BAY_WIDTH - contentWidth) / 2;
-        return MARKER_BAY_X
-                + centeredOffset
-                + 1
-                + (slotIndex % columns) * MARKER_COLUMN_STRIDE;
+        return MARKER_BAY_X + centeredOffset + 1 + (slotIndex % columns) * MARKER_COLUMN_STRIDE;
     }
 
     public static int markerSlotY(int row) {

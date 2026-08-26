@@ -14,27 +14,40 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Six-face output selector with a compact 1-3-2 instrument layout. */
 public final class OutputFaceScreen extends Screen {
+    public enum Mode {
+        ITEM_OUTPUT,
+        FLUID
+    }
     private static final int PANEL_WIDTH = 180;
     private static final int PANEL_HEIGHT = 142;
     private static final int BUTTON_SIZE = 24;
     private static final int BUTTON_GAP = 5;
-    private static final int PANEL = 0xFF11181D;
-    private static final int RAISED = 0xFF1B282F;
-    private static final int RULE = 0xFF2B3941;
-    private static final int MUTED = 0xFF8EA2A9;
-    private static final int CYAN = 0xFF4DD6D0;
+    private static final int PANEL = MythicMinerTheme.FRAME;
+    private static final int RAISED = MythicMinerTheme.PANEL;
+    private static final int RULE = MythicMinerTheme.EDGE;
+    private static final int MUTED = MythicMinerTheme.MUTED;
+    private static final int CYAN = MythicMinerTheme.FLUIX;
     private static final int SCREEN_MARGIN = 8;
 
     private final MythicMinerScreen parent;
     private final MythicMinerMenu menu;
+    private final Mode mode;
     private int left;
     private int top;
     private float uiScale = 1.0F;
 
     public OutputFaceScreen(MythicMinerScreen parent, MythicMinerMenu menu) {
-        super(Component.translatable("screen.dimension_tech.mythic_miner.output_face"));
+        this(parent, menu, Mode.ITEM_OUTPUT);
+    }
+
+    public OutputFaceScreen(MythicMinerScreen parent, MythicMinerMenu menu, Mode mode) {
+        super(Component.translatable(
+                mode == Mode.FLUID
+                        ? "screen.dimension_tech.mythic_miner.fluid_faces"
+                        : "screen.dimension_tech.mythic_miner.output_face"));
         this.parent = parent;
         this.menu = menu;
+        this.mode = mode;
     }
 
     @Override
@@ -73,22 +86,32 @@ public final class OutputFaceScreen extends Screen {
     }
 
     private boolean isEnabled(Direction direction) {
-        Direction worldDirection = menu.getBlockEntity().toWorldDirection(direction);
-        return (menu.getTelemetry(13) & (1 << worldDirection.ordinal())) != 0;
+        Direction worldDirection = worldDirection(direction);
+        if (mode == Mode.FLUID) {
+            return menu.getFluidFaceMode(worldDirection)
+                    != com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity
+                            .FluidFaceMode.DISABLED;
+        }
+        return (menu.telemetrySnapshot().outputFaceMask() & (1 << worldDirection.ordinal())) != 0;
+    }
+
+    private Direction worldDirection(Direction logicalDirection) {
+        return menu.getBlockEntity().toWorldDirection(logicalDirection);
+    }
+
+    static Direction commandDirection(Mode mode, Direction logicalDirection, Direction worldDirection) {
+        return mode == Mode.FLUID ? logicalDirection : worldDirection;
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xFF0B0E12);
+        graphics.fill(0, 0, width, height, MythicMinerTheme.BACKDROP);
         int scaledMouseX = toLogical(mouseX);
         int scaledMouseY = toLogical(mouseY);
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
-        graphics.fill(
-                left + 3, top + 3, left + PANEL_WIDTH + 3, top + PANEL_HEIGHT + 3, 0xFF080A0C);
-        graphics.fill(left, top, left + PANEL_WIDTH, top + PANEL_HEIGHT, PANEL);
-        graphics.fill(left + 1, top + 1, left + PANEL_WIDTH - 1, top + 3, CYAN);
-        graphics.drawCenteredString(font, title, left + PANEL_WIDTH / 2, top + 14, 0xFFE7EEF0);
+        MythicMinerTheme.panel(graphics, left, top, PANEL_WIDTH, PANEL_HEIGHT, MythicMinerTheme.AMBER);
+        graphics.drawCenteredString(font, title, left + PANEL_WIDTH / 2, top + 14, MythicMinerTheme.TEXT);
         drawBackButton(graphics, scaledMouseX, scaledMouseY);
 
         Direction hoveredDirection = null;
@@ -101,14 +124,9 @@ public final class OutputFaceScreen extends Screen {
                 boolean hovered =
                         contains(scaledMouseX, scaledMouseY, x, y, BUTTON_SIZE, BUTTON_SIZE);
                 boolean enabled = isEnabled(direction);
-                graphics.fill(
-                        x - 1,
-                        y - 1,
-                        x + BUTTON_SIZE + 1,
-                        y + BUTTON_SIZE + 1,
-                        enabled ? CYAN : RULE);
-                graphics.fill(
-                        x, y, x + BUTTON_SIZE, y + BUTTON_SIZE, hovered ? 0xFF41545B : RAISED);
+                int modeColor = faceColor(direction);
+                MythicMinerTheme.button(graphics, font, x, y, BUTTON_SIZE, BUTTON_SIZE,
+                        Component.empty(), hovered, enabled, modeColor);
                 BlockState state = adjacentState(direction);
                 ItemStack icon =
                         state == null || state.isAir() || state.getBlock().asItem() == Items.AIR
@@ -136,8 +154,7 @@ public final class OutputFaceScreen extends Screen {
         int x = left + PANEL_WIDTH - 25;
         int y = top + 7;
         boolean hovered = contains(mouseX, mouseY, x, y, 18, 18);
-        graphics.fill(x - 1, y - 1, x + 19, y + 19, hovered ? CYAN : RULE);
-        graphics.fill(x, y, x + 18, y + 18, hovered ? 0xFF41545B : RAISED);
+        MythicMinerTheme.button(graphics, font, x, y, 18, 18, Component.empty(), hovered, true, CYAN);
         graphics.fill(x + 5, y + 8, x + 14, y + 10, CYAN);
         graphics.fill(x + 5, y + 6, x + 7, y + 12, CYAN);
         graphics.fill(x + 3, y + 8, x + 5, y + 10, CYAN);
@@ -150,13 +167,30 @@ public final class OutputFaceScreen extends Screen {
                 state == null || state.isAir()
                         ? Component.translatable("screen.dimension_tech.mythic_miner.face.empty")
                         : state.getBlock().getName();
-        List<Component> tooltip =
+        List<Component> tooltip = new java.util.ArrayList<>(
                 List.of(
                         Component.translatable(
                                 "screen.dimension_tech.mythic_miner.face."
                                         + direction.getSerializedName()),
-                        adjacent);
+                        adjacent));
+        if (mode == Mode.FLUID) {
+            tooltip.add(
+                    Component.translatable(
+                            "screen.dimension_tech.mythic_miner.fluid_face_mode."
+                                    + menu.getFluidFaceMode(worldDirection(direction))
+                                            .name()
+                                            .toLowerCase(java.util.Locale.ROOT)));
+        }
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
+    }
+
+    private int faceColor(Direction direction) {
+        if (mode != Mode.FLUID) return CYAN;
+        return switch (menu.getFluidFaceMode(worldDirection(direction))) {
+            case INPUT -> CYAN;
+            case OUTPUT -> MythicMinerTheme.AMBER;
+            case DISABLED -> RULE;
+        };
     }
 
     private BlockState adjacentState(Direction direction) {
@@ -189,10 +223,14 @@ public final class OutputFaceScreen extends Screen {
                     int y = buttonY(row);
                     if (contains(mouseX, mouseY, x, y, BUTTON_SIZE, BUTTON_SIZE)) {
                         Direction direction = directionAt(row, column);
+                        Direction worldDirection = worldDirection(direction);
                         Minecraft.getInstance()
                                 .gameMode
                                 .handleInventoryButtonClick(
-                                        menu.containerId, 10 + direction.ordinal());
+                                        menu.containerId,
+                                        (mode == Mode.FLUID ? 20 : 10)
+                                                + commandDirection(mode, direction, worldDirection)
+                                                        .ordinal());
                         return true;
                     }
                 }

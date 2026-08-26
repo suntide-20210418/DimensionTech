@@ -5,6 +5,7 @@ import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
@@ -16,10 +17,10 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbabilit
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -44,10 +45,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.templates.FluidTank;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
@@ -71,11 +76,15 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private static final String LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG =
             "LastEnergyConsumptionGameTime";
     private static final int DRAWS_PER_PARALLEL = 8;
+    public static final int FLUID_PER_WORK_CYCLE_MB = 25;
 
     private final ItemStackHandler itemHandler;
     private final MinerEnergyStorage energyStorage;
     private LazyOptional<IItemHandler> itemHandlerCapability;
     private LazyOptional<IEnergyStorage> energyCapability;
+    private LazyOptional<IFluidHandler> fluidCapability;
+    private LazyOptional<IFluidHandler> fluidOutputCapability;
+    private final FluidTank fluidTank;
     private CompoundTag analyzedMarkerSnapshot;
     private List<CachedMarkerLoot> cachedMarkerLoot = List.of();
     private List<ItemStack> pendingOutput = new ArrayList<>();
@@ -90,10 +99,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private int redstoneThreshold = 8;
     private OutputState configuredOutputState = OutputState.ITEM_HANDLER;
     private int outputFaceMask = (1 << Direction.values().length) - 1;
+    private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
+    private boolean autoExtractFluid;
     private boolean equipmentDismantling;
     private final Set<ResourceLocation> disabledExpectedItems = new HashSet<>();
     private boolean structureComplete;
     private UpgradeBonuses upgradeBonuses = UpgradeBonuses.NONE;
+
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
 
@@ -113,9 +125,73 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         }
         this.slotEnabled = new boolean[slotCount];
         java.util.Arrays.fill(this.slotEnabled, true);
+        java.util.Arrays.fill(this.fluidFaceModes, FluidFaceMode.INPUT);
         this.energyStorage = new MinerEnergyStorage(getEnergyCapacity());
+        this.fluidTank = new FluidTank(1000) {
+            @Override
+            public boolean isFluidValid(FluidStack stack) {
+                Fluid required = ModFluids.forMinerTier(getMinerTier());
+                return requiresFluidInput()
+                        && required != null
+                        && stack.getFluid().getFluidType() == required.getFluidType();
+            }
+
+            @Override
+            protected void onContentsChanged() {
+                setChanged();
+            }
+        };
         this.itemHandlerCapability = LazyOptional.of(() -> itemHandler);
         this.energyCapability = LazyOptional.of(() -> energyStorage);
+        this.fluidCapability = LazyOptional.of(this::createFluidInputHandler);
+        this.fluidOutputCapability = LazyOptional.of(this::createFluidOutputHandler);
+    }
+
+    public boolean requiresFluidInput() {
+        return getMinerTier() >= 2;
+    }
+
+    public Fluid getRequiredFluid() {
+        return ModFluids.forMinerTier(getMinerTier());
+    }
+
+    private int getMinerTier() {
+        return getBlockState().getBlock() instanceof BaseMinerBlock miner ? miner.minerTier() : 1;
+    }
+
+    public FluidTank getFluidTank() {
+        return fluidTank;
+    }
+
+    public FluidFaceMode getFluidFaceMode(Direction worldDirection) {
+        return fluidFaceModes[worldDirection.ordinal()];
+    }
+
+    public void cycleFluidFace(Direction logicalDirection) {
+        Direction worldDirection = toWorldDirection(logicalDirection);
+        fluidFaceModes[worldDirection.ordinal()] =
+                FluidFaceMode.values()[(fluidFaceModes[worldDirection.ordinal()].ordinal() + 1)
+                        % FluidFaceMode.values().length];
+        setChanged();
+    }
+
+    public int getFluidFaceModesPacked() {
+        int packed = 0;
+        for (Direction direction : Direction.values()) {
+            packed |= fluidFaceModes[direction.ordinal()].ordinal() << (direction.ordinal() * 2);
+        }
+        return packed;
+    }
+
+    public boolean isAutoExtractFluidEnabled() {
+        return requiresFluidInput() && autoExtractFluid;
+    }
+
+    public void toggleAutoExtractFluid() {
+        if (requiresFluidInput()) {
+            autoExtractFluid = !autoExtractFluid;
+            setChanged();
+        }
     }
 
     protected abstract int getSlotCount();
@@ -173,7 +249,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotExternalAccelerationParallelHundredths(int slot) {
-        return validSlot(slot) ? externalTickAcceleration[slot].currentExtraParallelHundredths() : 0;
+        return validSlot(slot)
+                ? externalTickAcceleration[slot].currentExtraParallelHundredths()
+                : 0;
     }
 
     public long getSlotExternalEquivalentAccelerationTicks(int slot) {
@@ -214,9 +292,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return validSlot(slot) ? externalTickAcceleration[slot].previousActualTicks() : 0;
     }
 
-
     public int getSlotPreviousExternalAccelerationParallelHundredths(int slot) {
-        return validSlot(slot) ? externalTickAcceleration[slot].previousExtraParallelHundredths() : 0;
+        return validSlot(slot)
+                ? externalTickAcceleration[slot].previousExtraParallelHundredths()
+                : 0;
     }
 
     public int getBaseParallelCount() {
@@ -436,9 +515,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return (int)
                 Math.max(
                         1L,
-                        Math.min(
-                                Integer.MAX_VALUE,
-                                slotDisplayParallelHundredths(slot) / 100L));
+                        Math.min(Integer.MAX_VALUE, slotDisplayParallelHundredths(slot) / 100L));
     }
 
     public MythicMinerAnalysisSnapshot getMarkerAnalysisSnapshot(int slot) {
@@ -460,7 +537,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 MythicMinerExpectationMath.expectedDraws(
                         averageParallel, DRAWS_PER_PARALLEL, quantityFactor);
         Map<ResourceLocation, Double> effectiveExpectations = new LinkedHashMap<>();
-        cachedLoot.expectedItems()
+        cachedLoot
+                .expectedItems()
                 .forEach(
                         (item, weight) -> {
                             double expected =
@@ -544,6 +622,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!redstoneMode.allows(signal, redstoneThreshold)) {
             return;
         }
+        autoExtractFluid(serverLevel);
         if (!pendingOutput.isEmpty()) {
             retryPendingOutput(serverLevel);
             return;
@@ -554,12 +633,17 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
         refreshMarkerLootCache(serverLevel.getServer());
         updateProcessingPlans();
+        int startingCycles = countStartingCycles();
         long gameTime = serverLevel.getGameTime();
         int energyConsumption = getEffectiveEnergyConsumption();
+        if (gameTime != lastEnergyConsumptionGameTime
+                && (energyConsumption <= 0 || !energyStorage.canConsume(energyConsumption))) {
+            return;
+        }
+        if (!consumeCycleFluid(startingCycles)) {
+            return;
+        }
         if (gameTime != lastEnergyConsumptionGameTime) {
-            if (energyConsumption <= 0 || !energyStorage.canConsume(energyConsumption)) {
-                return;
-            }
             energyStorage.consume(energyConsumption);
             lastEnergyConsumptionGameTime = gameTime;
         }
@@ -570,8 +654,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 continue;
             }
             MythicMinerExternalTickAcceleration.Observation accelerationObservation =
-                    externalTickAcceleration[slot]
-                            .observe(serverLevel.getGameTime(), slotProcessingTimes[slot]);
+                    externalTickAcceleration[slot].observe(
+                            serverLevel.getGameTime(), slotProcessingTimes[slot]);
             // Persist the player-facing logical progress; accelerated execution is exposed
             // separately through the long actual-tick telemetry.
             slotProgress.set(
@@ -581,14 +665,39 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                     Integer.MAX_VALUE,
                                     accelerationObservation.logicalProgressTicks()));
             if (accelerationObservation.complete()) {
-                completedMarkers.add(
-                        new CompletedMarker(cachedLoot, drawParallelForCycle(slot)));
+                completedMarkers.add(new CompletedMarker(cachedLoot, drawParallelForCycle(slot)));
             }
         }
         if (!completedMarkers.isEmpty()) {
             drawMarkerLoot(serverLevel.getServer(), completedMarkers);
         }
         setChanged();
+    }
+
+    private int countStartingCycles() {
+        if (!requiresFluidInput()) return 0;
+        int startingCycles = 0;
+        for (int slot = 0; slot < slotProcessingTimes.length; slot++) {
+            if (slotEnabled[slot]
+                    && slotProcessingTimes[slot] > 0
+                    && externalTickAcceleration[slot].currentActualTicks() == 0L) {
+                startingCycles++;
+            }
+        }
+        return startingCycles;
+    }
+
+    private boolean consumeCycleFluid(int cycleCount) {
+        if (cycleCount <= 0 || !requiresFluidInput()) return true;
+        long requested = (long) cycleCount * FLUID_PER_WORK_CYCLE_MB;
+        if (requested > Integer.MAX_VALUE) return false;
+        Fluid required = getRequiredFluid();
+        if (required == null) return false;
+        FluidStack request = new FluidStack(required, (int) requested);
+        FluidStack simulated = fluidTank.drain(request, IFluidHandler.FluidAction.SIMULATE);
+        if (simulated.getAmount() < requested) return false;
+        FluidStack drained = fluidTank.drain(request, IFluidHandler.FluidAction.EXECUTE);
+        return drained.getAmount() == requested;
     }
 
     public boolean isStructureComplete() {
@@ -616,11 +725,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         int parallelUpgradeCount = 0;
         int luckUpgradeCount = 0;
         int aggregateUpgradeCount = 0;
-        int[] upgradeCountsByTypeAndTier = new int[MythicMinerUpgradeBlock.Type.values().length * 6];
+        int[] upgradeCountsByTypeAndTier =
+                new int[MythicMinerUpgradeBlock.Type.values().length * 6];
         for (MythicMinerUpgradeBlock block :
                 MythicMinerMultiblock.upgrades(serverLevel, worldPosition)) {
             if (block.getType() != MythicMinerUpgradeBlock.Type.NONE) {
-                upgradeCountsByTypeAndTier[(block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
+                upgradeCountsByTypeAndTier[
+                        (block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
             }
             switch (block.getType()) {
                 case EFFICIENCY -> {
@@ -640,8 +751,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 case PARALLEL -> {
                     parallelUpgradeCount++;
                     parallelPercent +=
-                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
-                                    .parallelIncreasePercent();
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1].parallelIncreasePercent();
                 }
                 case LUCK -> {
                     luckUpgradeCount++;
@@ -757,16 +867,51 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                 ? EquipmentDismantler.dismantle(lootLevel, generated)
                                 : List.of(generated);
                 output.stream()
-                        .filter(stack -> !isExpectedItemDisabled(
-                                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(
-                                        stack.getItem())))
+                        .filter(
+                                stack ->
+                                        !isExpectedItemDisabled(
+                                                net.minecraft.core.registries.BuiltInRegistries.ITEM
+                                                        .getKey(stack.getItem())))
                         .forEach(stack -> mergeLootStack(mergedLoot, stack));
             }
+            addDimensionCoreReward(lootLevel, mergedLoot, completed.parallel());
         }
 
         AdjacentOutputs outputs = findAdjacentOutputs(outputLevel);
         pendingOutput = outputLoot(outputs, mergedLoot);
         setChanged();
+    }
+
+    /** Rolls once per parallel operation; the machine tier raises the base 5% chance. */
+    private void addDimensionCoreReward(
+            ServerLevel level, List<ItemStack> mergedLoot, int parallel) {
+        ResourceLocation coreId = ModItems.DIMENSION_DECONSTRUCTION_CORE_ID;
+        if (isExpectedItemDisabled(coreId)) return;
+        int tier = 1;
+        String name = getTranslationName();
+        int marker = name.indexOf("tier_");
+        if (marker >= 0 && marker + 6 < name.length()) {
+            try {
+                tier =
+                        Math.max(
+                                1,
+                                Math.min(
+                                        6,
+                                        Integer.parseInt(name.substring(marker + 5, marker + 6))));
+            } catch (NumberFormatException ignored) {
+                // Keep tier one for custom miner implementations.
+            }
+        }
+        float chance = Math.min(1.0F, 0.05F * tier);
+        int rolls = Math.min(10, Math.max(0, parallel));
+        int cores = 0;
+        for (int roll = 0; roll < rolls; roll++) {
+            if (level.random.nextFloat() < chance) cores++;
+        }
+        if (cores > 0) {
+            mergeLootStack(
+                    mergedLoot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), cores));
+        }
     }
 
     private void refreshMarkerLootCache(MinecraftServer server) {
@@ -973,6 +1118,75 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return new AdjacentOutputs(List.copyOf(meInterfaces), List.copyOf(handlers));
     }
 
+    private void autoExtractFluid(ServerLevel serverLevel) {
+        if (!isAutoExtractFluidEnabled() || fluidTank.getFluidAmount() >= fluidTank.getCapacity()) {
+            return;
+        }
+        Fluid required = getRequiredFluid();
+        if (required == null) {
+            return;
+        }
+        int remaining = fluidTank.getCapacity() - fluidTank.getFluidAmount();
+        for (Direction direction : Direction.values()) {
+            if (remaining <= 0 || getFluidFaceMode(direction) != FluidFaceMode.INPUT) {
+                continue;
+            }
+            BlockEntity adjacent = serverLevel.getBlockEntity(worldPosition.relative(direction));
+            if (adjacent == null) {
+                continue;
+            }
+            if (AE2_LOADED && Ae2Integration.isOnlineInterface(adjacent)) {
+                if (configuredOutputState == OutputState.ME_NETWORK) {
+                    remaining -= Ae2Integration.extractFluidFromInterfaceNetwork(
+                            adjacent, required, remaining, fluidTank);
+                }
+                continue;
+            }
+            IFluidHandler handler = adjacent
+                    .getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite())
+                    .orElse(null);
+            if (handler == null) {
+                continue;
+            }
+            FluidStack simulated = handler.drain(new FluidStack(required, remaining), IFluidHandler.FluidAction.SIMULATE);
+            int accepted = fluidTank.fill(simulated, IFluidHandler.FluidAction.SIMULATE);
+            if (accepted > 0) {
+                FluidStack drained = handler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
+                int filled = fluidTank.fill(drained, IFluidHandler.FluidAction.EXECUTE);
+                if (filled < drained.getAmount()) {
+                    // The simulation contract of a fluid handler should prevent this path.
+                    // Keeping the mismatch visible avoids silently duplicating fluid.
+                    setChanged();
+                }
+                remaining -= filled;
+            }
+        }
+    }
+
+    private IFluidHandler createFluidInputHandler() {
+        return new IFluidHandler() {
+            @Override public int getTanks() { return fluidTank.getTanks(); }
+            @Override public FluidStack getFluidInTank(int tank) { return fluidTank.getFluidInTank(tank); }
+            @Override public int getTankCapacity(int tank) { return fluidTank.getTankCapacity(tank); }
+            @Override public boolean isFluidValid(int tank, FluidStack stack) { return fluidTank.isFluidValid(tank, stack); }
+            @Override public int fill(FluidStack stack, FluidAction action) { return fluidTank.fill(stack, action); }
+            @Override public FluidStack drain(FluidStack stack, FluidAction action) { return FluidStack.EMPTY; }
+            @Override public FluidStack drain(int amount, FluidAction action) { return FluidStack.EMPTY; }
+        };
+    }
+
+    private IFluidHandler createFluidOutputHandler() {
+        return new IFluidHandler() {
+            @Override public int getTanks() { return fluidTank.getTanks(); }
+            @Override public FluidStack getFluidInTank(int tank) { return fluidTank.getFluidInTank(tank); }
+            @Override public int getTankCapacity(int tank) { return fluidTank.getTankCapacity(tank); }
+            @Override public boolean isFluidValid(int tank, FluidStack stack) { return false; }
+            @Override public int fill(FluidStack stack, FluidAction action) { return 0; }
+            @Override public FluidStack drain(FluidStack stack, FluidAction action) { return fluidTank.drain(stack, action); }
+            @Override public FluidStack drain(int amount, FluidAction action) { return fluidTank.drain(amount, action); }
+        };
+    }
+
     private void retryPendingOutput(ServerLevel outputLevel) {
         pendingOutput = outputLoot(findAdjacentOutputs(outputLevel), pendingOutput);
         setChanged();
@@ -1087,7 +1301,16 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             int[] upgradeCountsByTypeAndTier) {
         private static final UpgradeBonuses NONE =
                 new UpgradeBonuses(
-                        1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0,
+                        1.0D,
+                        1.0D,
+                        100,
+                        0.0D,
+                        1.0D,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
                         new int[MythicMinerUpgradeBlock.Type.values().length * 6]);
 
         private int countFor(MythicMinerUpgradeBlock.Type type, int tier) {
@@ -1128,6 +1351,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         super.saveAdditional(tag);
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
         tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
+        if (requiresFluidInput()) tag.put("Fluid", fluidTank.writeToNBT(new CompoundTag()));
         tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
         tag.putInt(PROGRESS_TAG, getProgress());
         tag.putIntArray(SLOT_PROGRESS_TAG, slotProgress.save());
@@ -1164,6 +1388,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         tag.putInt("RedstoneThreshold", redstoneThreshold);
         tag.putInt("ConfiguredOutputState", configuredOutputState.ordinal());
         tag.putInt("OutputFaceMask", outputFaceMask);
+        tag.putInt("FluidFaceModes", getFluidFaceModesPacked());
+        tag.putBoolean("AutoExtractFluid", autoExtractFluid);
         tag.putBoolean(EQUIPMENT_DISMANTLING_TAG, equipmentDismantling);
         int[] enabledSlots = new int[slotEnabled.length];
         for (int index = 0; index < slotEnabled.length; index++) {
@@ -1190,6 +1416,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (tag.contains(ENERGY_TAG, Tag.TAG_INT)) {
             energyStorage.setEnergy(tag.getInt(ENERGY_TAG));
         }
+        if (tag.contains("Fluid", Tag.TAG_COMPOUND)) {
+            fluidTank.readFromNBT(tag.getCompound("Fluid"));
+            if (!fluidTank.isEmpty() && !fluidTank.isFluidValid(fluidTank.getFluid())) {
+                fluidTank.setFluid(FluidStack.EMPTY);
+            }
+        }
         lastEnergyConsumptionGameTime =
                 tag.contains(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, Tag.TAG_LONG)
                         ? tag.getLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG)
@@ -1201,26 +1433,24 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         }
         if (tag.contains(SLOT_PARALLEL_FRACTION_TAG, Tag.TAG_INT_ARRAY)) {
             loadFractions(
-                    slotParallelFractionHundredths,
-                    tag.getIntArray(SLOT_PARALLEL_FRACTION_TAG));
+                    slotParallelFractionHundredths, tag.getIntArray(SLOT_PARALLEL_FRACTION_TAG));
         } else {
             loadFractions(
-                    slotParallelFractionHundredths,
-                    new int[] {tag.getInt(PARALLEL_FRACTION_TAG)});
+                    slotParallelFractionHundredths, new int[] {tag.getInt(PARALLEL_FRACTION_TAG)});
         }
         if (tag.contains(SLOT_QUANTITY_FRACTION_TAG, Tag.TAG_INT_ARRAY)) {
             loadFractions(
-                    slotQuantityFractionHundredths,
-                    tag.getIntArray(SLOT_QUANTITY_FRACTION_TAG));
+                    slotQuantityFractionHundredths, tag.getIntArray(SLOT_QUANTITY_FRACTION_TAG));
         } else {
             loadFractions(
-                    slotQuantityFractionHundredths,
-                    new int[] {tag.getInt(QUANTITY_FRACTION_TAG)});
+                    slotQuantityFractionHundredths, new int[] {tag.getInt(QUANTITY_FRACTION_TAG)});
         }
         if (tag.contains(EXTERNAL_ACCELERATION_STATES_TAG, Tag.TAG_LIST)) {
             ListTag accelerationStates =
                     tag.getList(EXTERNAL_ACCELERATION_STATES_TAG, Tag.TAG_COMPOUND);
-            for (int slot = 0; slot < Math.min(accelerationStates.size(), externalTickAcceleration.length); slot++) {
+            for (int slot = 0;
+                    slot < Math.min(accelerationStates.size(), externalTickAcceleration.length);
+                    slot++) {
                 CompoundTag accelerationTag = accelerationStates.getCompound(slot);
                 externalTickAcceleration[slot].load(
                         new MythicMinerExternalTickAcceleration.State(
@@ -1236,18 +1466,19 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                 accelerationTag.contains("TargetReached", Tag.TAG_BYTE)
                                         ? accelerationTag.getBoolean("TargetReached")
                                         : readLongCompat(
-                                                        accelerationTag,
-                                                        "ActualTicks",
-                                                        "StatisticsActualTicks")
-                                                >= MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS
+                                                                accelerationTag,
+                                                                "ActualTicks",
+                                                                "StatisticsActualTicks")
+                                                        >= MythicMinerExternalTickAcceleration
+                                                                .MINIMUM_NATURAL_TICKS
                                                 && readLongCompat(
                                                                 accelerationTag,
                                                                 "NaturalTicks",
                                                                 "StatisticsNaturalTicks")
-                                                        < MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS,
+                                                        < MythicMinerExternalTickAcceleration
+                                                                .MINIMUM_NATURAL_TICKS,
                                 accelerationTag.getInt("SettledExtraParallelHundredths"),
-                                readLongCompat(
-                                        accelerationTag, "PreviousActualTicks", null),
+                                readLongCompat(accelerationTag, "PreviousActualTicks", null),
                                 accelerationTag.getInt("PreviousExtraParallelHundredths"),
                                 !accelerationTag.contains("ExternalParallelEligible")
                                         || accelerationTag.getBoolean("ExternalParallelEligible")));
@@ -1280,11 +1511,24 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 tag.contains("OutputFaceMask", Tag.TAG_INT)
                         ? tag.getInt("OutputFaceMask") & ((1 << Direction.values().length) - 1)
                         : (1 << Direction.values().length) - 1;
+        int fluidFaceModesPacked = tag.getInt("FluidFaceModes");
+        for (Direction direction : Direction.values()) {
+            int ordinal = (fluidFaceModesPacked >> (direction.ordinal() * 2)) & 3;
+            fluidFaceModes[direction.ordinal()] =
+                    !tag.contains("FluidFaceModes", Tag.TAG_INT)
+                            ? FluidFaceMode.INPUT
+                            : ordinal < FluidFaceMode.values().length
+                            ? FluidFaceMode.values()[ordinal]
+                            : FluidFaceMode.DISABLED;
+        }
+        autoExtractFluid = requiresFluidInput() && tag.getBoolean("AutoExtractFluid");
         equipmentDismantling = tag.getBoolean(EQUIPMENT_DISMANTLING_TAG);
         java.util.Arrays.fill(slotEnabled, true);
         if (tag.contains(SLOT_ENABLED_TAG, Tag.TAG_INT_ARRAY)) {
             int[] enabledSlots = tag.getIntArray(SLOT_ENABLED_TAG);
-            for (int index = 0; index < Math.min(slotEnabled.length, enabledSlots.length); index++) {
+            for (int index = 0;
+                    index < Math.min(slotEnabled.length, enabledSlots.length);
+                    index++) {
                 slotEnabled[index] = enabledSlots[index] != 0;
             }
         }
@@ -1315,6 +1559,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (capability == ForgeCapabilities.ENERGY) {
             return energyCapability.cast();
         }
+        if (capability == ForgeCapabilities.FLUID_HANDLER && requiresFluidInput()) {
+            if (side != null && getFluidFaceMode(side) == FluidFaceMode.OUTPUT) {
+                return fluidOutputCapability.cast();
+            }
+            if (side == null || getFluidFaceMode(side) == FluidFaceMode.INPUT) {
+                return fluidCapability.cast();
+            }
+        }
         return super.getCapability(capability, side);
     }
 
@@ -1323,6 +1575,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         super.invalidateCaps();
         itemHandlerCapability.invalidate();
         energyCapability.invalidate();
+        fluidCapability.invalidate();
+        fluidOutputCapability.invalidate();
     }
 
     @Override
@@ -1330,6 +1584,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         super.reviveCaps();
         itemHandlerCapability = LazyOptional.of(() -> itemHandler);
         energyCapability = LazyOptional.of(() -> energyStorage);
+        fluidCapability = LazyOptional.of(this::createFluidInputHandler);
+        fluidOutputCapability = LazyOptional.of(this::createFluidOutputHandler);
     }
 
     @Override
@@ -1348,6 +1604,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         ME_NETWORK,
         ITEM_HANDLER,
         NONE
+    }
+
+    public enum FluidFaceMode {
+        DISABLED,
+        INPUT,
+        OUTPUT
     }
 
     public enum RedstoneMode {

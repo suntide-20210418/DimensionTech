@@ -15,6 +15,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
@@ -23,12 +24,14 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     public static final int CONTAINER_SLOT_Y = MythicMinerLayout.MARKER_SLOT_Y;
     public static final int BASE_PLAYER_INVENTORY_Y = MythicMinerLayout.BASE_PLAYER_INVENTORY_Y;
     public static final int MENU_WIDTH = 320;
-    public static final int INVENTORY_START_X = (MENU_WIDTH - 162) / 2;
+    public static final int FLUID_MENU_WIDTH = 376;
 
     private final BaseMinerBlockEntity blockEntity;
     private final int containerSlotCount;
     private final int containerRows;
     private final int playerInventoryY;
+    private final int menuWidth;
+    private final boolean hasFluidInput;
     private static final int ENERGY_STORED_HIGH = 15;
     private static final int ENERGY_CAPACITY_HIGH = 16;
     private static final int ENERGY_CONSUMPTION_HIGH = 17;
@@ -68,7 +71,8 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int WORKING_THREAD_COUNT = 51;
     private static final int UPGRADE_TIER_COUNT_START = 52;
     private static final int UPGRADE_TIER_COUNT_SIZE = 30;
-    private static final int TELEMETRY_BASE_COUNT = UPGRADE_TIER_COUNT_START + UPGRADE_TIER_COUNT_SIZE;
+    private static final int TELEMETRY_BASE_COUNT =
+            UPGRADE_TIER_COUNT_START + UPGRADE_TIER_COUNT_SIZE;
     private static final int SLOT_TELEMETRY_STRIDE = 26;
     private static final int SLOT_PROGRESS_LOW = 0;
     private static final int SLOT_PROGRESS_HIGH = 1;
@@ -98,6 +102,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     private static final int SLOT_EQUIVALENT_3 = 25;
 
     private final int[] telemetry;
+    private final int[] fluidTelemetry = new int[6];
 
     public MythicMinerMenu(int containerId, Inventory playerInventory, FriendlyByteBuf data) {
         this(containerId, playerInventory, getBlockEntity(playerInventory, data.readBlockPos()));
@@ -107,12 +112,13 @@ public class MythicMinerMenu extends AbstractContainerMenu {
             int containerId, Inventory playerInventory, BaseMinerBlockEntity blockEntity) {
         super(ModMenu.MYTHIC_MINER.get(), containerId);
         this.blockEntity = blockEntity;
+        this.hasFluidInput = blockEntity.requiresFluidInput();
+        this.menuWidth = hasFluidInput ? FLUID_MENU_WIDTH : MENU_WIDTH;
         IItemHandler itemHandler = blockEntity.getItemHandler();
         this.containerSlotCount = itemHandler.getSlots();
         this.containerRows = MythicMinerLayout.rowsForSlotCount(containerSlotCount);
         this.playerInventoryY = MythicMinerLayout.playerInventoryY(containerRows);
-        this.telemetry =
-                new int[TELEMETRY_BASE_COUNT + containerSlotCount * SLOT_TELEMETRY_STRIDE];
+        this.telemetry = new int[TELEMETRY_BASE_COUNT + containerSlotCount * SLOT_TELEMETRY_STRIDE];
 
         addContainerSlots(itemHandler);
         addPlayerInventory(playerInventory);
@@ -120,6 +126,20 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                 new net.minecraft.world.inventory.ContainerData() {
                     @Override
                     public int get(int index) {
+                        if (index >= telemetry.length) {
+                            return switch (index - telemetry.length) {
+                                case 0 -> blockEntity.getFluidTank().getFluidAmount();
+                                case 1 -> blockEntity.getFluidTank().getCapacity();
+                                case 2 -> hasFluidInput
+                                        ? BuiltInRegistries.FLUID.getId(
+                                                blockEntity.getFluidTank().getFluid().getFluid())
+                                        : -1;
+                                case 3 -> blockEntity.getFluidTank().isEmpty() ? 0 : 1;
+                                case 4 -> blockEntity.getFluidFaceModesPacked();
+                                case 5 -> blockEntity.isAutoExtractFluidEnabled() ? 1 : 0;
+                                default -> 0;
+                            };
+                        }
                         return switch (index) {
                             case 0 -> {
                                 int slot = firstActiveSlot();
@@ -227,19 +247,23 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                                                     .getExternalAccelerationParallelHundredths());
                             case EXTERNAL_ACCELERATION_TICKS_LOW ->
                                     word(
-                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            blockEntity
+                                                    .getCurrentExternalAccelerationMachineTicks(),
                                             0);
                             case EXTERNAL_ACCELERATION_TICKS_HIGH ->
                                     word(
-                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            blockEntity
+                                                    .getCurrentExternalAccelerationMachineTicks(),
                                             16);
                             case EXTERNAL_ACCELERATION_TICKS_LOW_HIGH ->
                                     word(
-                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            blockEntity
+                                                    .getCurrentExternalAccelerationMachineTicks(),
                                             32);
                             case EXTERNAL_ACCELERATION_TICKS_HIGH_HIGH ->
                                     word(
-                                            blockEntity.getCurrentExternalAccelerationMachineTicks(),
+                                            blockEntity
+                                                    .getCurrentExternalAccelerationMachineTicks(),
                                             48);
                             case EXTERNAL_EQUIVALENT_ACCELERATION_0 ->
                                     word(blockEntity.getExternalEquivalentAccelerationTicks(), 0);
@@ -256,12 +280,13 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
                     @Override
                     public void set(int index, int value) {
-                        telemetry[index] = value;
+                        if (index < telemetry.length) telemetry[index] = value;
+                        else fluidTelemetry[index - telemetry.length] = value;
                     }
 
                     @Override
                     public int getCount() {
-                        return telemetry.length;
+                        return telemetry.length + fluidTelemetry.length;
                     }
                 });
     }
@@ -289,20 +314,21 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     private void addPlayerInventory(Inventory playerInventory) {
+        int inventoryStartX = (menuWidth - 162) / 2;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(
                         new Slot(
                                 playerInventory,
                                 column + row * 9 + 9,
-                                INVENTORY_START_X + column * 18,
+                                inventoryStartX + column * 18,
                                 playerInventoryY + row * 18));
             }
         }
 
         int hotbarY = playerInventoryY + 58;
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(playerInventory, column, INVENTORY_START_X + column * 18, hotbarY));
+            addSlot(new Slot(playerInventory, column, inventoryStartX + column * 18, hotbarY));
         }
     }
 
@@ -316,6 +342,57 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
     public int getPlayerInventoryY() {
         return playerInventoryY;
+    }
+
+    public boolean hasFluidInput() {
+        return hasFluidInput;
+    }
+
+    public int getMenuWidth() {
+        return menuWidth;
+    }
+
+    public int getWorkContentWidth() {
+        return hasFluidInput ? MythicMinerLayout.FLUID_PANEL_X - 36 : menuWidth - 56;
+    }
+
+    public int getWorkContentCenter() {
+        return 28 + getWorkContentWidth() / 2;
+    }
+
+    public int getFluidAmount() {
+        return fluidTelemetry[0];
+    }
+
+    public int getFluidCapacity() {
+        return fluidTelemetry[1];
+    }
+
+    public net.minecraft.world.level.material.Fluid getFluid() {
+        return fluidTelemetry[2] < 0
+                ? net.minecraft.world.level.material.Fluids.EMPTY
+                : BuiltInRegistries.FLUID.byId(fluidTelemetry[2]);
+    }
+
+    public net.minecraft.world.level.material.Fluid getRequiredFluid() {
+        return blockEntity.getRequiredFluid();
+    }
+
+    public boolean hasFluid() {
+        return fluidTelemetry[3] != 0;
+    }
+
+    public BaseMinerBlockEntity.FluidFaceMode getFluidFaceMode(
+            net.minecraft.core.Direction logicalDirection) {
+        net.minecraft.core.Direction worldDirection = blockEntity.toWorldDirection(logicalDirection);
+        int ordinal = (fluidTelemetry[4] >> (worldDirection.ordinal() * 2)) & 3;
+        return ordinal < BaseMinerBlockEntity.FluidFaceMode.values().length
+                ? BaseMinerBlockEntity.FluidFaceMode.values()[ordinal]
+                : BaseMinerBlockEntity.FluidFaceMode.DISABLED;
+    }
+
+    public boolean isAutoExtractFluidEnabled() {
+        return fluidTelemetry[5] != 0;
     }
 
     public BaseMinerBlockEntity getBlockEntity() {
@@ -338,6 +415,16 @@ public class MythicMinerMenu extends AbstractContainerMenu {
             }
             return true;
         }
+        if (id >= 20 && id < 20 + net.minecraft.core.Direction.values().length) {
+            if (!player.level().isClientSide) {
+                blockEntity.cycleFluidFace(net.minecraft.core.Direction.values()[id - 20]);
+            }
+            return true;
+        }
+        if (id == 26 && !player.level().isClientSide) {
+            blockEntity.toggleAutoExtractFluid();
+            return true;
+        }
         if (id == 3 && player.level() instanceof ServerLevel serverLevel) {
             int tier =
                     blockEntity.getBlockState().getBlock() instanceof BaseMinerBlock miner
@@ -358,6 +445,11 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     /** Returns the latest server-synchronized telemetry value for client rendering. */
     public int getTelemetry(int index) {
         return index >= 0 && index < telemetry.length ? telemetry[index] : 0;
+    }
+
+    /** Returns a named immutable view for UI code; the legacy channel layout stays private. */
+    public MythicMinerTelemetrySnapshot telemetrySnapshot() {
+        return MythicMinerTelemetrySnapshot.from(this);
     }
 
     public int getEnergyStored() {
@@ -442,7 +534,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     public int getMarkerExtraEfficiencyParallel(int slot) {
         return Math.max(
                 0,
-                        getMarkerTotalParallel(slot)
+                getMarkerTotalParallel(slot)
                         - getBaseParallel()
                         - getMarkerExternalAccelerationParallelHundredths(slot) / 100);
     }
@@ -458,6 +550,19 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                 SLOT_ACTUAL_TICKS_1,
                 SLOT_ACTUAL_TICKS_2,
                 SLOT_ACTUAL_TICKS_3);
+    }
+
+    /** Actual-tick progress for the current cycle, reset when the cycle/output completes. */
+    public long getMarkerActualProgress(int slot) {
+        long actual = getMarkerCurrentExternalAccelerationMachineTicks(slot);
+        long cycle = Math.max(1L, getMarkerProcessingTime(slot));
+        return actual % cycle;
+    }
+
+    public long getMarkerActualCycleCount(int slot) {
+        long actual = getMarkerCurrentExternalAccelerationMachineTicks(slot);
+        long cycle = Math.max(1L, getMarkerProcessingTime(slot));
+        return actual / cycle;
     }
 
     public long getMarkerExternalEquivalentAccelerationTicks(int slot) {
@@ -568,7 +673,8 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     private int combineWords(int lowIndex, int highIndex) {
-        return (telemetry[lowIndex] & 0xFFFF) | ((telemetry[highIndex] & 0xFFFF) << 16);
+        return MythicMinerTelemetrySnapshot.combineUnsignedWords(
+                telemetry[lowIndex], telemetry[highIndex]);
     }
 
     private int combineSlotWords(int slot, int lowOffset, int highOffset) {
@@ -580,10 +686,8 @@ public class MythicMinerMenu extends AbstractContainerMenu {
     }
 
     private long combineLongWords(int word0, int word1, int word2, int word3) {
-        return (telemetry[word0] & 0xFFFFL)
-                | ((telemetry[word1] & 0xFFFFL) << 16)
-                | ((telemetry[word2] & 0xFFFFL) << 32)
-                | ((telemetry[word3] & 0xFFFFL) << 48);
+        return MythicMinerTelemetrySnapshot.combineUnsignedWords(
+                telemetry[word0], telemetry[word1], telemetry[word2], telemetry[word3]);
     }
 
     private long combineSlotLongWords(
@@ -638,10 +742,8 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                     lowWord(blockEntity.getSlotExternalAccelerationParallelHundredths(slot));
             case SLOT_EXTERNAL_PARALLEL_HIGH ->
                     highWord(blockEntity.getSlotExternalAccelerationParallelHundredths(slot));
-            case SLOT_NATURAL_TICKS_LOW ->
-                    lowWord(blockEntity.getSlotCurrentNaturalTicks(slot));
-            case SLOT_NATURAL_TICKS_HIGH ->
-                    highWord(blockEntity.getSlotCurrentNaturalTicks(slot));
+            case SLOT_NATURAL_TICKS_LOW -> lowWord(blockEntity.getSlotCurrentNaturalTicks(slot));
+            case SLOT_NATURAL_TICKS_HIGH -> highWord(blockEntity.getSlotCurrentNaturalTicks(slot));
             case SLOT_ACTUAL_TICKS_0 ->
                     word(blockEntity.getSlotCurrentExternalAccelerationMachineTicks(slot), 0);
             case SLOT_ACTUAL_TICKS_1 ->
@@ -659,15 +761,23 @@ public class MythicMinerMenu extends AbstractContainerMenu {
             case SLOT_PREVIOUS_TICKS_3 ->
                     word(blockEntity.getSlotPreviousExternalAccelerationMachineTicks(slot), 48);
             case SLOT_PREVIOUS_PARALLEL_LOW ->
-                    lowWord(blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(slot));
+                    lowWord(
+                            blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(
+                                    slot));
             case SLOT_PREVIOUS_PARALLEL_HIGH ->
-                    highWord(blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(slot));
+                    highWord(
+                            blockEntity.getSlotPreviousExternalAccelerationParallelHundredths(
+                                    slot));
             case SLOT_WAITING_FOR_NATURAL_WINDOW ->
                     blockEntity.isSlotWaitingForNaturalWindow(slot) ? 1 : 0;
-            case SLOT_EQUIVALENT_0 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 0);
-            case SLOT_EQUIVALENT_1 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 16);
-            case SLOT_EQUIVALENT_2 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 32);
-            case SLOT_EQUIVALENT_3 -> word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 48);
+            case SLOT_EQUIVALENT_0 ->
+                    word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 0);
+            case SLOT_EQUIVALENT_1 ->
+                    word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 16);
+            case SLOT_EQUIVALENT_2 ->
+                    word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 32);
+            case SLOT_EQUIVALENT_3 ->
+                    word(blockEntity.getSlotExternalEquivalentAccelerationTicks(slot), 48);
             default -> 0;
         };
     }

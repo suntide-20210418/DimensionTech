@@ -11,7 +11,7 @@ class MythicMinerLayoutTest {
         assertGrid(1, 1, 1);
         assertGrid(2, 2, 1);
         assertGrid(3, 3, 1);
-        assertGrid(4, 2, 2);
+        assertGrid(4, 3, 2);
         assertGrid(6, 3, 2);
         assertGrid(9, 3, 3);
     }
@@ -21,6 +21,7 @@ class MythicMinerLayoutTest {
         assertEquals(80, MythicMinerLayout.markerBayWidth(1));
         assertEquals(80, MythicMinerLayout.markerBayWidth(4));
         assertEquals(80, MythicMinerLayout.markerBayWidth(6));
+        assertEquals(94, MythicMinerLayout.markerBayHeight(1));
         assertEquals(94, MythicMinerLayout.markerBayHeight(3));
         assertEquals(94, MythicMinerLayout.markerBayHeight(6));
         assertEquals(94, MythicMinerLayout.markerBayHeight(9));
@@ -100,6 +101,40 @@ class MythicMinerLayoutTest {
         assertEquals(39, bounds.top());
         assertEquals(136, bounds.right());
         assertEquals(66, bounds.bottom());
+    }
+
+    @Test
+    void namedGeometryKeepsFluidAndInventoryOutsideWorkPanels() {
+        for (int slotCount : new int[] {1, 3, 4, 6, 9}) {
+            MythicMinerGeometry regular =
+                    MythicMinerGeometry.forMenu(slotCount, false, MythicMinerMenu.MENU_WIDTH);
+            MythicMinerGeometry fluid =
+                    MythicMinerGeometry.forMenu(slotCount, true, MythicMinerMenu.FLUID_MENU_WIDTH);
+
+            assertTrue(!regular.markerBay().intersects(regular.inventory()));
+            assertTrue(!regular.operations().intersects(regular.inventory()));
+            assertTrue(!fluid.markerBay().intersects(fluid.fluidPanel()));
+            assertTrue(!fluid.overview().intersects(fluid.fluidPanel()));
+            assertTrue(!fluid.operations().intersects(fluid.fluidPanel()));
+            assertTrue(!fluid.fluidPanel().intersects(fluid.inventory()));
+        }
+    }
+
+    @Test
+    void namedGeometryMatchesRenderedTabAndWorkBands() {
+        MythicMinerGeometry geometry =
+                MythicMinerGeometry.forMenu(6, true, MythicMinerMenu.FLUID_MENU_WIDTH);
+
+        assertEquals(31, geometry.tabs().y());
+        assertEquals(13, geometry.tabs().height());
+        assertEquals(MythicMinerLayout.markerInfoX(6), geometry.overview().x());
+        assertEquals(MythicMinerLayout.MARKER_BAY_Y, geometry.overview().y());
+        assertEquals(MythicMinerLayout.markerBayHeight(6), geometry.overview().height());
+        assertEquals(
+                MythicMinerLayout.MARKER_BAY_Y
+                        + MythicMinerLayout.markerBayHeight(6)
+                        + 5,
+                geometry.operations().y());
     }
 
     private static void assertGrid(int slotCount, int columns, int rows) {
