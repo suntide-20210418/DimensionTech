@@ -9,6 +9,7 @@ import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryR
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackMeasure;
 
 import net.minecraft.resources.ResourceLocation;
@@ -19,7 +20,7 @@ import java.util.List;
 
 class StructureValueCalculatorTest {
     @Test
-    void rootTablesAreDistinctWithinEachStructureButRetainedAcrossStructures() {
+    void rootTablesRetainEveryContainerOccurrence() {
         ResourceLocation shared = new ResourceLocation("test", "shared");
         ResourceLocation firstOnly = new ResourceLocation("test", "first_only");
         DiscoveryResult discovery =
@@ -31,7 +32,7 @@ class StructureValueCalculatorTest {
                         List.of());
 
         assertEquals(
-                List.of(firstOnly, shared, shared),
+                List.of(firstOnly, firstOnly, shared, shared, shared, shared),
                 StructureValueCalculator.rootTablesForValue(discovery));
 
         DiscoveryResult unsupported =
@@ -51,6 +52,97 @@ class StructureValueCalculatorTest {
                                 0.0F,
                                 new StackMeasure(),
                                 List.of()));
+    }
+
+    @Test
+    void virtualSampleOriginsAreDeterministicAndStructureSpecific() {
+        ResourceLocation dimension = new ResourceLocation("example", "void");
+        ResourceLocation first = new ResourceLocation("example", "first");
+        ResourceLocation second = new ResourceLocation("example", "second");
+        assertEquals(
+                StructureAnalysisService.sampleOrigin(42L, dimension, first, 3),
+                StructureAnalysisService.sampleOrigin(42L, dimension, first, 3));
+        assertFalse(
+                StructureAnalysisService.sampleOrigin(42L, dimension, first, 3)
+                        .equals(StructureAnalysisService.sampleOrigin(42L, dimension, second, 3)));
+    }
+
+    @Test
+    void virtualOccurrencesAreAveragedAcrossSamples() {
+        ResourceLocation table = ResourceLocation.fromNamespaceAndPath("test", "dynamic");
+        DiscoveryResult discovery =
+                new DiscoveryResult(
+                        AnalysisStatus.APPROXIMATE,
+                        List.of(
+                                new StructureLoot(
+                                        ResourceLocation.fromNamespaceAndPath("test", "structure"),
+                                        List.of(table),
+                                        List.of(),
+                                        List.of(),
+                                        java.util.Map.of(table, 12))),
+                        List.of(),
+                        ExactProbability.of(1, 8));
+        assertEquals(
+                ExactProbability.of(3, 2),
+                StructureValueCalculator.rootTableWeightsForValue(discovery).get(table));
+    }
+
+    @Test
+    void dynamicContainerLootTablesAreReadFromContainerNbt() {
+        net.minecraft.nbt.CompoundTag container = new net.minecraft.nbt.CompoundTag();
+        container.putString("LootTable", "example_mod:chests/generated_cache");
+
+        assertEquals(
+                java.util.Optional.of(
+                        ResourceLocation.fromNamespaceAndPath(
+                                "example_mod", "chests/generated_cache")),
+                StructureLootAnalyzer.containerLootTable(container));
+        assertTrue(StructureLootAnalyzer.containerLootTable(new net.minecraft.nbt.CompoundTag()).isEmpty());
+    }
+
+    @Test
+    void chestMinecartLootTableUsesTheSameRuntimeNbtField() {
+        net.minecraft.nbt.CompoundTag minecartEntity = new net.minecraft.nbt.CompoundTag();
+        minecartEntity.putString("id", "minecraft:chest_minecart");
+        minecartEntity.putString("LootTable", "minecraft:chests/abandoned_mineshaft");
+
+        assertEquals(
+                java.util.Optional.of(
+                        ResourceLocation.fromNamespaceAndPath(
+                                "minecraft", "chests/abandoned_mineshaft")),
+                StructureLootAnalyzer.containerLootTable(minecartEntity));
+    }
+
+    @Test
+    void vanillaFixedResolverUsesOnlyKnownVanillaStructureLocations() {
+        assertEquals(
+                List.of(ResourceLocation.fromNamespaceAndPath("minecraft", "chests/end_city_treasure")),
+                VanillaStructureLootResolver
+                        .resolve(ResourceLocation.fromNamespaceAndPath("minecraft", "end_city"))
+                        .orElseThrow());
+        assertEquals(
+                List.of(ResourceLocation.fromNamespaceAndPath("minecraft", "chests/abandoned_mineshaft")),
+                VanillaStructureLootResolver
+                        .resolve(ResourceLocation.fromNamespaceAndPath("minecraft", "mineshaft"))
+                        .orElseThrow());
+        assertTrue(
+                VanillaStructureLootResolver
+                        .resolve(ResourceLocation.fromNamespaceAndPath("example_mod", "end_city"))
+                        .isEmpty());
+        assertTrue(
+                VanillaStructureLootResolver
+                        .resolve(ResourceLocation.fromNamespaceAndPath("minecraft", "unknown"))
+                        .isEmpty());
+    }
+
+    @Test
+    void virtualAnalysisIsNeverAnOriginalStructureFallback() {
+        assertFalse(
+                StructureAnalysisService.mayUseVirtualAnalysis(
+                        ResourceLocation.fromNamespaceAndPath("minecraft", "unknown")));
+        assertTrue(
+                StructureAnalysisService.mayUseVirtualAnalysis(
+                        ResourceLocation.fromNamespaceAndPath("example_mod", "unknown")));
     }
 
     private static StructureLoot structure(String id, List<ResourceLocation> roots) {

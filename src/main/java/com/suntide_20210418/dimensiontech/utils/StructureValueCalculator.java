@@ -16,7 +16,6 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackMe
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +34,12 @@ public final class StructureValueCalculator {
     }
 
     public static StructureValue calculate(ServerLevel level, MarkerInfo markerInfo, float luck) {
+        return calculate(level, markerInfo, luck, StructureLootAnalyzer.discoverForValue(level, markerInfo));
+    }
+
+    /** Calculates a value from a pre-discovered profile, used by detached catalogue analysis. */
+    public static StructureValue calculate(
+            ServerLevel level, MarkerInfo markerInfo, float luck, DiscoveryResult discovery) {
         double dimensionValue = ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension());
         List<Diagnostic> diagnostics = new ArrayList<>();
         if (!Float.isFinite(luck)) {
@@ -63,36 +68,35 @@ public final class StructureValueCalculator {
         StackMeasure measure = new StackMeasure();
         TerminalStackMeasure terminalMeasure = TerminalStackMeasure.empty();
         boolean fullStackMeasureAvailable = true;
-        DiscoveryResult discovery = StructureLootAnalyzer.discoverForValue(level, markerInfo);
         diagnostics.addAll(discovery.diagnostics());
         AnalysisStatus status = discovery.status();
-        List<ResourceLocation> roots = rootTablesForValue(discovery);
+        Map<ResourceLocation, ExactProbability> roots = rootTableWeightsForValue(discovery);
         LootAnalysisContext context = LootAnalysisContext.at(level, markerInfo.position(), luck);
         if (ModConfigs.STRUCTURE_VALUE.itemExpectationMethod() == ItemExpectationMethod.SAMPLING) {
             return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
         }
-        for (ResourceLocation root : roots) {
+        for (Map.Entry<ResourceLocation, ExactProbability> root : roots.entrySet()) {
             var result =
                     DistributionalLootTableExecutor1201.evaluate(
-                            level.getServer(), root, context, 1_000_000);
+                            level.getServer(), root.getKey(), context, 1_000_000);
             diagnostics.addAll(result.diagnostics());
             if (result.status() != AnalysisStatus.EXACT) {
                 status = AnalysisStatus.UNSUPPORTED;
                 break;
             }
-            terminalMeasure = terminalMeasure.plus(result.terminalMeasure());
+            terminalMeasure = terminalMeasure.plus(result.terminalMeasure().scale(root.getValue()));
             if (fullStackMeasureAvailable && result.fullStackMeasureAvailable()) {
-                measure.addAll(result.measure(), ExactProbability.ONE);
+                measure.addAll(result.measure(), root.getValue());
             } else if (!result.fullStackMeasureAvailable()) {
                 fullStackMeasureAvailable = false;
                 measure = new StackMeasure();
             }
         }
-        if (status != AnalysisStatus.EXACT) {
+        if (status != AnalysisStatus.EXACT && status != AnalysisStatus.APPROXIMATE) {
             return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
         }
         double structureValue = 0.0D;
-        if (status == AnalysisStatus.EXACT) {
+        if (status == AnalysisStatus.EXACT || status == AnalysisStatus.APPROXIMATE) {
             TerminalValueEvaluation valuation =
                     evaluateTerminalValue(
                             terminalMeasure,
@@ -110,7 +114,9 @@ public final class StructureValueCalculator {
         return new StructureValue(
                 status,
                 dimensionValue,
-                status == AnalysisStatus.EXACT ? structureValue : 0.0D,
+                (status == AnalysisStatus.EXACT || status == AnalysisStatus.APPROXIMATE)
+                        ? structureValue
+                        : 0.0D,
                 measure,
                 terminalMeasure,
                 fullStackMeasureAvailable,
@@ -124,7 +130,8 @@ public final class StructureValueCalculator {
             double dimensionValue,
             float luck,
             List<Diagnostic> diagnostics) {
-        if (discovery.status() != AnalysisStatus.EXACT) {
+        if (discovery.status() != AnalysisStatus.EXACT
+                && discovery.status() != AnalysisStatus.APPROXIMATE) {
             return new StructureValue(
                     AnalysisStatus.UNSUPPORTED,
                     dimensionValue,
@@ -135,12 +142,13 @@ public final class StructureValueCalculator {
         int samples = ModConfigs.STRUCTURE_VALUE.samplingCount();
         LinkedHashMap<Item, Long> counts = new LinkedHashMap<>();
         for (StructureLoot structure : discovery.structures()) {
-            for (ResourceLocation table : structure.lootTables()) {
+            for (Map.Entry<ResourceLocation, Integer> table : structure.occurrences().entrySet()) {
+                for (int occurrence = 0; occurrence < table.getValue(); occurrence++) {
                 List<ItemStack> outputs =
                         LootTableLottery.draw(
                                 level,
                                 net.minecraft.world.phys.Vec3.atCenterOf(markerInfo.position()),
-                                List.of(table),
+                                List.of(table.getKey()),
                                 null,
                                 luck,
                                 samples);
@@ -148,6 +156,7 @@ public final class StructureValueCalculator {
                     if (!stack.isEmpty() && stack.getCount() > 0) {
                         counts.merge(stack.getItem(), (long) stack.getCount(), Long::sum);
                     }
+                }
                 }
             }
         }
@@ -219,16 +228,39 @@ public final class StructureValueCalculator {
         }
     }
 
+    static Map<ResourceLocation, ExactProbability> rootTableWeightsForValue(
+            DiscoveryResult discovery) {
+        if (discovery.status() != AnalysisStatus.EXACT
+                && discovery.status() != AnalysisStatus.APPROXIMATE) {
+            return Map.of();
+        }
+        Map<ResourceLocation, ExactProbability> roots = new LinkedHashMap<>();
+        for (StructureLoot structure : discovery.structures()) {
+            structure.occurrences()
+                    .forEach(
+                            (table, occurrences) ->
+                                    roots.merge(
+                                            table,
+                                            ExactProbability.of(occurrences, 1)
+                                                    .multiply(discovery.occurrenceScale()),
+                                            ExactProbability::add));
+        }
+        return Map.copyOf(roots);
+    }
+
+    /** Compatibility projection for existing integrations that need one entry per occurrence. */
     static List<ResourceLocation> rootTablesForValue(DiscoveryResult discovery) {
-        if (discovery.status() != AnalysisStatus.EXACT) {
+        if (discovery.status() != AnalysisStatus.EXACT
+                && discovery.status() != AnalysisStatus.APPROXIMATE) {
             return List.of();
         }
         List<ResourceLocation> roots = new ArrayList<>();
         for (StructureLoot structure : discovery.structures()) {
-            new LinkedHashSet<>(structure.lootTables())
-                    .stream()
-                            .sorted(Comparator.comparing(ResourceLocation::toString))
-                            .forEach(roots::add);
+            structure.occurrences().entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey(Comparator.comparing(ResourceLocation::toString)))
+                    .forEach(entry -> {
+                        for (int count = 0; count < entry.getValue(); count++) roots.add(entry.getKey());
+                    });
         }
         return List.copyOf(roots);
     }

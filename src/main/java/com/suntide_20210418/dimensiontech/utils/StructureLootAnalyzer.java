@@ -7,6 +7,7 @@ import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -14,9 +15,10 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -29,6 +31,7 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 public final class StructureLootAnalyzer {
@@ -53,10 +56,11 @@ public final class StructureLootAnalyzer {
     public static DiscoveryResult discoverForValue(ServerLevel level, MarkerInfo markerInfo) {
         List<Diagnostic> diagnostics = new ArrayList<>();
         MarkedStructure marked = markerInfo.structure();
-        Set<ResourceLocation> roots = findLootTables(level.getServer(), marked.id());
-        if (roots.isEmpty()) {
-            roots = findLoadedContainerLootTables(level, marked.bounds());
-        }
+        Map<ResourceLocation, Integer> roots = new LinkedHashMap<>();
+        findLootTables(level.getServer(), marked.id())
+                .forEach(table -> roots.put(table, 1));
+        findLoadedContainerLootTables(level, marked.bounds())
+                .forEach((table, occurrences) -> roots.merge(table, occurrences, Integer::sum));
         if (roots.isEmpty()) {
             diagnostics.add(
                     new Diagnostic(
@@ -66,33 +70,34 @@ public final class StructureLootAnalyzer {
                                     + marked.id()));
             return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), diagnostics);
         }
-        LootTableItems items = resolveLootTableItems(level.getServer(), roots);
+        LootTableItems items = resolveLootTableItems(level.getServer(), roots.keySet());
         StructureLoot structure =
                 new StructureLoot(
                         marked.id(),
-                        sorted(roots),
+                        sorted(roots.keySet()),
                         sorted(items.items()),
-                        sorted(items.resolvedTables()));
+                        sorted(items.resolvedTables()),
+                        roots);
         return new DiscoveryResult(AnalysisStatus.EXACT, List.of(structure), List.of());
     }
 
-    private static Set<ResourceLocation> findLoadedContainerLootTables(
+    private static Map<ResourceLocation, Integer> findLoadedContainerLootTables(
             ServerLevel level, net.minecraft.world.level.levelgen.structure.BoundingBox bounds) {
-        Set<ResourceLocation> lootTables = new HashSet<>();
-        BlockPos.MutableBlockPos position = new BlockPos.MutableBlockPos();
-        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
-            for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
-                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
-                    position.set(x, y, z);
-                    if (!level.hasChunkAt(position)) continue;
-                    var blockEntity = level.getBlockEntity(position);
-                    if (blockEntity == null) continue;
-                    CompoundTag tag = blockEntity.saveWithoutMetadata();
-                    if (!tag.contains("LootTable", Tag.TAG_STRING)) continue;
-                    ResourceLocation lootTable =
-                            ResourceLocation.tryParse(tag.getString("LootTable"));
-                    if (lootTable != null) lootTables.add(lootTable);
-                }
+        Map<ResourceLocation, Integer> lootTables = new LinkedHashMap<>();
+        for (int chunkX = bounds.minX() >> 4; chunkX <= bounds.maxX() >> 4; chunkX++) {
+            for (int chunkZ = bounds.minZ() >> 4; chunkZ <= bounds.maxZ() >> 4; chunkZ++) {
+                LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+                chunk.getBlockEntities()
+                        .forEach(
+                                (position, blockEntity) -> {
+                                    if (bounds.isInside(position)) {
+                                        containerLootTable(blockEntity.saveWithoutMetadata())
+                                                .ifPresent(
+                                                        table ->
+                                                                lootTables.merge(
+                                                                        table, 1, Integer::sum));
+                                    }
+                                });
             }
         }
         return lootTables;
@@ -132,6 +137,74 @@ public final class StructureLootAnalyzer {
             }
         }
         return lootTables;
+    }
+
+    /**
+     * Discovers data-pack templates without touching a world chunk. Catalogue analysis starts from
+     * this safe baseline and supplements it with virtual sample observations when available.
+     */
+    public static DiscoveryResult discoverTemplateForValue(
+            ServerLevel level, ResourceLocation structureId, AnalysisStatus status, List<Diagnostic> diagnostics) {
+        Set<ResourceLocation> roots = findLootTables(level.getServer(), structureId);
+        if (roots.isEmpty()) {
+            List<Diagnostic> result = new ArrayList<>(diagnostics);
+            result.add(new Diagnostic("DISCOVERY_SEMANTICS", "No LootTable root was found in templates for structure " + structureId));
+            return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), result);
+        }
+        LootTableItems items = resolveLootTableItems(level.getServer(), roots);
+        Map<ResourceLocation, Integer> occurrences = new LinkedHashMap<>();
+        roots.forEach(root -> occurrences.put(root, 1));
+        return new DiscoveryResult(
+                status,
+                List.of(new StructureLoot(structureId, sorted(roots), sorted(items.items()), sorted(items.resolvedTables()), occurrences)),
+                diagnostics);
+    }
+
+    public static DiscoveryResult discoverVirtualForValue(
+            ServerLevel level,
+            ResourceLocation structureId,
+            Map<ResourceLocation, Integer> occurrences,
+            int sampleCount,
+            List<Diagnostic> diagnostics) {
+        if (occurrences.isEmpty()) {
+            List<Diagnostic> result = new ArrayList<>(diagnostics);
+            result.add(new Diagnostic("VIRTUAL_DISCOVERY", "No container LootTable was found in valid virtual samples for structure " + structureId));
+            return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), result);
+        }
+        LootTableItems items = resolveLootTableItems(level.getServer(), occurrences.keySet());
+        return new DiscoveryResult(
+                AnalysisStatus.APPROXIMATE,
+                List.of(new StructureLoot(structureId, sorted(occurrences.keySet()), sorted(items.items()), sorted(items.resolvedTables()), occurrences)),
+                diagnostics,
+                ExactProbability.of(1, Math.max(1, sampleCount)));
+    }
+
+    /** Builds an exact profile from a vanilla structure's fixed chest table locations. */
+    public static DiscoveryResult discoverFixedForValue(
+            ServerLevel level,
+            ResourceLocation structureId,
+            Collection<ResourceLocation> roots,
+            List<Diagnostic> diagnostics) {
+        if (roots.isEmpty()) {
+            return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), diagnostics);
+        }
+        Set<ResourceLocation> rootSet = new HashSet<>(roots);
+        LootTableItems items = resolveLootTableItems(level.getServer(), rootSet);
+        Map<ResourceLocation, Integer> occurrences = new LinkedHashMap<>();
+        rootSet.forEach(root -> occurrences.put(root, 1));
+        return new DiscoveryResult(
+                AnalysisStatus.EXACT,
+                List.of(new StructureLoot(structureId, sorted(rootSet), sorted(items.items()),
+                        sorted(items.resolvedTables()), occurrences)),
+                diagnostics);
+    }
+
+    /** Extracts the table assigned by structure generation to a container block entity. */
+    static Optional<ResourceLocation> containerLootTable(CompoundTag containerData) {
+        if (!containerData.contains("LootTable", Tag.TAG_STRING)) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(ResourceLocation.tryParse(containerData.getString("LootTable")));
     }
 
     private static void findStructureTemplates(
@@ -393,13 +466,42 @@ public final class StructureLootAnalyzer {
             ResourceLocation structure,
             List<ResourceLocation> lootTables,
             List<ResourceLocation> items,
-            List<ResourceLocation> resolvedTables) {}
+            List<ResourceLocation> resolvedTables,
+            Map<ResourceLocation, Integer> occurrences) {
+        public StructureLoot {
+            occurrences = Map.copyOf(occurrences);
+        }
+
+        /** Compatibility constructor for callers that only have distinct root tables. */
+        public StructureLoot(
+                ResourceLocation structure,
+                List<ResourceLocation> lootTables,
+                List<ResourceLocation> items,
+                List<ResourceLocation> resolvedTables) {
+            this(structure, lootTables, items, resolvedTables, unitOccurrences(lootTables));
+        }
+
+        private static Map<ResourceLocation, Integer> unitOccurrences(
+                List<ResourceLocation> lootTables) {
+            Map<ResourceLocation, Integer> result = new LinkedHashMap<>();
+            lootTables.forEach(table -> result.merge(table, 1, Integer::sum));
+            return result;
+        }
+    }
 
     public record DiscoveryResult(
-            AnalysisStatus status, List<StructureLoot> structures, List<Diagnostic> diagnostics) {
+            AnalysisStatus status,
+            List<StructureLoot> structures,
+            List<Diagnostic> diagnostics,
+            ExactProbability occurrenceScale) {
         public DiscoveryResult {
             structures = List.copyOf(structures);
             diagnostics = List.copyOf(diagnostics);
+        }
+
+        public DiscoveryResult(
+                AnalysisStatus status, List<StructureLoot> structures, List<Diagnostic> diagnostics) {
+            this(status, structures, diagnostics, ExactProbability.ONE);
         }
     }
 }

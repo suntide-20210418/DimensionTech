@@ -29,11 +29,12 @@ public final class ModConfigs {
         TIERS =
                 new MythicMinerTierConfig[] {
                     new MythicMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100000, 1024, 1.0D),
-                    new MythicMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 200000, 4096, 2.0D),
-                    new MythicMinerTierConfig(builder, "tier3", 5, 2.0D, 3, 400000, 16384, 3.0D),
-                    new MythicMinerTierConfig(builder, "tier4", 7, 4.0D, 4, 1600000, 65536, 4.0D),
-                    new MythicMinerTierConfig(builder, "tier5", 9, 8.0D, 6, 6400000, 262144, 5.0D),
-                    new MythicMinerTierConfig(builder, "tier6", 11, 16.0D, 9, 25600000, 1048576, 6.0D)
+                    new MythicMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 400000, 4096, 2.0D),
+                    new MythicMinerTierConfig(builder, "tier3", 5, 2.0D, 3, 1600000, 16384, 3.0D),
+                    new MythicMinerTierConfig(builder, "tier4", 7, 4.0D, 4, 6400000, 65536, 4.0D),
+                    new MythicMinerTierConfig(builder, "tier5", 9, 8.0D, 6, 25600000, 262144, 5.0D),
+                    new MythicMinerTierConfig(
+                            builder, "tier6", 11, 16.0D, 9, 102400000, 1048576, 6.0D)
                 };
         builder.pop();
         builder.comment("Mythic miner upgrade values by tier").push("mythicMinerUpgrades");
@@ -76,6 +77,8 @@ public final class ModConfigs {
         private final ForgeConfigSpec.DoubleValue epicMultiplier;
         private final ForgeConfigSpec.EnumValue<ItemExpectationMethod> itemExpectationMethod;
         private final ForgeConfigSpec.IntValue samplingCount;
+        private final ForgeConfigSpec.IntValue virtualStructureSamples;
+        private final ForgeConfigSpec.IntValue virtualStructureStepsPerTick;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionValues;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> itemMultipliers;
 
@@ -97,6 +100,12 @@ public final class ModConfigs {
             samplingCount =
                     builder.comment("Monte Carlo samples per loot table")
                             .defineInRange("samplingCount", 1000, 1, 1_000_000);
+            virtualStructureSamples =
+                    builder.comment("Detached structure-generation samples used by catalogue analysis")
+                            .defineInRange("virtualStructureSamples", 8, 1, 64);
+            virtualStructureStepsPerTick =
+                    builder.comment("Maximum catalogue-analysis work units processed each server tick")
+                            .defineInRange("virtualStructureStepsPerTick", 1, 1, 64);
             dimensionValues =
                     builder.comment(
                                     "Dimension value entries in dimension_id=value format",
@@ -205,6 +214,8 @@ public final class ModConfigs {
                     + "|"
                     + samplingCount.get()
                     + "|"
+                    + virtualStructureSamples.get()
+                    + "|"
                     + dimensionValues.get()
                     + "|"
                     + itemMultipliers.get();
@@ -216,6 +227,14 @@ public final class ModConfigs {
 
         public int samplingCount() {
             return samplingCount.get();
+        }
+
+        public int virtualStructureSamples() {
+            return virtualStructureSamples.get();
+        }
+
+        public int virtualStructureStepsPerTick() {
+            return virtualStructureStepsPerTick.get();
         }
 
         public double dimensionValue(ResourceLocation dimension) {
