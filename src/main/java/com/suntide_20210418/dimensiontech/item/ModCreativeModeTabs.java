@@ -24,17 +24,31 @@ public final class ModCreativeModeTabs {
                     ResourceLocationHelper.getPath(DIMENSION_TECH_TAB_ID),
                     () ->
                             CreativeModeTab.builder()
-                                    .icon(() -> new ItemStack(ModItems.STRUCT_MARKER.get()))
+                                    .icon(() -> new ItemStack(ModItems.STRUCTURE_MARKER.get()))
                                     .title(
                                             TranslateHelper.translate(
                                                     TranslateHelper.itemGroup("tab")))
                                     .displayItems(
                                             (parameters, output) -> {
-                                                output.accept(ModItems.STRUCT_MARKER.get());
+                                                output.accept(ModItems.STRUCTURE_MARKER.get());
                                                 output.accept(ModItems.ENCHANTMENT_MARK.get());
                                                 output.accept(
                                                         ModItems.DIMENSION_DECONSTRUCTION_CORE
                                                                 .get());
+                                                output.accept(ModItems.DATA_INTEGRATOR.get());
+                                                output.accept(ModItems.STRUCTURE_INTERPRETER.get());
+                                                output.accept(ModItems.STRUCTURE_DATA_OPERATOR.get());
+                                                output.accept(ModItems.MYTHIC_ESSENCE_BUCKET.get());
+                                                output.accept(
+                                                        ModItems.SURGING_MYTHIC_ESSENCE_BUCKET
+                                                                .get());
+                                                output.accept(
+                                                        ModItems.RECURSIVE_ESSENCE_BUCKET.get());
+                                                output.accept(
+                                                        ModItems.SURGING_RECURSIVE_ESSENCE_BUCKET
+                                                                .get());
+                                                output.accept(
+                                                        ModItems.FRACTAL_ESSENCE_BUCKET.get());
                                                 output.accept(ModItems.TIER_1_MYTHIC_MINER.get());
                                                 output.accept(ModItems.TIER_2_MYTHIC_MINER.get());
                                                 output.accept(ModItems.TIER_3_MYTHIC_MINER.get());

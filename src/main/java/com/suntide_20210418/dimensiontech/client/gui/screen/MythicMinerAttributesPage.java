@@ -362,10 +362,7 @@ final class MythicMinerAttributesPage {
                     default -> Items.STONE;
                 };
         g.renderItem(new ItemStack(icon), x, y);
-        String typeName =
-                Component.translatable(
-                                upgradeTranslationKey(type, tier))
-                        .getString();
+        String typeName = Component.translatable(upgradeTranslationKey(type, tier)).getString();
         boolean expanded = c.upgradeRowExpanded(key(type, tier));
         g.drawString(
                 c.font(), typeName + "  x" + count, x + 20, y + 3, MythicMinerScreen.TEXT, false);
@@ -486,8 +483,7 @@ final class MythicMinerAttributesPage {
         for (MythicMinerUpgradeBlock.Type type : TYPES) {
             for (int tier = 1; tier <= 6; tier++) {
                 if (c.menu().getUpgradeCount(type, tier) <= 0) continue;
-                if (inside(x, y, X + 8, rowY, c.imageWidth() - 72, 20))
-                    return key(type, tier);
+                if (inside(x, y, X + 8, rowY, c.imageWidth() - 72, 20)) return key(type, tier);
                 rowY += rowHeight(c, type, tier);
             }
         }
@@ -512,8 +508,7 @@ final class MythicMinerAttributesPage {
 
     private static String upgradeTranslationKey(MythicMinerUpgradeBlock.Type type, int tier) {
         String key =
-                "block.dimension_tech.mythic_miner_upgrade_"
-                        + type.name().toLowerCase(Locale.ROOT);
+                "block.dimension_tech.mythic_miner_upgrade_" + type.name().toLowerCase(Locale.ROOT);
         return tier == 1 ? key : key + "_tier_" + tier;
     }
 

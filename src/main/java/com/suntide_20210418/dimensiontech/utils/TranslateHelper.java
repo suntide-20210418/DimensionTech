@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Objects;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * 翻译助手工具类 提供统一的翻译、格式化和本地化功能
@@ -65,6 +66,40 @@ public final class TranslateHelper {
     public static String modKey(String name) {
         Objects.requireNonNull(name, "name");
         return DimensionTechMod.MOD_ID + "." + normalize(name);
+    }
+
+    /** Returns a localized dimension name, with a readable identifier as the fallback. */
+    public static MutableComponent dimensionName(ResourceLocation id) {
+        return namedRegistryEntry("dimension", id);
+    }
+
+    /** Returns a localized structure name, with a readable identifier as the fallback. */
+    public static MutableComponent structureName(ResourceLocation id) {
+        return namedRegistryEntry("structure", id);
+    }
+
+    private static MutableComponent namedRegistryEntry(String type, ResourceLocation id) {
+        Objects.requireNonNull(id, "id");
+        return Component.translatableWithFallback(
+                DimensionTechMod.MOD_ID
+                        + "."
+                        + type
+                        + "."
+                        + id.getNamespace()
+                        + "."
+                        + id.getPath().replace('/', '.'),
+                readableResourcePath(id.getPath()));
+    }
+
+    private static String readableResourcePath(String path) {
+        String[] words = path.replace('/', '_').split("_");
+        StringBuilder result = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (!result.isEmpty()) result.append(' ');
+            result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return result.isEmpty() ? path : result.toString();
     }
 
     private static String normalize(String value) {

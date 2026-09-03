@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerLayout;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerGeometry;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
+import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerGeometry;
+import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerLayout;
+import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import java.util.ArrayList;
@@ -240,8 +240,9 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     public MythicMinerScreen(MythicMinerMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        geometry = MythicMinerGeometry.forMenu(
-                menu.getContainerSlotCount(), menu.hasFluidInput(), menu.getMenuWidth());
+        geometry =
+                MythicMinerGeometry.forMenu(
+                        menu.getContainerSlotCount(), menu.hasFluidInput(), menu.getMenuWidth());
         imageWidth = menu.getMenuWidth();
         imageHeight = geometry.frame().height();
         inventoryLabelY = menu.getPlayerInventoryY() - 13;
@@ -266,7 +267,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         if (uiState.page == Page.INFO
                 && uiState.selectedMarkerSlot >= 0
                 && uiState.analysisSlot == uiState.selectedMarkerSlot
-                && uiState.analysis.equipmentDismantling() != menu.isEquipmentDismantlingEnabled()) {
+                && uiState.analysis.equipmentDismantling()
+                        != menu.isEquipmentDismantlingEnabled()) {
             clearEffectiveAnalysis();
             ModNetwork.requestMythicMinerAnalysis(menu.containerId, uiState.selectedMarkerSlot);
         }
@@ -303,6 +305,11 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     RED);
         }
         graphics.pose().popPose();
+
+        // AbstractContainerScreen tracks hovered slots while rendering under the
+        // logical UI scale. Re-render the item tooltip in screen coordinates so
+        // inventory hover information remains visible at every scale.
+        renderInventoryItemTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
 
         if (uiState.page == Page.WORK) {
             MythicMinerWorkPage.renderTooltip(
@@ -343,6 +350,23 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     Optional.empty(),
                     mouseX,
                     mouseY);
+        }
+    }
+
+    private void renderInventoryItemTooltip(
+            GuiGraphics graphics, int logicalMouseX, int logicalMouseY, int screenX, int screenY) {
+        if (uiState.page != Page.WORK) return;
+        for (net.minecraft.world.inventory.Slot slot : menu.slots) {
+            if (!slot.hasItem()
+                    || !inside(
+                            logicalMouseX,
+                            logicalMouseY,
+                            leftPos + slot.x,
+                            topPos + slot.y,
+                            16,
+                            16)) continue;
+            graphics.renderTooltip(font, slot.getItem(), screenX, screenY);
+            return;
         }
     }
 
@@ -473,11 +497,6 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     private void drawHeader(GuiGraphics graphics) {
         graphics.drawString(font, title, 8, 18, TEXT, false);
-        if (menu.hasFluidInput()) {
-            int state = menu.hasFluid() ? CYAN : AMBER;
-            graphics.fill(imageWidth - 14, 16, imageWidth - 8, 22, state);
-            graphics.fill(imageWidth - 13, 17, imageWidth - 9, 21, PANEL_INSET);
-        }
         int tabWidth = imageWidth / 3;
         String[] labels = {
             "screen.dimension_tech.mythic_miner.tab.work",
@@ -488,8 +507,14 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         for (int index = 0; index < pages.length; index++) {
             int x = index * tabWidth;
             boolean selected = uiState.page == pages[index];
-            MythicMinerTheme.tab(graphics, font, x + 2, TAB_Y, tabWidth - 4,
-                    Component.translatable(labels[index]), selected);
+            MythicMinerTheme.tab(
+                    graphics,
+                    font,
+                    x + 2,
+                    TAB_Y,
+                    tabWidth - 4,
+                    Component.translatable(labels[index]),
+                    selected);
         }
     }
 
@@ -500,7 +525,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int width = panel.width();
         int height = panel.height();
         MythicMinerTheme.panel(graphics, x, y, width, height, CYAN_DARK);
-        Component fluidTitle = Component.translatable("screen.dimension_tech.mythic_miner.fluid_input");
+        Component fluidTitle =
+                Component.translatable("screen.dimension_tech.mythic_miner.fluid_input");
         graphics.drawCenteredString(
                 font,
                 font.plainSubstrByWidth(fluidTitle.getString(), Math.max(1, width - 4)),
@@ -520,16 +546,24 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int filled = tankH * amount / capacity;
         net.minecraft.world.level.material.Fluid displayedFluid =
                 menu.hasFluid() ? menu.getFluid() : menu.getRequiredFluid();
-        int color = displayedFluid == null || displayedFluid == Fluids.EMPTY
-                ? MythicMinerTheme.FLUID
-                : IClientFluidTypeExtensions.of(displayedFluid).getTintColor();
+        int color =
+                displayedFluid == null || displayedFluid == Fluids.EMPTY
+                        ? MythicMinerTheme.FLUID
+                        : IClientFluidTypeExtensions.of(displayedFluid).getTintColor();
         if (!menu.hasFluid()) color = (color & 0x00FFFFFF) | 0x66000000;
         graphics.fill(tankX + 2, tankY + tankH - 2 - filled, tankX + 16, tankY + tankH - 2, color);
-        graphics.fill(tankX + 2, tankY + tankH - 2 - filled, tankX + 16,
-                tankY + tankH - 1 - filled, MythicMinerTheme.SLOT_HIGHLIGHT);
-        graphics.drawCenteredString(font,
+        graphics.fill(
+                tankX + 2,
+                tankY + tankH - 2 - filled,
+                tankX + 16,
+                tankY + tankH - 1 - filled,
+                MythicMinerTheme.SLOT_HIGHLIGHT);
+        graphics.drawCenteredString(
+                font,
                 Component.literal(amount + "/" + capacity + " mB"),
-                x + width / 2, y + height - 14, TEXT);
+                x + width / 2,
+                y + height - 14,
+                TEXT);
         int controlsY = y + MythicMinerLayout.FLUID_CONTROLS_OFFSET_Y;
         drawFluidButton(graphics, x + 5, controlsY, 16, "F", CYAN);
         drawFluidButton(
@@ -543,8 +577,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     private void drawFluidButton(
             GuiGraphics graphics, int x, int y, int size, String label, int accent) {
-        MythicMinerTheme.button(graphics, font, x, y, size, size,
-                Component.literal(label), false, true, accent);
+        MythicMinerTheme.button(
+                graphics, font, x, y, size, size, Component.literal(label), false, true, accent);
     }
 
     private boolean mouseClickedFluidControls(double x, double y) {
@@ -553,7 +587,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int panelX = panel.x();
         int buttonY = panel.y() + MythicMinerLayout.FLUID_CONTROLS_OFFSET_Y;
         if (inside(x, y, panelX + 5, buttonY, 16, 16)) {
-            Minecraft.getInstance().setScreen(new OutputFaceScreen(this, menu, OutputFaceScreen.Mode.FLUID));
+            Minecraft.getInstance()
+                    .setScreen(new OutputFaceScreen(this, menu, OutputFaceScreen.Mode.FLUID));
             return true;
         }
         if (inside(x, y, panelX + 27, buttonY, 16, 16)) {
@@ -563,7 +598,8 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         return false;
     }
 
-    private void renderFluidTooltip(GuiGraphics graphics, int logicalX, int logicalY, int screenX, int screenY) {
+    private void renderFluidTooltip(
+            GuiGraphics graphics, int logicalX, int logicalY, int screenX, int screenY) {
         if (!menu.hasFluidInput()) return;
         MythicMinerGeometry.Rect panel = geometry.fluidPanel();
         int localX = logicalX - leftPos;
@@ -572,38 +608,51 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         int buttonY = panel.y() + MythicMinerLayout.FLUID_CONTROLS_OFFSET_Y;
         net.minecraft.world.level.material.Fluid displayedFluid =
                 menu.hasFluid() ? menu.getFluid() : menu.getRequiredFluid();
-        Component fluidName = displayedFluid != null && displayedFluid != Fluids.EMPTY
-                ? Component.translatable(displayedFluid.getFluidType().getDescriptionId())
-                : Component.translatable("screen.dimension_tech.mythic_miner.fluid_empty");
+        Component fluidName =
+                displayedFluid != null && displayedFluid != Fluids.EMPTY
+                        ? Component.translatable(displayedFluid.getFluidType().getDescriptionId())
+                        : Component.translatable("screen.dimension_tech.mythic_miner.fluid_empty");
         if (inside(localX, localY, panel.x() + 5, buttonY, 16, 16)) {
-            graphics.renderTooltip(font,
+            graphics.renderTooltip(
+                    font,
                     Component.translatable("screen.dimension_tech.mythic_miner.fluid_faces"),
-                    screenX, screenY);
+                    screenX,
+                    screenY);
             return;
         }
         if (inside(localX, localY, panel.x() + 27, buttonY, 16, 16)) {
-            graphics.renderTooltip(font,
+            graphics.renderTooltip(
+                    font,
                     Component.translatable(
                             menu.isAutoExtractFluidEnabled()
                                     ? "screen.dimension_tech.mythic_miner.auto_extract_enabled"
                                     : "screen.dimension_tech.mythic_miner.auto_extract_disabled"),
-                    screenX, screenY);
+                    screenX,
+                    screenY);
             return;
         }
-        graphics.renderTooltip(font, List.of(
-                Component.translatable("screen.dimension_tech.mythic_miner.fluid_input"),
-                fluidName,
-                Component.translatable("screen.dimension_tech.mythic_miner.fluid_amount",
-                        menu.getFluidAmount(), menu.getFluidCapacity()),
-                Component.translatable(
-                        "screen.dimension_tech.mythic_miner.fluid_required",
-                        BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
-                Component.translatable("screen.dimension_tech.mythic_miner.fluid_required_type"),
-                Component.translatable(
-                        menu.getFluidAmount() >= BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB
-                                ? "screen.dimension_tech.mythic_miner.fluid_status"
-                                : "screen.dimension_tech.mythic_miner.fluid_insufficient")),
-                Optional.empty(), screenX, screenY);
+        graphics.renderTooltip(
+                font,
+                List.of(
+                        Component.translatable("screen.dimension_tech.mythic_miner.fluid_input"),
+                        fluidName,
+                        Component.translatable(
+                                "screen.dimension_tech.mythic_miner.fluid_amount",
+                                menu.getFluidAmount(),
+                                menu.getFluidCapacity()),
+                        Component.translatable(
+                                "screen.dimension_tech.mythic_miner.fluid_required",
+                                BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
+                        Component.translatable(
+                                "screen.dimension_tech.mythic_miner.fluid_required_type"),
+                        Component.translatable(
+                                menu.getFluidAmount()
+                                                >= BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB
+                                        ? "screen.dimension_tech.mythic_miner.fluid_status"
+                                        : "screen.dimension_tech.mythic_miner.fluid_insufficient")),
+                Optional.empty(),
+                screenX,
+                screenY);
     }
 
     private void clearEffectiveAnalysis() {
@@ -654,8 +703,13 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                                 row -> BuiltInRegistries.ITEM.getKey(row.item()).toString()));
         expectedItemRows = List.copyOf(refreshed);
         disabledExpectedItems = Set.copyOf(disabledItems);
-        uiState.analysis = new com.suntide_20210418.dimensiontech.block.entity.MythicMinerAnalysisSnapshot(
-                dimensionValue, structureValue, equipmentDismantling, itemExpectations, disabledItems);
+        uiState.analysis =
+                new com.suntide_20210418.dimensiontech.block.entity.MythicMinerAnalysisSnapshot(
+                        dimensionValue,
+                        structureValue,
+                        equipmentDismantling,
+                        itemExpectations,
+                        disabledItems);
         uiState.analysisSlot = slot;
     }
 
@@ -684,12 +738,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
         // Match AE2's striped vertical meter: draw the grey base first, then the purple fill.
         graphics.fill(x - 1, y - 1, x + stripeWidth + 3, y + ENERGY_HEIGHT + 1, RULE);
-        graphics.fill(
-                x,
-                y,
-                x + stripeWidth + 2,
-                y + ENERGY_HEIGHT,
-                MythicMinerTheme.ENERGY_BORDER);
+        graphics.fill(x, y, x + stripeWidth + 2, y + ENERGY_HEIGHT, MythicMinerTheme.ENERGY_BORDER);
         for (int row = 0; row < stripeHeight; row++) {
             boolean brightRow = (row & 1) == 0;
             int rowY = stripeY + row;

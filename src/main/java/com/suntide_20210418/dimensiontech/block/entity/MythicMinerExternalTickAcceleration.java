@@ -46,9 +46,10 @@ final class MythicMinerExternalTickAcceleration {
         long completedActualTicks = 0L;
         if (targetReached && naturalTicks >= MINIMUM_NATURAL_TICKS) {
             complete = true;
-            completedParallel = externalParallelEligible
-                    ? extraParallelForRatio(actualTicks, effectiveCycleTicks)
-                    : 0;
+            completedParallel =
+                    externalParallelEligible
+                            ? extraParallelForRatio(actualTicks, effectiveCycleTicks)
+                            : 0;
         } else if (reachedCycleTicks && naturalTicks >= MINIMUM_NATURAL_TICKS) {
             complete = true;
         }
@@ -68,33 +69,63 @@ final class MythicMinerExternalTickAcceleration {
                 naturalTicks, actualTicks, complete, completedParallel, completedActualTicks);
     }
 
-    long currentActualTicks() { return actualTicks; }
-    long currentNaturalTicks() { return naturalTicks; }
-    long currentCycleNaturalTicks() { return naturalTicks; }
+    long currentActualTicks() {
+        return actualTicks;
+    }
+
+    long currentNaturalTicks() {
+        return naturalTicks;
+    }
+
+    long currentCycleNaturalTicks() {
+        return naturalTicks;
+    }
+
     boolean waitingForNaturalWindow() {
         return targetReached && naturalTicks < MINIMUM_NATURAL_TICKS;
     }
-    long currentEquivalentAccelerationTicks() { return equivalentAccelerationTicks; }
+
+    long currentEquivalentAccelerationTicks() {
+        return equivalentAccelerationTicks;
+    }
+
     double currentCycleEquivalentAcceleration() {
         return naturalTicks <= 0L ? 0.0D : actualTicks / (double) naturalTicks;
     }
-    int settledExtraParallelHundredths() { return settledExtraParallelHundredths; }
+
+    int settledExtraParallelHundredths() {
+        return settledExtraParallelHundredths;
+    }
 
     int currentExtraParallelHundredths() {
-        return targetReached && externalParallelEligible && naturalTicks > 0L
+        return targetReached
+                        && externalParallelEligible
+                        && naturalTicks > 0L
                         && naturalTicks < MINIMUM_NATURAL_TICKS
                 ? extraParallelForRatio(actualTicks, currentCycleTicks)
                 : 0;
     }
 
-    long previousActualTicks() { return previousActualTicks; }
-    int previousExtraParallelHundredths() { return previousExtraParallelHundredths; }
+    long previousActualTicks() {
+        return previousActualTicks;
+    }
+
+    int previousExtraParallelHundredths() {
+        return previousExtraParallelHundredths;
+    }
 
     State save() {
-        return new State(lastGameTime, actualTicks, naturalTicks, actualTicksAtNaturalTickStart,
-                equivalentAccelerationTicks, targetReached,
-                settledExtraParallelHundredths, previousActualTicks,
-                previousExtraParallelHundredths, externalParallelEligible);
+        return new State(
+                lastGameTime,
+                actualTicks,
+                naturalTicks,
+                actualTicksAtNaturalTickStart,
+                equivalentAccelerationTicks,
+                targetReached,
+                settledExtraParallelHundredths,
+                previousActualTicks,
+                previousExtraParallelHundredths,
+                externalParallelEligible);
     }
 
     void load(State state) {
@@ -112,8 +143,8 @@ final class MythicMinerExternalTickAcceleration {
 
     private static int extraParallelForRatio(long actualTicks, long naturalTicks) {
         if (actualTicks <= 0L || naturalTicks <= 0L) return 0;
-        double extraParallel = Math.sqrt(Math.max(0.0D,
-                actualTicks / (double) naturalTicks - 1.0D));
+        double extraParallel =
+                Math.sqrt(Math.max(0.0D, actualTicks / (double) naturalTicks - 1.0D));
         return (int) Math.min(Integer.MAX_VALUE, Math.floor(extraParallel * 100.0D));
     }
 
@@ -125,9 +156,7 @@ final class MythicMinerExternalTickAcceleration {
     private static long correctedNaturalInterval(long calls) {
         if (calls <= 0L) return 0L;
         if (calls == 1L) return 1L;
-        return calls > Long.MAX_VALUE / 2L + 1L
-                ? Long.MAX_VALUE
-                : calls * 2L - 2L;
+        return calls > Long.MAX_VALUE / 2L + 1L ? Long.MAX_VALUE : calls * 2L - 2L;
     }
 
     private static long saturatedAdd(long left, long right) {
@@ -135,12 +164,22 @@ final class MythicMinerExternalTickAcceleration {
         return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
     }
 
-    record Observation(long logicalProgressTicks, long actualProgressTicks, boolean complete,
-            int completedParallel, long completedActualTicks) {}
+    record Observation(
+            long logicalProgressTicks,
+            long actualProgressTicks,
+            boolean complete,
+            int completedParallel,
+            long completedActualTicks) {}
 
-    record State(long lastGameTime, long actualTicks, long naturalTicks,
-            long actualTicksAtNaturalTickStart, long equivalentAccelerationTicks,
+    record State(
+            long lastGameTime,
+            long actualTicks,
+            long naturalTicks,
+            long actualTicksAtNaturalTickStart,
+            long equivalentAccelerationTicks,
             boolean targetReached,
-            int settledExtraParallelHundredths, long previousActualTicks,
-            int previousExtraParallelHundredths, boolean externalParallelEligible) {}
+            int settledExtraParallelHundredths,
+            long previousActualTicks,
+            int previousExtraParallelHundredths,
+            boolean externalParallelEligible) {}
 }

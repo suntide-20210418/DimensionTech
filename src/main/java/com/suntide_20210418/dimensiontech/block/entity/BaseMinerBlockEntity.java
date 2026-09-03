@@ -127,20 +127,21 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         java.util.Arrays.fill(this.slotEnabled, true);
         java.util.Arrays.fill(this.fluidFaceModes, FluidFaceMode.INPUT);
         this.energyStorage = new MinerEnergyStorage(getEnergyCapacity());
-        this.fluidTank = new FluidTank(1000) {
-            @Override
-            public boolean isFluidValid(FluidStack stack) {
-                Fluid required = ModFluids.forMinerTier(getMinerTier());
-                return requiresFluidInput()
-                        && required != null
-                        && stack.getFluid().getFluidType() == required.getFluidType();
-            }
+        this.fluidTank =
+                new FluidTank(1000) {
+                    @Override
+                    public boolean isFluidValid(FluidStack stack) {
+                        Fluid required = ModFluids.forMinerTier(getMinerTier());
+                        return requiresFluidInput()
+                                && required != null
+                                && stack.getFluid().getFluidType() == required.getFluidType();
+                    }
 
-            @Override
-            protected void onContentsChanged() {
-                setChanged();
-            }
-        };
+                    @Override
+                    protected void onContentsChanged() {
+                        setChanged();
+                    }
+                };
         this.itemHandlerCapability = LazyOptional.of(() -> itemHandler);
         this.energyCapability = LazyOptional.of(() -> energyStorage);
         this.fluidCapability = LazyOptional.of(this::createFluidInputHandler);
@@ -170,8 +171,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public void cycleFluidFace(Direction logicalDirection) {
         Direction worldDirection = toWorldDirection(logicalDirection);
         fluidFaceModes[worldDirection.ordinal()] =
-                FluidFaceMode.values()[(fluidFaceModes[worldDirection.ordinal()].ordinal() + 1)
-                        % FluidFaceMode.values().length];
+                FluidFaceMode.values()[
+                        (fluidFaceModes[worldDirection.ordinal()].ordinal() + 1)
+                                % FluidFaceMode.values().length];
         setChanged();
     }
 
@@ -799,7 +801,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private boolean hasValidMarker() {
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             ItemStack marker = itemHandler.getStackInSlot(slot);
-            if (marker.is(ModItems.STRUCT_MARKER.get())
+            if (marker.is(ModItems.STRUCTURE_MARKER.get())
                     && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
                 return true;
             }
@@ -924,7 +926,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         List<CachedMarkerLoot> refreshedCache = new ArrayList<>();
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             ItemStack marker = itemHandler.getStackInSlot(slot);
-            if (!marker.is(ModItems.STRUCT_MARKER.get())) {
+            if (!marker.is(ModItems.STRUCTURE_MARKER.get())) {
                 resetSlotState(slot);
                 continue;
             }
@@ -1137,18 +1139,22 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             }
             if (AE2_LOADED && Ae2Integration.isOnlineInterface(adjacent)) {
                 if (configuredOutputState == OutputState.ME_NETWORK) {
-                    remaining -= Ae2Integration.extractFluidFromInterfaceNetwork(
-                            adjacent, required, remaining, fluidTank);
+                    remaining -=
+                            Ae2Integration.extractFluidFromInterfaceNetwork(
+                                    adjacent, required, remaining, fluidTank);
                 }
                 continue;
             }
-            IFluidHandler handler = adjacent
-                    .getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite())
-                    .orElse(null);
+            IFluidHandler handler =
+                    adjacent.getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite())
+                            .orElse(null);
             if (handler == null) {
                 continue;
             }
-            FluidStack simulated = handler.drain(new FluidStack(required, remaining), IFluidHandler.FluidAction.SIMULATE);
+            FluidStack simulated =
+                    handler.drain(
+                            new FluidStack(required, remaining),
+                            IFluidHandler.FluidAction.SIMULATE);
             int accepted = fluidTank.fill(simulated, IFluidHandler.FluidAction.SIMULATE);
             if (accepted > 0) {
                 FluidStack drained = handler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
@@ -1165,25 +1171,79 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private IFluidHandler createFluidInputHandler() {
         return new IFluidHandler() {
-            @Override public int getTanks() { return fluidTank.getTanks(); }
-            @Override public FluidStack getFluidInTank(int tank) { return fluidTank.getFluidInTank(tank); }
-            @Override public int getTankCapacity(int tank) { return fluidTank.getTankCapacity(tank); }
-            @Override public boolean isFluidValid(int tank, FluidStack stack) { return fluidTank.isFluidValid(tank, stack); }
-            @Override public int fill(FluidStack stack, FluidAction action) { return fluidTank.fill(stack, action); }
-            @Override public FluidStack drain(FluidStack stack, FluidAction action) { return FluidStack.EMPTY; }
-            @Override public FluidStack drain(int amount, FluidAction action) { return FluidStack.EMPTY; }
+            @Override
+            public int getTanks() {
+                return fluidTank.getTanks();
+            }
+
+            @Override
+            public FluidStack getFluidInTank(int tank) {
+                return fluidTank.getFluidInTank(tank);
+            }
+
+            @Override
+            public int getTankCapacity(int tank) {
+                return fluidTank.getTankCapacity(tank);
+            }
+
+            @Override
+            public boolean isFluidValid(int tank, FluidStack stack) {
+                return fluidTank.isFluidValid(tank, stack);
+            }
+
+            @Override
+            public int fill(FluidStack stack, FluidAction action) {
+                return fluidTank.fill(stack, action);
+            }
+
+            @Override
+            public FluidStack drain(FluidStack stack, FluidAction action) {
+                return FluidStack.EMPTY;
+            }
+
+            @Override
+            public FluidStack drain(int amount, FluidAction action) {
+                return FluidStack.EMPTY;
+            }
         };
     }
 
     private IFluidHandler createFluidOutputHandler() {
         return new IFluidHandler() {
-            @Override public int getTanks() { return fluidTank.getTanks(); }
-            @Override public FluidStack getFluidInTank(int tank) { return fluidTank.getFluidInTank(tank); }
-            @Override public int getTankCapacity(int tank) { return fluidTank.getTankCapacity(tank); }
-            @Override public boolean isFluidValid(int tank, FluidStack stack) { return false; }
-            @Override public int fill(FluidStack stack, FluidAction action) { return 0; }
-            @Override public FluidStack drain(FluidStack stack, FluidAction action) { return fluidTank.drain(stack, action); }
-            @Override public FluidStack drain(int amount, FluidAction action) { return fluidTank.drain(amount, action); }
+            @Override
+            public int getTanks() {
+                return fluidTank.getTanks();
+            }
+
+            @Override
+            public FluidStack getFluidInTank(int tank) {
+                return fluidTank.getFluidInTank(tank);
+            }
+
+            @Override
+            public int getTankCapacity(int tank) {
+                return fluidTank.getTankCapacity(tank);
+            }
+
+            @Override
+            public boolean isFluidValid(int tank, FluidStack stack) {
+                return false;
+            }
+
+            @Override
+            public int fill(FluidStack stack, FluidAction action) {
+                return 0;
+            }
+
+            @Override
+            public FluidStack drain(FluidStack stack, FluidAction action) {
+                return fluidTank.drain(stack, action);
+            }
+
+            @Override
+            public FluidStack drain(int amount, FluidAction action) {
+                return fluidTank.drain(amount, action);
+            }
         };
     }
 
@@ -1330,14 +1390,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return new ItemStackHandler(slotCount) {
             @Override
             public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-                return stack.is(ModItems.STRUCT_MARKER.get());
+                return stack.is(ModItems.STRUCTURE_MARKER.get());
             }
 
             @Override
             protected void onContentsChanged(int slot) {
                 analyzedMarkerSnapshot = null;
                 ItemStack marker = getStackInSlot(slot);
-                if (!marker.is(ModItems.STRUCT_MARKER.get())
+                if (!marker.is(ModItems.STRUCTURE_MARKER.get())
                         || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
                     resetSlotState(slot);
                 }
@@ -1518,8 +1578,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                     !tag.contains("FluidFaceModes", Tag.TAG_INT)
                             ? FluidFaceMode.INPUT
                             : ordinal < FluidFaceMode.values().length
-                            ? FluidFaceMode.values()[ordinal]
-                            : FluidFaceMode.DISABLED;
+                                    ? FluidFaceMode.values()[ordinal]
+                                    : FluidFaceMode.DISABLED;
         }
         autoExtractFluid = requiresFluidInput() && tag.getBoolean("AutoExtractFluid");
         equipmentDismantling = tag.getBoolean(EQUIPMENT_DISMANTLING_TAG);

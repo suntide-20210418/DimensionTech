@@ -3,11 +3,11 @@ package com.suntide_20210418.dimensiontech.integration.jade;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity.OutputState;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -90,8 +90,7 @@ public enum MythicMinerJadeProvider
                     SLOT_EXTERNAL_EQUIVALENT,
                     miner.getSlotExternalEquivalentAccelerationTicks(slot));
             slotTag.putLong(
-                    SLOT_ACTUAL_TICKS,
-                    miner.getSlotCurrentExternalAccelerationMachineTicks(slot));
+                    SLOT_ACTUAL_TICKS, miner.getSlotCurrentExternalAccelerationMachineTicks(slot));
             slotTag.putLong(
                     SLOT_PREVIOUS_TICKS,
                     miner.getSlotPreviousExternalAccelerationMachineTicks(slot));
@@ -127,11 +126,23 @@ public enum MythicMinerJadeProvider
         IThemeHelper theme = IThemeHelper.get();
         tooltip.add(line("status", themedStatus(theme, status)));
         tooltip.add(Component.empty());
-        tooltip.add(line("base_parameters", theme.info(Component.translatable("jade.dimension_tech.parameters"))));
-        tooltip.add(line("efficiency", Component.literal(formatDecimal(data.getDouble(BASE_EFFICIENCY)))));
+        tooltip.add(
+                line(
+                        "base_parameters",
+                        theme.info(Component.translatable("jade.dimension_tech.parameters"))));
+        tooltip.add(
+                line(
+                        "efficiency",
+                        Component.literal(formatDecimal(data.getDouble(BASE_EFFICIENCY)))));
         tooltip.add(line("capacity", Component.literal(data.getInt(BASE_CAPACITY) + " FE")));
-        tooltip.add(line("base_consumption", Component.literal(data.getInt(BASE_CONSUMPTION) + " FE/t")));
-        tooltip.add(line("base_parallel", Component.literal(Integer.toString(data.getInt(BASE_PARALLEL)))));
+        tooltip.add(
+                line(
+                        "base_consumption",
+                        Component.literal(data.getInt(BASE_CONSUMPTION) + " FE/t")));
+        tooltip.add(
+                line(
+                        "base_parallel",
+                        Component.literal(Integer.toString(data.getInt(BASE_PARALLEL)))));
         tooltip.add(line("luck", Component.literal(formatDecimal(data.getFloat(BASE_LUCK)))));
         tooltip.add(
                 Component.translatable(
@@ -151,9 +162,7 @@ public enum MythicMinerJadeProvider
             boolean waiting = slot.getBoolean(SLOT_WAITING);
             if (waiting) processing = 400;
             int progress =
-                    (int) Math.max(
-                            0L,
-                            Math.min((long) processing, slot.getLong(SLOT_PROGRESS)));
+                    (int) Math.max(0L, Math.min((long) processing, slot.getLong(SLOT_PROGRESS)));
             addProgressBar(tooltip, progress, processing, theme);
             tooltip.add(
                     line(
@@ -167,24 +176,48 @@ public enum MythicMinerJadeProvider
                 tooltip.add(
                         line(
                                 "waiting_for_natural_window",
-                                theme.info(Component.translatable(
-                                        "jade.dimension_tech.waiting_for_natural_window"))));
+                                theme.info(
+                                        Component.translatable(
+                                                "jade.dimension_tech.waiting_for_natural_window"))));
             }
             tooltip.add(
                     line(
                             "slot_parallel",
-                            theme.info(Component.literal(Integer.toString(slot.getInt(SLOT_PARALLEL))))));
+                            theme.info(
+                                    Component.literal(
+                                            Integer.toString(slot.getInt(SLOT_PARALLEL))))));
             boolean externalActive =
                     slot.getLong(SLOT_ACTUAL_TICKS) != slot.getLong(SLOT_NATURAL_TICKS);
             if (externalActive) {
-                tooltip.add(line("external_parallel", theme.info(Component.literal(
-                        formatDecimal(slot.getInt(SLOT_EXTERNAL_PARALLEL) / 100.0D)))));
-                tooltip.add(line("external_equivalent_acceleration", theme.info(Component.literal(
-                        formatDecimal(currentCycleEquivalentAcceleration(slot))))));
-                tooltip.add(line("actual_ticks", theme.info(Component.literal(
-                        Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
-                tooltip.add(line("previous_ticks", theme.info(Component.literal(
-                        Long.toString(slot.getLong(SLOT_PREVIOUS_TICKS))))));
+                tooltip.add(
+                        line(
+                                "external_parallel",
+                                theme.info(
+                                        Component.literal(
+                                                formatDecimal(
+                                                        slot.getInt(SLOT_EXTERNAL_PARALLEL)
+                                                                / 100.0D)))));
+                tooltip.add(
+                        line(
+                                "external_equivalent_acceleration",
+                                theme.info(
+                                        Component.literal(
+                                                formatDecimal(
+                                                        currentCycleEquivalentAcceleration(
+                                                                slot))))));
+                tooltip.add(
+                        line(
+                                "actual_ticks",
+                                theme.info(
+                                        Component.literal(
+                                                Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
+                tooltip.add(
+                        line(
+                                "previous_ticks",
+                                theme.info(
+                                        Component.literal(
+                                                Long.toString(
+                                                        slot.getLong(SLOT_PREVIOUS_TICKS))))));
             }
             tooltip.add(
                     line(
@@ -220,9 +253,7 @@ public enum MythicMinerJadeProvider
 
     private static double currentCycleEquivalentAcceleration(CompoundTag slot) {
         long naturalTicks = slot.getLong(SLOT_NATURAL_TICKS);
-        return naturalTicks <= 0L
-                ? 0.0D
-                : slot.getLong(SLOT_ACTUAL_TICKS) / (double) naturalTicks;
+        return naturalTicks <= 0L ? 0.0D : slot.getLong(SLOT_ACTUAL_TICKS) / (double) naturalTicks;
     }
 
     private static Component themedStatus(IThemeHelper theme, String status) {
@@ -283,10 +314,7 @@ public enum MythicMinerJadeProvider
                 names.add(Component.literal(tag.getAsString()));
                 continue;
             }
-            String translationKey =
-                    "jade.dimension_tech.structure." + id.getNamespace() + "." + id.getPath();
-            names.add(
-                    Component.translatableWithFallback(translationKey, readablePath(id.getPath())));
+            names.add(TranslateHelper.structureName(id));
         }
         Component result = Component.empty();
         for (int index = 0; index < names.size(); index++) {
@@ -296,14 +324,6 @@ public enum MythicMinerJadeProvider
             result = result.copy().append(names.get(index));
         }
         return result;
-    }
-
-    private static String readablePath(String path) {
-        String[] words = path.replace('/', '_').split("_");
-        return java.util.Arrays.stream(words)
-                .filter(word -> !word.isEmpty())
-                .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
-                .collect(Collectors.joining(" "));
     }
 
     private static Component outputName(String output) {

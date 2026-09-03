@@ -23,8 +23,7 @@ final class MythicMinerExpectationMath {
 
     static double averageParallel(
             int baseParallel, int efficiencyHundredths, int upgradeHundredths) {
-        long scaled =
-                (long) baseParallel * efficiencyHundredths * upgradeHundredths / 100L;
+        long scaled = (long) baseParallel * efficiencyHundredths * upgradeHundredths / 100L;
         return scaled / 100.0D;
     }
 

@@ -4,9 +4,11 @@ import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
-public final class Tier1MythicMinerBlockEntity extends BaseMinerBlockEntity {
+public final class Tier1MythicShellChikensVoidStructreResourceMinerBlockEntity
+        extends BaseMinerBlockEntity {
 
-    public Tier1MythicMinerBlockEntity(BlockPos position, BlockState blockState) {
+    public Tier1MythicShellChikensVoidStructreResourceMinerBlockEntity(
+            BlockPos position, BlockState blockState) {
         super(ModBlockEntities.TIER_1_MYTHIC_MINER.get(), position, blockState);
     }
 

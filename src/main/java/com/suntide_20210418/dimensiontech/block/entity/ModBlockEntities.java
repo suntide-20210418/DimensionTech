@@ -12,59 +12,72 @@ import net.minecraftforge.registries.RegistryObject;
 public final class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, DimensionTechMod.MOD_ID);
+    public static final RegistryObject<BlockEntityType<StructureDataOperatorBlockEntity>> STRUCTURE_DATA_OPERATOR =
+            BLOCK_ENTITY_TYPES.register("structure_data_operator", () -> BlockEntityType.Builder.of(
+                    StructureDataOperatorBlockEntity::new, ModBlocks.STRUCTURE_DATA_OPERATOR.get()).build(null));
 
-    public static final RegistryObject<BlockEntityType<Tier1MythicMinerBlockEntity>>
+    public static final RegistryObject<
+                    BlockEntityType<Tier1MythicShellChikensVoidStructreResourceMinerBlockEntity>>
             TIER_1_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             ResourceLocationHelper.getPath(ModBlocks.TIER_1_MYTHIC_MINER_ID),
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier1MythicMinerBlockEntity::new,
+                                                    Tier1MythicShellChikensVoidStructreResourceMinerBlockEntity
+                                                            ::new,
                                                     ModBlocks.TIER_1_MYTHIC_MINER.get())
                                             .build(null));
-    public static final RegistryObject<BlockEntityType<Tier2MythicMinerBlockEntity>>
+    public static final RegistryObject<
+                    BlockEntityType<Tier2MythicShellChikensVoidStructreResourceMinerBlockEntity>>
             TIER_2_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_2_mythic_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier2MythicMinerBlockEntity::new,
+                                                    Tier2MythicShellChikensVoidStructreResourceMinerBlockEntity
+                                                            ::new,
                                                     ModBlocks.TIER_2_MYTHIC_MINER.get())
                                             .build(null));
-    public static final RegistryObject<BlockEntityType<Tier3MythicMinerBlockEntity>>
+    public static final RegistryObject<
+                    BlockEntityType<Tier3MythicShellChikensVoidStructreResourceMinerBlockEntity>>
             TIER_3_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_3_mythic_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier3MythicMinerBlockEntity::new,
+                                                    Tier3MythicShellChikensVoidStructreResourceMinerBlockEntity
+                                                            ::new,
                                                     ModBlocks.TIER_3_MYTHIC_MINER.get())
                                             .build(null));
-    public static final RegistryObject<BlockEntityType<Tier4MythicMinerBlockEntity>>
+    public static final RegistryObject<
+                    BlockEntityType<Tier4MythicShellChikensVoidStructreResourceMinerBlockEntity>>
             TIER_4_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_4_mythic_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier4MythicMinerBlockEntity::new,
+                                                    Tier4MythicShellChikensVoidStructreResourceMinerBlockEntity
+                                                            ::new,
                                                     ModBlocks.TIER_4_MYTHIC_MINER.get())
                                             .build(null));
-    public static final RegistryObject<BlockEntityType<Tier5MythicMinerBlockEntity>>
+    public static final RegistryObject<
+                    BlockEntityType<Tier5MythicShellChikensVoidStructreResourceMinerBlockEntity>>
             TIER_5_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_5_mythic_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier5MythicMinerBlockEntity::new,
+                                                    Tier5MythicShellChikensVoidStructreResourceMinerBlockEntity
+                                                            ::new,
                                                     ModBlocks.TIER_5_MYTHIC_MINER.get())
                                             .build(null));
-    public static final RegistryObject<BlockEntityType<Tier6MythicMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<KashanVoidStructreResourceMinerBlockEntity>>
             TIER_6_MYTHIC_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_6_mythic_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier6MythicMinerBlockEntity::new,
+                                                    KashanVoidStructreResourceMinerBlockEntity::new,
                                                     ModBlocks.TIER_6_MYTHIC_MINER.get())
                                             .build(null));
 

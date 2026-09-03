@@ -1,13 +1,14 @@
 package com.suntide_20210418.dimensiontech.block;
 
-import com.suntide_20210418.dimensiontech.block.entity.Tier3MythicMinerBlockEntity;
+import com.suntide_20210418.dimensiontech.block.entity.Tier3MythicShellChikensVoidStructreResourceMinerBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
-public final class Tier3MythicMinerBlock extends BaseMinerBlock {
-    public Tier3MythicMinerBlock(BlockBehaviour.Properties properties) {
+public final class Tier3MythicShellChikensVoidStructreResourceMinerBlock extends BaseMinerBlock {
+    public Tier3MythicShellChikensVoidStructreResourceMinerBlock(
+            BlockBehaviour.Properties properties) {
         super(properties);
     }
 
@@ -18,6 +19,6 @@ public final class Tier3MythicMinerBlock extends BaseMinerBlock {
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new Tier3MythicMinerBlockEntity(pos, state);
+        return new Tier3MythicShellChikensVoidStructreResourceMinerBlockEntity(pos, state);
     }
 }

@@ -16,31 +16,45 @@ public final class ModBlocks {
 
     public static final DeferredRegister<Block> BLOCKS =
             DeferredRegister.create(ForgeRegistries.BLOCKS, DimensionTechMod.MOD_ID);
+    public static final RegistryObject<Block> STRUCTURE_DATA_OPERATOR =
+            BLOCKS.register("structure_data_operator", () -> new StructureDataOperatorBlock(BlockBehaviour.Properties.of().strength(4.0F)));
 
     public static final RegistryObject<Block> TIER_1_MYTHIC_MINER =
             BLOCKS.register(
                     ResourceLocationHelper.getPath(TIER_1_MYTHIC_MINER_ID),
-                    () -> new Tier1MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () ->
+                            new Tier1MythicShellChikensVoidStructreResourceMinerBlock(
+                                    BlockBehaviour.Properties.of().strength(5.0F)));
     public static final RegistryObject<Block> TIER_2_MYTHIC_MINER =
             BLOCKS.register(
                     "tier_2_mythic_miner",
-                    () -> new Tier2MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () ->
+                            new Tier2MythicShellChikensVoidStructreResourceMinerBlock(
+                                    BlockBehaviour.Properties.of().strength(5.0F)));
     public static final RegistryObject<Block> TIER_3_MYTHIC_MINER =
             BLOCKS.register(
                     "tier_3_mythic_miner",
-                    () -> new Tier3MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () ->
+                            new Tier3MythicShellChikensVoidStructreResourceMinerBlock(
+                                    BlockBehaviour.Properties.of().strength(5.0F)));
     public static final RegistryObject<Block> TIER_4_MYTHIC_MINER =
             BLOCKS.register(
                     "tier_4_mythic_miner",
-                    () -> new Tier4MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () ->
+                            new Tier4MythicShellChikensVoidStructreResourceMinerBlock(
+                                    BlockBehaviour.Properties.of().strength(5.0F)));
     public static final RegistryObject<Block> TIER_5_MYTHIC_MINER =
             BLOCKS.register(
                     "tier_5_mythic_miner",
-                    () -> new Tier5MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () ->
+                            new Tier5MythicShellChikensVoidStructreResourceMinerBlock(
+                                    BlockBehaviour.Properties.of().strength(5.0F)));
     public static final RegistryObject<Block> TIER_6_MYTHIC_MINER =
             BLOCKS.register(
                     "tier_6_mythic_miner",
-                    () -> new Tier6MythicMinerBlock(BlockBehaviour.Properties.of().strength(5.0F)));
+                    () ->
+                            new KashanVoidStructreResourceMinerBlock(
+                                    BlockBehaviour.Properties.of().strength(5.0F)));
     public static final RegistryObject<Block> MYTHIC_MINER_CASING =
             BLOCKS.register(
                     "mythic_miner_casing",

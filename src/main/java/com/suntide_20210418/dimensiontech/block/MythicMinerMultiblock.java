@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 /** Coordinate-faithful structure adapted from the supplied Modular Machinery definition. */
-public final class MythicMinerMultiblock {
+public class MythicMinerMultiblock {
     private static final Set<String> CASING =
             Set.of(
                     "-2,0,2",

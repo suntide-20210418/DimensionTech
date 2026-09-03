@@ -7,6 +7,7 @@ import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
@@ -15,7 +16,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
@@ -130,10 +130,14 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                             return switch (index - telemetry.length) {
                                 case 0 -> blockEntity.getFluidTank().getFluidAmount();
                                 case 1 -> blockEntity.getFluidTank().getCapacity();
-                                case 2 -> hasFluidInput
-                                        ? BuiltInRegistries.FLUID.getId(
-                                                blockEntity.getFluidTank().getFluid().getFluid())
-                                        : -1;
+                                case 2 ->
+                                        hasFluidInput
+                                                ? BuiltInRegistries.FLUID.getId(
+                                                        blockEntity
+                                                                .getFluidTank()
+                                                                .getFluid()
+                                                                .getFluid())
+                                                : -1;
                                 case 3 -> blockEntity.getFluidTank().isEmpty() ? 0 : 1;
                                 case 4 -> blockEntity.getFluidFaceModesPacked();
                                 case 5 -> blockEntity.isAutoExtractFluidEnabled() ? 1 : 0;
@@ -384,7 +388,8 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
     public BaseMinerBlockEntity.FluidFaceMode getFluidFaceMode(
             net.minecraft.core.Direction logicalDirection) {
-        net.minecraft.core.Direction worldDirection = blockEntity.toWorldDirection(logicalDirection);
+        net.minecraft.core.Direction worldDirection =
+                blockEntity.toWorldDirection(logicalDirection);
         int ordinal = (fluidTelemetry[4] >> (worldDirection.ordinal() * 2)) & 3;
         return ordinal < BaseMinerBlockEntity.FluidFaceMode.values().length
                 ? BaseMinerBlockEntity.FluidFaceMode.values()[ordinal]
@@ -833,7 +838,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else {
-            if (!stack.is(ModItems.STRUCT_MARKER.get())
+            if (!stack.is(ModItems.STRUCTURE_MARKER.get())
                     || !moveItemStackTo(stack, 0, containerSlotCount, false)) {
                 return ItemStack.EMPTY;
             }

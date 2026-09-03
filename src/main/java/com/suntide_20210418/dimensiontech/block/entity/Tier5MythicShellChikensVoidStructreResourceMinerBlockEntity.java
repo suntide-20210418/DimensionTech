@@ -4,13 +4,15 @@ import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
-public final class Tier2MythicMinerBlockEntity extends BaseMinerBlockEntity {
-    public Tier2MythicMinerBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.TIER_2_MYTHIC_MINER.get(), pos, state);
+public final class Tier5MythicShellChikensVoidStructreResourceMinerBlockEntity
+        extends BaseMinerBlockEntity {
+    public Tier5MythicShellChikensVoidStructreResourceMinerBlockEntity(
+            BlockPos pos, BlockState state) {
+        super(ModBlockEntities.TIER_5_MYTHIC_MINER.get(), pos, state);
     }
 
     private ModConfigs.MythicMinerTierConfig config() {
-        return ModConfigs.TIERS[1];
+        return ModConfigs.TIERS[4];
     }
 
     @Override
@@ -20,7 +22,7 @@ public final class Tier2MythicMinerBlockEntity extends BaseMinerBlockEntity {
 
     @Override
     protected String getTranslationName() {
-        return "tier_2_mythic_miner";
+        return "tier_5_mythic_miner";
     }
 
     @Override

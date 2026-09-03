@@ -13,18 +13,73 @@ public class ModZhcnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        addVanillaRegistryNames();
         add(TranslateHelper.itemGroup("tab"), "维度科技");
         add(TranslateHelper.keyCategory("main"), "维度科技");
         add(TranslateHelper.key("switch"), "切换卡片模式");
-        add(TranslateHelper.item("struct_marker"), "结构标记器");
+        add(TranslateHelper.item("structure_marker"), "结构标记器");
         add(TranslateHelper.item("enchantment_mark"), "附魔印记");
         add(TranslateHelper.item("dimension_deconstruction_core"), "维度解构核心");
-        add(TranslateHelper.block("tier_1_mythic_miner"), "一级神话采掘器");
-        add(TranslateHelper.container("tier_1_mythic_miner"), "一级神话采掘器");
-        for (int tier = 2; tier <= 6; tier++) {
-            add("block.dimension_tech.tier_" + tier + "_mythic_miner", tier + "级神话采掘器");
-            add("container.dimension_tech.tier_" + tier + "_mythic_miner", tier + "级神话采掘器");
+        add(TranslateHelper.item("data_integrator"), "数据整合器");
+        add(TranslateHelper.item("structure_interpreter"), "结构阐释器");
+        add("block.dimension_tech.structure_data_operator", "结构数据操作仪");
+        add("container.dimension_tech.structure_data_operator", "结构数据操作仪");
+        add("screen.dimension_tech.structure_operator.copy", "↓复制↓");
+        add("screen.dimension_tech.structure_operator.clear", "清除");
+        add("screen.dimension_tech.structure_operator.refresh", "已探索结构");
+        add("screen.dimension_tech.structure_operator.all", "全部结构");
+        add("screen.dimension_tech.structure_operator.slots", "目标 / 待操作 / 插件");
+        add("screen.dimension_tech.structure_operator.tab.operation", "操作");
+        add("screen.dimension_tech.structure_operator.tab.integrator", "数据整合器");
+        add("screen.dimension_tech.structure_operator.tab.interpreter", "结构阐释器");
+        add("screen.dimension_tech.structure_operator.target", "目标标记器");
+        add("screen.dimension_tech.structure_operator.destination", "待操作标记器");
+        add("screen.dimension_tech.structure_operator.source_status", "来源数据");
+        add("screen.dimension_tech.structure_operator.destination_status", "写入目标");
+        add("screen.dimension_tech.structure_operator.integrator", "数据整合器");
+        add("screen.dimension_tech.structure_operator.interpreter", "结构阐释器");
+        add("screen.dimension_tech.structure_operator.inventory", "玩家背包");
+        add("screen.dimension_tech.structure_operator.page.integrator", "数据整合器");
+        add("screen.dimension_tech.structure_operator.page.interpreter", "结构阐释器");
+        add("screen.dimension_tech.structure_operator.source.explored", "来源：玩家已探索结构（%s 个）");
+        add("screen.dimension_tech.structure_operator.source.all", "来源：游戏中全部结构（%s 个）");
+        add("screen.dimension_tech.structure_operator.search", "搜索结构 ID");
+        add("screen.dimension_tech.structure_operator.write", "写入");
+        add("screen.dimension_tech.structure_operator.refresh_short", "刷新");
+        add("screen.dimension_tech.structure_operator.write_short", "写入");
+        add("screen.dimension_tech.structure_operator.operands", "待操作标记器：%s");
+        add("screen.dimension_tech.structure_operator.empty", "没有可用结构");
+        add("screen.dimension_tech.structure_operator.empty_marker", "未安装");
+        add("screen.dimension_tech.structure_operator.no_data", "没有结构数据");
+        add("screen.dimension_tech.structure_operator.confirm.copy", "确认复制结构数据");
+        add("screen.dimension_tech.structure_operator.confirm.write", "确认写入结构数据");
+        add("screen.dimension_tech.structure_operator.preview.source", "来源：%s");
+        add("screen.dimension_tech.structure_operator.preview.target", "目标：%s");
+        add("screen.dimension_tech.structure_operator.preview.overwrite", "目标已有数据，将被覆盖");
+        add("screen.dimension_tech.structure_operator.preview.empty", "目标当前为空");
+        add("screen.dimension_tech.structure_operator.cancel", "取消");
+        add("screen.dimension_tech.structure_operator.confirm", "确认");
+        add("screen.dimension_tech.structure_operator.status.copied", "结构数据已复制");
+        add("screen.dimension_tech.structure_operator.status.written", "结构数据已写入");
+        add("screen.dimension_tech.structure_operator.status.cleared", "结构数据已清除");
+        add("screen.dimension_tech.structure_operator.catalogue_marker", "目录写入标记器");
+        add("screen.dimension_tech.structure_operator.catalogue_analysis", "目录分析");
+        add("screen.dimension_tech.structure_operator.dimension", "维度：%s");
+        add("screen.dimension_tech.structure_operator.structure", "结构：%s");
+        add("screen.dimension_tech.structure_operator.select_entry", "选择一个有战利品的结构");
+        add("screen.dimension_tech.structure_operator.loading", "正在读取分析数据");
+        add(TranslateHelper.block("tier_1_mythic_miner"), "第1神话叠壳虚空结构资源采掘器");
+        add(TranslateHelper.container("tier_1_mythic_miner"), "第1神话叠壳虚空结构资源采掘器");
+        for (int tier = 2; tier <= 5; tier++) {
+            add(
+                    "block.dimension_tech.tier_" + tier + "_mythic_miner",
+                    "第" + tier + "神话叠壳虚空结构资源采掘器");
+            add(
+                    "container.dimension_tech.tier_" + tier + "_mythic_miner",
+                    "第" + tier + "神话叠壳虚空结构资源采掘器");
         }
+        add("block.dimension_tech.tier_6_mythic_miner", "卡尚虚空结构资源采掘器");
+        add("container.dimension_tech.tier_6_mythic_miner", "卡尚虚空结构资源采掘器");
         add("block.dimension_tech.mythic_miner_casing", "采掘器外壳");
         add("block.dimension_tech.mythic_miner_structure", "采掘器结构方块");
         add("block.dimension_tech.mythic_miner_upgrade_parallel", "一级并行升级方块");
@@ -53,6 +108,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.overview.working", "工作中：%s / %s");
         add("screen.dimension_tech.mythic_miner.overview.active", "工作槽位");
         add("screen.dimension_tech.mythic_miner.overview.total_parallel", "总并行");
+        add("screen.dimension_tech.mythic_miner.overview.equivalent_acceleration", "本周期等效加速");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "装备分解");
         add("screen.dimension_tech.mythic_miner.enabled", "已开启");
         add("screen.dimension_tech.mythic_miner.disabled", "已关闭");
@@ -110,6 +166,31 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.energy_value", "储备：%s / %s FE");
         add("screen.dimension_tech.mythic_miner.energy_consumption", "消耗：%s FE/t");
         add("screen.dimension_tech.mythic_miner.energy", "能量储备");
+        add("screen.dimension_tech.mythic_miner.fluid_input", "流体输入");
+        add("screen.dimension_tech.mythic_miner.fluid_empty", "空");
+        add("screen.dimension_tech.mythic_miner.fluid_amount", "%s / %s mB");
+        add("screen.dimension_tech.mythic_miner.fluid_required", "需求：每周期 %s mB");
+        add("screen.dimension_tech.mythic_miner.fluid_insufficient", "流体不足");
+        add("screen.dimension_tech.mythic_miner.fluid_wrong_type", "流体类型错误");
+        add("screen.dimension_tech.mythic_miner.fluid_blocked", "流体输入阻塞");
+        add("screen.dimension_tech.mythic_miner.fluid_status", "状态：正常");
+        add("screen.dimension_tech.mythic_miner.fluid_faces", "流体面");
+        add("screen.dimension_tech.mythic_miner.fluid_face_mode.disabled", "流体：禁用");
+        add("screen.dimension_tech.mythic_miner.fluid_face_mode.input", "流体：输入");
+        add("screen.dimension_tech.mythic_miner.fluid_face_mode.output", "流体：输出");
+        add("screen.dimension_tech.mythic_miner.auto_extract_enabled", "自动抽取流体：已开启");
+        add("screen.dimension_tech.mythic_miner.auto_extract_disabled", "自动抽取流体：已关闭");
+        add("screen.dimension_tech.mythic_miner.fluid_required_type", "仅接受此精华");
+        add("fluid.dimension_tech.mythic_essence", "神话精华");
+        add("fluid.dimension_tech.surging_mythic_essence", "澎湃神话精华");
+        add("fluid.dimension_tech.recursive_essence", "递归精华");
+        add("fluid.dimension_tech.surging_recursive_essence", "澎湃递归精华");
+        add("fluid.dimension_tech.fractal_essence", "分形精华");
+        add("item.dimension_tech.mythic_essence_bucket", "神话精华桶");
+        add("item.dimension_tech.surging_mythic_essence_bucket", "澎湃神话精华桶");
+        add("item.dimension_tech.recursive_essence_bucket", "递归精华桶");
+        add("item.dimension_tech.surging_recursive_essence_bucket", "澎湃递归精华桶");
+        add("item.dimension_tech.fractal_essence_bucket", "分形精华桶");
         add("screen.dimension_tech.mythic_miner.parallel", "并行数量");
         add("screen.dimension_tech.mythic_miner.attribute.efficiency", "效率");
         add("screen.dimension_tech.mythic_miner.attribute.capacity", "储能");
@@ -130,9 +211,17 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.section.work", "工作状况");
         add("screen.dimension_tech.mythic_miner.info.section.products", "产物信息和操作");
         add("screen.dimension_tech.mythic_miner.marker_progress_toggle", "点击%s");
+        add("screen.dimension_tech.mythic_miner.expected_item.enable", "点击启用产出");
+        add("screen.dimension_tech.mythic_miner.expected_item.disable", "点击禁用产出");
+        add("screen.dimension_tech.mythic_miner.natural_progress", "自然tick：%s / %s");
+        add("screen.dimension_tech.mythic_miner.actual_progress", "实际tick：%s / %s（x%s）");
+        add("screen.dimension_tech.mythic_miner.parallel.expand_hint", "点击展开并行明细");
+        add("screen.dimension_tech.mythic_miner.parallel.collapse_hint", "点击收起并行明细");
         add("screen.dimension_tech.mythic_miner.overview", "机器总览");
         add("screen.dimension_tech.mythic_miner.overview.progress", "%s / %s tick");
-        add("screen.dimension_tech.mythic_miner.waiting_for_natural_window", "等待自然 tick 窗口（400 tick）");
+        add(
+                "screen.dimension_tech.mythic_miner.waiting_for_natural_window",
+                "等待自然 tick 窗口（400 tick）");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "升级方块");
         add("screen.dimension_tech.mythic_miner.attribute.installed", "当前安装的升级");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
@@ -146,9 +235,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.attribute.bonus", "最终加成：+%s%%");
         add("screen.dimension_tech.mythic_miner.attribute.reduction", "最终降低：%s%%");
         add("screen.dimension_tech.mythic_miner.attribute.total_count", "升级方块总数：%s");
-        add(
-                "screen.dimension_tech.mythic_miner.attribute.upgrade_breakdown",
-                "专精升级：%s，聚合升级：%s");
+        add("screen.dimension_tech.mythic_miner.attribute.upgrade_breakdown", "专精升级：%s，聚合升级：%s");
         add("screen.dimension_tech.mythic_miner.output.me_network", "ME 网络");
         add("screen.dimension_tech.mythic_miner.output.item_handler", "物品容器");
         add("screen.dimension_tech.mythic_miner.output.none", "未连接");
@@ -169,9 +256,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.marker_info.dimension_value", "维度价值：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.structure_value", "结构价值：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.expected_items", "物品期望");
-        add(
-                "screen.dimension_tech.mythic_miner.marker_info.loading",
-                "正在计算机器有效期望...");
+        add("screen.dimension_tech.mythic_miner.marker_info.loading", "正在计算机器有效期望...");
         add("screen.dimension_tech.mythic_miner.marker_info.no_items", "无可用物品期望");
         add("screen.dimension_tech.mythic_miner.slot.enable", "启用当前槽位");
         add("screen.dimension_tech.mythic_miner.slot.disable", "停用当前槽位");
@@ -179,21 +264,11 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.marker_info.parallel.expand", "点击展开");
         add("screen.dimension_tech.mythic_miner.marker_info.parallel.collapse", "点击收起");
         add("screen.dimension_tech.mythic_miner.marker_info.parallel.base", "基础并行：%s");
-        add(
-                "screen.dimension_tech.mythic_miner.marker_info.parallel.efficiency",
-                "额外效率并行：%s");
-        add(
-                "screen.dimension_tech.mythic_miner.marker_info.parallel.external",
-                "外部加速并行：%s");
-        add(
-                "screen.dimension_tech.mythic_miner.marker_info.natural_ticks",
-                "本周期自然 tick：%s");
-        add(
-                "screen.dimension_tech.mythic_miner.marker_info.actual_ticks",
-                "实际 tick：%s");
-        add(
-                "screen.dimension_tech.mythic_miner.marker_info.actual_parallel",
-                "实时外部加速并行：%s");
+        add("screen.dimension_tech.mythic_miner.marker_info.parallel.efficiency", "额外效率并行：%s");
+        add("screen.dimension_tech.mythic_miner.marker_info.parallel.external", "外部加速并行：%s");
+        add("screen.dimension_tech.mythic_miner.marker_info.natural_ticks", "本周期自然 tick：%s");
+        add("screen.dimension_tech.mythic_miner.marker_info.actual_ticks", "实际 tick：%s");
+        add("screen.dimension_tech.mythic_miner.marker_info.actual_parallel", "实时外部加速并行：%s");
         add(
                 "screen.dimension_tech.mythic_miner.marker_info.previous_cycle_ticks",
                 "上一周期实际 tick：%s");
@@ -280,5 +355,45 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.energy_consumption_value", "%s FE/t");
         add("jade.dimension_tech.seconds", "%s");
         add("jade.dimension_tech.items", "%s");
+    }
+
+    private void addVanillaRegistryNames() {
+        add("dimension_tech.dimension.minecraft.overworld", "主世界");
+        add("dimension_tech.dimension.minecraft.the_nether", "下界");
+        add("dimension_tech.dimension.minecraft.the_end", "末地");
+        add("dimension_tech.structure.minecraft.pillager_outpost", "掠夺者前哨站");
+        add("dimension_tech.structure.minecraft.mineshaft", "废弃矿井");
+        add("dimension_tech.structure.minecraft.mineshaft_mesa", "恶地废弃矿井");
+        add("dimension_tech.structure.minecraft.mansion", "林地府邸");
+        add("dimension_tech.structure.minecraft.jungle_pyramid", "丛林神庙");
+        add("dimension_tech.structure.minecraft.desert_pyramid", "沙漠神殿");
+        add("dimension_tech.structure.minecraft.igloo", "雪屋");
+        add("dimension_tech.structure.minecraft.shipwreck", "沉船");
+        add("dimension_tech.structure.minecraft.shipwreck_beached", "搁浅沉船");
+        add("dimension_tech.structure.minecraft.swamp_hut", "沼泽小屋");
+        add("dimension_tech.structure.minecraft.stronghold", "要塞");
+        add("dimension_tech.structure.minecraft.monument", "海底神殿");
+        add("dimension_tech.structure.minecraft.ocean_ruin_cold", "寒冷海洋废墟");
+        add("dimension_tech.structure.minecraft.ocean_ruin_warm", "温暖海洋废墟");
+        add("dimension_tech.structure.minecraft.fortress", "下界要塞");
+        add("dimension_tech.structure.minecraft.nether_fossil", "下界化石");
+        add("dimension_tech.structure.minecraft.end_city", "末地城");
+        add("dimension_tech.structure.minecraft.buried_treasure", "埋藏的宝藏");
+        add("dimension_tech.structure.minecraft.bastion_remnant", "堡垒遗迹");
+        add("dimension_tech.structure.minecraft.village_plains", "平原村庄");
+        add("dimension_tech.structure.minecraft.village_desert", "沙漠村庄");
+        add("dimension_tech.structure.minecraft.village_savanna", "热带草原村庄");
+        add("dimension_tech.structure.minecraft.village_snowy", "雪原村庄");
+        add("dimension_tech.structure.minecraft.village_taiga", "针叶林村庄");
+        add("dimension_tech.structure.minecraft.ruined_portal", "废弃传送门");
+        add("dimension_tech.structure.minecraft.ruined_portal_desert", "沙漠废弃传送门");
+        add("dimension_tech.structure.minecraft.ruined_portal_jungle", "丛林废弃传送门");
+        add("dimension_tech.structure.minecraft.ruined_portal_swamp", "沼泽废弃传送门");
+        add("dimension_tech.structure.minecraft.ruined_portal_mountain", "山地废弃传送门");
+        add("dimension_tech.structure.minecraft.ruined_portal_ocean", "海洋废弃传送门");
+        add("dimension_tech.structure.minecraft.ruined_portal_nether", "下界废弃传送门");
+        add("dimension_tech.structure.minecraft.ancient_city", "远古城市");
+        add("dimension_tech.structure.minecraft.trail_ruins", "古迹废墟");
+        add("dimension_tech.structure.minecraft.trial_chambers", "试炼密室");
     }
 }

@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.client.gui;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -17,6 +18,8 @@ public final class ModMenu {
             MENU_TYPES.register(
                     ResourceLocationHelper.getPath(ResourceLocationHelper.modLoc("mythic_miner")),
                     () -> IForgeMenuType.create(MythicMinerMenu::new));
+    public static final RegistryObject<MenuType<StructureDataOperatorMenu>> STRUCTURE_DATA_OPERATOR =
+            MENU_TYPES.register("structure_data_operator", () -> IForgeMenuType.create(StructureDataOperatorMenu::new));
 
     private ModMenu() {}
 }

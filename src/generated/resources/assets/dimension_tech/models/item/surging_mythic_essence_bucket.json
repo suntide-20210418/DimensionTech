@@ -1,0 +1,5 @@
+{
+  "parent": "forge:item/bucket",
+  "fluid": "dimension_tech:surging_mythic_essence",
+  "loader": "forge:fluid_container"
+}

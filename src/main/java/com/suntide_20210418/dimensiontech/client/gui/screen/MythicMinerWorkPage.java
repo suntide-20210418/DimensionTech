@@ -23,11 +23,14 @@ final class MythicMinerWorkPage {
 
     static void render(MythicMinerScreenContext context, GuiGraphics graphics) {
         drawMarkerBay(context, graphics);
-        int x = MythicMinerLayout.MARKER_BAY_X + MythicMinerLayout.markerBayWidth(
-                context.menu().getContainerSlotCount()) + MythicMinerLayout.MARKER_INFO_GAP;
+        int x =
+                MythicMinerLayout.MARKER_BAY_X
+                        + MythicMinerLayout.markerBayWidth(context.menu().getContainerSlotCount())
+                        + MythicMinerLayout.MARKER_INFO_GAP;
         int width = context.menu().getWorkContentWidth() - (x - 28);
         int overviewY = OVERVIEW_Y;
-        MythicMinerTheme.panel(graphics, x, overviewY, width, OVERVIEW_HEIGHT, MythicMinerTheme.FLUIX);
+        MythicMinerTheme.panel(
+                graphics, x, overviewY, width, OVERVIEW_HEIGHT, MythicMinerTheme.FLUIX);
         graphics.drawString(
                 context.font(),
                 Component.translatable("screen.dimension_tech.mythic_miner.overview"),
@@ -274,7 +277,11 @@ final class MythicMinerWorkPage {
                     com.suntide_20210418.dimensiontech.item.StructMarkerItem.getMarkerInfo(
                                     slot.getItem())
                             .isPresent();
-            MythicMinerTheme.slot(g, slot.x, slot.y, index == c.selectedMarkerSlot(),
+            MythicMinerTheme.slot(
+                    g,
+                    slot.x,
+                    slot.y,
+                    index == c.selectedMarkerSlot(),
                     configured && !c.menu().isMarkerSlotEnabled(index));
             g.fill(
                     barX,
@@ -283,8 +290,14 @@ final class MythicMinerWorkPage {
                     barY + MythicMinerLayout.PROGRESS_HEIGHT,
                     MythicMinerScreen.PANEL_INSET);
             if (configured && processingTime > 0 && progress > 0) {
-                MythicMinerTheme.progress(g, barX, barY, MythicMinerLayout.PROGRESS_WIDTH,
-                        progress, processingTime, MythicMinerTheme.FLUIX);
+                MythicMinerTheme.progress(
+                        g,
+                        barX,
+                        barY,
+                        MythicMinerLayout.PROGRESS_WIDTH,
+                        progress,
+                        processingTime,
+                        MythicMinerTheme.FLUIX);
             }
             if (configured && !c.menu().isMarkerSlotEnabled(index)) {
                 g.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, MythicMinerTheme.DISABLED_OVERLAY);
@@ -302,8 +315,7 @@ final class MythicMinerWorkPage {
         int controlX = c.leftPos() + c.imageWidth() - 26;
         for (int index = 0; index < 3; index++) {
             if (MythicMinerScreen.inside(
-                    mouseX, mouseY, controlX, c.topPos() + 48 + index * 29, 24, 24))
-                return index;
+                    mouseX, mouseY, controlX, c.topPos() + 48 + index * 29, 24, 24)) return index;
         }
         int centerX = c.leftPos() + c.menu().getWorkContentCenter() - 88;
         int centerY = c.topPos() + OVERVIEW_Y + OVERVIEW_HEIGHT + 5;

@@ -18,8 +18,14 @@ final class MythicMinerUiState {
     MythicMinerAnalysisSnapshot analysis = MythicMinerAnalysisSnapshot.EMPTY;
     int analysisSlot = -1;
 
-    void resetInfoScroll() { markerInfoScroll = 0; }
-    void resetAttributeScroll() { attributeScroll = 0; }
+    void resetInfoScroll() {
+        markerInfoScroll = 0;
+    }
+
+    void resetAttributeScroll() {
+        attributeScroll = 0;
+    }
+
     void clearAnalysis() {
         analysis = MythicMinerAnalysisSnapshot.EMPTY;
         analysisSlot = -1;

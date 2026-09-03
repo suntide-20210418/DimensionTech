@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
+import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
@@ -55,6 +56,7 @@ public class StructMarkerItem extends Item {
     private static final String ALGORITHM_VERSION_TAG = "StructureValueAlgorithmVersion";
     private static final String RANDOM_PROBABILITY_SPACE_TAG = "RandomProbabilitySpace";
     private static final String ANALYSIS_FINGERPRINT_TAG = "AnalysisFingerprint";
+    private static final String DISCOVERED_STRUCTURES_TAG = "DimensionTechDiscoveredStructures";
     private static final int ALGORITHM_VERSION = 5;
 
     public StructMarkerItem(Properties properties) {
@@ -115,11 +117,31 @@ public class StructMarkerItem extends Item {
         ItemStack itemStack = player.getItemInHand(usedHand);
         if (level instanceof ServerLevel serverLevel) {
             refreshAnalysisIfNeeded(serverLevel, itemStack);
+            recordDiscoveredStructure(serverLevel, (net.minecraft.server.level.ServerPlayer) player, itemStack);
             com.suntide_20210418.dimensiontech.network.ModNetwork.openRefreshedMarker(
                     (net.minecraft.server.level.ServerPlayer) player, itemStack, usedHand);
         }
 
         return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
+    }
+
+    private static void recordDiscoveredStructure(
+            ServerLevel level,
+            net.minecraft.server.level.ServerPlayer player,
+            ItemStack itemStack) {
+        Optional<MarkerInfo> markerInfo = getMarkerInfo(itemStack);
+        if (markerInfo.isEmpty()) return;
+        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        Structure structure = registry.get(markerInfo.get().structure().id());
+        if (structure == null) return;
+        int structureId = registry.getId(structure);
+        if (structureId < 0) return;
+        CompoundTag data = player.getPersistentData();
+        int[] ids = data.getIntArray(DISCOVERED_STRUCTURES_TAG);
+        for (int id : ids) if (id == structureId) return;
+        int[] updated = java.util.Arrays.copyOf(ids, ids.length + 1);
+        updated[ids.length] = structureId;
+        data.putIntArray(DISCOVERED_STRUCTURES_TAG, updated);
     }
 
     public static boolean markAt(
@@ -194,6 +216,35 @@ public class StructMarkerItem extends Item {
                 : 0.0D;
     }
 
+    /** Creates analysis data for a catalogue entry that is not tied to a generated structure start. */
+    public static CompoundTag createCatalogueMarkerData(ServerLevel level, ResourceLocation structureId) {
+        return createCatalogueMarkerData(
+                level,
+                structureId,
+                com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer
+                        .discoverTemplateForValue(level, structureId, AnalysisStatus.EXACT, List.of()));
+    }
+
+    /** Writes catalogue marker data from an analysis-service profile without querying world chunks. */
+    public static CompoundTag createCatalogueMarkerData(
+            ServerLevel level, ResourceLocation structureId, DiscoveryResult discovery) {
+        MarkedStructure structure = new MarkedStructure(
+                structureId, new BoundingBox(0, 0, 0, 0, 0, 0));
+        MarkerInfo info = new MarkerInfo(level.dimension().location(), BlockPos.ZERO, structure);
+        CompoundTag markerData = new CompoundTag();
+        markerData.putString(DIMENSION_TAG, info.dimension().toString());
+        CompoundTag position = new CompoundTag();
+        position.putInt("X", 0);
+        position.putInt("Y", 0);
+        position.putInt("Z", 0);
+        markerData.put(POSITION_TAG, position);
+        markerData.put(STRUCTURE_TAG, createStructureData(structure));
+        writeAnalysisResult(markerData, StructureValueCalculator.calculate(level, info, 0.0F, discovery));
+        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(info));
+        markerData.putBoolean("DimensionTechCatalogueEntry", true);
+        return markerData;
+    }
+
     @Override
     public void appendHoverText(
             ItemStack itemStack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
@@ -204,8 +255,11 @@ public class StructMarkerItem extends Item {
             return;
         }
 
+        ResourceLocation dimensionId = ResourceLocation.tryParse(markerData.getString(DIMENSION_TAG));
         Component dimension =
-                Component.literal(markerData.getString(DIMENSION_TAG))
+                (dimensionId == null
+                                ? Component.literal(markerData.getString(DIMENSION_TAG))
+                                : TranslateHelper.dimensionName(dimensionId))
                         .withStyle(ChatFormatting.AQUA);
         tooltip.add(
                 TranslateHelper.translate(
@@ -248,10 +302,8 @@ public class StructMarkerItem extends Item {
                                         TranslateHelper.translate(
                                                         TranslateHelper.tooltip(
                                                                 "struct_marker.structure"),
-                                                        Component.literal(
-                                                                        info.structure()
-                                                                                .id()
-                                                                                .toString())
+                                                        TranslateHelper.structureName(
+                                                                        info.structure().id())
                                                                 .withStyle(
                                                                         ChatFormatting
                                                                                 .LIGHT_PURPLE))

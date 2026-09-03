@@ -23,8 +23,14 @@ public record MythicMinerTelemetrySnapshot(
         int fluidCapacity,
         List<Marker> markers) {
 
-    public record Marker(long progress, int processingTime, int parallel, boolean enabled,
-            long naturalTicks, long actualTicks, boolean waitingForNaturalWindow) {}
+    public record Marker(
+            long progress,
+            int processingTime,
+            int parallel,
+            boolean enabled,
+            long naturalTicks,
+            long actualTicks,
+            boolean waitingForNaturalWindow) {}
 
     static int combineUnsignedWords(int low, int high) {
         return (low & 0xFFFF) | ((high & 0xFFFF) << 16);
@@ -40,27 +46,45 @@ public record MythicMinerTelemetrySnapshot(
     public static MythicMinerTelemetrySnapshot from(MythicMinerMenu menu) {
         var markers = new java.util.ArrayList<Marker>(menu.getContainerSlotCount());
         for (int slot = 0; slot < menu.getContainerSlotCount(); slot++) {
-            markers.add(new Marker(
-                    menu.getMarkerProgress(slot),
-                    menu.getMarkerProcessingTime(slot),
-                    menu.getMarkerTotalParallel(slot),
-                    menu.isMarkerSlotEnabled(slot),
-                    menu.getMarkerCurrentNaturalTicks(slot),
-                    menu.getMarkerCurrentExternalAccelerationMachineTicks(slot),
-                    menu.isMarkerWaitingForNaturalWindow(slot)));
+            markers.add(
+                    new Marker(
+                            menu.getMarkerProgress(slot),
+                            menu.getMarkerProcessingTime(slot),
+                            menu.getMarkerTotalParallel(slot),
+                            menu.isMarkerSlotEnabled(slot),
+                            menu.getMarkerCurrentNaturalTicks(slot),
+                            menu.getMarkerCurrentExternalAccelerationMachineTicks(slot),
+                            menu.isMarkerWaitingForNaturalWindow(slot)));
         }
-        int output = Math.max(0, Math.min(BaseMinerBlockEntity.OutputState.values().length - 1,
-                menu.getTelemetry(5)));
-        int redstone = Math.max(0, Math.min(BaseMinerBlockEntity.RedstoneMode.values().length - 1,
-                menu.getTelemetry(11)));
+        int output =
+                Math.max(
+                        0,
+                        Math.min(
+                                BaseMinerBlockEntity.OutputState.values().length - 1,
+                                menu.getTelemetry(5)));
+        int redstone =
+                Math.max(
+                        0,
+                        Math.min(
+                                BaseMinerBlockEntity.RedstoneMode.values().length - 1,
+                                menu.getTelemetry(11)));
         return new MythicMinerTelemetrySnapshot(
-                menu.getEnergyStored(), menu.getEnergyCapacity(), menu.getEffectiveEnergyConsumption(),
-                menu.getWorkingThreadCount(), menu.getTotalParallel(), menu.getBaseParallel(),
-                menu.getEfficiencyHundredths(), menu.getLuckHundredths(),
+                menu.getEnergyStored(),
+                menu.getEnergyCapacity(),
+                menu.getEffectiveEnergyConsumption(),
+                menu.getWorkingThreadCount(),
+                menu.getTotalParallel(),
+                menu.getBaseParallel(),
+                menu.getEfficiencyHundredths(),
+                menu.getLuckHundredths(),
                 BaseMinerBlockEntity.OutputState.values()[output],
                 BaseMinerBlockEntity.RedstoneMode.values()[redstone],
-                menu.getTelemetry(13), menu.getTelemetry(14) != 0,
-                menu.isEquipmentDismantlingEnabled(), menu.hasFluid(), menu.getFluidAmount(),
-                menu.getFluidCapacity(), List.copyOf(markers));
+                menu.getTelemetry(13),
+                menu.getTelemetry(14) != 0,
+                menu.isEquipmentDismantlingEnabled(),
+                menu.hasFluid(),
+                menu.getFluidAmount(),
+                menu.getFluidCapacity(),
+                List.copyOf(markers));
     }
 }

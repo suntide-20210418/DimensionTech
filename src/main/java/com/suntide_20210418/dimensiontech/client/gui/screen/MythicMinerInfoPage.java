@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerLayout;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -100,7 +101,7 @@ final class MythicMinerInfoPage {
                         Component.translatable(
                                 "screen.dimension_tech.mythic_miner.marker_info.structure",
                                 context.selectedMarkerSlot() + 1,
-                                info.structure().id()),
+                                TranslateHelper.structureName(info.structure().id())),
                         viewportX + 4,
                         cursorY,
                         viewportWidth - 8,
@@ -110,7 +111,7 @@ final class MythicMinerInfoPage {
                         graphics,
                         Component.translatable(
                                 "screen.dimension_tech.mythic_miner.marker_info.dimension",
-                                info.dimension()),
+                                TranslateHelper.dimensionName(info.dimension())),
                         viewportX + 4,
                         cursorY + 13,
                         viewportWidth - 8,

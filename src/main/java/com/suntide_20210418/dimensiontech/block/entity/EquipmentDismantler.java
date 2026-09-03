@@ -166,7 +166,8 @@ final class EquipmentDismantler {
 
     private static Optional<List<ItemStack>> craftingIngredients(
             ServerLevel level, ItemStack equipment) {
-        for (CraftingRecipe recipe : level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING)) {
+        for (CraftingRecipe recipe :
+                level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING)) {
             ItemStack result = recipe.getResultItem(level.registryAccess());
             if (!result.is(equipment.getItem())) {
                 continue;

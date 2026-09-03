@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
 import java.util.ArrayList;
@@ -90,7 +91,6 @@ public final class StructMarkerScreen extends Screen {
     }
 
     private void drawPanel(GuiGraphics graphics, int left, int y, int width, int height) {
-        graphics.fill(left + 3, y + 3, left + width + 3, y + height + 3, 0xFF080A0C);
         graphics.fill(left, y, left + width, y + height, PANEL);
         graphics.fill(left + 1, y + 1, left + width - 1, y + 2, CYAN);
         graphics.fill(left + 1, y + height - 2, left + width - 1, y + height - 1, 0xFF343D46);
@@ -110,17 +110,17 @@ public final class StructMarkerScreen extends Screen {
                 .ifPresent(
                         info -> {
                             int metadataX = left + panelWidth / 2;
-                            String dimension = info.dimension().toString();
                             graphics.drawString(
                                     font,
                                     Component.translatable(
                                             "screen.dimension_tech.struct_marker.dimension",
-                                            dimension),
+                                            TranslateHelper.dimensionName(info.dimension())),
                                     metadataX,
                                     top + 10,
                                     CYAN,
                                     false);
-                            String structures = info.structure().id().toString();
+                            String structures =
+                                    TranslateHelper.structureName(info.structure().id()).getString();
                             String clipped =
                                     font.plainSubstrByWidth(
                                             structures, Math.max(1, panelWidth / 2 - 25));
@@ -490,7 +490,7 @@ public final class StructMarkerScreen extends Screen {
     }
 
     private static String choiceLabel(StructMarkerItem.MarkedStructure structure) {
-        return structure.id()
+        return TranslateHelper.structureName(structure.id()).getString()
                 + " ["
                 + structure.bounds().minX()
                 + ", "

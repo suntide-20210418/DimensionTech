@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "dimension_tech:item/struct_marker"
+    "layer0": "dimension_tech:item/structure_marker"
   }
 }

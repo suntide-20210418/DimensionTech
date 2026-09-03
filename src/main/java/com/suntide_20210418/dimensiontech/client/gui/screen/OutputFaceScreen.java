@@ -18,6 +18,7 @@ public final class OutputFaceScreen extends Screen {
         ITEM_OUTPUT,
         FLUID
     }
+
     private static final int PANEL_WIDTH = 180;
     private static final int PANEL_HEIGHT = 142;
     private static final int BUTTON_SIZE = 24;
@@ -41,10 +42,11 @@ public final class OutputFaceScreen extends Screen {
     }
 
     public OutputFaceScreen(MythicMinerScreen parent, MythicMinerMenu menu, Mode mode) {
-        super(Component.translatable(
-                mode == Mode.FLUID
-                        ? "screen.dimension_tech.mythic_miner.fluid_faces"
-                        : "screen.dimension_tech.mythic_miner.output_face"));
+        super(
+                Component.translatable(
+                        mode == Mode.FLUID
+                                ? "screen.dimension_tech.mythic_miner.fluid_faces"
+                                : "screen.dimension_tech.mythic_miner.output_face"));
         this.parent = parent;
         this.menu = menu;
         this.mode = mode;
@@ -99,7 +101,8 @@ public final class OutputFaceScreen extends Screen {
         return menu.getBlockEntity().toWorldDirection(logicalDirection);
     }
 
-    static Direction commandDirection(Mode mode, Direction logicalDirection, Direction worldDirection) {
+    static Direction commandDirection(
+            Mode mode, Direction logicalDirection, Direction worldDirection) {
         return mode == Mode.FLUID ? logicalDirection : worldDirection;
     }
 
@@ -110,8 +113,10 @@ public final class OutputFaceScreen extends Screen {
         int scaledMouseY = toLogical(mouseY);
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
-        MythicMinerTheme.panel(graphics, left, top, PANEL_WIDTH, PANEL_HEIGHT, MythicMinerTheme.AMBER);
-        graphics.drawCenteredString(font, title, left + PANEL_WIDTH / 2, top + 14, MythicMinerTheme.TEXT);
+        MythicMinerTheme.panel(
+                graphics, left, top, PANEL_WIDTH, PANEL_HEIGHT, MythicMinerTheme.AMBER);
+        graphics.drawCenteredString(
+                font, title, left + PANEL_WIDTH / 2, top + 14, MythicMinerTheme.TEXT);
         drawBackButton(graphics, scaledMouseX, scaledMouseY);
 
         Direction hoveredDirection = null;
@@ -125,8 +130,17 @@ public final class OutputFaceScreen extends Screen {
                         contains(scaledMouseX, scaledMouseY, x, y, BUTTON_SIZE, BUTTON_SIZE);
                 boolean enabled = isEnabled(direction);
                 int modeColor = faceColor(direction);
-                MythicMinerTheme.button(graphics, font, x, y, BUTTON_SIZE, BUTTON_SIZE,
-                        Component.empty(), hovered, enabled, modeColor);
+                MythicMinerTheme.button(
+                        graphics,
+                        font,
+                        x,
+                        y,
+                        BUTTON_SIZE,
+                        BUTTON_SIZE,
+                        Component.empty(),
+                        hovered,
+                        enabled,
+                        modeColor);
                 BlockState state = adjacentState(direction);
                 ItemStack icon =
                         state == null || state.isAir() || state.getBlock().asItem() == Items.AIR
@@ -154,7 +168,8 @@ public final class OutputFaceScreen extends Screen {
         int x = left + PANEL_WIDTH - 25;
         int y = top + 7;
         boolean hovered = contains(mouseX, mouseY, x, y, 18, 18);
-        MythicMinerTheme.button(graphics, font, x, y, 18, 18, Component.empty(), hovered, true, CYAN);
+        MythicMinerTheme.button(
+                graphics, font, x, y, 18, 18, Component.empty(), hovered, true, CYAN);
         graphics.fill(x + 5, y + 8, x + 14, y + 10, CYAN);
         graphics.fill(x + 5, y + 6, x + 7, y + 12, CYAN);
         graphics.fill(x + 3, y + 8, x + 5, y + 10, CYAN);
@@ -167,12 +182,13 @@ public final class OutputFaceScreen extends Screen {
                 state == null || state.isAir()
                         ? Component.translatable("screen.dimension_tech.mythic_miner.face.empty")
                         : state.getBlock().getName();
-        List<Component> tooltip = new java.util.ArrayList<>(
-                List.of(
-                        Component.translatable(
-                                "screen.dimension_tech.mythic_miner.face."
-                                        + direction.getSerializedName()),
-                        adjacent));
+        List<Component> tooltip =
+                new java.util.ArrayList<>(
+                        List.of(
+                                Component.translatable(
+                                        "screen.dimension_tech.mythic_miner.face."
+                                                + direction.getSerializedName()),
+                                adjacent));
         if (mode == Mode.FLUID) {
             tooltip.add(
                     Component.translatable(
