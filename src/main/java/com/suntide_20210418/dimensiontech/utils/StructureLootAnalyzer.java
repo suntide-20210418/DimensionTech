@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.utils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
@@ -14,8 +15,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -57,8 +58,7 @@ public final class StructureLootAnalyzer {
         List<Diagnostic> diagnostics = new ArrayList<>();
         MarkedStructure marked = markerInfo.structure();
         Map<ResourceLocation, Integer> roots = new LinkedHashMap<>();
-        findLootTables(level.getServer(), marked.id())
-                .forEach(table -> roots.put(table, 1));
+        findLootTables(level.getServer(), marked.id()).forEach(table -> roots.put(table, 1));
         findLoadedContainerLootTables(level, marked.bounds())
                 .forEach((table, occurrences) -> roots.merge(table, occurrences, Integer::sum));
         if (roots.isEmpty()) {
@@ -70,7 +70,7 @@ public final class StructureLootAnalyzer {
                                     + marked.id()));
             return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), diagnostics);
         }
-        LootTableItems items = resolveLootTableItems(level.getServer(), roots.keySet());
+        LootTableItems items = resolveLootTableItems(level.getServer(), roots.keySet(), false);
         StructureLoot structure =
                 new StructureLoot(
                         marked.id(),
@@ -144,19 +144,32 @@ public final class StructureLootAnalyzer {
      * this safe baseline and supplements it with virtual sample observations when available.
      */
     public static DiscoveryResult discoverTemplateForValue(
-            ServerLevel level, ResourceLocation structureId, AnalysisStatus status, List<Diagnostic> diagnostics) {
+            ServerLevel level,
+            ResourceLocation structureId,
+            AnalysisStatus status,
+            List<Diagnostic> diagnostics) {
         Set<ResourceLocation> roots = findLootTables(level.getServer(), structureId);
         if (roots.isEmpty()) {
             List<Diagnostic> result = new ArrayList<>(diagnostics);
-            result.add(new Diagnostic("DISCOVERY_SEMANTICS", "No LootTable root was found in templates for structure " + structureId));
+            result.add(
+                    new Diagnostic(
+                            "DISCOVERY_SEMANTICS",
+                            "No LootTable root was found in templates for structure "
+                                    + structureId));
             return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), result);
         }
-        LootTableItems items = resolveLootTableItems(level.getServer(), roots);
+        LootTableItems items = resolveLootTableItems(level.getServer(), roots, false);
         Map<ResourceLocation, Integer> occurrences = new LinkedHashMap<>();
         roots.forEach(root -> occurrences.put(root, 1));
         return new DiscoveryResult(
                 status,
-                List.of(new StructureLoot(structureId, sorted(roots), sorted(items.items()), sorted(items.resolvedTables()), occurrences)),
+                List.of(
+                        new StructureLoot(
+                                structureId,
+                                sorted(roots),
+                                sorted(items.items()),
+                                sorted(items.resolvedTables()),
+                                occurrences)),
                 diagnostics);
     }
 
@@ -168,13 +181,24 @@ public final class StructureLootAnalyzer {
             List<Diagnostic> diagnostics) {
         if (occurrences.isEmpty()) {
             List<Diagnostic> result = new ArrayList<>(diagnostics);
-            result.add(new Diagnostic("VIRTUAL_DISCOVERY", "No container LootTable was found in valid virtual samples for structure " + structureId));
+            result.add(
+                    new Diagnostic(
+                            "VIRTUAL_DISCOVERY",
+                            "No container LootTable was found in valid virtual samples for"
+                                    + " structure "
+                                    + structureId));
             return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), result);
         }
-        LootTableItems items = resolveLootTableItems(level.getServer(), occurrences.keySet());
+        LootTableItems items = resolveLootTableItems(level.getServer(), occurrences.keySet(), false);
         return new DiscoveryResult(
                 AnalysisStatus.APPROXIMATE,
-                List.of(new StructureLoot(structureId, sorted(occurrences.keySet()), sorted(items.items()), sorted(items.resolvedTables()), occurrences)),
+                List.of(
+                        new StructureLoot(
+                                structureId,
+                                sorted(occurrences.keySet()),
+                                sorted(items.items()),
+                                sorted(items.resolvedTables()),
+                                occurrences)),
                 diagnostics,
                 ExactProbability.of(1, Math.max(1, sampleCount)));
     }
@@ -189,13 +213,18 @@ public final class StructureLootAnalyzer {
             return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), diagnostics);
         }
         Set<ResourceLocation> rootSet = new HashSet<>(roots);
-        LootTableItems items = resolveLootTableItems(level.getServer(), rootSet);
+        LootTableItems items = resolveLootTableItems(level.getServer(), rootSet, false);
         Map<ResourceLocation, Integer> occurrences = new LinkedHashMap<>();
         rootSet.forEach(root -> occurrences.put(root, 1));
         return new DiscoveryResult(
                 AnalysisStatus.EXACT,
-                List.of(new StructureLoot(structureId, sorted(rootSet), sorted(items.items()),
-                        sorted(items.resolvedTables()), occurrences)),
+                List.of(
+                        new StructureLoot(
+                                structureId,
+                                sorted(rootSet),
+                                sorted(items.items()),
+                                sorted(items.resolvedTables()),
+                                occurrences)),
                 diagnostics);
     }
 
@@ -339,11 +368,17 @@ public final class StructureLootAnalyzer {
 
     private static LootTableItems resolveLootTableItems(
             MinecraftServer server, Set<ResourceLocation> rootTables) {
+        return resolveLootTableItems(server, rootTables, true);
+    }
+
+    private static LootTableItems resolveLootTableItems(
+            MinecraftServer server, Set<ResourceLocation> rootTables, boolean applyItemFilter) {
         Set<ResourceLocation> resolvedTables = new HashSet<>();
         Set<ResourceLocation> items = new HashSet<>();
         for (ResourceLocation lootTable : sorted(rootTables)) {
             resolveLootTable(server.getResourceManager(), lootTable, resolvedTables, items);
         }
+        if (applyItemFilter) items.removeIf(item -> !ModConfigs.STRUCTURE_VALUE.allowsItem(item));
         return new LootTableItems(resolvedTables, items);
     }
 
@@ -469,6 +504,9 @@ public final class StructureLootAnalyzer {
             List<ResourceLocation> resolvedTables,
             Map<ResourceLocation, Integer> occurrences) {
         public StructureLoot {
+            lootTables = List.copyOf(lootTables);
+            items = List.copyOf(items);
+            resolvedTables = List.copyOf(resolvedTables);
             occurrences = Map.copyOf(occurrences);
         }
 
@@ -500,7 +538,9 @@ public final class StructureLootAnalyzer {
         }
 
         public DiscoveryResult(
-                AnalysisStatus status, List<StructureLoot> structures, List<Diagnostic> diagnostics) {
+                AnalysisStatus status,
+                List<StructureLoot> structures,
+                List<Diagnostic> diagnostics) {
             this(status, structures, diagnostics, ExactProbability.ONE);
         }
     }

@@ -9,7 +9,6 @@ import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
@@ -28,8 +27,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 final class VirtualStructureSampler {
     private VirtualStructureSampler() {}
 
-    static Sample sample(
-            ServerLevel level, Structure structure, BlockPos origin) {
+    static Sample sample(ServerLevel level, Structure structure, BlockPos origin) {
         ChunkGenerator generator = level.getChunkSource().getGenerator();
         ChunkPos startChunk = new ChunkPos(origin);
         StructureStart start =
@@ -47,9 +45,14 @@ final class VirtualStructureSampler {
         if (!start.isValid()) return Sample.invalid();
 
         BoundingBox bounds = start.getBoundingBox();
-        int radius = Math.max(
-                Math.max(Math.abs((bounds.minX() >> 4) - startChunk.x), Math.abs((bounds.maxX() >> 4) - startChunk.x)),
-                Math.max(Math.abs((bounds.minZ() >> 4) - startChunk.z), Math.abs((bounds.maxZ() >> 4) - startChunk.z)));
+        int radius =
+                Math.max(
+                        Math.max(
+                                Math.abs((bounds.minX() >> 4) - startChunk.x),
+                                Math.abs((bounds.maxX() >> 4) - startChunk.x)),
+                        Math.max(
+                                Math.abs((bounds.minZ() >> 4) - startChunk.z),
+                                Math.abs((bounds.maxZ() >> 4) - startChunk.z)));
         // Structure pieces may query their immediately adjacent chunk while placing.
         radius += 1;
         Registry<net.minecraft.world.level.biome.Biome> biomes =
@@ -93,7 +96,8 @@ final class VirtualStructureSampler {
                             (position, blockEntity) -> {
                                 if (!bounds.isInside(position)) return;
                                 scannedBlockEntities.add(position.immutable());
-                                StructureLootAnalyzer.containerLootTable(blockEntity.saveWithoutMetadata())
+                                StructureLootAnalyzer.containerLootTable(
+                                                blockEntity.saveWithoutMetadata())
                                         .ifPresent(table -> result.merge(table, 1, Integer::sum));
                             });
             proto.getBlockEntityNbts()
@@ -111,9 +115,7 @@ final class VirtualStructureSampler {
                             entityData ->
                                     StructureLootAnalyzer.containerLootTable(entityData)
                                             .ifPresent(
-                                                    table ->
-                                                            result.merge(
-                                                                    table, 1, Integer::sum)));
+                                                    table -> result.merge(table, 1, Integer::sum)));
         }
         return new Sample(true, result);
     }

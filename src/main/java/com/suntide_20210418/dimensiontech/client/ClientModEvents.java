@@ -25,7 +25,11 @@ public final class ClientModEvents {
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(
                 () -> MenuScreens.register(ModMenu.MYTHIC_MINER.get(), MythicMinerScreen::new));
-        event.enqueueWork(() -> MenuScreens.register(ModMenu.STRUCTURE_DATA_OPERATOR.get(), StructureDataOperatorScreen::new));
+        event.enqueueWork(
+                () ->
+                        MenuScreens.register(
+                                ModMenu.STRUCTURE_DATA_OPERATOR.get(),
+                                StructureDataOperatorScreen::new));
     }
 
     @SubscribeEvent

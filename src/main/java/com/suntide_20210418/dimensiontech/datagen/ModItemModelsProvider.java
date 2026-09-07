@@ -28,6 +28,13 @@ public class ModItemModelsProvider extends ItemModelProvider {
         String coreName = ResourceLocationHelper.getPath(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
         withExistingParent(coreName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
+        for (int tier = 1; tier <= 6; tier++) {
+            for (String name :
+                    new String[] {"dimension_fragment_tier_" + tier, "mining_token_tier_" + tier}) {
+                withExistingParent(name, ResourceLocationHelper.vanilla("item/generated"))
+                        .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
+            }
+        }
         for (String name : new String[] {"data_integrator", "structure_interpreter"})
             withExistingParent(name, ResourceLocationHelper.vanilla("item/generated"))
                     // Reuse the existing core texture until dedicated plugin artwork is added.

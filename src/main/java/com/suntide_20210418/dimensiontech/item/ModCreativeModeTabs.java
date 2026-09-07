@@ -35,9 +35,16 @@ public final class ModCreativeModeTabs {
                                                 output.accept(
                                                         ModItems.DIMENSION_DECONSTRUCTION_CORE
                                                                 .get());
+                                                for (RegistryObject<Item> item :
+                                                        ModItems.DIMENSION_FRAGMENTS)
+                                                    output.accept(item.get());
+                                                for (RegistryObject<Item> item :
+                                                        ModItems.MINING_TOKENS)
+                                                    output.accept(item.get());
                                                 output.accept(ModItems.DATA_INTEGRATOR.get());
                                                 output.accept(ModItems.STRUCTURE_INTERPRETER.get());
-                                                output.accept(ModItems.STRUCTURE_DATA_OPERATOR.get());
+                                                output.accept(
+                                                        ModItems.STRUCTURE_DATA_OPERATOR.get());
                                                 output.accept(ModItems.MYTHIC_ESSENCE_BUCKET.get());
                                                 output.accept(
                                                         ModItems.SURGING_MYTHIC_ESSENCE_BUCKET

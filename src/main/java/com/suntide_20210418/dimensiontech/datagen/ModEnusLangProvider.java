@@ -20,6 +20,14 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.item("structure_marker"), "Structure Marker");
         add(TranslateHelper.item("enchantment_mark"), "Enchantment Mark");
         add(TranslateHelper.item("dimension_deconstruction_core"), "Dimension Deconstruction Core");
+        for (int tier = 1; tier <= 6; tier++) {
+            add(
+                    TranslateHelper.item("dimension_fragment_tier_" + tier),
+                    "Tier " + tier + " Dimension Fragment");
+            add(
+                    TranslateHelper.item("mining_token_tier_" + tier),
+                    "Tier " + tier + " Mining Token");
+        }
         add(TranslateHelper.item("data_integrator"), "Data Integrator");
         add(TranslateHelper.item("structure_interpreter"), "Structure Interpreter");
         add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
@@ -41,8 +49,12 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.inventory", "Player Inventory");
         add("screen.dimension_tech.structure_operator.page.integrator", "Data Integrator");
         add("screen.dimension_tech.structure_operator.page.interpreter", "Structure Interpreter");
-        add("screen.dimension_tech.structure_operator.source.explored", "Source: Explored structures (%s)");
-        add("screen.dimension_tech.structure_operator.source.all", "Source: All game structures (%s)");
+        add(
+                "screen.dimension_tech.structure_operator.source.explored",
+                "Source: Explored structures (%s)");
+        add(
+                "screen.dimension_tech.structure_operator.source.all",
+                "Source: All game structures (%s)");
         add("screen.dimension_tech.structure_operator.search", "Search structure ID");
         add("screen.dimension_tech.structure_operator.write", "Write");
         add("screen.dimension_tech.structure_operator.refresh_short", "Refresh");
@@ -55,7 +67,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.confirm.write", "Confirm structure write");
         add("screen.dimension_tech.structure_operator.preview.source", "Source: %s");
         add("screen.dimension_tech.structure_operator.preview.target", "Target: %s");
-        add("screen.dimension_tech.structure_operator.preview.overwrite", "Existing data will be overwritten");
+        add(
+                "screen.dimension_tech.structure_operator.preview.overwrite",
+                "Existing data will be overwritten");
         add("screen.dimension_tech.structure_operator.preview.empty", "Target is currently empty");
         add("screen.dimension_tech.structure_operator.cancel", "Cancel");
         add("screen.dimension_tech.structure_operator.confirm", "Confirm");
@@ -66,7 +80,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.catalogue_analysis", "Catalogue analysis");
         add("screen.dimension_tech.structure_operator.dimension", "Dimension: %s");
         add("screen.dimension_tech.structure_operator.structure", "Structure: %s");
-        add("screen.dimension_tech.structure_operator.select_entry", "Select a structure with loot");
+        add(
+                "screen.dimension_tech.structure_operator.select_entry",
+                "Select a structure with loot");
         add("screen.dimension_tech.structure_operator.loading", "Loading analysis data");
         add(
                 TranslateHelper.block("tier_1_mythic_miner"),

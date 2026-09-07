@@ -18,8 +18,11 @@ public final class ModMenu {
             MENU_TYPES.register(
                     ResourceLocationHelper.getPath(ResourceLocationHelper.modLoc("mythic_miner")),
                     () -> IForgeMenuType.create(MythicMinerMenu::new));
-    public static final RegistryObject<MenuType<StructureDataOperatorMenu>> STRUCTURE_DATA_OPERATOR =
-            MENU_TYPES.register("structure_data_operator", () -> IForgeMenuType.create(StructureDataOperatorMenu::new));
+    public static final RegistryObject<MenuType<StructureDataOperatorMenu>>
+            STRUCTURE_DATA_OPERATOR =
+                    MENU_TYPES.register(
+                            "structure_data_operator",
+                            () -> IForgeMenuType.create(StructureDataOperatorMenu::new));
 
     private ModMenu() {}
 }

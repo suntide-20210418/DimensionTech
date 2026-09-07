@@ -120,7 +120,8 @@ public final class StructMarkerScreen extends Screen {
                                     CYAN,
                                     false);
                             String structures =
-                                    TranslateHelper.structureName(info.structure().id()).getString();
+                                    TranslateHelper.structureName(info.structure().id())
+                                            .getString();
                             String clipped =
                                     font.plainSubstrByWidth(
                                             structures, Math.max(1, panelWidth / 2 - 25));

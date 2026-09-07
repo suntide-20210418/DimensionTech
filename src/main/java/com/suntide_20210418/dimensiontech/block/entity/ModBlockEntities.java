@@ -12,9 +12,15 @@ import net.minecraftforge.registries.RegistryObject;
 public final class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, DimensionTechMod.MOD_ID);
-    public static final RegistryObject<BlockEntityType<StructureDataOperatorBlockEntity>> STRUCTURE_DATA_OPERATOR =
-            BLOCK_ENTITY_TYPES.register("structure_data_operator", () -> BlockEntityType.Builder.of(
-                    StructureDataOperatorBlockEntity::new, ModBlocks.STRUCTURE_DATA_OPERATOR.get()).build(null));
+    public static final RegistryObject<BlockEntityType<StructureDataOperatorBlockEntity>>
+            STRUCTURE_DATA_OPERATOR =
+                    BLOCK_ENTITY_TYPES.register(
+                            "structure_data_operator",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    StructureDataOperatorBlockEntity::new,
+                                                    ModBlocks.STRUCTURE_DATA_OPERATOR.get())
+                                            .build(null));
 
     public static final RegistryObject<
                     BlockEntityType<Tier1MythicShellChikensVoidStructreResourceMinerBlockEntity>>

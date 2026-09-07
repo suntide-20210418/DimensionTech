@@ -20,6 +20,10 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.item("structure_marker"), "结构标记器");
         add(TranslateHelper.item("enchantment_mark"), "附魔印记");
         add(TranslateHelper.item("dimension_deconstruction_core"), "维度解构核心");
+        for (int tier = 1; tier <= 6; tier++) {
+            add(TranslateHelper.item("dimension_fragment_tier_" + tier), tier + "级维度碎片");
+            add(TranslateHelper.item("mining_token_tier_" + tier), tier + "级采掘代币");
+        }
         add(TranslateHelper.item("data_integrator"), "数据整合器");
         add(TranslateHelper.item("structure_interpreter"), "结构阐释器");
         add("block.dimension_tech.structure_data_operator", "结构数据操作仪");

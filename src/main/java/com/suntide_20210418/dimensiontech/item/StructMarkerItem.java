@@ -1,8 +1,8 @@
 package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
@@ -117,7 +117,8 @@ public class StructMarkerItem extends Item {
         ItemStack itemStack = player.getItemInHand(usedHand);
         if (level instanceof ServerLevel serverLevel) {
             refreshAnalysisIfNeeded(serverLevel, itemStack);
-            recordDiscoveredStructure(serverLevel, (net.minecraft.server.level.ServerPlayer) player, itemStack);
+            recordDiscoveredStructure(
+                    serverLevel, (net.minecraft.server.level.ServerPlayer) player, itemStack);
             com.suntide_20210418.dimensiontech.network.ModNetwork.openRefreshedMarker(
                     (net.minecraft.server.level.ServerPlayer) player, itemStack, usedHand);
         }
@@ -216,20 +217,37 @@ public class StructMarkerItem extends Item {
                 : 0.0D;
     }
 
-    /** Creates analysis data for a catalogue entry that is not tied to a generated structure start. */
-    public static CompoundTag createCatalogueMarkerData(ServerLevel level, ResourceLocation structureId) {
+    public static Optional<String> filterDiagnostic(ItemStack itemStack) {
+        CompoundTag data = itemStack.getTagElement(MARKER_DATA_TAG);
+        if (data == null) return Optional.empty();
+        for (Tag tag : data.getList(DIAGNOSTICS_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag entry = (CompoundTag) tag;
+            if (entry.getString("Code").endsWith("_FILTERED"))
+                return Optional.of(entry.getString("Message"));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Creates analysis data for a catalogue entry that is not tied to a generated structure start.
+     */
+    public static CompoundTag createCatalogueMarkerData(
+            ServerLevel level, ResourceLocation structureId) {
         return createCatalogueMarkerData(
                 level,
                 structureId,
                 com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer
-                        .discoverTemplateForValue(level, structureId, AnalysisStatus.EXACT, List.of()));
+                        .discoverTemplateForValue(
+                                level, structureId, AnalysisStatus.EXACT, List.of()));
     }
 
-    /** Writes catalogue marker data from an analysis-service profile without querying world chunks. */
+    /**
+     * Writes catalogue marker data from an analysis-service profile without querying world chunks.
+     */
     public static CompoundTag createCatalogueMarkerData(
             ServerLevel level, ResourceLocation structureId, DiscoveryResult discovery) {
-        MarkedStructure structure = new MarkedStructure(
-                structureId, new BoundingBox(0, 0, 0, 0, 0, 0));
+        MarkedStructure structure =
+                new MarkedStructure(structureId, new BoundingBox(0, 0, 0, 0, 0, 0));
         MarkerInfo info = new MarkerInfo(level.dimension().location(), BlockPos.ZERO, structure);
         CompoundTag markerData = new CompoundTag();
         markerData.putString(DIMENSION_TAG, info.dimension().toString());
@@ -239,7 +257,31 @@ public class StructMarkerItem extends Item {
         position.putInt("Z", 0);
         markerData.put(POSITION_TAG, position);
         markerData.put(STRUCTURE_TAG, createStructureData(structure));
-        writeAnalysisResult(markerData, StructureValueCalculator.calculate(level, info, 0.0F, discovery));
+        writeAnalysisResult(
+                markerData, StructureValueCalculator.calculate(level, info, 0.0F, discovery));
+        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(info));
+        markerData.putBoolean("DimensionTechCatalogueEntry", true);
+        return markerData;
+    }
+
+    /** Builds catalogue data from a precomputed value without re-running loot analysis. */
+    public static CompoundTag createCatalogueMarkerData(
+            ServerLevel level,
+            ResourceLocation structureId,
+            DiscoveryResult discovery,
+            StructureValueCalculator.StructureValue value) {
+        MarkedStructure structure =
+                new MarkedStructure(structureId, new BoundingBox(0, 0, 0, 0, 0, 0));
+        MarkerInfo info = new MarkerInfo(level.dimension().location(), BlockPos.ZERO, structure);
+        CompoundTag markerData = new CompoundTag();
+        markerData.putString(DIMENSION_TAG, info.dimension().toString());
+        CompoundTag position = new CompoundTag();
+        position.putInt("X", 0);
+        position.putInt("Y", 0);
+        position.putInt("Z", 0);
+        markerData.put(POSITION_TAG, position);
+        markerData.put(STRUCTURE_TAG, createStructureData(structure));
+        writeAnalysisResult(markerData, value);
         markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(info));
         markerData.putBoolean("DimensionTechCatalogueEntry", true);
         return markerData;
@@ -255,7 +297,8 @@ public class StructMarkerItem extends Item {
             return;
         }
 
-        ResourceLocation dimensionId = ResourceLocation.tryParse(markerData.getString(DIMENSION_TAG));
+        ResourceLocation dimensionId =
+                ResourceLocation.tryParse(markerData.getString(DIMENSION_TAG));
         Component dimension =
                 (dimensionId == null
                                 ? Component.literal(markerData.getString(DIMENSION_TAG))
@@ -289,6 +332,23 @@ public class StructMarkerItem extends Item {
                                 TranslateHelper.tooltip("struct_marker.analysis_status"),
                                 Component.literal(analysisStatus.name()))
                         .withStyle(ChatFormatting.DARK_GRAY));
+        CompoundTag diagnostics =
+                markerData.getList(DIAGNOSTICS_TAG, Tag.TAG_COMPOUND).isEmpty() ? null : markerData;
+        if (diagnostics != null) {
+            markerData
+                    .getList(DIAGNOSTICS_TAG, Tag.TAG_COMPOUND)
+                    .forEach(
+                            entry -> {
+                                String code = ((CompoundTag) entry).getString("Code");
+                                if (code.endsWith("_FILTERED")) {
+                                    tooltip.add(
+                                            Component.literal(
+                                                            ((CompoundTag) entry)
+                                                                    .getString("Message"))
+                                                    .withStyle(ChatFormatting.RED));
+                                }
+                            });
+        }
         if (!currentAlgorithm) {
             tooltip.add(
                     TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.legacy"))

@@ -19,7 +19,8 @@ public class ModBlockStateProvider extends BlockStateProvider {
     protected void registerStatesAndModels() {
         Block miner = ModBlocks.TIER_1_MYTHIC_MINER.get();
         Block operator = ModBlocks.STRUCTURE_DATA_OPERATOR.get();
-        ModelFile operatorModel = models().cubeAll("structure_data_operator", mcLoc("block/raw_iron_block"));
+        ModelFile operatorModel =
+                models().cubeAll("structure_data_operator", mcLoc("block/raw_iron_block"));
         simpleBlockWithItem(operator, operatorModel);
         ModelFile model =
                 models().cubeAll(

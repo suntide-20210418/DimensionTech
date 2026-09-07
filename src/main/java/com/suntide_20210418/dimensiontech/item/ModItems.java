@@ -40,10 +40,14 @@ public final class ModItems {
             ITEMS.register(
                     ResourceLocationHelper.getPath(DIMENSION_DECONSTRUCTION_CORE_ID),
                     () -> new Item(new Item.Properties().stacksTo(64)));
+    public static final RegistryObject<Item>[] DIMENSION_FRAGMENTS =
+            tieredItems("dimension_fragment");
+    public static final RegistryObject<Item>[] MINING_TOKENS = tieredItems("mining_token");
     public static final RegistryObject<Item> DATA_INTEGRATOR =
             ITEMS.register("data_integrator", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> STRUCTURE_INTERPRETER =
-            ITEMS.register("structure_interpreter", () -> new Item(new Item.Properties().stacksTo(1)));
+            ITEMS.register(
+                    "structure_interpreter", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> STRUCTURE_DATA_OPERATOR =
             blockItem("structure_data_operator", ModBlocks.STRUCTURE_DATA_OPERATOR);
 
@@ -132,6 +136,18 @@ public final class ModItems {
                                                 .craftRemainder(Items.BUCKET)));
         fluid.setBucket(bucket);
         return bucket;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static RegistryObject<Item>[] tieredItems(String name) {
+        RegistryObject<Item>[] tiers = new RegistryObject[6];
+        for (int tier = 1; tier <= 6; tier++) {
+            tiers[tier - 1] =
+                    ITEMS.register(
+                            name + "_tier_" + tier,
+                            () -> new Item(new Item.Properties().stacksTo(64)));
+        }
+        return tiers;
     }
 
     @SuppressWarnings("unchecked")

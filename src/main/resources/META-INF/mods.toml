@@ -36,13 +36,6 @@ mandatory=true
 versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
-# 添加 Mixin 配置声明
-[[dependencies.${mod_id}]]
-modId="mixinextras"
-mandatory=false
-versionRange="[1.0.0,)"
-ordering="NONE"
-side="BOTH"
 [[dependencies.${mod_id}]]
 modId="ae2"
 mandatory=false

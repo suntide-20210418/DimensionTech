@@ -512,7 +512,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
     public int getMarkerProcessingTime(int slot) {
         return isMarkerWaitingForNaturalWindow(slot)
-                ? 400
+                ? BaseMinerBlockEntity.DEFAULT_PROCESSING_TIME
                 : combineSlotWords(slot, SLOT_PROCESSING_LOW, SLOT_PROCESSING_HIGH);
     }
 

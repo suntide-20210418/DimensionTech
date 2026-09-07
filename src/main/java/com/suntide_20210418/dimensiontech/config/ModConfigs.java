@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.config;
 
+import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKey;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -81,6 +82,12 @@ public final class ModConfigs {
         private final ForgeConfigSpec.IntValue virtualStructureStepsPerTick;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionValues;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> itemMultipliers;
+        private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionWhitelist;
+        private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionBlacklist;
+        private final ForgeConfigSpec.ConfigValue<List<? extends String>> structureWhitelist;
+        private final ForgeConfigSpec.ConfigValue<List<? extends String>> structureBlacklist;
+        private final ForgeConfigSpec.ConfigValue<List<? extends String>> itemWhitelist;
+        private final ForgeConfigSpec.ConfigValue<List<? extends String>> itemBlacklist;
 
         private StructureValueConfig(ForgeConfigSpec.Builder builder) {
             builder.comment("Structure marker value calculation").push("structureValue");
@@ -101,10 +108,14 @@ public final class ModConfigs {
                     builder.comment("Monte Carlo samples per loot table")
                             .defineInRange("samplingCount", 1000, 1, 1_000_000);
             virtualStructureSamples =
-                    builder.comment("Detached structure-generation samples used by catalogue analysis")
+                    builder.comment(
+                                    "Detached structure-generation samples used by catalogue"
+                                            + " analysis")
                             .defineInRange("virtualStructureSamples", 8, 1, 64);
             virtualStructureStepsPerTick =
-                    builder.comment("Maximum catalogue-analysis work units processed each server tick")
+                    builder.comment(
+                                    "Maximum catalogue-analysis work units processed each server"
+                                            + " tick")
                             .defineInRange("virtualStructureStepsPerTick", 1, 1, 64);
             dimensionValues =
                     builder.comment(
@@ -135,7 +146,34 @@ public final class ModConfigs {
                                             "unobtainium_=500.0",
                                             "upgrade_smithing_template=50.0"),
                                     StructureValueConfig::isItemMultiplierEntry);
+            dimensionWhitelist =
+                    regexList(builder, "dimensionWhitelist", "Allowed dimension ID regexes");
+            dimensionBlacklist =
+                    regexList(builder, "dimensionBlacklist", "Denied dimension ID regexes");
+            structureWhitelist =
+                    regexList(builder, "structureWhitelist", "Allowed structure ID regexes");
+            structureBlacklist =
+                    regexList(builder, "structureBlacklist", "Denied structure ID regexes");
+            itemWhitelist = regexList(builder, "itemWhitelist", "Allowed item ID regexes");
+            itemBlacklist = regexList(builder, "itemBlacklist", "Denied item ID regexes");
             builder.pop();
+        }
+
+        private static ForgeConfigSpec.ConfigValue<List<? extends String>> regexList(
+                ForgeConfigSpec.Builder builder, String name, String comment) {
+            return builder.comment(
+                            comment, "Entries are regular expressions matched against complete IDs")
+                    .defineListAllowEmpty(name, List.of(), StructureValueConfig::isRegex);
+        }
+
+        private static boolean isRegex(Object value) {
+            if (!(value instanceof String regex)) return false;
+            try {
+                Pattern.compile(regex);
+                return true;
+            } catch (PatternSyntaxException exception) {
+                return false;
+            }
         }
 
         private static ForgeConfigSpec.DoubleValue multiplier(
@@ -175,6 +213,8 @@ public final class ModConfigs {
         }
 
         public double rarityMultiplier(Rarity rarity) {
+            Double override = StructureScriptConfigService.rarityMultiplier(rarity.name());
+            if (override != null) return override;
             return switch (rarity) {
                 case COMMON -> commonMultiplier.get();
                 case UNCOMMON -> uncommonMultiplier.get();
@@ -187,6 +227,8 @@ public final class ModConfigs {
             ResourceLocation itemId =
                     net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
             if (itemId == null) return rarityMultiplier(rarity);
+            Double scriptOverride = StructureScriptConfigService.itemMultiplier(itemId.toString());
+            if (scriptOverride != null) return scriptOverride;
             for (String entry : itemMultipliers.get()) {
                 int separator = entry.lastIndexOf('=');
                 Pattern matcher = Pattern.compile(entry.substring(0, separator).trim());
@@ -218,26 +260,78 @@ public final class ModConfigs {
                     + "|"
                     + dimensionValues.get()
                     + "|"
-                    + itemMultipliers.get();
+                    + itemMultipliers.get()
+                    + "|"
+                    + dimensionWhitelist.get()
+                    + "|"
+                    + dimensionBlacklist.get()
+                    + "|"
+                    + structureWhitelist.get()
+                    + "|"
+                    + structureBlacklist.get()
+                    + "|"
+                    + itemWhitelist.get()
+                    + "|"
+                    + itemBlacklist.get()
+                    + "|script="
+                    + StructureScriptConfigService.fingerprint();
+        }
+
+        /** Fingerprint for structure discovery only; loot/value and machine settings are excluded. */
+        public String discoveryFingerprint() {
+            com.google.gson.JsonObject config = new com.google.gson.JsonObject();
+            config.addProperty("algorithmVersion", 1);
+            addFilterFingerprint(config, "dimension", merged("dimension", dimensionWhitelist.get(), dimensionBlacklist.get()));
+            addFilterFingerprint(config, "structure", merged("structure", structureWhitelist.get(), structureBlacklist.get()));
+            return com.suntide_20210418.dimensiontech.utils.loot.expectation.FrozenJson.freeze(config).fingerprint();
+        }
+
+        public String generationFingerprint() {
+            return discoveryFingerprint() + "|samples=" + virtualStructureSamples();
+        }
+
+        public String expectationFingerprint() {
+            return "algorithm=1|method=" + itemExpectationMethod() + "|samples=" + samplingCount();
+        }
+
+        private static void addFilterFingerprint(com.google.gson.JsonObject config, String name,
+                List<? extends String>[] filters) {
+            com.google.gson.JsonArray white = new com.google.gson.JsonArray();
+            com.google.gson.JsonArray black = new com.google.gson.JsonArray();
+            filters[0].forEach(white::add);
+            filters[1].forEach(black::add);
+            config.add(name + "Whitelist", white);
+            config.add(name + "Blacklist", black);
         }
 
         public ItemExpectationMethod itemExpectationMethod() {
-            return itemExpectationMethod.get();
+            String value = StructureScriptConfigService.expectationMethod();
+            return value == null
+                    ? itemExpectationMethod.get()
+                    : ItemExpectationMethod.valueOf(value);
         }
 
         public int samplingCount() {
-            return samplingCount.get();
+            return StructureScriptConfigService.samplingCount() != null
+                    ? StructureScriptConfigService.samplingCount()
+                    : samplingCount.get();
         }
 
         public int virtualStructureSamples() {
-            return virtualStructureSamples.get();
+            return StructureScriptConfigService.virtualSamples() != null
+                    ? StructureScriptConfigService.virtualSamples()
+                    : virtualStructureSamples.get();
         }
 
         public int virtualStructureStepsPerTick() {
-            return virtualStructureStepsPerTick.get();
+            return StructureScriptConfigService.stepsPerTick() != null
+                    ? StructureScriptConfigService.stepsPerTick()
+                    : virtualStructureStepsPerTick.get();
         }
 
         public double dimensionValue(ResourceLocation dimension) {
+            Double override = StructureScriptConfigService.dimensionValue(dimension);
+            if (override != null) return override;
             for (String entry : dimensionValues.get()) {
                 int separator = entry.lastIndexOf('=');
                 ResourceLocation configuredDimension =
@@ -247,6 +341,47 @@ public final class ModConfigs {
                 }
             }
             return 1.0D;
+        }
+
+        public boolean allowsDimension(ResourceLocation id) {
+            return allows(
+                    id.toString(),
+                    merged("dimension", dimensionWhitelist.get(), dimensionBlacklist.get()));
+        }
+
+        public boolean allowsStructure(ResourceLocation id) {
+            return allows(
+                    id.toString(),
+                    merged("structure", structureWhitelist.get(), structureBlacklist.get()));
+        }
+
+        public boolean allowsItem(ResourceLocation id) {
+            return allows(id.toString(), merged("item", itemWhitelist.get(), itemBlacklist.get()));
+        }
+
+        private static boolean allows(String value, List<? extends String>[] lists) {
+            if (lists[1].stream().anyMatch(regex -> Pattern.compile(regex).matcher(value).find()))
+                return false;
+            return lists[0].isEmpty()
+                    || lists[0].stream()
+                            .anyMatch(regex -> Pattern.compile(regex).matcher(value).find());
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<? extends String>[] merged(
+                String kind, List<? extends String> white, List<? extends String> black) {
+            List<String> sw = StructureScriptConfigService.filters(kind, true),
+                    sb = StructureScriptConfigService.filters(kind, false);
+            return new List[] {sw.isEmpty() ? white : sw, sb.isEmpty() ? black : sb};
+        }
+
+        private static boolean allows(
+                String value, List<? extends String> whitelist, List<? extends String> blacklist) {
+            if (blacklist.stream().anyMatch(regex -> Pattern.compile(regex).matcher(value).find()))
+                return false;
+            return whitelist.isEmpty()
+                    || whitelist.stream()
+                            .anyMatch(regex -> Pattern.compile(regex).matcher(value).find());
         }
     }
 
