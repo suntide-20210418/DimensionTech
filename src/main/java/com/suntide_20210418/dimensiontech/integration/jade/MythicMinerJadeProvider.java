@@ -3,8 +3,8 @@ package com.suntide_20210418.dimensiontech.integration.jade;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity.OutputState;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
-import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -160,7 +160,7 @@ public enum MythicMinerJadeProvider
                             slotStructureName(slot)));
             int processing = Math.max(0, slot.getInt(SLOT_PROCESSING));
             boolean waiting = slot.getBoolean(SLOT_WAITING);
-            if (waiting) processing = 400;
+            if (waiting) processing = BaseMinerBlockEntity.DEFAULT_PROCESSING_TIME;
             int progress =
                     (int) Math.max(0L, Math.min((long) processing, slot.getLong(SLOT_PROGRESS)));
             addProgressBar(tooltip, progress, processing, theme);

@@ -20,13 +20,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.ToDoubleFunction;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
 public final class StructureValueCalculator {
+    private static final int EXPECTATION_ALGORITHM_VERSION = 1;
     private StructureValueCalculator() {}
 
     public static StructureValue calculate(ServerLevel level, MarkerInfo markerInfo) {
@@ -34,14 +37,241 @@ public final class StructureValueCalculator {
     }
 
     public static StructureValue calculate(ServerLevel level, MarkerInfo markerInfo, float luck) {
-        return calculate(level, markerInfo, luck, StructureLootAnalyzer.discoverForValue(level, markerInfo));
+        return calculate(
+                level, markerInfo, luck, StructureLootAnalyzer.discoverForValue(level, markerInfo));
     }
 
     /** Calculates a value from a pre-discovered profile, used by detached catalogue analysis. */
     public static StructureValue calculate(
             ServerLevel level, MarkerInfo markerInfo, float luck, DiscoveryResult discovery) {
+        return calculate(level, markerInfo, luck, discovery, null);
+    }
+
+    /**
+     * Asynchronously evaluates a frozen loot source. The source must not reference a live server
+     * resource manager; callers should create it with {@code RuntimeLootAstSource.snapshot}.
+     */
+    public static CompletableFuture<StructureValue> calculateAsync(
+            MinecraftServer server,
+            MarkerInfo markerInfo,
+            float luck,
+            DiscoveryResult discovery,
+            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource source) {
+        if (!server.isSameThread()) throw new IllegalStateException("Freeze analysis on the server thread");
+        if (!Float.isFinite(luck)) {
+            return CompletableFuture.completedFuture(unsupported(
+                    ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension()),
+                    List.of(new Diagnostic(
+                            "VALUE_SEMANTICS", "Machine luck must be finite: " + luck))));
+        }
+        com.google.gson.JsonObject input = new com.google.gson.JsonObject();
+        input.addProperty("loot", source.inputFingerprint());
+        input.addProperty("dimension", markerInfo.dimension().toString());
+        input.addProperty("x", markerInfo.position().getX());
+        input.addProperty("y", markerInfo.position().getY());
+        input.addProperty("z", markerInfo.position().getZ());
+        input.addProperty("status", discovery.status().name());
+        com.google.gson.JsonObject roots = new com.google.gson.JsonObject();
+        rootTableWeightsForValue(discovery).forEach((id, weight) -> roots.addProperty(id.toString(), weight.toString()));
+        input.add("roots", roots);
+        String contentFingerprint = com.suntide_20210418.dimensiontech.utils.loot.expectation.FrozenJson.freeze(input).fingerprint();
+        StructureAnalysisService service = StructureAnalysisService.forServer(server);
+        ItemExpectationMethod method = ModConfigs.STRUCTURE_VALUE.itemExpectationMethod();
+        int samples = ModConfigs.STRUCTURE_VALUE.samplingCount();
+        String expectationConfig = ModConfigs.STRUCTURE_VALUE.expectationFingerprint()
+                + "|luck=" + Float.floatToIntBits(luck);
+        net.minecraft.core.BlockPos position = markerInfo.position().immutable();
+        CompletableFuture<LootExpectationSnapshot> expectation;
+        if (method == ItemExpectationMethod.SAMPLING) {
+            expectation = requestSamples(server, markerInfo, luck, discovery, source,
+                    contentFingerprint, expectationConfig, samples);
+        } else {
+            expectation = service.capture(server, "loot-expectation", contentFingerprint,
+                    expectationConfig, EXPECTATION_ALGORITHM_VERSION,
+                    () -> exactExpectation(source, position, luck, discovery));
+            expectation = expectation.thenComposeAsync(result -> {
+                if (result.status() == AnalysisStatus.EXACT || result.status() == AnalysisStatus.APPROXIMATE
+                        || (discovery.status() != AnalysisStatus.EXACT && discovery.status() != AnalysisStatus.APPROXIMATE)) {
+                    return CompletableFuture.completedFuture(result);
+                }
+                return requestSamples(server, markerInfo, luck, discovery, source,
+                        contentFingerprint, expectationConfig, samples);
+            }, server);
+        }
+        return expectation.thenComposeAsync(result -> {
+            if (!ModConfigs.STRUCTURE_VALUE.allowsDimension(markerInfo.dimension())
+                    || !ModConfigs.STRUCTURE_VALUE.allowsStructure(markerInfo.structure().id())) {
+                return CompletableFuture.completedFuture(unsupported(
+                        ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension()),
+                        List.of(new Diagnostic("STRUCTURE_FILTERED", "Structure or dimension is blocked by configuration."))));
+            }
+            StructureValueSnapshot.Config valueConfig = captureValueConfig(result.terminal(), markerInfo);
+            return service.value(result.terminal(), valueConfig)
+                    .thenApplyAsync(value -> restoreValue(result, value), server);
+        }, server);
+    }
+
+    private static LootExpectationSnapshot exactExpectation(
+            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource source,
+            net.minecraft.core.BlockPos position, float luck, DiscoveryResult discovery) {
+        source.verifyRuntimeInputs();
+        List<Diagnostic> diagnostics = new ArrayList<>(discovery.diagnostics());
+        StackMeasure measure = new StackMeasure();
+        TerminalStackMeasure terminal = TerminalStackMeasure.empty();
+        boolean full = true;
+        AnalysisStatus status = discovery.status();
+        LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck);
+        for (var root : rootTableWeightsForValue(discovery).entrySet()) {
+            var result = DistributionalLootTableExecutor1201.evaluate(source, root.getKey(), context, 1_000_000);
+            diagnostics.addAll(result.diagnostics());
+            if (result.status() != AnalysisStatus.EXACT) {
+                return freezeExpectation(AnalysisStatus.UNSUPPORTED, new StackMeasure(),
+                        TerminalStackMeasure.empty(), false, diagnostics);
+            }
+            terminal = terminal.plus(result.terminalMeasure().scale(root.getValue()));
+            if (full && result.fullStackMeasureAvailable()) measure.addAll(result.measure(), root.getValue());
+            if (!result.fullStackMeasureAvailable()) full = false;
+        }
+        return freezeExpectation(status, full ? measure : new StackMeasure(), terminal, full, diagnostics);
+    }
+
+    private record SampleBatch(Map<StructureValueSnapshot.TerminalItem, Long> counts, int samples,
+            ExactProbability occurrenceScale, List<Diagnostic> diagnostics) {
+        private SampleBatch { counts = Map.copyOf(counts); diagnostics = List.copyOf(diagnostics); }
+    }
+
+    private static CompletableFuture<LootExpectationSnapshot> requestSamples(MinecraftServer server,
+            MarkerInfo info, float luck, DiscoveryResult discovery,
+            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource source,
+            String input, String config, int samples) {
+        if (discovery.status() != AnalysisStatus.EXACT && discovery.status() != AnalysisStatus.APPROXIMATE) {
+            return CompletableFuture.completedFuture(new LootExpectationSnapshot(discovery.status(),
+                    new StructureValueSnapshot.Expectation(Map.of()), Map.of(), false, discovery.diagnostics()));
+        }
+        StructureAnalysisService service = StructureAnalysisService.forServer(server);
+        return service.capture(server, "loot-runtime-samples", input, config, 1, () -> {
+            ServerLevel level = server.getLevel(net.minecraft.resources.ResourceKey.create(
+                    net.minecraft.core.registries.Registries.DIMENSION, info.dimension()));
+            if (level == null) throw new IllegalStateException("Sampling dimension is unavailable");
+            if (samples <= 0) throw new IllegalArgumentException("Sample count must be positive");
+            var roots = rootTableWeightsForValue(discovery).keySet();
+            String currentSource = com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource
+                    .snapshotTables(server, roots).inputFingerprint();
+            if (!source.inputFingerprint().equals(currentSource)) throw new IllegalStateException("Loot data changed before sampling");
+            Map<StructureValueSnapshot.TerminalItem, Long> counts = new LinkedHashMap<>();
+            for (StructureLoot structure : discovery.structures()) {
+                for (var table : structure.occurrences().entrySet()) {
+                    for (int occurrence = 0; occurrence < table.getValue(); occurrence++) {
+                        for (ItemStack stack : LootTableLottery.draw(level,
+                                net.minecraft.world.phys.Vec3.atCenterOf(info.position()),
+                                List.of(table.getKey()), null, luck, samples)) {
+                            if (stack.isEmpty() || stack.getCount() <= 0) continue;
+                            String id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+                            var item = new StructureValueSnapshot.TerminalItem(id, 1,
+                                    new ItemStack(stack.getItem()).getRarity().name());
+                            counts.merge(item, (long) stack.getCount(), Math::addExact);
+                        }
+                    }
+                }
+            }
+            return new SampleBatch(counts, samples, discovery.occurrenceScale(), discovery.diagnostics());
+        }).thenCompose(batch -> service.computeSnapshot("loot-sample-expectation", input, config,
+                EXPECTATION_ALGORITHM_VERSION, () -> {
+            Map<StructureValueSnapshot.TerminalItem, ExactProbability> masses = new LinkedHashMap<>();
+            batch.counts().forEach((item, count) -> masses.put(item,
+                    ExactProbability.of(count, batch.samples()).multiply(batch.occurrenceScale())));
+            List<Diagnostic> diagnostics = new ArrayList<>(batch.diagnostics());
+            diagnostics.add(new Diagnostic("SAMPLING_APPROXIMATION",
+                    "Per-item expectations estimated from " + batch.samples() + " Monte Carlo samples"));
+            return new LootExpectationSnapshot(AnalysisStatus.APPROXIMATE,
+                    new StructureValueSnapshot.Expectation(masses), Map.of(), false, diagnostics);
+        }));
+    }
+
+    private static LootExpectationSnapshot freezeExpectation(AnalysisStatus status, StackMeasure full,
+            TerminalStackMeasure terminal, boolean fullAvailable, List<Diagnostic> diagnostics) {
+        Map<StructureValueSnapshot.TerminalItem, ExactProbability> occurrences = new LinkedHashMap<>();
+        terminal.values().forEach((item, mass) -> occurrences.put(new StructureValueSnapshot.TerminalItem(
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item.item()).toString(),
+                item.count(), item.rarity().name()), mass));
+        Map<LootExpectationSnapshot.StackData, ExactProbability> stacks = new LinkedHashMap<>();
+        full.values().forEach((state, mass) -> {
+            ItemStack stack = state.stack();
+            stacks.put(new LootExpectationSnapshot.StackData(
+                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
+                    state.count(), state.serializedStackData()), mass);
+        });
+        return new LootExpectationSnapshot(status, new StructureValueSnapshot.Expectation(occurrences),
+                stacks, fullAvailable, diagnostics);
+    }
+
+    private static StructureValueSnapshot.Config captureValueConfig(
+            StructureValueSnapshot.Expectation expectation, MarkerInfo marker) {
+        Map<String, Map<String, Double>> items = new LinkedHashMap<>();
+        if (ModConfigs.STRUCTURE_VALUE.allowsDimension(marker.dimension())
+                && ModConfigs.STRUCTURE_VALUE.allowsStructure(marker.structure().id())) {
+            for (var terminal : expectation.occurrences().keySet()) {
+                ResourceLocation id = ResourceLocation.parse(terminal.itemId());
+                if (!ModConfigs.STRUCTURE_VALUE.allowsItem(id)) continue;
+                Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(id)
+                        .orElseThrow(() -> new IllegalStateException("Frozen item is no longer registered: " + id));
+                items.computeIfAbsent(terminal.itemId(), ignored -> new LinkedHashMap<>())
+                        .put(terminal.rarity(), ModConfigs.STRUCTURE_VALUE.itemMultiplier(item,
+                                net.minecraft.world.item.Rarity.valueOf(terminal.rarity())));
+            }
+        }
+        return new StructureValueSnapshot.Config(ModConfigs.STRUCTURE_VALUE.dimensionValue(marker.dimension()), items);
+    }
+
+    private static StructureValue restoreValue(LootExpectationSnapshot input, StructureValueSnapshot.Result value) {
+        List<Diagnostic> diagnostics = new ArrayList<>(input.diagnostics());
+        if (!value.supported()) diagnostics.add(new Diagnostic("VALUE_SEMANTICS", value.failure()));
+        if (!value.supported() || (input.status() != AnalysisStatus.EXACT && input.status() != AnalysisStatus.APPROXIMATE)) {
+            return unsupported(value.dimensionValue(), diagnostics);
+        }
+        Map<TerminalStackKey, ExactProbability> terminal = new LinkedHashMap<>();
+        value.expectation().occurrences().forEach((item, mass) -> terminal.put(new TerminalStackKey(
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(item.itemId())),
+                item.count(), net.minecraft.world.item.Rarity.valueOf(item.rarity())), mass));
+        StackMeasure full = new StackMeasure();
+        java.util.Set<String> includedItems = value.expectation().occurrences().keySet().stream()
+                .map(StructureValueSnapshot.TerminalItem::itemId).collect(java.util.stream.Collectors.toSet());
+        if (input.fullStackMeasureAvailable()) input.stacks().forEach((data, mass) -> {
+            if (!includedItems.contains(data.itemId())) return;
+            try {
+                ItemStack stack = ItemStack.of(net.minecraft.nbt.TagParser.parseTag(data.serializedNbt()));
+                stack.setCount(data.count());
+                full.add(new com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState(stack), mass);
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException error) {
+                throw new IllegalStateException("Invalid frozen stack data", error);
+            }
+        });
+        return new StructureValue(input.status(), value.dimensionValue(), value.structureValue(), full,
+                TerminalStackMeasure.of(terminal), input.fullStackMeasureAvailable(), diagnostics);
+    }
+
+    private static StructureValue calculate(
+            ServerLevel level,
+            MarkerInfo markerInfo,
+            float luck,
+            DiscoveryResult discovery,
+            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource sourceOverride) {
         double dimensionValue = ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension());
         List<Diagnostic> diagnostics = new ArrayList<>();
+        if (!ModConfigs.STRUCTURE_VALUE.allowsDimension(markerInfo.dimension())) {
+            diagnostics.add(
+                    new Diagnostic(
+                            "DIMENSION_FILTERED",
+                            "Dimension is blocked by the configured whitelist/blacklist."));
+            return unsupported(dimensionValue, diagnostics);
+        }
+        if (!ModConfigs.STRUCTURE_VALUE.allowsStructure(markerInfo.structure().id())) {
+            diagnostics.add(
+                    new Diagnostic(
+                            "STRUCTURE_FILTERED",
+                            "Structure is blocked by the configured whitelist/blacklist."));
+            return unsupported(dimensionValue, diagnostics);
+        }
         if (!Float.isFinite(luck)) {
             diagnostics.add(
                     new Diagnostic("VALUE_SEMANTICS", "Machine luck must be finite: " + luck));
@@ -71,28 +301,66 @@ public final class StructureValueCalculator {
         diagnostics.addAll(discovery.diagnostics());
         AnalysisStatus status = discovery.status();
         Map<ResourceLocation, ExactProbability> roots = rootTableWeightsForValue(discovery);
-        LootAnalysisContext context = LootAnalysisContext.at(level, markerInfo.position(), luck);
+        LootAnalysisContext context =
+                sourceOverride == null
+                        ? LootAnalysisContext.at(level, markerInfo.position(), luck)
+                        : LootAnalysisContext.snapshot(markerInfo.position(), luck);
         if (ModConfigs.STRUCTURE_VALUE.itemExpectationMethod() == ItemExpectationMethod.SAMPLING) {
             return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
         }
         for (Map.Entry<ResourceLocation, ExactProbability> root : roots.entrySet()) {
             var result =
-                    DistributionalLootTableExecutor1201.evaluate(
-                            level.getServer(), root.getKey(), context, 1_000_000);
+                    sourceOverride == null
+                            ? DistributionalLootTableExecutor1201.evaluate(
+                                    level.getServer(), root.getKey(), context, 1_000_000)
+                            : DistributionalLootTableExecutor1201.evaluate(
+                                    sourceOverride, root.getKey(), context, 1_000_000);
             diagnostics.addAll(result.diagnostics());
             if (result.status() != AnalysisStatus.EXACT) {
                 status = AnalysisStatus.UNSUPPORTED;
                 break;
             }
-            terminalMeasure = terminalMeasure.plus(result.terminalMeasure().scale(root.getValue()));
+            terminalMeasure =
+                    terminalMeasure.plus(
+                            result.terminalMeasure()
+                                    .filter(
+                                            item -> {
+                                                ResourceLocation id =
+                                                        net.minecraft.core.registries
+                                                                .BuiltInRegistries.ITEM
+                                                                .getKey(item);
+                                                return id == null
+                                                        || ModConfigs.STRUCTURE_VALUE.allowsItem(
+                                                                id);
+                                            })
+                                    .scale(root.getValue()));
             if (fullStackMeasureAvailable && result.fullStackMeasureAvailable()) {
-                measure.addAll(result.measure(), root.getValue());
+                measure.addAll(
+                        result.measure()
+                                .filter(
+                                        state -> {
+                                            ResourceLocation id =
+                                                    net.minecraft.core.registries.BuiltInRegistries
+                                                            .ITEM
+                                                            .getKey(state.stack().getItem());
+                                            return id == null
+                                                    || ModConfigs.STRUCTURE_VALUE.allowsItem(id);
+                                        }),
+                        root.getValue());
             } else if (!result.fullStackMeasureAvailable()) {
                 fullStackMeasureAvailable = false;
                 measure = new StackMeasure();
             }
         }
         if (status != AnalysisStatus.EXACT && status != AnalysisStatus.APPROXIMATE) {
+            if (sourceOverride != null) {
+                return new StructureValue(
+                        AnalysisStatus.UNSUPPORTED,
+                        dimensionValue,
+                        0.0D,
+                        new StackMeasure(),
+                        List.copyOf(diagnostics));
+            }
             return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
         }
         double structureValue = 0.0D;
@@ -144,19 +412,24 @@ public final class StructureValueCalculator {
         for (StructureLoot structure : discovery.structures()) {
             for (Map.Entry<ResourceLocation, Integer> table : structure.occurrences().entrySet()) {
                 for (int occurrence = 0; occurrence < table.getValue(); occurrence++) {
-                List<ItemStack> outputs =
-                        LootTableLottery.draw(
-                                level,
-                                net.minecraft.world.phys.Vec3.atCenterOf(markerInfo.position()),
-                                List.of(table.getKey()),
-                                null,
-                                luck,
-                                samples);
-                for (ItemStack stack : outputs) {
-                    if (!stack.isEmpty() && stack.getCount() > 0) {
-                        counts.merge(stack.getItem(), (long) stack.getCount(), Long::sum);
+                    List<ItemStack> outputs =
+                            LootTableLottery.draw(
+                                    level,
+                                    net.minecraft.world.phys.Vec3.atCenterOf(markerInfo.position()),
+                                    List.of(table.getKey()),
+                                    null,
+                                    luck,
+                                    samples);
+                    for (ItemStack stack : outputs) {
+                        if (!stack.isEmpty() && stack.getCount() > 0) {
+                            ResourceLocation itemId =
+                                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(
+                                            stack.getItem());
+                            if (itemId == null || ModConfigs.STRUCTURE_VALUE.allowsItem(itemId)) {
+                                counts.merge(stack.getItem(), (long) stack.getCount(), Long::sum);
+                            }
+                        }
                     }
-                }
                 }
             }
         }
@@ -236,7 +509,8 @@ public final class StructureValueCalculator {
         }
         Map<ResourceLocation, ExactProbability> roots = new LinkedHashMap<>();
         for (StructureLoot structure : discovery.structures()) {
-            structure.occurrences()
+            structure
+                    .occurrences()
                     .forEach(
                             (table, occurrences) ->
                                     roots.merge(
@@ -248,6 +522,15 @@ public final class StructureValueCalculator {
         return Map.copyOf(roots);
     }
 
+    private static StructureValue unsupported(double dimensionValue, List<Diagnostic> diagnostics) {
+        return new StructureValue(
+                AnalysisStatus.UNSUPPORTED,
+                dimensionValue,
+                0.0D,
+                new StackMeasure(),
+                List.copyOf(diagnostics));
+    }
+
     /** Compatibility projection for existing integrations that need one entry per occurrence. */
     static List<ResourceLocation> rootTablesForValue(DiscoveryResult discovery) {
         if (discovery.status() != AnalysisStatus.EXACT
@@ -257,10 +540,14 @@ public final class StructureValueCalculator {
         List<ResourceLocation> roots = new ArrayList<>();
         for (StructureLoot structure : discovery.structures()) {
             structure.occurrences().entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey(Comparator.comparing(ResourceLocation::toString)))
-                    .forEach(entry -> {
-                        for (int count = 0; count < entry.getValue(); count++) roots.add(entry.getKey());
-                    });
+                    .sorted(
+                            Map.Entry.comparingByKey(
+                                    Comparator.comparing(ResourceLocation::toString)))
+                    .forEach(
+                            entry -> {
+                                for (int count = 0; count < entry.getValue(); count++)
+                                    roots.add(entry.getKey());
+                            });
         }
         return List.copyOf(roots);
     }

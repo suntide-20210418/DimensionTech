@@ -9,6 +9,8 @@ final class MythicMinerExternalTickAcceleration {
     private long actualTicks;
     private long naturalTicks;
     private long actualTicksAtNaturalTickStart;
+    private long expectedCallsInNaturalTick = 1L;
+    private long callsInNaturalTick;
     private long equivalentAccelerationTicks;
     private boolean targetReached;
     private long currentCycleTicks;
@@ -28,13 +30,16 @@ final class MythicMinerExternalTickAcceleration {
             // server tick as the baseline: 2, 3, 5 calls become 2, 4, 8 ticks.
             long callsSinceNaturalTick = actualTicks - actualTicksAtNaturalTickStart;
             long correctedCalls = correctedNaturalInterval(callsSinceNaturalTick);
-            equivalentAccelerationTicks = correctedCalls;
+            equivalentAccelerationTicks = Math.max(0L, callsSinceNaturalTick - 1L);
             actualTicks = saturatedAdd(actualTicks, correctedCalls - callsSinceNaturalTick);
             actualTicksAtNaturalTickStart = actualTicks;
+            expectedCallsInNaturalTick = Math.max(1L, callsSinceNaturalTick);
+            callsInNaturalTick = 0L;
             lastGameTime = gameTime;
             naturalTicks = saturatedIncrement(naturalTicks);
         }
         actualTicks = saturatedIncrement(actualTicks);
+        callsInNaturalTick = saturatedIncrement(callsInNaturalTick);
 
         boolean reachedCycleTicks = actualTicks >= effectiveCycleTicks;
         if (reachedCycleTicks && naturalTicks < MINIMUM_NATURAL_TICKS) {
@@ -44,13 +49,18 @@ final class MythicMinerExternalTickAcceleration {
         boolean complete = false;
         int completedParallel = 0;
         long completedActualTicks = 0L;
-        if (targetReached && naturalTicks >= MINIMUM_NATURAL_TICKS) {
+        boolean naturalWindowSettled = callsInNaturalTick >= expectedCallsInNaturalTick;
+        if (targetReached && naturalTicks >= MINIMUM_NATURAL_TICKS && naturalWindowSettled) {
+            actualTicks = settleCurrentNaturalInterval(actualTicks, callsInNaturalTick);
             complete = true;
             completedParallel =
                     externalParallelEligible
                             ? extraParallelForRatio(actualTicks, effectiveCycleTicks)
                             : 0;
-        } else if (reachedCycleTicks && naturalTicks >= MINIMUM_NATURAL_TICKS) {
+        } else if (reachedCycleTicks
+                && naturalTicks >= MINIMUM_NATURAL_TICKS
+                && naturalWindowSettled) {
+            actualTicks = settleCurrentNaturalInterval(actualTicks, callsInNaturalTick);
             complete = true;
         }
 
@@ -62,6 +72,8 @@ final class MythicMinerExternalTickAcceleration {
             actualTicks = 0L;
             naturalTicks = 0L;
             actualTicksAtNaturalTickStart = 0L;
+            expectedCallsInNaturalTick = 1L;
+            callsInNaturalTick = 0L;
             targetReached = false;
         }
 
@@ -133,6 +145,8 @@ final class MythicMinerExternalTickAcceleration {
         actualTicks = Math.max(0L, state.actualTicks());
         naturalTicks = Math.max(0L, state.naturalTicks());
         actualTicksAtNaturalTickStart = Math.max(0L, state.actualTicksAtNaturalTickStart());
+        expectedCallsInNaturalTick = 1L;
+        callsInNaturalTick = 0L;
         equivalentAccelerationTicks = Math.max(0L, state.equivalentAccelerationTicks());
         targetReached = state.targetReached();
         settledExtraParallelHundredths = Math.max(0, state.settledExtraParallelHundredths());
@@ -156,7 +170,13 @@ final class MythicMinerExternalTickAcceleration {
     private static long correctedNaturalInterval(long calls) {
         if (calls <= 0L) return 0L;
         if (calls == 1L) return 1L;
+        if (calls > 129L) return calls;
         return calls > Long.MAX_VALUE / 2L + 1L ? Long.MAX_VALUE : calls * 2L - 2L;
+    }
+
+    private static long settleCurrentNaturalInterval(long actualTicks, long calls) {
+        long corrected = correctedNaturalInterval(calls);
+        return saturatedAdd(actualTicks, corrected - calls);
     }
 
     private static long saturatedAdd(long left, long right) {

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
 import net.minecraft.world.item.Item;
@@ -65,6 +66,15 @@ public final class TerminalStackMeasure {
 
     public Map<TerminalStackKey, ExactProbability> values() {
         return values;
+    }
+
+    public TerminalStackMeasure filter(Predicate<Item> predicate) {
+        LinkedHashMap<TerminalStackKey, ExactProbability> kept = new LinkedHashMap<>();
+        values.forEach(
+                (key, mass) -> {
+                    if (predicate.test(key.item())) kept.put(key, mass);
+                });
+        return of(kept);
     }
 
     public boolean isEmpty() {

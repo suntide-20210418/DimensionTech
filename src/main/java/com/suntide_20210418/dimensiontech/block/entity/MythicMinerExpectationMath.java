@@ -43,4 +43,19 @@ final class MythicMinerExpectationMath {
         }
         return expectedDraws * itemWeight / totalWeight;
     }
+
+    /** Converts hundredths into whole units while retaining a bounded per-slot remainder. */
+    static AccumulatedValue accumulateHundredths(int remainderHundredths, long scaledHundredths) {
+        long nonNegativeScaled = Math.max(0L, scaledHundredths);
+        int remainder = Math.max(0, Math.min(99, remainderHundredths));
+        long whole = nonNegativeScaled / 100L;
+        int combinedRemainder = (int) (nonNegativeScaled % 100L) + remainder;
+        if (combinedRemainder >= 100) {
+            whole = Math.min(Long.MAX_VALUE, whole + 1L);
+            combinedRemainder -= 100;
+        }
+        return new AccumulatedValue(whole, combinedRemainder);
+    }
+
+    record AccumulatedValue(long whole, int remainderHundredths) {}
 }

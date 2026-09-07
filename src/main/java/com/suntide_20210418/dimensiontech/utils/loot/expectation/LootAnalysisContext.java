@@ -90,6 +90,22 @@ public record LootAnalysisContext(
                 false);
     }
 
+    /** Thread-safe context snapshot for pure analysis; it deliberately has no live Level/entity. */
+    public static LootAnalysisContext snapshot(BlockPos origin, float luck) {
+        return new LootAnalysisContext(
+                null,
+                Vec3.atCenterOf(origin),
+                null,
+                luck,
+                Map.of(),
+                null,
+                null,
+                ItemStack.EMPTY.copy(),
+                Map.of(),
+                0,
+                false);
+    }
+
     public LootAnalysisContext withLootingModifier(int value) {
         return new LootAnalysisContext(
                 level,

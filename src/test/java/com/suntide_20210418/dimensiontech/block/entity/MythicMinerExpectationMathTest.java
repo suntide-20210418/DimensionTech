@@ -6,6 +6,24 @@ import org.junit.jupiter.api.Test;
 
 class MythicMinerExpectationMathTest {
     @Test
+    void hundredthsAccumulatorCarriesWholeValuesAndKeepsRemainder() {
+        MythicMinerExpectationMath.AccumulatedValue value =
+                MythicMinerExpectationMath.accumulateHundredths(75, 250L);
+
+        assertEquals(3L, value.whole());
+        assertEquals(25, value.remainderHundredths());
+    }
+
+    @Test
+    void hundredthsAccumulatorSaturatesWholeValues() {
+        MythicMinerExpectationMath.AccumulatedValue value =
+                MythicMinerExpectationMath.accumulateHundredths(99, Long.MAX_VALUE);
+
+        assertEquals(Long.MAX_VALUE / 100L + 1L, value.whole());
+        assertEquals(6, value.remainderHundredths());
+    }
+
+    @Test
     void effectiveExpectationMatchesFractionalMachineOutput() {
         int quantityFactor = MythicMinerExpectationMath.quantityFactorHundredths(5.0D, 10.0D);
         double parallel = MythicMinerExpectationMath.averageParallel(3, 125, 150);

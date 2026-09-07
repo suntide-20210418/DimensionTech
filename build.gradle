@@ -127,10 +127,19 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
+    // Optional at runtime; classes are only loaded through kubejs.plugins.txt when KubeJS is present.
+    add(optionalModConfiguration, fg.deobf("curse.maven:kubejs-238086:8020595"))
+    // KubeJS exposes its scripting bridge through the optional Rhino runtime.
+    // Keep this compile-only so Dimension Tech remains independent at runtime.
+
+
     add(optionalModConfiguration, fg.deobf("curse.maven:jade-324717:6855440"))
     add(optionalModConfiguration, fg.deobf("curse.maven:guideme-1173950:7127447"))
     add(optionalModConfiguration, fg.deobf("curse.maven:applied-energistics-2-223794:7148487"))
     add(optionalModConfiguration, fg.deobf("curse.maven:mekanism-268560:6552911"))
+    add(optionalModConfiguration, fg.deobf("curse.maven:architectury-api-419699:5137938"))
+    add(optionalModConfiguration, fg.deobf("curse.maven:rhino-416294:6186971"))
+
     // Mouse Tweaks is a client-only convenience mod. Keeping it off the
     // dev runtime prevents runData/server launches from constructing it.
     compileOnly fg.deobf("curse.maven:mouse-tweaks-60089:5338457")

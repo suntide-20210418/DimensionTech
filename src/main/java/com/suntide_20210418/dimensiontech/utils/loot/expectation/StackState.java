@@ -34,6 +34,11 @@ public final class StackState {
         return serialized.getInt("count");
     }
 
+    /** Detached serialized payload; the normalized vanilla Count byte is restored separately. */
+    public String serializedStackData() {
+        return serialized.getCompound("stack").toString();
+    }
+
     /** Changes only the explicit count while retaining the prior item's canonical state. */
     public StackState withCount(int count) {
         CompoundTag changed = serialized.copy();

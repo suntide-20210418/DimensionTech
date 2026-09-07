@@ -1,6 +1,10 @@
 package com.suntide_20210418.dimensiontech.utils;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
+import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
+import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
@@ -8,12 +12,18 @@ import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackMeasure;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKey;
 import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackMeasure;
+import com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -22,6 +32,83 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class StructureValueCalculatorGameTests {
     private StructureValueCalculatorGameTests() {}
+
+    @GameTest(
+            templateNamespace = "minecraft",
+            template = "empty",
+            batch = "structure_discovery_sharing",
+            timeoutTicks = 200)
+    public static void discoveryRequestsShareTheServerFuture(GameTestHelper helper) {
+        ResourceLocation structure = ResourceLocation.fromNamespaceAndPath(
+                "minecraft", "desert_pyramid");
+        StructureAnalysisService service = StructureAnalysisService.forServer(
+                helper.getLevel().getServer());
+        CompletableFuture<DiscoveryResult> first = service.discover(helper.getLevel(), structure);
+        CompletableFuture<DiscoveryResult> second = service.discover(helper.getLevel(), structure);
+        if (first != second) {
+            helper.fail("Identical discovery requests did not share one Future");
+        }
+        helper.succeedWhen(() -> {
+            if (!first.isDone()) helper.fail("Shared discovery has not completed");
+            DiscoveryResult result = first.join();
+            if (result.status() != AnalysisStatus.EXACT
+                    && result.status() != AnalysisStatus.APPROXIMATE) {
+                helper.fail("Shared discovery did not produce a usable result: " + result);
+            }
+        });
+    }
+
+    @GameTest(
+            templateNamespace = "minecraft",
+            template = "empty",
+            batch = "layered_value_equivalence",
+            timeoutTicks = 200)
+    public static void layeredAsyncResultMatchesSynchronousResultItemByItem(GameTestHelper helper) {
+        ResourceLocation table = ResourceLocation.fromNamespaceAndPath(
+                DimensionTechMod.MOD_ID, "test/layered_equivalence");
+        ResourceLocation structure = ResourceLocation.fromNamespaceAndPath(
+                DimensionTechMod.MOD_ID, "layered_equivalence");
+        MarkerInfo marker = new MarkerInfo(
+                helper.getLevel().dimension().location(),
+                helper.absolutePos(BlockPos.ZERO),
+                new MarkedStructure(structure, new BoundingBox(0, 0, 0, 0, 0, 0)));
+        DiscoveryResult discovery = new DiscoveryResult(
+                AnalysisStatus.EXACT,
+                List.of(new StructureLoot(structure, List.of(table), List.of(), List.of())),
+                List.of());
+
+        StructureValue synchronous = StructureValueCalculator.calculate(
+                helper.getLevel(), marker, 0.0F, discovery);
+        RuntimeLootAstSource source = RuntimeLootAstSource.snapshotTables(
+                helper.getLevel().getServer(), List.of(table));
+        StructureValue invalidLuck = StructureValueCalculator.calculateAsync(
+                        helper.getLevel().getServer(), marker, Float.NaN, discovery, source)
+                .join();
+        if (invalidLuck.status() != AnalysisStatus.UNSUPPORTED
+                || invalidLuck.diagnostics().stream()
+                        .noneMatch(diagnostic -> "VALUE_SEMANTICS".equals(diagnostic.code()))) {
+            helper.fail("Layered analysis accepted non-finite luck: " + invalidLuck);
+        }
+        CompletableFuture<StructureValue> asynchronous = StructureValueCalculator.calculateAsync(
+                helper.getLevel().getServer(), marker, 0.0F, discovery, source);
+
+        helper.succeedWhen(() -> {
+            if (!asynchronous.isDone()) {
+                helper.fail("Layered analysis has not completed");
+            }
+            StructureValue actual = asynchronous.join();
+            if (actual.status() != synchronous.status()
+                    || Double.compare(actual.structureValue(), synchronous.structureValue()) != 0
+                    || actual.fullStackMeasureAvailable()
+                            != synchronous.fullStackMeasureAvailable()
+                    || !actual.measure().values().equals(synchronous.measure().values())
+                    || !actual.terminalMeasure().values().equals(
+                            synchronous.terminalMeasure().values())) {
+                helper.fail("Layered analysis differs from synchronous analysis: synchronous="
+                        + synchronous + ", asynchronous=" + actual);
+            }
+        });
+    }
 
     @GameTest(templateNamespace = "minecraft", template = "empty")
     public static void unavailableFullMeasureKeepsTerminalProjection(GameTestHelper helper) {

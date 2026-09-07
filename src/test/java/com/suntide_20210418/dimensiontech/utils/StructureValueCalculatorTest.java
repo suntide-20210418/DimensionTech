@@ -20,6 +20,34 @@ import java.util.List;
 
 class StructureValueCalculatorTest {
     @Test
+    void discoveryCopiesAllNestedCollections() {
+        ResourceLocation id = ResourceLocation.parse("test:table");
+        var roots = new java.util.ArrayList<>(List.of(id));
+        var items = new java.util.ArrayList<>(List.of(id));
+        var resolved = new java.util.ArrayList<>(List.of(id));
+        var occurrences = new java.util.HashMap<ResourceLocation, Integer>();
+        occurrences.put(id, 2);
+        StructureLoot loot = new StructureLoot(id, roots, items, resolved, occurrences);
+        var structures = new java.util.ArrayList<>(List.of(loot));
+        DiscoveryResult discovery = new DiscoveryResult(AnalysisStatus.EXACT, structures, List.of());
+        roots.clear();
+        items.clear();
+        resolved.clear();
+        occurrences.clear();
+        structures.clear();
+        assertEquals(List.of(loot), discovery.structures());
+        assertEquals(List.of(id), loot.lootTables());
+        assertEquals(List.of(id), loot.items());
+        assertEquals(List.of(id), loot.resolvedTables());
+        assertEquals(2, loot.occurrences().get(id));
+        assertThrows(UnsupportedOperationException.class, () -> loot.lootTables().clear());
+        assertThrows(UnsupportedOperationException.class, () -> loot.items().clear());
+        assertThrows(UnsupportedOperationException.class, () -> loot.resolvedTables().clear());
+        assertThrows(UnsupportedOperationException.class, () -> loot.occurrences().clear());
+        assertThrows(UnsupportedOperationException.class, () -> discovery.structures().clear());
+    }
+
+    @Test
     void rootTablesRetainEveryContainerOccurrence() {
         ResourceLocation shared = new ResourceLocation("test", "shared");
         ResourceLocation firstOnly = new ResourceLocation("test", "first_only");

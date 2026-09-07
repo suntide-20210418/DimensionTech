@@ -6,6 +6,37 @@ import org.junit.jupiter.api.Test;
 
 class MythicMinerUpgradeMathTest {
     @Test
+    void processingPlanUsesTheNaturalWindowForShortWork() {
+        MythicMinerUpgradeMath.ProcessingPlan plan =
+                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 0, 400, 1);
+
+        assertEquals(400, plan.processingTicks());
+        assertEquals(400, plan.parallelHundredths());
+    }
+
+    @Test
+    void processingPlanUsesCeilingForLongWorkAndScriptOverrideWins() {
+        MythicMinerUpgradeMath.ProcessingPlan calculated =
+                MythicMinerUpgradeMath.processingPlan(450.1D, 1.0D, 0, 400, 1);
+        MythicMinerUpgradeMath.ProcessingPlan configured =
+                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 275, 400, 1);
+
+        assertEquals(451, calculated.processingTicks());
+        assertEquals(100, calculated.parallelHundredths());
+        assertEquals(275, configured.processingTicks());
+        assertEquals(100, configured.parallelHundredths());
+    }
+
+    @Test
+    void processingPlanFallsBackForInvalidValues() {
+        MythicMinerUpgradeMath.ProcessingPlan plan =
+                MythicMinerUpgradeMath.processingPlan(Double.NaN, 0.0D, 0, 400, 1);
+
+        assertEquals(400, plan.processingTicks());
+        assertEquals(100, plan.parallelHundredths());
+    }
+
+    @Test
     void luckBelowOneUsesOnePointPerHundredPercent() {
         assertEquals(1.5F, MythicMinerUpgradeMath.effectiveLuck(0.5F, 100.0D));
         assertEquals(2.0F, MythicMinerUpgradeMath.effectiveLuck(0.0F, 200.0D));

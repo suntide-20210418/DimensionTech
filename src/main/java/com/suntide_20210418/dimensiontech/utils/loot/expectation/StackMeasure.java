@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /** Expected occurrence measure of emitted stacks; intentionally not normalized. */
 public final class StackMeasure {
@@ -27,6 +28,15 @@ public final class StackMeasure {
 
     public Map<StackState, ExactProbability> values() {
         return Collections.unmodifiableMap(values);
+    }
+
+    public StackMeasure filter(Predicate<StackState> predicate) {
+        StackMeasure result = new StackMeasure();
+        values.forEach(
+                (state, mass) -> {
+                    if (predicate.test(state)) result.add(state, mass);
+                });
+        return result;
     }
 
     public boolean isEmpty() {

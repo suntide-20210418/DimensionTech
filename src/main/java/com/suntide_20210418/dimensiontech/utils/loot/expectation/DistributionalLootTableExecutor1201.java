@@ -44,6 +44,16 @@ public final class DistributionalLootTableExecutor1201 {
         return idealProductionResult(logical);
     }
 
+    /** Evaluates a deeply immutable serialized source without touching Minecraft runtime state. */
+    public static LootExpectationResult evaluate(
+            RuntimeLootAstSource source,
+            ResourceLocation tableId,
+            LootAnalysisContext context,
+            int maxStates) {
+        LogicalResult logical = evaluateMarginalCalls(source, tableId, context, maxStates);
+        return idealProductionResult(logical);
+    }
+
     /** Alias that makes the declared ideal probability contract explicit at call sites. */
     public static LootExpectationResult evaluateIdeal(
             MinecraftServer server,
@@ -228,6 +238,42 @@ public final class DistributionalLootTableExecutor1201 {
                             "",
                             List.of(tableId.toString()),
                             malformedTableMessage(exception)));
+            return LogicalResult.unsupported(List.copyOf(diagnostics));
+        }
+    }
+
+    public static LogicalResult evaluateMarginalCalls(
+            RuntimeLootAstSource source,
+            ResourceLocation tableId,
+            LootAnalysisContext context,
+            int maxStates) {
+        LinkedHashSet<Diagnostic> diagnostics = new LinkedHashSet<>();
+        try {
+            ExpectedTableEvaluation evaluation =
+                    executeExpected(
+                            source,
+                            tableId,
+                            context,
+                            maxStates,
+                            Collections.newSetFromMap(new IdentityHashMap<>()),
+                            Collections.newSetFromMap(new IdentityHashMap<>()),
+                            Collections.newSetFromMap(new IdentityHashMap<>()),
+                            List.of(tableId.toString()),
+                            diagnostics,
+                            true);
+            return evaluation.supported()
+                    ? new LogicalResult(
+                            true,
+                            evaluation.measure(),
+                            evaluation.terminalMeasure(),
+                            evaluation.fullStackMeasureAvailable(),
+                            evaluation.hasRandomCalls(),
+                            List.copyOf(diagnostics))
+                    : LogicalResult.unsupported(List.copyOf(diagnostics));
+        } catch (RuntimeException exception) {
+            diagnostics.add(
+                    Diagnostic.unsupportedType(
+                            tableId, "", List.of(tableId.toString()), exception.getMessage()));
             return LogicalResult.unsupported(List.copyOf(diagnostics));
         }
     }
