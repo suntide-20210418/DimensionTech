@@ -523,44 +523,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel serverLevel) || !validSlot(slot)) {
             return MythicMinerAnalysisSnapshot.EMPTY;
         }
-        MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot =
-                analysisController.entryForSlot(slot);
-        if (cachedLoot == null || cachedLoot.quantity() <= 0.0D) {
-            return MythicMinerAnalysisSnapshot.EMPTY;
-        }
-
-        double averageParallel = slotAverageParallelHundredths(slot) / 100.0D;
-        int quantityFactor =
-                MythicMinerExpectationMath.quantityFactorHundredths(
-                        cachedLoot.quantity(), getQuantityReference());
-        double expectedDraws =
-                MythicMinerExpectationMath.expectedDraws(
-                        averageParallel, DRAWS_PER_PARALLEL, quantityFactor);
-        Map<ResourceLocation, Double> effectiveExpectations = new LinkedHashMap<>();
-        cachedLoot
-                .expectedItems()
-                .forEach(
-                        (item, weight) -> {
-                            double expected =
-                                    MythicMinerExpectationMath.expectedItemCount(
-                                            weight.finiteDoubleValue(),
-                                            cachedLoot.quantity(),
-                                            expectedDraws);
-                            if (Double.isFinite(expected) && expected > 0.0D) {
-                                effectiveExpectations.put(item, expected);
-                            }
-                        });
-        boolean dismantling = isEquipmentDismantlingEnabled();
-        Map<ResourceLocation, Double> displayedExpectations =
-                dismantling
-                        ? EquipmentDismantler.dismantleExpectations(
-                                serverLevel, effectiveExpectations)
-                        : effectiveExpectations;
-        return new MythicMinerAnalysisSnapshot(
-                cachedLoot.dimensionValue(),
-                cachedLoot.structureValue(),
-                dismantling,
-                displayedExpectations,
+        return analysisController.snapshot(slot, serverLevel, slotAverageParallelHundredths(slot) / 100.0D,
+                DRAWS_PER_PARALLEL, getQuantityReference(), isEquipmentDismantlingEnabled(),
                 outputController.disabledItems());
     }
 

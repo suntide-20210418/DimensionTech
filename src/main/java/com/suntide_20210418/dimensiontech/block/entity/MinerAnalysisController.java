@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.items.ItemStackHandler;
 
 /** Owns marker-analysis identity and the explicit asynchronous analysis refresh lifecycle. */
@@ -63,6 +65,24 @@ final class MinerAnalysisController {
 
     MythicMinerUpgradeMath.ProcessingPlan plan(int slot) {
         return plans.getOrDefault(slot, new MythicMinerUpgradeMath.ProcessingPlan(0, 0));
+    }
+
+    MythicMinerAnalysisSnapshot snapshot(int slot, ServerLevel level, double averageParallel,
+            int drawsPerParallel, double quantityReference, boolean dismantling,
+            java.util.Set<ResourceLocation> disabledItems) {
+        MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot = entryForSlot(slot);
+        if (loot == null || loot.quantity() <= 0.0D) return MythicMinerAnalysisSnapshot.EMPTY;
+        int factor = MythicMinerExpectationMath.quantityFactorHundredths(loot.quantity(), quantityReference);
+        double draws = MythicMinerExpectationMath.expectedDraws(averageParallel, drawsPerParallel, factor);
+        Map<ResourceLocation, Double> expectations = new java.util.LinkedHashMap<>();
+        loot.expectedItems().forEach((item, weight) -> {
+            double value = MythicMinerExpectationMath.expectedItemCount(weight.finiteDoubleValue(), loot.quantity(), draws);
+            if (Double.isFinite(value) && value > 0.0D) expectations.put(item, value);
+        });
+        Map<ResourceLocation, Double> displayed = dismantling
+                ? EquipmentDismantler.dismantleExpectations(level, expectations) : expectations;
+        return new MythicMinerAnalysisSnapshot(loot.dimensionValue(), loot.structureValue(), dismantling,
+                displayed, disabledItems);
     }
 
     private LootAnalysisFingerprint fingerprint() {
