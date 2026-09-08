@@ -15,9 +15,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-/** Samples the miner's cached expected-item distribution for completed work. */
-final class MythicMinerLootSampler {
-    private MythicMinerLootSampler() {}
+/**
+ * Generates rewards from cached item expectations.
+ *
+ * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original
+ * LootTable joint distribution, pool selection, function chain, or random sequence.
+ */
+final class ExpectationRewardGenerator {
+    private ExpectationRewardGenerator() {}
 
     static List<ItemStack> draw(
             ServerLevel level,

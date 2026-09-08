@@ -22,9 +22,9 @@ public final class MythicMinerLootMergeGameTests {
         ItemStack stone = new ItemStack(Items.STONE, 2);
         ItemStack diamond = new ItemStack(Items.DIAMOND, 1);
 
-        MythicMinerLootSampler.mergeEquivalent(merged, stone);
-        MythicMinerLootSampler.mergeEquivalent(merged, diamond);
-        MythicMinerLootSampler.mergeEquivalent(merged, new ItemStack(Items.STONE, 3));
+        ExpectationRewardGenerator.mergeEquivalent(merged, stone);
+        ExpectationRewardGenerator.mergeEquivalent(merged, diamond);
+        ExpectationRewardGenerator.mergeEquivalent(merged, new ItemStack(Items.STONE, 3));
 
         if (merged.size() != 2
                 || !merged.get(0).is(Items.STONE)
@@ -45,8 +45,8 @@ public final class MythicMinerLootMergeGameTests {
         ItemStack second = new ItemStack(Items.STONE, 3);
         second.getOrCreateTag().putString("Marker", "second");
 
-        MythicMinerLootSampler.mergeEquivalent(merged, first);
-        MythicMinerLootSampler.mergeEquivalent(merged, second);
+        ExpectationRewardGenerator.mergeEquivalent(merged, first);
+        ExpectationRewardGenerator.mergeEquivalent(merged, second);
 
         if (merged.size() != 2
                 || merged.get(0).getCount() != 2
@@ -62,7 +62,7 @@ public final class MythicMinerLootMergeGameTests {
     @GameTest(templateNamespace = "minecraft", template = "empty")
     public static void emptyStacksDoNotChangeMergedOutput(GameTestHelper helper) {
         List<ItemStack> merged = new ArrayList<>();
-        MythicMinerLootSampler.mergeEquivalent(merged, ItemStack.EMPTY);
+        ExpectationRewardGenerator.mergeEquivalent(merged, ItemStack.EMPTY);
 
         if (!merged.isEmpty()) {
             helper.fail("An empty stack changed merged output: " + merged);
@@ -111,7 +111,7 @@ public final class MythicMinerLootMergeGameTests {
             inputs.add(merged);
         }
         long start = System.nanoTime();
-        for (List<ItemStack> merged : inputs) MythicMinerLootSampler.mergeEquivalent(merged, candidate);
+        for (List<ItemStack> merged : inputs) ExpectationRewardGenerator.mergeEquivalent(merged, candidate);
         return System.nanoTime() - start;
     }
 

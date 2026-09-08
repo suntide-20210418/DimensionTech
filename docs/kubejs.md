@@ -95,6 +95,10 @@ event.miner.setExpectedItemDisabled('minecraft:diamond', true)
 
 All controls run on the server thread and mark the block entity dirty for saving. Invalid modes, directions, IDs, or configuration values raise a KubeJS script error instead of silently changing state.
 
+## Reward semantics
+
+Miner rewards are generated from analysed item expectations. This is expectation-preserving reward generation; it does not reproduce Vanilla LootTable's original joint distribution, pool selection, function chain, or random sequence.
+
 <a id="chinese"></a>
 
 # Dimension Tech KubeJS 集成
@@ -190,3 +194,7 @@ event.miner.setExpectedItemDisabled('minecraft:diamond', true)
 ```
 
 所有控制方法都在服务端线程执行，并会将方块实体标记为待保存。无效的模式、方向、资源 ID 或配置值会抛出 KubeJS 脚本错误，而不会静默改变状态。
+
+## 奖励语义
+
+采掘器奖励按已分析的物品期望生成。这属于保持期望值的奖励生成，不复现原版 LootTable 的联合分布、奖池选择、函数链或随机序列。

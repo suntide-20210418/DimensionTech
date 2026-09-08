@@ -20,6 +20,8 @@ License: GPL-3.0
 
 Structure analysis reads a structure's loot tables and calculates expected item counts and structure value. Analysis can complete asynchronously; a marker is not advanced into a processing job until its result is ready.
 
+Miner output uses expectation-preserving reward generation from analysed item expectations. It preserves long-run expectations, but does not replay Vanilla LootTable joint distributions, pool selection, function chains, or random sequences.
+
 ### Mythic Miners
 
 Mythic Miners are available from Tier 1 through Tier 6. Each tier can process multiple structure markers independently. Higher tiers provide greater base parallelism, luck, efficiency, and energy specifications. The server's common configuration controls the actual values.

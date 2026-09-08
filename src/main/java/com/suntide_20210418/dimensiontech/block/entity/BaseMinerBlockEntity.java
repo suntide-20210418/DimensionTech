@@ -832,19 +832,19 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             return;
         }
 
-        List<MythicMinerLootSampler.Cycle> cycles = new ArrayList<>();
+        List<ExpectationRewardGenerator.Cycle> cycles = new ArrayList<>();
         for (CompletedMarker completed : completedMarkers) {
             MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot = completed.loot();
             double quantity = cachedLoot.quantity();
             if (!Double.isFinite(quantity) || quantity <= 0.0D) continue;
             cycles.add(
-                    new MythicMinerLootSampler.Cycle(
+                    new ExpectationRewardGenerator.Cycle(
                             cachedLoot,
                             completed.parallel(),
                             drawsForQuantity(cachedLoot.slot(), completed.parallel(), quantity)));
         }
         List<ItemStack> mergedLoot =
-                MythicMinerLootSampler.generate(
+                ExpectationRewardGenerator.generate(
                         server,
                         cycles,
                         disabledExpectedItems,
