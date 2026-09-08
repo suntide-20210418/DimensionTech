@@ -7,7 +7,7 @@ import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

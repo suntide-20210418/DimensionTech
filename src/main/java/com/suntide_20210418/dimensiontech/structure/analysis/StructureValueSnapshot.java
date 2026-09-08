@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

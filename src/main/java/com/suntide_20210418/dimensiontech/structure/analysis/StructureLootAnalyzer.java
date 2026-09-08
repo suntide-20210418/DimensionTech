@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -9,6 +9,7 @@ import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;

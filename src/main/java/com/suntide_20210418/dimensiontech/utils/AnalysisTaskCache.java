@@ -13,10 +13,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /** Server-owned mathematical results. Request generations belong to consumers, never this cache. */
-final class AnalysisTaskCache implements AutoCloseable {
-    record Key(String layer, String input, String config, int algorithmVersion) {}
+public final class AnalysisTaskCache implements AutoCloseable {
+    public record Key(String layer, String input, String config, int algorithmVersion) {}
 
-    record Failure(long failedAtMillis, String error) {}
+    public record Failure(long failedAtMillis, String error) {}
 
     private final ThreadPoolExecutor executor;
     private final Map<Key, CompletableFuture<?>> inFlight = new ConcurrentHashMap<>();
@@ -26,7 +26,7 @@ final class AnalysisTaskCache implements AutoCloseable {
     private final Map<Key, Failure> failures = new LinkedHashMap<>();
     private boolean closed;
 
-    AnalysisTaskCache(int threads, int capacity) {
+    public AnalysisTaskCache(int threads, int capacity) {
         executor =
                 new ThreadPoolExecutor(
                         threads,
@@ -43,12 +43,12 @@ final class AnalysisTaskCache implements AutoCloseable {
     }
 
     @SuppressWarnings("unchecked")
-    synchronized <T> CompletableFuture<T> submit(Key key, Supplier<T> computation) {
+    public synchronized <T> CompletableFuture<T> submit(Key key, Supplier<T> computation) {
         return submit(key, computation, true);
     }
 
     @SuppressWarnings("unchecked")
-    synchronized <T> CompletableFuture<T> submit(
+    public synchronized <T> CompletableFuture<T> submit(
             Key key, Supplier<T> computation, boolean retainResult) {
         if (closed)
             return CompletableFuture.failedFuture(
@@ -79,7 +79,7 @@ final class AnalysisTaskCache implements AutoCloseable {
     }
 
     /** Shares an asynchronous computation by key, including the completion future itself. */
-    synchronized <T> CompletableFuture<T> submitAsync(
+    public synchronized <T> CompletableFuture<T> submitAsync(
             Key key, Supplier<CompletableFuture<T>> computation) {
         CompletableFuture<?> existing = inFlight.get(key);
         if (existing != null) {
@@ -143,7 +143,7 @@ final class AnalysisTaskCache implements AutoCloseable {
     }
 
     /** Call only after the request owner has established that no consumer needs this key. */
-    synchronized boolean discardQueued(Key key) {
+    public synchronized boolean discardQueued(Key key) {
         Pending<?> task = pending.get(key);
         if (task == null || !executor.remove(task)) return false;
         pending.remove(key);
@@ -152,30 +152,30 @@ final class AnalysisTaskCache implements AutoCloseable {
         return true;
     }
 
-    synchronized int inFlightCount() {
+    public synchronized int inFlightCount() {
         return inFlight.size();
     }
 
-    synchronized int cachedCount() {
+    public synchronized int cachedCount() {
         return results.size();
     }
 
-    synchronized Failure failure(Key key) {
+    public synchronized Failure failure(Key key) {
         return failures.get(key);
     }
 
-    synchronized AnalysisLifecycle.TaskStatus taskStatus(Key key) {
+    public synchronized AnalysisLifecycle.TaskStatus taskStatus(Key key) {
         if (pending.containsKey(key)) return AnalysisLifecycle.TaskStatus.QUEUED;
         if (inFlight.containsKey(key)) return AnalysisLifecycle.TaskStatus.RUNNING;
         if (failures.containsKey(key)) return AnalysisLifecycle.TaskStatus.FAILED;
         return results.containsKey(key) ? AnalysisLifecycle.TaskStatus.SUCCEEDED : null;
     }
 
-    int queuedCount() {
+    public int queuedCount() {
         return executor.getQueue().size();
     }
 
-    boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         return executor.awaitTermination(timeout, unit);
     }
 

@@ -10,22 +10,22 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /** Bounded discovery work pumped by the owning server thread, including completion callbacks. */
-final class MainThreadTaskCache<K, T> implements AutoCloseable {
+public final class MainThreadTaskCache<K, T> implements AutoCloseable {
     private final int capacity;
     private final Map<K, T> results = new HashMap<>();
     private final Map<K, CompletableFuture<T>> inFlight = new HashMap<>();
     private final ArrayDeque<Pending<K, T>> queue = new ArrayDeque<>();
     private boolean closed;
 
-    MainThreadTaskCache(int capacity) {
+    public MainThreadTaskCache(int capacity) {
         this.capacity = capacity;
     }
 
-    CompletableFuture<T> submit(K key, Supplier<T> computation) {
+    public CompletableFuture<T> submit(K key, Supplier<T> computation) {
         return submit(key, computation, () -> true);
     }
 
-    CompletableFuture<T> submit(K key, Supplier<T> computation, BooleanSupplier admission) {
+    public CompletableFuture<T> submit(K key, Supplier<T> computation, BooleanSupplier admission) {
         if (closed)
             return CompletableFuture.failedFuture(
                     new RejectedExecutionException("Discovery service is closed"));
@@ -45,11 +45,11 @@ final class MainThreadTaskCache<K, T> implements AutoCloseable {
         return future;
     }
 
-    void invalidate(K key) {
+    public void invalidate(K key) {
         results.remove(key);
     }
 
-    int tick(int budget) {
+    public int tick(int budget) {
         int executed = 0;
         while (!closed && executed < budget && !queue.isEmpty()) {
             Pending<K, T> task = queue.removeFirst();
@@ -67,7 +67,7 @@ final class MainThreadTaskCache<K, T> implements AutoCloseable {
         return executed;
     }
 
-    int queuedCount() {
+    public int queuedCount() {
         return queue.size();
     }
 

@@ -1,5 +1,7 @@
 package com.suntide_20210418.dimensiontech.utils;
 
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureAnalysisService;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;

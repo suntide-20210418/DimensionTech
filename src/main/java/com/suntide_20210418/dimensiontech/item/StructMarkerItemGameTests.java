@@ -5,7 +5,7 @@ import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
 import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
 import java.util.List;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;

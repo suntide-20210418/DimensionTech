@@ -1,8 +1,9 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import java.util.List;
 import org.junit.jupiter.api.Test;

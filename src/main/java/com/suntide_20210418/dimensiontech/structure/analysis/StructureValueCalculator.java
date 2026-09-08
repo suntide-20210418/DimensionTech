@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.config.ModConfigs.ItemExpectationMethod;
@@ -7,8 +7,10 @@ import com.suntide_20210418.dimensiontech.loot.expectation.*;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackKey;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.StructureLoot;
+import com.suntide_20210418.dimensiontech.utils.LootExpectationSnapshot;
+import com.suntide_20210418.dimensiontech.utils.LootTableLottery;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;

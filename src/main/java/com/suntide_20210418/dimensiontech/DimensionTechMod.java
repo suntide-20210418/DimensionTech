@@ -17,8 +17,8 @@ import com.suntide_20210418.dimensiontech.gametest.MythicMinerTickContractGameTe
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculatorGameTests;
-import com.suntide_20210418.dimensiontech.utils.VirtualStructureSamplerGameTests;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculatorGameTests;
+import com.suntide_20210418.dimensiontech.structure.analysis.VirtualStructureSamplerGameTests;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;

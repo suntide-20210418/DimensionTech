@@ -1,13 +1,14 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.StructureLoot;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
+import com.suntide_20210418.dimensiontech.utils.VanillaStructureLootResolver;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;

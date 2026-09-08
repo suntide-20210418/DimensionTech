@@ -1,9 +1,10 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import static org.junit.jupiter.api.Assertions.*;
-import com.suntide_20210418.dimensiontech.utils.StructureValueSnapshot.Config;
-import com.suntide_20210418.dimensiontech.utils.StructureValueSnapshot.Expectation;
-import com.suntide_20210418.dimensiontech.utils.StructureValueSnapshot.TerminalItem;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueSnapshot.Config;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueSnapshot.Expectation;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueSnapshot.TerminalItem;
+import com.suntide_20210418.dimensiontech.utils.AnalysisTaskCache;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import java.util.LinkedHashMap;
 import java.util.Map;

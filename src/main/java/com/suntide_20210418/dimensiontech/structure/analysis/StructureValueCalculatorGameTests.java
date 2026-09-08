@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.utils;
+package com.suntide_20210418.dimensiontech.structure.analysis;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
@@ -10,9 +10,9 @@ import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
 import com.suntide_20210418.dimensiontech.loot.expectation.StackState;
 import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackKey;
 import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackMeasure;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.StructureLoot;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
