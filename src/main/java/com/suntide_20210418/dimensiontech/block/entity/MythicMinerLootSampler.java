@@ -1,7 +1,7 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +14,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 
 /** Samples the miner's cached expected-item distribution for completed work. */
 final class MythicMinerLootSampler {

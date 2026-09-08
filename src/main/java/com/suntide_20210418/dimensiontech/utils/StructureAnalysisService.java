@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.utils;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;

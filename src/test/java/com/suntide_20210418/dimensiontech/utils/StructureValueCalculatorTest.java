@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackMeasure;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
 
 import net.minecraft.resources.ResourceLocation;
 

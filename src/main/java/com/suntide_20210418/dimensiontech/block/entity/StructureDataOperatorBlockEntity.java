@@ -4,10 +4,11 @@ import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorM
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.utils.StructureAnalysisService;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource;
+import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -228,8 +229,8 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                             || isRemoved()
                                                             || !config.equals(ModConfigs.STRUCTURE_VALUE.calculationFingerprint())) return;
                                                     if (error == null && calculation != null
-                                                            && (calculation.value().status() == com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus.EXACT
-                                                            || calculation.value().status() == com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus.APPROXIMATE)) {
+                                                            && (calculation.value().status() == AnalysisStatus.EXACT
+                                                            || calculation.value().status() == AnalysisStatus.APPROXIMATE)) {
                                                         ItemStack marker = new ItemStack(ModItems.STRUCTURE_MARKER.get());
                                                         marker.getOrCreateTag().put("StructureMarkerData", StructMarkerItem.createCatalogueMarkerData(level, id, calculation.discovery(), calculation.value()));
                                                         analysedCatalogueEntries.put(key, marker);

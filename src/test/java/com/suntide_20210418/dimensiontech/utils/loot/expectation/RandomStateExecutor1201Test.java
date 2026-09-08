@@ -2,6 +2,8 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.suntide_20210418.dimensiontech.loot.expectation.RandomStateExecutor1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.XoroshiroState1201;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

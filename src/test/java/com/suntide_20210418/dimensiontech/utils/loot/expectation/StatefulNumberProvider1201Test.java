@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
+import com.suntide_20210418.dimensiontech.loot.expectation.LootAnalysisContext;
+import com.suntide_20210418.dimensiontech.loot.expectation.StatefulNumberProvider1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.XoroshiroState1201;
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
 
 import org.junit.jupiter.api.Test;

@@ -5,10 +5,10 @@ import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryR
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator.StructureValue;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.IdealRandomProbabilitySpace1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;

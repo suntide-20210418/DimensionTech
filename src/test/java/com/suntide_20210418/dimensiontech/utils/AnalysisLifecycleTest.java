@@ -3,7 +3,7 @@ package com.suntide_20210418.dimensiontech.utils;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

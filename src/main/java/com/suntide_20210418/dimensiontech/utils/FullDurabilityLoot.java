@@ -1,7 +1,7 @@
 package com.suntide_20210418.dimensiontech.utils;
 
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackMeasure;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackState;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.nbt.CompoundTag;

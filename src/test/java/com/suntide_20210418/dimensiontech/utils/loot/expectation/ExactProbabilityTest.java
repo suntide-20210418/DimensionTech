@@ -3,6 +3,8 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.FiniteDistribution;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;

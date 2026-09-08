@@ -1,13 +1,13 @@
 package com.suntide_20210418.dimensiontech.gametest;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.FiniteDistribution;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.LootAnalysisContext;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.PersistentRandomSequenceSnapshot1201;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StatefulLootSequenceExecutor1201;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.XoroshiroState1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.FiniteDistribution;
+import com.suntide_20210418.dimensiontech.loot.expectation.LootAnalysisContext;
+import com.suntide_20210418.dimensiontech.loot.expectation.PersistentRandomSequenceSnapshot1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackState;
+import com.suntide_20210418.dimensiontech.loot.expectation.StatefulLootSequenceExecutor1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.XoroshiroState1201;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;

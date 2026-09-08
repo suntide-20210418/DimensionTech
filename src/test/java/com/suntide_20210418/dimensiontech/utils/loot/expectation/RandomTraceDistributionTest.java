@@ -2,9 +2,11 @@ package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactRandomSemantics1201.RandomCall;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactRandomSemantics1201.RandomMethod;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.RandomTraceDistribution.Outcome;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1201.RandomCall;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1201.RandomMethod;
+import com.suntide_20210418.dimensiontech.loot.expectation.RandomTraceDistribution;
+import com.suntide_20210418.dimensiontech.loot.expectation.RandomTraceDistribution.Outcome;
 
 import org.junit.jupiter.api.Test;
 

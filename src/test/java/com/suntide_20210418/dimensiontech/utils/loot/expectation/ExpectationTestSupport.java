@@ -1,6 +1,9 @@
 package com.suntide_20210418.dimensiontech.utils.loot.expectation;
 
 import com.google.gson.JsonElement;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.FiniteDistribution;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

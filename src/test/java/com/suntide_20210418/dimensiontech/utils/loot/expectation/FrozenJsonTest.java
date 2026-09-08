@@ -5,6 +5,8 @@ import com.google.gson.JsonParser;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
 import org.junit.jupiter.api.Test;
 
 class FrozenJsonTest {

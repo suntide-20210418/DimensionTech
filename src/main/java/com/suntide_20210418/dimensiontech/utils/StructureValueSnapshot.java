@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.utils;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.FrozenJson;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;

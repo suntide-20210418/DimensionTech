@@ -3,16 +3,13 @@ package com.suntide_20210418.dimensiontech.utils;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.config.ModConfigs.ItemExpectationMethod;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
+import com.suntide_20210418.dimensiontech.loot.expectation.*;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.Diagnostic;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.DistributionalLootTableExecutor1201;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.LootAnalysisContext;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackMeasure;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackKey;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.TerminalStackMeasure;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackKey;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -56,7 +53,7 @@ public final class StructureValueCalculator {
             MarkerInfo markerInfo,
             float luck,
             DiscoveryResult discovery,
-            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource source) {
+            RuntimeLootAstSource source) {
         if (!server.isSameThread()) throw new IllegalStateException("Freeze analysis on the server thread");
         if (!Float.isFinite(luck)) {
             return CompletableFuture.completedFuture(unsupported(
@@ -74,7 +71,7 @@ public final class StructureValueCalculator {
         com.google.gson.JsonObject roots = new com.google.gson.JsonObject();
         rootTableWeightsForValue(discovery).forEach((id, weight) -> roots.addProperty(id.toString(), weight.toString()));
         input.add("roots", roots);
-        String contentFingerprint = com.suntide_20210418.dimensiontech.utils.loot.expectation.FrozenJson.freeze(input).fingerprint();
+        String contentFingerprint = FrozenJson.freeze(input).fingerprint();
         StructureAnalysisService service = StructureAnalysisService.forServer(server);
         ItemExpectationMethod method = ModConfigs.STRUCTURE_VALUE.itemExpectationMethod();
         int samples = ModConfigs.STRUCTURE_VALUE.samplingCount();
@@ -112,7 +109,7 @@ public final class StructureValueCalculator {
     }
 
     private static LootExpectationSnapshot exactExpectation(
-            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource source,
+            RuntimeLootAstSource source,
             net.minecraft.core.BlockPos position, float luck, DiscoveryResult discovery) {
         source.verifyRuntimeInputs();
         List<Diagnostic> diagnostics = new ArrayList<>(discovery.diagnostics());
@@ -142,7 +139,7 @@ public final class StructureValueCalculator {
 
     private static CompletableFuture<LootExpectationSnapshot> requestSamples(MinecraftServer server,
             MarkerInfo info, float luck, DiscoveryResult discovery,
-            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource source,
+            RuntimeLootAstSource source,
             String input, String config, int samples) {
         if (discovery.status() != AnalysisStatus.EXACT && discovery.status() != AnalysisStatus.APPROXIMATE) {
             return CompletableFuture.completedFuture(new LootExpectationSnapshot(discovery.status(),
@@ -155,7 +152,7 @@ public final class StructureValueCalculator {
             if (level == null) throw new IllegalStateException("Sampling dimension is unavailable");
             if (samples <= 0) throw new IllegalArgumentException("Sample count must be positive");
             var roots = rootTableWeightsForValue(discovery).keySet();
-            String currentSource = com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource
+            String currentSource = RuntimeLootAstSource
                     .snapshotTables(server, roots).inputFingerprint();
             if (!source.inputFingerprint().equals(currentSource)) throw new IllegalStateException("Loot data changed before sampling");
             Map<StructureValueSnapshot.TerminalItem, Long> counts = new LinkedHashMap<>();
@@ -241,7 +238,7 @@ public final class StructureValueCalculator {
             try {
                 ItemStack stack = ItemStack.of(net.minecraft.nbt.TagParser.parseTag(data.serializedNbt()));
                 stack.setCount(data.count());
-                full.add(new com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState(stack), mass);
+                full.add(new StackState(stack), mass);
             } catch (com.mojang.brigadier.exceptions.CommandSyntaxException error) {
                 throw new IllegalStateException("Invalid frozen stack data", error);
             }
@@ -255,7 +252,7 @@ public final class StructureValueCalculator {
             MarkerInfo markerInfo,
             float luck,
             DiscoveryResult discovery,
-            com.suntide_20210418.dimensiontech.utils.loot.expectation.RuntimeLootAstSource sourceOverride) {
+            RuntimeLootAstSource sourceOverride) {
         double dimensionValue = ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension());
         List<Diagnostic> diagnostics = new ArrayList<>();
         if (!ModConfigs.STRUCTURE_VALUE.allowsDimension(markerInfo.dimension())) {

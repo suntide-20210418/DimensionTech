@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+
+import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
 import net.minecraft.resources.ResourceLocation;
 
 /** Server-script overrides for structure analysis and value calculation. */
@@ -169,7 +171,7 @@ public final class StructureScriptConfigService {
         addNullable(root, "uncommonMultiplier", uncommonMultiplier);
         addNullable(root, "rareMultiplier", rareMultiplier);
         addNullable(root, "epicMultiplier", epicMultiplier);
-        return com.suntide_20210418.dimensiontech.utils.loot.expectation.FrozenJson
+        return FrozenJson
                 .freeze(root).fingerprint();
     }
 

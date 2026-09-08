@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.suntide_20210418.dimensiontech.utils.StructureValueSnapshot.Config;
 import com.suntide_20210418.dimensiontech.utils.StructureValueSnapshot.Expectation;
 import com.suntide_20210418.dimensiontech.utils.StructureValueSnapshot.TerminalItem;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

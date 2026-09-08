@@ -2,11 +2,11 @@ package com.suntide_20210418.dimensiontech.gametest;
 
 import com.google.gson.JsonParser;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.DistributionalFunction1201;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.LootAnalysisContext;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StackState;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.StatefulFunction1201;
-import com.suntide_20210418.dimensiontech.utils.loot.expectation.XoroshiroState1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.DistributionalFunction1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.LootAnalysisContext;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackState;
+import com.suntide_20210418.dimensiontech.loot.expectation.StatefulFunction1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.XoroshiroState1201;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
