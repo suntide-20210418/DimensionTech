@@ -88,6 +88,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final MinerUpgradeController upgradeController;
     private List<ItemStack> pendingOutput = new ArrayList<>();
     private final MythicMinerSlotProgress slotProgress;
+    private final MinerAccelerationController accelerationController;
     private final int[] slotProcessingTimes;
     private final int[] slotParallelHundredths;
     private final int[] slotParallelFractionHundredths;
@@ -127,6 +128,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         for (int slot = 0; slot < slotCount; slot++) {
             this.externalTickAcceleration[slot] = new MythicMinerExternalTickAcceleration();
         }
+        this.accelerationController =
+                new MinerAccelerationController(
+                        slotProgress, slotProcessingTimes, externalTickAcceleration);
         this.slotEnabled = new boolean[slotCount];
         java.util.Arrays.fill(this.slotEnabled, true);
         java.util.Arrays.fill(this.fluidFaceModes, FluidFaceMode.INPUT);
@@ -695,17 +699,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> advanceWork(
             ServerLevel serverLevel) {
         List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> completedSlots = new ArrayList<>();
-        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot : markerLootCache.entries()) {
-            int slot = cachedLoot.slot();
-            if (!slotEnabled[slot]) continue;
-            MythicMinerExternalTickAcceleration.Observation observation =
-                    externalTickAcceleration[slot].observe(
-                            serverLevel.getGameTime(), slotProcessingTimes[slot]);
-            slotProgress.set(
-                    slot,
-                    (int) Math.min(Integer.MAX_VALUE, observation.logicalProgressTicks()));
-            if (!observation.complete()) continue;
-            completedSlots.add(cachedLoot);
+        for (MinerAccelerationController.CompletedSlot completed :
+                accelerationController.advance(serverLevel.getGameTime(), slotEnabled)) {
+            MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot =
+                    markerLootCache.entryForSlot(completed.slot());
+            if (cachedLoot != null) completedSlots.add(cachedLoot);
         }
         return completedSlots;
     }
@@ -1078,8 +1076,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void resetSlotState(int slot) {
-        slotProgress.reset(slot);
-        slotProcessingTimes[slot] = 0;
+        accelerationController.reset(slot);
         slotParallelHundredths[slot] = 0;
         slotParallelFractionHundredths[slot] = 0;
         slotQuantityFractionHundredths[slot] = 0;
