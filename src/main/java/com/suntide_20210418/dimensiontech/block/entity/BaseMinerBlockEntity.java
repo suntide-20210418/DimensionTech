@@ -9,6 +9,7 @@ import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
@@ -581,7 +582,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         updateMachineState(serverLevel);
         if (!canRunThisTick(serverLevel)) return;
         if (!consumeWorkResources(serverLevel)) return;
-        List<MinerAnalysisController.MarkerAnalysis> completedSlots =
+        List<MarkerAnalysis> completedSlots =
                 advanceWork(serverLevel);
         List<CompletedMarker> completedMarkers = completeWork(serverLevel, completedSlots);
         outputCompletedWork(serverLevel, completedMarkers);
@@ -635,12 +636,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     /**
      * Advances only per-slot progress and acceleration state; completion work follows this phase.
      */
-    private List<MinerAnalysisController.MarkerAnalysis> advanceWork(
+    private List<MarkerAnalysis> advanceWork(
             ServerLevel serverLevel) {
-        List<MinerAnalysisController.MarkerAnalysis> completedSlots = new ArrayList<>();
+        List<MarkerAnalysis> completedSlots = new ArrayList<>();
         for (MinerAccelerationController.CompletedSlot completed :
                 accelerationController.advance(serverLevel.getGameTime(), slotEnabled)) {
-            MinerAnalysisController.MarkerAnalysis cachedLoot =
+            MarkerAnalysis cachedLoot =
                     analysisController.entryForSlot(completed.slot());
             if (cachedLoot != null) completedSlots.add(cachedLoot);
         }
@@ -650,9 +651,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     /** Completes all reached slots before any loot is generated or output is attempted. */
     private List<CompletedMarker> completeWork(
             ServerLevel serverLevel,
-            List<MinerAnalysisController.MarkerAnalysis> completedSlots) {
+            List<MarkerAnalysis> completedSlots) {
         List<CompletedMarker> completedMarkers = new ArrayList<>();
-        for (MinerAnalysisController.MarkerAnalysis cachedLoot : completedSlots) {
+        for (MarkerAnalysis cachedLoot : completedSlots) {
             int slot = cachedLoot.slot();
             int parallel = drawParallelForCycle(slot);
             ResourceLocation markerId =
@@ -911,7 +912,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         accelerationController.reset(slot);
     }
 
-    record CompletedMarker(MinerAnalysisController.MarkerAnalysis loot, int parallel) {}
+    record CompletedMarker(MarkerAnalysis loot, int parallel) {}
 
     private ItemStackHandler createItemHandler() {
         int slotCount = getSlotCount();

@@ -1,9 +1,8 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.block.entity.EquipmentDismantler;
-import com.suntide_20210418.dimensiontech.block.entity.MythicMinerMarkerAnalysisCache;
-
 import com.suntide_20210418.dimensiontech.item.ModItems;
+import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +72,7 @@ final class ExpectationRewardGenerator {
         List<ItemStack> merged = new ArrayList<>();
         int clampedTier = Math.max(1, Math.min(6, minerTier));
         for (Cycle cycle : cycles) {
-            MinerAnalysisController.MarkerAnalysis cached = cycle.loot();
+            MarkerAnalysis cached = cycle.loot();
             ServerLevel lootLevel =
                     server.getLevel(ResourceKey.create(Registries.DIMENSION, cached.dimension()));
             if (lootLevel == null
@@ -135,7 +134,7 @@ final class ExpectationRewardGenerator {
         }
     }
 
-    record Cycle(MinerAnalysisController.MarkerAnalysis loot, int parallel, int draws) {}
+    record Cycle(MarkerAnalysis loot, int parallel, int draws) {}
 
     private record WeightedItem(Item item, double weight) {}
 }

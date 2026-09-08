@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -39,12 +40,12 @@ final class MinerAnalysisController {
     }
 
     List<MarkerAnalysis> entries() {
-        return cache.entries().stream().map(MarkerAnalysis::from).toList();
+        return cache.entries().stream().map(MinerAnalysisController::from).toList();
     }
 
     MarkerAnalysis entryForSlot(int slot) {
         var entry = cache.entryForSlot(slot);
-        return entry == null ? null : MarkerAnalysis.from(entry);
+        return entry == null ? null : from(entry);
     }
 
     String cacheStatus(int slot) {
@@ -95,12 +96,8 @@ final class MinerAnalysisController {
                 inventory, luck.get(), ModConfigs.STRUCTURE_VALUE.calculationFingerprint());
     }
 
-    record MarkerAnalysis(int slot, ItemStack marker, ResourceLocation dimension, BlockPos position,
-            double dimensionValue, double structureValue, double quantity,
-            Map<ResourceLocation, ExactProbability> expectedItems) {
-        static MarkerAnalysis from(MythicMinerMarkerAnalysisCache.CachedMarkerLoot value) {
-            return new MarkerAnalysis(value.slot(), value.marker(), value.dimension(), value.position(),
-                    value.dimensionValue(), value.structureValue(), value.quantity(), value.expectedItems());
-        }
+    private static MarkerAnalysis from(MythicMinerMarkerAnalysisCache.CachedMarkerLoot value) {
+        return new MarkerAnalysis(value.slot(), value.marker(), value.dimension(), value.position(),
+                value.dimensionValue(), value.structureValue(), value.quantity(), value.expectedItems());
     }
 }
