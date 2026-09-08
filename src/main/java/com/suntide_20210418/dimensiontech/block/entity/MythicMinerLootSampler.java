@@ -135,7 +135,7 @@ final class ExpectationRewardGenerator {
         }
     }
 
-    record Cycle(MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel, int draws) {}
+    record Cycle(MinerAnalysisController.MarkerAnalysis loot, int parallel, int draws) {}
 
     private record WeightedItem(Item item, double weight) {}
 }

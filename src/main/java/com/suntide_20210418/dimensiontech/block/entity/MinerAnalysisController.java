@@ -10,7 +10,10 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.ItemStackHandler;
 
 /** Owns marker-analysis identity and the explicit asynchronous analysis refresh lifecycle. */
@@ -35,12 +38,13 @@ final class MinerAnalysisController {
         cache.invalidateIfAnalysisInputsChanged();
     }
 
-    List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> entries() {
-        return cache.entries();
+    List<MarkerAnalysis> entries() {
+        return cache.entries().stream().map(MarkerAnalysis::from).toList();
     }
 
-    MythicMinerMarkerAnalysisCache.CachedMarkerLoot entryForSlot(int slot) {
-        return cache.entryForSlot(slot);
+    MarkerAnalysis entryForSlot(int slot) {
+        var entry = cache.entryForSlot(slot);
+        return entry == null ? null : MarkerAnalysis.from(entry);
     }
 
     String cacheStatus(int slot) {
@@ -54,7 +58,7 @@ final class MinerAnalysisController {
     void refreshPlans(double efficiency, int configuredProcessingTime, int minimumNaturalTicks,
             int baseParallel, boolean[] enabledSlots) {
         Map<Integer, MythicMinerUpgradeMath.ProcessingPlan> next = new HashMap<>();
-        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot : cache.entries()) {
+        for (MarkerAnalysis loot : entries()) {
             int slot = loot.slot();
             if (slot >= 0 && slot < enabledSlots.length && enabledSlots[slot]) {
                 next.put(slot, MythicMinerUpgradeMath.processingPlan(loot.structureValue(), efficiency,
@@ -71,7 +75,7 @@ final class MinerAnalysisController {
     MythicMinerAnalysisSnapshot snapshot(int slot, ServerLevel level, double averageParallel,
             int drawsPerParallel, double quantityReference, boolean dismantling,
             java.util.Set<ResourceLocation> disabledItems) {
-        MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot = entryForSlot(slot);
+        MarkerAnalysis loot = entryForSlot(slot);
         if (loot == null || loot.quantity() <= 0.0D) return MythicMinerAnalysisSnapshot.EMPTY;
         int factor = MythicMinerExpectationMath.quantityFactorHundredths(loot.quantity(), quantityReference);
         double draws = MythicMinerExpectationMath.expectedDraws(averageParallel, drawsPerParallel, factor);
@@ -89,5 +93,14 @@ final class MinerAnalysisController {
     private LootAnalysisFingerprint fingerprint() {
         return LootAnalysisFingerprint.from(
                 inventory, luck.get(), ModConfigs.STRUCTURE_VALUE.calculationFingerprint());
+    }
+
+    record MarkerAnalysis(int slot, ItemStack marker, ResourceLocation dimension, BlockPos position,
+            double dimensionValue, double structureValue, double quantity,
+            Map<ResourceLocation, ExactProbability> expectedItems) {
+        static MarkerAnalysis from(MythicMinerMarkerAnalysisCache.CachedMarkerLoot value) {
+            return new MarkerAnalysis(value.slot(), value.marker(), value.dimension(), value.position(),
+                    value.dimensionValue(), value.structureValue(), value.quantity(), value.expectedItems());
+        }
     }
 }
