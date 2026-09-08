@@ -20,6 +20,7 @@ final class AnalysisTaskCache implements AutoCloseable {
 
     private final ThreadPoolExecutor executor;
     private final Map<Key, CompletableFuture<?>> inFlight = new ConcurrentHashMap<>();
+    private final Map<Key, CompletableFuture<?>> completed = new LinkedHashMap<>();
     private final Map<Key, Object> results = new LinkedHashMap<>();
     private final Map<Key, Pending<?>> pending = new LinkedHashMap<>();
     private final Map<Key, Failure> failures = new LinkedHashMap<>();
@@ -87,6 +88,12 @@ final class AnalysisTaskCache implements AutoCloseable {
             return shared;
         }
         if (results.containsKey(key)) {
+            CompletableFuture<?> completedFuture = completed.get(key);
+            if (completedFuture != null) {
+                @SuppressWarnings("unchecked")
+                CompletableFuture<T> shared = (CompletableFuture<T>) completedFuture;
+                return shared;
+            }
             @SuppressWarnings("unchecked")
             T result = (T) results.get(key);
             return CompletableFuture.completedFuture(result);
@@ -105,6 +112,7 @@ final class AnalysisTaskCache implements AutoCloseable {
                                                     inFlight.remove(key, shared);
                                                     if (error == null && !closed) {
                                                         results.put(key, value);
+                                                        completed.put(key, shared);
                                                         failures.remove(key);
                                                     } else if (error != null) {
                                                         failures.put(
@@ -180,6 +188,7 @@ final class AnalysisTaskCache implements AutoCloseable {
         for (Key key : new ArrayList<>(pending.keySet())) discardQueued(key);
         executor.shutdown();
         results.clear();
+        completed.clear();
         failures.clear();
         pending.clear();
         inFlight.clear();
