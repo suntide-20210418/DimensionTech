@@ -3,6 +3,8 @@ package com.suntide_20210418.dimensiontech.block.entity;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import net.minecraft.server.MinecraftServer;
@@ -13,6 +15,7 @@ final class MinerAnalysisController {
     private final ItemStackHandler inventory;
     private final Supplier<Float> luck;
     private final MythicMinerMarkerAnalysisCache cache;
+    private Map<Integer, MythicMinerUpgradeMath.ProcessingPlan> plans = Map.of();
 
     MinerAnalysisController(
             ItemStackHandler inventory, Supplier<Float> luck, BooleanSupplier removed) {
@@ -43,6 +46,23 @@ final class MinerAnalysisController {
 
     AnalysisLifecycle.TaskStatus taskStatus(int slot) {
         return cache.taskStatus(slot);
+    }
+
+    void refreshPlans(double efficiency, int configuredProcessingTime, int minimumNaturalTicks,
+            int baseParallel, boolean[] enabledSlots) {
+        Map<Integer, MythicMinerUpgradeMath.ProcessingPlan> next = new HashMap<>();
+        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot : cache.entries()) {
+            int slot = loot.slot();
+            if (slot >= 0 && slot < enabledSlots.length && enabledSlots[slot]) {
+                next.put(slot, MythicMinerUpgradeMath.processingPlan(loot.structureValue(), efficiency,
+                        configuredProcessingTime, minimumNaturalTicks, baseParallel));
+            }
+        }
+        plans = Map.copyOf(next);
+    }
+
+    MythicMinerUpgradeMath.ProcessingPlan plan(int slot) {
+        return plans.getOrDefault(slot, new MythicMinerUpgradeMath.ProcessingPlan(0, 0));
     }
 
     private LootAnalysisFingerprint fingerprint() {

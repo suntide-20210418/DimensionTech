@@ -835,28 +835,17 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void updateProcessingPlans() {
-        accelerationController.clearPlans();
-        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot :
-                analysisController.entries()) {
-            if (slotEnabled[cachedLoot.slot()]) {
-                updateProcessingPlan(cachedLoot.slot(), cachedLoot.structureValue());
-            }
-        }
-    }
-
-    private void updateProcessingPlan(int slot, double structureValue) {
         double efficiency = getBaseMachineEfficiency() * upgradeBonuses.efficiencyMultiplier();
         MinerScriptConfig config = scriptConfig();
         int configuredProcessingTime =
                 config != null && config.processingTime() != null ? config.processingTime() : 0;
-        MythicMinerUpgradeMath.ProcessingPlan plan =
-                MythicMinerUpgradeMath.processingPlan(
-                        structureValue,
-                        efficiency,
-                        configuredProcessingTime,
-                        MINIMUM_PROCESSING_TIME,
-                        getBaseParallelCount());
-        accelerationController.setPlan(slot, plan.processingTicks(), plan.parallelHundredths());
+        analysisController.refreshPlans(efficiency, configuredProcessingTime,
+                MINIMUM_PROCESSING_TIME, getBaseParallelCount(), slotEnabled);
+        accelerationController.clearPlans();
+        for (int slot = 0; slot < accelerationController.slotCount(); slot++) {
+            MythicMinerUpgradeMath.ProcessingPlan plan = analysisController.plan(slot);
+            accelerationController.setPlan(slot, plan.processingTicks(), plan.parallelHundredths());
+        }
     }
 
     private void autoExtractFluid(ServerLevel serverLevel) {
