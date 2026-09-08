@@ -1,8 +1,8 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.processing;
 
 /** Tracks one marker slot's natural progress and accelerated execution count. */
-final class MythicMinerExternalTickAcceleration {
-    static final int MINIMUM_NATURAL_TICKS = 400;
+public final class ExternalTickAcceleration {
+    public static final int MINIMUM_NATURAL_TICKS = 400;
     private static final long UNSET_GAME_TIME = Long.MIN_VALUE;
 
     private long lastGameTime = UNSET_GAME_TIME;
@@ -19,7 +19,7 @@ final class MythicMinerExternalTickAcceleration {
     private int previousExtraParallelHundredths;
     private boolean externalParallelEligible;
 
-    Observation observe(long gameTime, int cycleTicks) {
+    public Observation observe(long gameTime, int cycleTicks) {
         boolean newNaturalTick = gameTime != lastGameTime;
         externalParallelEligible = cycleTicks > 0;
         long effectiveCycleTicks = Math.max(MINIMUM_NATURAL_TICKS, (long) cycleTicks);
@@ -81,35 +81,35 @@ final class MythicMinerExternalTickAcceleration {
                 naturalTicks, actualTicks, complete, completedParallel, completedActualTicks);
     }
 
-    long currentActualTicks() {
+    public long currentActualTicks() {
         return actualTicks;
     }
 
-    long currentNaturalTicks() {
+    public long currentNaturalTicks() {
         return naturalTicks;
     }
 
-    long currentCycleNaturalTicks() {
+    public long currentCycleNaturalTicks() {
         return naturalTicks;
     }
 
-    boolean waitingForNaturalWindow() {
+    public boolean waitingForNaturalWindow() {
         return targetReached && naturalTicks < MINIMUM_NATURAL_TICKS;
     }
 
-    long currentEquivalentAccelerationTicks() {
+    public long currentEquivalentAccelerationTicks() {
         return equivalentAccelerationTicks;
     }
 
-    double currentCycleEquivalentAcceleration() {
+    public double currentCycleEquivalentAcceleration() {
         return naturalTicks <= 0L ? 0.0D : actualTicks / (double) naturalTicks;
     }
 
-    int settledExtraParallelHundredths() {
+    public int settledExtraParallelHundredths() {
         return settledExtraParallelHundredths;
     }
 
-    int currentExtraParallelHundredths() {
+    public int currentExtraParallelHundredths() {
         return targetReached
                         && externalParallelEligible
                         && naturalTicks > 0L
@@ -118,15 +118,15 @@ final class MythicMinerExternalTickAcceleration {
                 : 0;
     }
 
-    long previousActualTicks() {
+    public long previousActualTicks() {
         return previousActualTicks;
     }
 
-    int previousExtraParallelHundredths() {
+    public int previousExtraParallelHundredths() {
         return previousExtraParallelHundredths;
     }
 
-    State save() {
+    public State save() {
         return new State(
                 lastGameTime,
                 actualTicks,
@@ -140,7 +140,7 @@ final class MythicMinerExternalTickAcceleration {
                 externalParallelEligible);
     }
 
-    void load(State state) {
+    public void load(State state) {
         lastGameTime = state.lastGameTime();
         actualTicks = Math.max(0L, state.actualTicks());
         naturalTicks = Math.max(0L, state.naturalTicks());
@@ -184,14 +184,14 @@ final class MythicMinerExternalTickAcceleration {
         return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
     }
 
-    record Observation(
+    public record Observation(
             long logicalProgressTicks,
             long actualProgressTicks,
             boolean complete,
             int completedParallel,
             long completedActualTicks) {}
 
-    record State(
+    public record State(
             long lastGameTime,
             long actualTicks,
             long naturalTicks,

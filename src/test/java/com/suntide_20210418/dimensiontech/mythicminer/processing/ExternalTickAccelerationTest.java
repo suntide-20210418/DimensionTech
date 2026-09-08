@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.processing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -6,12 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-class MythicMinerExternalTickAccelerationTest {
+class ExternalTickAccelerationTest {
     @Test
     void equivalentAccelerationExcludesTheNaturalTickBaselineCall() {
         for (int multiplier = 2; multiplier <= 256; multiplier <<= 1) {
-            MythicMinerExternalTickAcceleration acceleration =
-                    new MythicMinerExternalTickAcceleration();
+            ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
             for (int call = 0; call < multiplier + 1; call++) {
                 acceleration.observe(0L, 40_000);
             }
@@ -25,8 +24,7 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void sameNaturalTickCountsOneLogicalTickAndEveryCallAsActualTick() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
         for (int call = 0; call < 257; call++) {
             acceleration.observe(0L, 400);
         }
@@ -38,9 +36,8 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void completionWaitsForTheNaturalWindowBoundary() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
-        MythicMinerExternalTickAcceleration.Observation observation = null;
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
+        ExternalTickAcceleration.Observation observation = null;
         for (long gameTime = 0; gameTime < 399; gameTime++) {
             observation = acceleration.observe(gameTime, 400);
         }
@@ -52,9 +49,8 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void acceleratedCycleWaitsFor400NaturalTicksAndSettlesParallel() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
-        MythicMinerExternalTickAcceleration.Observation observation = null;
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
+        ExternalTickAcceleration.Observation observation = null;
         for (long gameTime = 0; gameTime < 400; gameTime++) {
             for (int call = 0; call < 129; call++) {
                 observation = acceleration.observe(gameTime, 400);
@@ -70,9 +66,8 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void longCycleReachedAfterNaturalWindowCompletesWithoutParallel() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
-        MythicMinerExternalTickAcceleration.Observation observation = null;
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
+        ExternalTickAcceleration.Observation observation = null;
         for (long gameTime = 0; gameTime < 40_000; gameTime++) {
             observation = acceleration.observe(gameTime, 40_000);
         }
@@ -83,9 +78,8 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void acceleratedParallelUsesConfiguredCycleTicksAsDenominator() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
-        MythicMinerExternalTickAcceleration.Observation observation = null;
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
+        ExternalTickAcceleration.Observation observation = null;
         for (long gameTime = 0; gameTime < 400; gameTime++) {
             for (int call = 0; call < 129; call++) {
                 observation = acceleration.observe(gameTime, 40_000);
@@ -97,9 +91,8 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void targetReachedExactlyAt400NaturalTicksDoesNotUseParallel() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
-        MythicMinerExternalTickAcceleration.Observation observation = null;
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
+        ExternalTickAcceleration.Observation observation = null;
         for (long gameTime = 0; gameTime < 400; gameTime++) {
             observation = acceleration.observe(gameTime, 400);
         }
@@ -109,10 +102,9 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void longActualTickSaturatesWithoutOverflow() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
         acceleration.load(
-                new MythicMinerExternalTickAcceleration.State(
+                new ExternalTickAcceleration.State(
                         0L,
                         Long.MAX_VALUE - 1L,
                         1L,
@@ -130,10 +122,9 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void savedStateRestoresLongCounters() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
         acceleration.load(
-                new MythicMinerExternalTickAcceleration.State(
+                new ExternalTickAcceleration.State(
                         10L,
                         4_000_000_000L,
                         200L,
@@ -144,8 +135,7 @@ class MythicMinerExternalTickAccelerationTest {
                         3_000_000_000L,
                         100,
                         true));
-        MythicMinerExternalTickAcceleration restored =
-                new MythicMinerExternalTickAcceleration();
+        ExternalTickAcceleration restored = new ExternalTickAcceleration();
         restored.load(acceleration.save());
         assertEquals(4_000_000_000L, restored.currentActualTicks());
         assertEquals(200L, restored.currentNaturalTicks());
@@ -155,9 +145,8 @@ class MythicMinerExternalTickAccelerationTest {
 
     @Test
     void cycleDoesNotCompleteBeforeNaturalMinimum() {
-        MythicMinerExternalTickAcceleration acceleration =
-                new MythicMinerExternalTickAcceleration();
-        MythicMinerExternalTickAcceleration.Observation observation = null;
+        ExternalTickAcceleration acceleration = new ExternalTickAcceleration();
+        ExternalTickAcceleration.Observation observation = null;
         for (int call = 0; call < 40_000; call++) {
             observation = acceleration.observe(call / 256L, 40_000);
         }

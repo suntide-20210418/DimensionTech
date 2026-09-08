@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.mythicminer.processing.ExternalTickAcceleration;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExpectationMath;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,13 +11,13 @@ import net.minecraft.nbt.Tag;
 
 /** Owns accelerated slot advancement and the shared 400-natural-tick completion window. */
 final class MinerAccelerationController {
-    static final int MINIMUM_NATURAL_TICKS = MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
+    static final int MINIMUM_NATURAL_TICKS = ExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
     private final MythicMinerSlotProgress progress;
     private final int[] processingTimes;
     private final int[] parallelHundredths;
     private final int[] parallelFractionHundredths;
     private final int[] quantityFractionHundredths;
-    private final MythicMinerExternalTickAcceleration[] acceleration;
+    private final ExternalTickAcceleration[] acceleration;
 
     MinerAccelerationController(int slotCount) {
         this.progress = new MythicMinerSlotProgress(slotCount);
@@ -24,9 +25,9 @@ final class MinerAccelerationController {
         this.parallelHundredths = new int[slotCount];
         this.parallelFractionHundredths = new int[slotCount];
         this.quantityFractionHundredths = new int[slotCount];
-        this.acceleration = new MythicMinerExternalTickAcceleration[slotCount];
+        this.acceleration = new ExternalTickAcceleration[slotCount];
         for (int slot = 0; slot < slotCount; slot++) {
-            this.acceleration[slot] = new MythicMinerExternalTickAcceleration();
+            this.acceleration[slot] = new ExternalTickAcceleration();
         }
     }
 
@@ -140,7 +141,7 @@ final class MinerAccelerationController {
         tag.putIntArray(parallelFractionTag, parallelFractionHundredths);
         tag.putIntArray(quantityFractionTag, quantityFractionHundredths);
         ListTag states = new ListTag();
-        for (MythicMinerExternalTickAcceleration value : acceleration) {
+        for (ExternalTickAcceleration value : acceleration) {
             var state = value.save();
             CompoundTag entry = new CompoundTag();
             entry.putLong("LastGameTime", state.lastGameTime());
@@ -191,13 +192,13 @@ final class MinerAccelerationController {
                     e.contains("TargetReached", Tag.TAG_BYTE)
                             ? e.getBoolean("TargetReached")
                             : actualTicks
-                                            >= MythicMinerExternalTickAcceleration
+                                            >= ExternalTickAcceleration
                                                     .MINIMUM_NATURAL_TICKS
                                     && naturalTicks
-                                            < MythicMinerExternalTickAcceleration
+                                            < ExternalTickAcceleration
                                                     .MINIMUM_NATURAL_TICKS;
             acceleration[slot].load(
-                    new MythicMinerExternalTickAcceleration.State(
+                    new ExternalTickAcceleration.State(
                             e.getLong("LastGameTime"),
                             actualTicks,
                             naturalTicks,
@@ -236,7 +237,7 @@ final class MinerAccelerationController {
         List<CompletedSlot> completed = new ArrayList<>();
         for (int slot = 0; slot < processingTimes.length; slot++) {
             if (!enabledSlots[slot] || processingTimes[slot] <= 0) continue;
-            MythicMinerExternalTickAcceleration.Observation observation =
+            ExternalTickAcceleration.Observation observation =
                     acceleration[slot].observe(gameTime, processingTimes[slot]);
             progress.set(
                     slot, (int) Math.min(Integer.MAX_VALUE, observation.logicalProgressTicks()));
@@ -254,7 +255,7 @@ final class MinerAccelerationController {
         parallelHundredths[slot] = 0;
         parallelFractionHundredths[slot] = 0;
         quantityFractionHundredths[slot] = 0;
-        acceleration[slot] = new MythicMinerExternalTickAcceleration();
+        acceleration[slot] = new ExternalTickAcceleration();
     }
 
     record CompletedSlot(int slot, int parallel) {}
