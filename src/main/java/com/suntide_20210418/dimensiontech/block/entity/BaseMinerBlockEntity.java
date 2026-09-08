@@ -86,18 +86,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
     private final MinerAnalysisController analysisController;
     private final MinerUpgradeController upgradeController;
-    private List<ItemStack> pendingOutput = new ArrayList<>();
     private final MinerAccelerationController accelerationController;
     private final MinerOutputController outputController = new MinerOutputController();
     private final boolean[] slotEnabled;
     private RedstoneMode redstoneMode = RedstoneMode.ALWAYS;
     private int redstoneThreshold = 8;
-    private OutputState configuredOutputState = OutputState.ITEM_HANDLER;
-    private int outputFaceMask = (1 << Direction.values().length) - 1;
     private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
     private boolean autoExtractFluid;
-    private boolean equipmentDismantling;
-    private final Set<ResourceLocation> disabledExpectedItems = new HashSet<>();
     private boolean structureComplete;
     private MinerUpgradeController.UpgradeState upgradeBonuses =
             MinerUpgradeController.UpgradeState.NONE;
@@ -424,10 +419,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public void cycleOutputState() {
-        configuredOutputState =
-                configuredOutputState == OutputState.ITEM_HANDLER
-                        ? OutputState.ME_NETWORK
-                        : OutputState.ITEM_HANDLER;
+        outputController.cycleOutputState();
         setChanged();
     }
 
@@ -436,26 +428,26 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public boolean isEquipmentDismantlingEnabled() {
-        return supportsEquipmentDismantling() && equipmentDismantling;
+        return supportsEquipmentDismantling() && outputController.equipmentDismantling();
     }
 
     public void toggleEquipmentDismantling() {
         if (supportsEquipmentDismantling()) {
-            equipmentDismantling = !equipmentDismantling;
+            outputController.toggleEquipmentDismantling();
             setChanged();
         }
     }
 
     public int getOutputFaceMask() {
-        return outputFaceMask;
+        return outputController.outputFaceMask();
     }
 
     public boolean isOutputFaceEnabled(Direction direction) {
-        return (outputFaceMask & (1 << toWorldDirection(direction).ordinal())) != 0;
+        return outputController.outputFaceEnabled(toWorldDirection(direction));
     }
 
     public void toggleOutputFace(Direction direction) {
-        outputFaceMask ^= 1 << toWorldDirection(direction).ordinal();
+        outputController.toggleOutputFace(toWorldDirection(direction));
         setChanged();
     }
 
@@ -475,7 +467,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public boolean isWorldOutputFaceEnabled(Direction worldDirection) {
-        return (outputFaceMask & (1 << worldDirection.ordinal())) != 0;
+        return outputController.outputFaceEnabled(worldDirection);
     }
 
     public IItemHandler getItemHandler() {
@@ -569,7 +561,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 cachedLoot.structureValue(),
                 dismantling,
                 displayedExpectations,
-                disabledExpectedItems);
+                outputController.disabledItems());
     }
 
     /**
@@ -582,14 +574,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public void toggleExpectedItem(ResourceLocation itemId) {
-        if (!disabledExpectedItems.add(itemId)) {
-            disabledExpectedItems.remove(itemId);
-        }
+        outputController.toggleDisabledItem(itemId);
         setChanged();
     }
 
     public boolean isExpectedItemDisabled(ResourceLocation itemId) {
-        return disabledExpectedItems.contains(itemId);
+        return outputController.disabled(itemId);
     }
 
     public int getEnergyStored() {
@@ -597,11 +587,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public boolean isOutputBlocked() {
-        return !pendingOutput.isEmpty();
+        return outputController.blocked();
     }
 
     public int getPendingOutputCount() {
-        return pendingOutput.stream().mapToInt(ItemStack::getCount).sum();
+        return outputController.pendingCount();
     }
 
     public List<ResourceLocation> getMarkedStructures() {
@@ -618,7 +608,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel)) {
             return OutputState.NONE;
         }
-        return configuredOutputState;
+        return outputController.outputState();
     }
 
     /** Runs the miner contract: state, eligibility, resources, progress, completion, output. */
@@ -652,7 +642,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             return false;
         }
         autoExtractFluid(serverLevel);
-        if (!pendingOutput.isEmpty()) {
+        if (outputController.blocked()) {
             retryPendingOutput(serverLevel);
             return false;
         }
@@ -802,27 +792,21 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel outputLevel)) {
             return;
         }
-        pendingOutput =
-                outputController.emit(
+        outputController.setPending(outputController.emit(
                         this,
                         server,
                         outputLevel,
                         worldPosition,
                         completedMarkers,
-                        disabledExpectedItems,
-                        isEquipmentDismantlingEnabled(),
                         getMinerTier(),
-                        configuredOutputState,
                         this::isWorldOutputFaceEnabled,
                         slot ->
                                 drawsForQuantity(
                                         slot,
                                         completedMarkers.stream()
                                                 .filter(value -> value.loot().slot() == slot)
-                                                .findFirst()
-                                                .orElseThrow()
-                                                .parallel(),
-                                        analysisController.entryForSlot(slot).quantity()));
+                                                .findFirst().orElseThrow().parallel(),
+                                        analysisController.entryForSlot(slot).quantity())));
         setChanged();
     }
 
@@ -893,7 +877,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 continue;
             }
             if (AE2_LOADED && Ae2Integration.isOnlineInterface(adjacent)) {
-                if (configuredOutputState == OutputState.ME_NETWORK) {
+                if (outputController.outputState() == OutputState.ME_NETWORK) {
                     remaining -=
                             Ae2Integration.extractFluidFromInterfaceNetwork(
                                     adjacent, required, remaining, fluidTank);
@@ -1003,13 +987,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void retryPendingOutput(ServerLevel outputLevel) {
-        pendingOutput =
-                outputController.retry(
+        outputController.setPending(outputController.retry(
                         outputLevel,
                         worldPosition,
-                        configuredOutputState,
-                        this::isWorldOutputFaceEnabled,
-                        pendingOutput);
+                        this::isWorldOutputFaceEnabled));
         setChanged();
     }
 
@@ -1082,23 +1063,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 EXTERNAL_ACCELERATION_STATES_TAG);
         tag.putInt("RedstoneMode", redstoneMode.ordinal());
         tag.putInt("RedstoneThreshold", redstoneThreshold);
-        tag.putInt("ConfiguredOutputState", configuredOutputState.ordinal());
-        tag.putInt("OutputFaceMask", outputFaceMask);
         tag.putInt("FluidFaceModes", getFluidFaceModesPacked());
         tag.putBoolean("AutoExtractFluid", autoExtractFluid);
-        tag.putBoolean(EQUIPMENT_DISMANTLING_TAG, equipmentDismantling);
         int[] enabledSlots = new int[slotEnabled.length];
         for (int index = 0; index < slotEnabled.length; index++) {
             enabledSlots[index] = slotEnabled[index] ? 1 : 0;
         }
         tag.putIntArray(SLOT_ENABLED_TAG, enabledSlots);
-        ListTag disabledItems = new ListTag();
-        this.disabledExpectedItems.forEach(
-                item -> disabledItems.add(StringTag.valueOf(item.toString())));
-        tag.put("DisabledExpectedItems", disabledItems);
-        ListTag pendingOutputTag = new ListTag();
-        pendingOutput.forEach(stack -> pendingOutputTag.add(stack.save(new CompoundTag())));
-        tag.put(PENDING_OUTPUT_TAG, pendingOutputTag);
+        outputController.save(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG);
     }
 
     @Override
@@ -1146,18 +1118,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                 tag.contains("RedstoneThreshold", Tag.TAG_INT)
                                         ? tag.getInt("RedstoneThreshold")
                                         : 8));
-        int outputOrdinal =
-                tag.contains("ConfiguredOutputState", Tag.TAG_INT)
-                        ? tag.getInt("ConfiguredOutputState")
-                        : OutputState.ITEM_HANDLER.ordinal();
-        configuredOutputState =
-                outputOrdinal == OutputState.ME_NETWORK.ordinal()
-                        ? OutputState.ME_NETWORK
-                        : OutputState.ITEM_HANDLER;
-        outputFaceMask =
-                tag.contains("OutputFaceMask", Tag.TAG_INT)
-                        ? tag.getInt("OutputFaceMask") & ((1 << Direction.values().length) - 1)
-                        : (1 << Direction.values().length) - 1;
         int fluidFaceModesPacked = tag.getInt("FluidFaceModes");
         for (Direction direction : Direction.values()) {
             int ordinal = (fluidFaceModesPacked >> (direction.ordinal() * 2)) & 3;
@@ -1169,7 +1129,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                     : FluidFaceMode.DISABLED;
         }
         autoExtractFluid = requiresFluidInput() && tag.getBoolean("AutoExtractFluid");
-        equipmentDismantling = tag.getBoolean(EQUIPMENT_DISMANTLING_TAG);
+        outputController.load(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG);
         java.util.Arrays.fill(slotEnabled, true);
         if (tag.contains(SLOT_ENABLED_TAG, Tag.TAG_INT_ARRAY)) {
             int[] enabledSlots = tag.getIntArray(SLOT_ENABLED_TAG);
@@ -1179,21 +1139,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 slotEnabled[index] = enabledSlots[index] != 0;
             }
         }
-        disabledExpectedItems.clear();
-        for (Tag item : tag.getList("DisabledExpectedItems", Tag.TAG_STRING)) {
-            ResourceLocation id = ResourceLocation.tryParse(item.getAsString());
-            if (id != null) disabledExpectedItems.add(id);
-        }
-        List<ItemStack> loadedPendingOutput = new ArrayList<>();
-        ListTag pendingOutputTag = tag.getList(PENDING_OUTPUT_TAG, Tag.TAG_COMPOUND);
-        pendingOutputTag.forEach(
-                stackTag -> {
-                    ItemStack stack = ItemStack.of((CompoundTag) stackTag);
-                    if (!stack.isEmpty()) {
-                        loadedPendingOutput.add(stack);
-                    }
-                });
-        pendingOutput = List.copyOf(loadedPendingOutput);
     }
 
     @NotNull
