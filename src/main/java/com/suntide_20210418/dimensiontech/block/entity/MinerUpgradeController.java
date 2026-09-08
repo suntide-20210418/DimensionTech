@@ -5,6 +5,7 @@ import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import java.util.Arrays;
 
 /** Owns multiblock upgrade discovery and exposes one immutable bonus snapshot per refresh. */
 final class MinerUpgradeController {
@@ -36,6 +37,15 @@ final class MinerUpgradeController {
             int luckUpgradeCount,
             int aggregateUpgradeCount,
             int[] upgradeCountsByTypeAndTier) {
+        UpgradeState {
+            upgradeCountsByTypeAndTier =
+                    Arrays.copyOf(upgradeCountsByTypeAndTier, upgradeCountsByTypeAndTier.length);
+        }
+
+        @Override
+        public int[] upgradeCountsByTypeAndTier() {
+            return Arrays.copyOf(upgradeCountsByTypeAndTier, upgradeCountsByTypeAndTier.length);
+        }
         static final UpgradeState NONE =
                 new UpgradeState(
                         1.0D,
