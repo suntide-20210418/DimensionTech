@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.output;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,10 +27,10 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 
 /** Converts generated equipment into the materials used to make it. */
-final class EquipmentDismantler {
+public final class EquipmentDismantler {
     private EquipmentDismantler() {}
 
-    static List<ItemStack> dismantle(ServerLevel level, ItemStack equipment) {
+    public static List<ItemStack> dismantle(ServerLevel level, ItemStack equipment) {
         Optional<ItemStack> primaryMaterial = primaryMaterialResult(equipment);
         if (primaryMaterial.isPresent()) {
             return List.of(primaryMaterial.get());
@@ -41,7 +41,7 @@ final class EquipmentDismantler {
         return craftingIngredients(level, equipment).orElseGet(() -> List.of(equipment));
     }
 
-    static Map<ResourceLocation, Double> dismantleExpectations(
+    public static Map<ResourceLocation, Double> dismantleExpectations(
             ServerLevel level, Map<ResourceLocation, Double> expectations) {
         Map<ResourceLocation, Double> dismantled = new LinkedHashMap<>();
         for (Map.Entry<ResourceLocation, Double> entry : expectations.entrySet()) {
@@ -65,7 +65,7 @@ final class EquipmentDismantler {
         return Map.copyOf(dismantled);
     }
 
-    static void mergeExpectation(
+    public static void mergeExpectation(
             Map<ResourceLocation, Double> expectations,
             ResourceLocation itemId,
             double sourceExpectation,
@@ -76,7 +76,7 @@ final class EquipmentDismantler {
         }
     }
 
-    static Optional<ItemStack> primaryMaterialResult(ItemStack equipment) {
+    public static Optional<ItemStack> primaryMaterialResult(ItemStack equipment) {
         Optional<ItemStack> specialMaterial = specialMaterialResult(equipment);
         if (specialMaterial.isPresent()) {
             return specialMaterial;
@@ -131,7 +131,7 @@ final class EquipmentDismantler {
         return 0;
     }
 
-    static int materialCount(EquipmentPattern pattern) {
+    public static int materialCount(EquipmentPattern pattern) {
         return switch (pattern) {
             case HELMET -> 5;
             case CHESTPLATE -> 8;
@@ -199,7 +199,7 @@ final class EquipmentDismantler {
         materials.add(added);
     }
 
-    enum EquipmentPattern {
+    public enum EquipmentPattern {
         HELMET,
         CHESTPLATE,
         LEGGINGS,

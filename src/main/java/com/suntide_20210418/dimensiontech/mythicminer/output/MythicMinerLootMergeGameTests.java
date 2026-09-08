@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.output;
 
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;

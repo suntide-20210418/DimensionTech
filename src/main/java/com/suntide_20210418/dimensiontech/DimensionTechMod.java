@@ -4,7 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.block.ModBlocks;
 import com.suntide_20210418.dimensiontech.block.entity.LootAnalysisFingerprintGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.ModBlockEntities;
-import com.suntide_20210418.dimensiontech.block.entity.MythicMinerLootMergeGameTests;
+import com.suntide_20210418.dimensiontech.mythicminer.output.MythicMinerLootMergeGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerMarkerAnalysisCacheGameTests;
 import com.suntide_20210418.dimensiontech.mythicminer.output.MythicMinerOutputRouterGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerTierGameTests;

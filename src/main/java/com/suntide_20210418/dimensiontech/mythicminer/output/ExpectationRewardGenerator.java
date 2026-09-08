@@ -1,6 +1,5 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.output;
 
-import com.suntide_20210418.dimensiontech.block.entity.EquipmentDismantler;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
@@ -23,10 +22,16 @@ import net.minecraft.world.item.ItemStack;
  * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original LootTable
  * joint distribution, pool selection, function chain, or random sequence.
  */
-final class ExpectationRewardGenerator {
+/**
+ * Generates miner rewards from cached item expectations.
+ *
+ * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original
+ * LootTable joint distribution, pool selection, function chain, or random sequence.
+ */
+public final class ExpectationRewardGenerator {
     private ExpectationRewardGenerator() {}
 
-    static List<ItemStack> draw(
+    public static List<ItemStack> draw(
             ServerLevel level,
             Map<ResourceLocation, ExactProbability> expectedItems,
             Set<ResourceLocation> disabledItems,
@@ -63,7 +68,7 @@ final class ExpectationRewardGenerator {
     /**
      * Builds all loot for completed miner cycles, including filtering, dismantling, and rewards.
      */
-    static List<ItemStack> generate(
+    public static List<ItemStack> generate(
             MinecraftServer server,
             List<Cycle> cycles,
             Set<ResourceLocation> disabledItems,
@@ -98,7 +103,7 @@ final class ExpectationRewardGenerator {
         return List.copyOf(merged);
     }
 
-    static void mergeEquivalent(List<ItemStack> mergedLoot, ItemStack stack) {
+    public static void mergeEquivalent(List<ItemStack> mergedLoot, ItemStack stack) {
         if (stack.isEmpty()) return;
         for (ItemStack merged : mergedLoot) {
             if (net.minecraftforge.items.ItemHandlerHelper.canItemStacksStack(merged, stack)) {
@@ -134,7 +139,7 @@ final class ExpectationRewardGenerator {
         }
     }
 
-    record Cycle(MarkerAnalysis loot, int parallel, int draws) {}
+    public record Cycle(MarkerAnalysis loot, int parallel, int draws) {}
 
     private record WeightedItem(Item item, double weight) {}
 }
