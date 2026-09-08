@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.block.entity;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
+import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.utils.StructureAnalysisService;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
@@ -220,20 +221,18 @@ final class MythicMinerMarkerAnalysisCache {
 
     private static CompletableFuture<StructureValueCalculator.StructureValue> startAnalysis(
             MinecraftServer server, ServerLevel analysisLevel, MarkerInfo info, float luck) {
-        return StructureAnalysisService.forServer(server)
-                .discover(analysisLevel, info.structure().id())
-                .thenComposeAsync(
-                        discovery -> {
-                            List<ResourceLocation> roots =
-                                    discovery.structures().stream()
-                                            .flatMap(value -> value.lootTables().stream())
-                                            .distinct()
-                                            .toList();
+        String input = info.dimension() + "|" + info.position() + "|" + info.structure().id();
+        String config = ModConfigs.STRUCTURE_VALUE.calculationFingerprint() + "|luck=" + luck;
+        return StructureAnalysisService.forServer(server).computeAsync(
+                "miner-structure-value", input, config, LootAnalysisFingerprint.ALGORITHM_VERSION,
+                () -> StructureAnalysisService.forServer(server)
+                        .discover(analysisLevel, info.structure().id())
+                        .thenComposeAsync(discovery -> {
+                            List<ResourceLocation> roots = discovery.structures().stream()
+                                    .flatMap(value -> value.lootTables().stream()).distinct().toList();
                             RuntimeLootAstSource source = RuntimeLootAstSource.snapshotTables(server, roots);
-                            return StructureValueCalculator.calculateAsync(
-                                    server, info, luck, discovery, source);
-                        },
-                        server);
+                            return StructureValueCalculator.calculateAsync(server, info, luck, discovery, source);
+                        }, server));
     }
 
     @FunctionalInterface

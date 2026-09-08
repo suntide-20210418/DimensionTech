@@ -161,6 +161,12 @@ public final class StructureAnalysisService {
         return tasks.submit(new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), computation);
     }
 
+    /** Shares the complete asynchronous analysis pipeline, not only its inner snapshots. */
+    public <T> CompletableFuture<T> computeAsync(String layer, String input, String config,
+            int algorithmVersion, Supplier<CompletableFuture<T>> computation) {
+        return tasks.submitAsync(new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), computation);
+    }
+
     /** Captures runtime-only data with the same shared-key and per-tick budget rules as discovery. */
     @SuppressWarnings("unchecked")
     public <T> CompletableFuture<T> capture(MinecraftServer server, String layer, String input,

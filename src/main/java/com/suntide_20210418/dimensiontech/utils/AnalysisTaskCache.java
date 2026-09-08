@@ -66,6 +66,48 @@ final class AnalysisTaskCache implements AutoCloseable {
         return task.future;
     }
 
+    /** Shares an asynchronous computation by key, including the completion future itself. */
+    synchronized <T> CompletableFuture<T> submitAsync(
+            Key key, Supplier<CompletableFuture<T>> computation) {
+        CompletableFuture<?> existing = inFlight.get(key);
+        if (existing != null) {
+            @SuppressWarnings("unchecked")
+            CompletableFuture<T> shared = (CompletableFuture<T>) existing;
+            return shared;
+        }
+        if (results.containsKey(key)) {
+            @SuppressWarnings("unchecked")
+            T result = (T) results.get(key);
+            return CompletableFuture.completedFuture(result);
+        }
+        CompletableFuture<T> shared = new CompletableFuture<>();
+        inFlight.put(key, shared);
+        try {
+            executor.execute(() -> {
+                try {
+                    computation.get().whenComplete((value, error) -> {
+                        synchronized (AnalysisTaskCache.this) {
+                            inFlight.remove(key, shared);
+                            if (error == null && !closed) results.put(key, value);
+                        }
+                        if (error == null) shared.complete(value);
+                        else shared.completeExceptionally(error);
+                    });
+                } catch (Throwable error) {
+                    synchronized (AnalysisTaskCache.this) {
+                        inFlight.remove(key, shared);
+                        failures.put(key, new Failure(System.currentTimeMillis(), error.toString()));
+                    }
+                    shared.completeExceptionally(error);
+                }
+            });
+        } catch (RejectedExecutionException error) {
+            inFlight.remove(key, shared);
+            shared.completeExceptionally(error);
+        }
+        return shared;
+    }
+
     /** Call only after the request owner has established that no consumer needs this key. */
     synchronized boolean discardQueued(Key key) {
         Pending<?> task = pending.get(key);
