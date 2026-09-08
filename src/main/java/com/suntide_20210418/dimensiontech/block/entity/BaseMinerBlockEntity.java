@@ -4,16 +4,14 @@ import com.suntide_20210418.dimensiontech.block.BaseMinerBlock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
-import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
-import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
+import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
-import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,7 +35,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -72,7 +69,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             "LastEnergyConsumptionGameTime";
     private static final int DRAWS_PER_PARALLEL = 8;
     public static final int FLUID_PER_WORK_CYCLE_MB = 25;
-    /** A cycle must span the complete natural observation window used for acceleration accounting. */
+
+    /**
+     * A cycle must span the complete natural observation window used for acceleration accounting.
+     */
     public static final int MINIMUM_PROCESSING_TIME =
             MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
 
@@ -99,8 +99,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private boolean equipmentDismantling;
     private final Set<ResourceLocation> disabledExpectedItems = new HashSet<>();
     private boolean structureComplete;
-    private MythicMinerUpgradeResolver.Bonuses upgradeBonuses =
-            MythicMinerUpgradeResolver.Bonuses.NONE;
+    private MinerUpgradeController.UpgradeState upgradeBonuses =
+            MinerUpgradeController.UpgradeState.NONE;
 
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
@@ -111,7 +111,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         this.itemHandler = createItemHandler();
         this.upgradeController = new MinerUpgradeController(position);
         this.analysisController =
-                new MinerAnalysisController(itemHandler, this::getEffectiveMachineLuck, this::isRemoved);
+                new MinerAnalysisController(
+                        itemHandler, this::getEffectiveMachineLuck, this::isRemoved);
         int slotCount = itemHandler.getSlots();
         this.accelerationController = new MinerAccelerationController(slotCount);
         this.slotEnabled = new boolean[slotCount];
@@ -253,21 +254,15 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotExternalAccelerationParallelHundredths(int slot) {
-        return validSlot(slot)
-                ? accelerationController.currentExtraParallel(slot)
-                : 0;
+        return validSlot(slot) ? accelerationController.currentExtraParallel(slot) : 0;
     }
 
     public long getSlotExternalEquivalentAccelerationTicks(int slot) {
-        return validSlot(slot)
-                ? accelerationController.equivalentTicks(slot)
-                : 0;
+        return validSlot(slot) ? accelerationController.equivalentTicks(slot) : 0;
     }
 
     public double getSlotCurrentCycleExternalEquivalentAcceleration(int slot) {
-        return validSlot(slot)
-                ? accelerationController.cycleEquivalent(slot)
-                : 0.0D;
+        return validSlot(slot) ? accelerationController.cycleEquivalent(slot) : 0.0D;
     }
 
     public long getExternalEquivalentAccelerationTicks() {
@@ -297,9 +292,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotPreviousExternalAccelerationParallelHundredths(int slot) {
-        return validSlot(slot)
-                ? accelerationController.previousExtraParallel(slot)
-                : 0;
+        return validSlot(slot) ? accelerationController.previousExtraParallel(slot) : 0;
     }
 
     public int getBaseParallelCount() {
@@ -507,7 +500,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotProcessingTime(int slot) {
-        return validSlot(slot) && slotEnabled[slot] ? accelerationController.processingTime(slot) : 0;
+        return validSlot(slot) && slotEnabled[slot]
+                ? accelerationController.processingTime(slot)
+                : 0;
     }
 
     public boolean isSlotEnabled(int slot) {
@@ -521,7 +516,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotDrawParallel(int slot) {
-        if (!validSlot(slot) || !slotEnabled[slot] || accelerationController.processingTime(slot) <= 0) {
+        if (!validSlot(slot)
+                || !slotEnabled[slot]
+                || accelerationController.processingTime(slot) <= 0) {
             return 0;
         }
         return (int)
@@ -575,7 +572,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 disabledExpectedItems);
     }
 
-    /** Explicitly refreshes marker analysis and processing plans; queries never invoke this work. */
+    /**
+     * Explicitly refreshes marker analysis and processing plans; queries never invoke this work.
+     */
     public void refreshMarkerAnalysis() {
         if (!(level instanceof ServerLevel serverLevel)) return;
         refreshMarkerLootCache(serverLevel.getServer());
@@ -641,9 +640,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             structureComplete = complete;
             setChanged();
         }
-        applyUpgradeBonuses(complete
-                ? upgradeController.refresh(serverLevel)
-                : MinerUpgradeController.UpgradeState.NONE);
+        applyUpgradeBonuses(
+                complete
+                        ? upgradeController.refresh(serverLevel)
+                        : MinerUpgradeController.UpgradeState.NONE);
     }
 
     private boolean canRunThisTick(ServerLevel serverLevel) {
@@ -678,7 +678,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return true;
     }
 
-    /** Advances only per-slot progress and acceleration state; completion work follows this phase. */
+    /**
+     * Advances only per-slot progress and acceleration state; completion work follows this phase.
+     */
     private List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> advanceWork(
             ServerLevel serverLevel) {
         List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> completedSlots = new ArrayList<>();
@@ -753,13 +755,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
-        upgradeBonuses = new MythicMinerUpgradeResolver.Bonuses(
-                bonuses.efficiencyMultiplier(), bonuses.energyCapacityMultiplier(),
-                bonuses.parallelMultiplierHundredths(), bonuses.luckIncreasePercent(),
-                bonuses.energyConsumptionMultiplier(), bonuses.efficiencyUpgradeCount(),
-                bonuses.energyUpgradeCount(), bonuses.parallelUpgradeCount(),
-                bonuses.luckUpgradeCount(), bonuses.aggregateUpgradeCount(),
-                bonuses.upgradeCountsByTypeAndTier());
+        upgradeBonuses = bonuses;
         long capacity = Math.round(getBaseEnergyCapacity() * bonuses.energyCapacityMultiplier());
         energyStorage.setCapacity((int) Math.max(1L, Math.min(Integer.MAX_VALUE, capacity)));
     }
@@ -788,8 +784,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         / 100L;
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
-                machineParallelHundredths
-                        + accelerationController.previousExtraParallel(slot));
+                machineParallelHundredths + accelerationController.previousExtraParallel(slot));
     }
 
     private long slotDisplayParallelHundredths(int slot) {
@@ -800,21 +795,34 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         / 100L;
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
-                machineParallelHundredths
-                        + accelerationController.currentExtraParallel(slot));
+                machineParallelHundredths + accelerationController.currentExtraParallel(slot));
     }
 
     private void drawMarkerLoot(MinecraftServer server, List<CompletedMarker> completedMarkers) {
         if (!(level instanceof ServerLevel outputLevel)) {
             return;
         }
-        pendingOutput = outputController.emit(
-                this, server, outputLevel, worldPosition, completedMarkers, disabledExpectedItems,
-                isEquipmentDismantlingEnabled(), getMinerTier(), configuredOutputState,
-                this::isWorldOutputFaceEnabled,
-                slot -> drawsForQuantity(slot, completedMarkers.stream()
-                        .filter(value -> value.loot().slot() == slot).findFirst().orElseThrow().parallel(),
-                        analysisController.entryForSlot(slot).quantity()));
+        pendingOutput =
+                outputController.emit(
+                        this,
+                        server,
+                        outputLevel,
+                        worldPosition,
+                        completedMarkers,
+                        disabledExpectedItems,
+                        isEquipmentDismantlingEnabled(),
+                        getMinerTier(),
+                        configuredOutputState,
+                        this::isWorldOutputFaceEnabled,
+                        slot ->
+                                drawsForQuantity(
+                                        slot,
+                                        completedMarkers.stream()
+                                                .filter(value -> value.loot().slot() == slot)
+                                                .findFirst()
+                                                .orElseThrow()
+                                                .parallel(),
+                                        analysisController.entryForSlot(slot).quantity()));
         setChanged();
     }
 
@@ -844,7 +852,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private void updateProcessingPlans() {
         accelerationController.clearPlans();
-        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot : analysisController.entries()) {
+        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot :
+                analysisController.entries()) {
             if (slotEnabled[cachedLoot.slot()]) {
                 updateProcessingPlan(cachedLoot.slot(), cachedLoot.structureValue());
             }
@@ -856,12 +865,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         MinerScriptConfig config = scriptConfig();
         int configuredProcessingTime =
                 config != null && config.processingTime() != null ? config.processingTime() : 0;
-        MythicMinerUpgradeMath.ProcessingPlan plan = MythicMinerUpgradeMath.processingPlan(
-                structureValue,
-                efficiency,
-                configuredProcessingTime,
-                MINIMUM_PROCESSING_TIME,
-                getBaseParallelCount());
+        MythicMinerUpgradeMath.ProcessingPlan plan =
+                MythicMinerUpgradeMath.processingPlan(
+                        structureValue,
+                        efficiency,
+                        configuredProcessingTime,
+                        MINIMUM_PROCESSING_TIME,
+                        getBaseParallelCount());
         accelerationController.setPlan(slot, plan.processingTicks(), plan.parallelHundredths());
     }
 
@@ -993,8 +1003,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void retryPendingOutput(ServerLevel outputLevel) {
-        pendingOutput = outputController.retry(outputLevel, worldPosition, configuredOutputState,
-                this::isWorldOutputFaceEnabled, pendingOutput);
+        pendingOutput =
+                outputController.retry(
+                        outputLevel,
+                        worldPosition,
+                        configuredOutputState,
+                        this::isWorldOutputFaceEnabled,
+                        pendingOutput);
         setChanged();
     }
 
@@ -1035,8 +1050,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return 0L;
     }
 
-    record CompletedMarker(
-            MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel) {}
+    record CompletedMarker(MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel) {}
 
     private ItemStackHandler createItemHandler() {
         int slotCount = getSlotCount();
@@ -1077,9 +1091,15 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         int firstActiveSlot = firstActiveSlot();
         tag.putInt(
                 QUANTITY_FRACTION_TAG,
-                firstActiveSlot >= 0 ? accelerationController.quantityFraction(firstActiveSlot) : 0);
-        accelerationController.save(tag, SLOT_PROGRESS_TAG, SLOT_PARALLEL_FRACTION_TAG,
-                SLOT_QUANTITY_FRACTION_TAG, EXTERNAL_ACCELERATION_STATES_TAG);
+                firstActiveSlot >= 0
+                        ? accelerationController.quantityFraction(firstActiveSlot)
+                        : 0);
+        accelerationController.save(
+                tag,
+                SLOT_PROGRESS_TAG,
+                SLOT_PARALLEL_FRACTION_TAG,
+                SLOT_QUANTITY_FRACTION_TAG,
+                EXTERNAL_ACCELERATION_STATES_TAG);
         tag.putInt("RedstoneMode", redstoneMode.ordinal());
         tag.putInt("RedstoneThreshold", redstoneThreshold);
         tag.putInt("ConfiguredOutputState", configuredOutputState.ordinal());
@@ -1122,9 +1142,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 tag.contains(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, Tag.TAG_LONG)
                         ? tag.getLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG)
                         : Long.MIN_VALUE;
-        accelerationController.load(tag, SLOT_PROGRESS_TAG, PROGRESS_TAG,
-                SLOT_PARALLEL_FRACTION_TAG, PARALLEL_FRACTION_TAG,
-                SLOT_QUANTITY_FRACTION_TAG, QUANTITY_FRACTION_TAG,
+        accelerationController.load(
+                tag,
+                SLOT_PROGRESS_TAG,
+                PROGRESS_TAG,
+                SLOT_PARALLEL_FRACTION_TAG,
+                PARALLEL_FRACTION_TAG,
+                SLOT_QUANTITY_FRACTION_TAG,
+                QUANTITY_FRACTION_TAG,
                 EXTERNAL_ACCELERATION_STATES_TAG);
         redstoneMode =
                 RedstoneMode.values()[
