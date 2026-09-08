@@ -554,6 +554,7 @@ public final class ModNetwork {
                     && packet.slot() >= 0
                     && packet.slot() < menu.getContainerSlotCount()
                     && menu.stillValid(player)) {
+                menu.getBlockEntity().refreshMarkerAnalysis();
                 MythicMinerAnalysisSnapshot snapshot =
                         menu.getBlockEntity().getMarkerAnalysisSnapshot(packet.slot());
                 CHANNEL.send(
@@ -675,6 +676,7 @@ public final class ModNetwork {
                     && packet.slot() < menu.getContainerSlotCount()
                     && menu.stillValid(player)) {
                 menu.getBlockEntity().toggleExpectedItem(packet.itemId());
+                menu.getBlockEntity().refreshMarkerAnalysis();
                 MythicMinerAnalysisSnapshot snapshot =
                         menu.getBlockEntity().getMarkerAnalysisSnapshot(packet.slot());
                 CHANNEL.send(

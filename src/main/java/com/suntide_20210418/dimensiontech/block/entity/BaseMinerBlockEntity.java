@@ -545,8 +545,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel serverLevel) || !validSlot(slot)) {
             return MythicMinerAnalysisSnapshot.EMPTY;
         }
-        refreshMarkerLootCache(serverLevel.getServer());
-        updateProcessingPlans();
         MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot =
                 markerLootCache.entryForSlot(slot);
         if (cachedLoot == null || cachedLoot.quantity() <= 0.0D) {
@@ -586,6 +584,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 dismantling,
                 displayedExpectations,
                 disabledExpectedItems);
+    }
+
+    /** Explicitly refreshes marker analysis and processing plans; queries never invoke this work. */
+    public void refreshMarkerAnalysis() {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        refreshMarkerLootCache(serverLevel.getServer());
+        updateProcessingPlans();
     }
 
     public void toggleExpectedItem(ResourceLocation itemId) {

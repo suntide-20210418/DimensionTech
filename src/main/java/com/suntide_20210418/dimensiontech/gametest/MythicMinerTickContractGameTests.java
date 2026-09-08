@@ -65,7 +65,7 @@ public final class MythicMinerTickContractGameTests {
 
         helper.succeedWhen(() -> {
             if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.getMarkerAnalysisSnapshot(0);
+                miner.refreshMarkerAnalysis();
                 return;
             }
             int energyBefore = miner.getEnergyStored();
@@ -87,7 +87,7 @@ public final class MythicMinerTickContractGameTests {
 
         helper.succeedWhen(() -> {
             if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.getMarkerAnalysisSnapshot(0);
+                miner.refreshMarkerAnalysis();
                 return;
             }
             miner.cycleRedstoneMode();
@@ -110,7 +110,7 @@ public final class MythicMinerTickContractGameTests {
 
         helper.succeedWhen(() -> {
             if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.getMarkerAnalysisSnapshot(0);
+                miner.refreshMarkerAnalysis();
                 return;
             }
             miner.cycleRedstoneMode();
@@ -131,7 +131,7 @@ public final class MythicMinerTickContractGameTests {
 
         helper.succeedWhen(() -> {
             if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.getMarkerAnalysisSnapshot(0);
+                miner.refreshMarkerAnalysis();
                 return;
             }
             miner.cycleRedstoneMode();
@@ -160,7 +160,7 @@ public final class MythicMinerTickContractGameTests {
 
         helper.succeedWhen(() -> {
             if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.getMarkerAnalysisSnapshot(0);
+                miner.refreshMarkerAnalysis();
                 return;
             }
             int energyBefore = miner.getEnergyStored();
