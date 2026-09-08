@@ -89,6 +89,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private List<ItemStack> pendingOutput = new ArrayList<>();
     private final MythicMinerSlotProgress slotProgress;
     private final MinerAccelerationController accelerationController;
+    private final MinerOutputController outputController = new MinerOutputController();
     private final int[] slotProcessingTimes;
     private final int[] slotParallelHundredths;
     private final int[] slotParallelFractionHundredths;
@@ -829,37 +830,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel outputLevel)) {
             return;
         }
-
-        List<ExpectationRewardGenerator.Cycle> cycles = new ArrayList<>();
-        for (CompletedMarker completed : completedMarkers) {
-            MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot = completed.loot();
-            double quantity = cachedLoot.quantity();
-            if (!Double.isFinite(quantity) || quantity <= 0.0D) continue;
-            cycles.add(
-                    new ExpectationRewardGenerator.Cycle(
-                            cachedLoot,
-                            completed.parallel(),
-                            drawsForQuantity(cachedLoot.slot(), completed.parallel(), quantity)));
-        }
-        List<ItemStack> mergedLoot =
-                ExpectationRewardGenerator.generate(
-                        server,
-                        cycles,
-                        disabledExpectedItems,
-                        isEquipmentDismantlingEnabled(),
-                        getMinerTier());
-
-        MinerIntegrationHooks.OutputResult hookResult =
-                MinerIntegrationHooks.postOutput(this, outputLevel, mergedLoot);
-        pendingOutput =
-                hookResult.cancelled()
-                        ? List.of()
-                        : MythicMinerOutputRouter.output(
-                                outputLevel,
-                                worldPosition,
-                                configuredOutputState,
-                                this::isWorldOutputFaceEnabled,
-                                hookResult.outputs());
+        pendingOutput = outputController.emit(
+                this, server, outputLevel, worldPosition, completedMarkers, disabledExpectedItems,
+                isEquipmentDismantlingEnabled(), getMinerTier(), configuredOutputState,
+                this::isWorldOutputFaceEnabled,
+                slot -> drawsForQuantity(slot, completedMarkers.stream()
+                        .filter(value -> value.loot().slot() == slot).findFirst().orElseThrow().parallel(),
+                        markerLootCache.entryForSlot(slot).quantity()));
         setChanged();
     }
 
@@ -1052,13 +1029,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void retryPendingOutput(ServerLevel outputLevel) {
-        pendingOutput =
-                MythicMinerOutputRouter.output(
-                        outputLevel,
-                        worldPosition,
-                        configuredOutputState,
-                        this::isWorldOutputFaceEnabled,
-                        pendingOutput);
+        pendingOutput = outputController.retry(outputLevel, worldPosition, configuredOutputState,
+                this::isWorldOutputFaceEnabled, pendingOutput);
         setChanged();
     }
 
@@ -1102,7 +1074,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return 0L;
     }
 
-    private record CompletedMarker(
+    record CompletedMarker(
             MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel) {}
 
     private ItemStackHandler createItemHandler() {
