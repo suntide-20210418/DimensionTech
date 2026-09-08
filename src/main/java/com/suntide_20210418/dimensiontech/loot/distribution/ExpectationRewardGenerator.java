@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.loot.distribution;
 
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
@@ -21,7 +21,7 @@ import net.minecraft.world.item.ItemStack;
  * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original LootTable
  * joint distribution, pool selection, function chain, or random sequence.
  */
-final class ExpectationRewardGenerator {
+public final class ExpectationRewardGenerator {
     private ExpectationRewardGenerator() {}
 
     static List<ItemStack> draw(

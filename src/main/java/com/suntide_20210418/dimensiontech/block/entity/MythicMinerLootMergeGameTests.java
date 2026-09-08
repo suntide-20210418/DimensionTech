@@ -1,5 +1,7 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.loot.distribution.ExpectationRewardGenerator;
+
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import java.util.ArrayList;
 import java.util.List;
