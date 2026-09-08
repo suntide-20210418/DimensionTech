@@ -74,7 +74,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
      * A cycle must span the complete natural observation window used for acceleration accounting.
      */
     public static final int MINIMUM_PROCESSING_TIME =
-            MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
+            MinerAccelerationController.MINIMUM_NATURAL_TICKS;
 
     private final ItemStackHandler itemHandler;
     private final MinerEnergyStorage energyStorage;
