@@ -765,12 +765,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         getMinerTier(),
                         this::isWorldOutputFaceEnabled,
                         slot ->
-                                drawsForQuantity(
+                                accelerationController.drawsForQuantity(
                                         slot,
                                         completedMarkers.stream()
                                                 .filter(value -> value.loot().slot() == slot)
                                                 .findFirst().orElseThrow().parallel(),
-                                        analysisController.entryForSlot(slot).quantity())));
+                                        analysisController.entryForSlot(slot).quantity(),
+                                        getQuantityReference())));
         setChanged();
     }
 
@@ -790,13 +791,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return analysisController.taskStatus(slot);
     }
 
-    private int drawsForQuantity(int slot, int parallel, double quantity) {
-        int factorHundredths =
-                MythicMinerExpectationMath.quantityFactorHundredths(
-                        quantity, getQuantityReference());
-        long scaled = (long) parallel * DRAWS_PER_PARALLEL * factorHundredths;
-        return accelerationController.drawsForQuantity(slot, scaled);
-    }
 
     private void updateProcessingPlans() {
         double efficiency = getBaseMachineEfficiency() * upgradeBonuses.efficiencyMultiplier();

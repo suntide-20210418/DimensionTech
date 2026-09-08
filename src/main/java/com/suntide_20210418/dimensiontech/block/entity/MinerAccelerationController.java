@@ -113,6 +113,12 @@ final class MinerAccelerationController {
         return result;
     }
 
+    int drawsForQuantity(int slot, int parallel, double quantity, double quantityReference) {
+        int factor = MythicMinerExpectationMath.quantityFactorHundredths(quantity, quantityReference);
+        long scaled = (long) parallel * 8L * factor;
+        return drawsForQuantity(slot, scaled);
+    }
+
     int parallelFraction() {
         for (int slot = 0; slot < processingTimes.length; slot++)
             if (processingTimes[slot] > 0) return parallelFraction(slot);
