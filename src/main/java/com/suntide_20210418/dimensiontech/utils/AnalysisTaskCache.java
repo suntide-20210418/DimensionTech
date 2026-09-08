@@ -103,8 +103,16 @@ final class AnalysisTaskCache implements AutoCloseable {
                                             (value, error) -> {
                                                 synchronized (AnalysisTaskCache.this) {
                                                     inFlight.remove(key, shared);
-                                                    if (error == null && !closed)
+                                                    if (error == null && !closed) {
                                                         results.put(key, value);
+                                                        failures.remove(key);
+                                                    } else if (error != null) {
+                                                        failures.put(
+                                                                key,
+                                                                new Failure(
+                                                                        System.currentTimeMillis(),
+                                                                        error.toString()));
+                                                    }
                                                 }
                                                 if (error == null) shared.complete(value);
                                                 else shared.completeExceptionally(error);
