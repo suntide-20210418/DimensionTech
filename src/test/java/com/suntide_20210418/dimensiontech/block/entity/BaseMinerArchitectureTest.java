@@ -28,4 +28,23 @@ class BaseMinerArchitectureTest {
         assertFalse(method.contains("MythicMinerMultiblock"));
         assertFalse(method.contains("structureComplete ="));
     }
+
+    @Test
+    void controllerModulesRemainPackagePrivateAndOwnMutableBusinessState() throws Exception {
+        Path root = Path.of("src/main/java/com/suntide_20210418/dimensiontech/block/entity");
+        for (String name : new String[] {
+            "MinerAnalysisController.java", "MinerOutputController.java",
+            "MinerUpgradeController.java", "MinerAccelerationController.java"}) {
+            String source = Files.readString(root.resolve(name));
+            assertFalse(source.contains("public class"));
+            assertFalse(source.contains("public final class"));
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    source.contains("final class"), name + " must be a package-private module");
+        }
+        String base = Files.readString(root.resolve("BaseMinerBlockEntity.java"));
+        assertFalse(base.contains("private int[] slotProcessingTimes"));
+        assertFalse(base.contains("private int[] slotParallelHundredths"));
+        assertFalse(base.contains("private MythicMinerExternalTickAcceleration"));
+        assertFalse(base.contains("private List<ItemStack> pendingOutput"));
+    }
 }
