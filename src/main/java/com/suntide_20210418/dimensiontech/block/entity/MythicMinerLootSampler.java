@@ -73,7 +73,7 @@ final class ExpectationRewardGenerator {
         List<ItemStack> merged = new ArrayList<>();
         int clampedTier = Math.max(1, Math.min(6, minerTier));
         for (Cycle cycle : cycles) {
-            MythicMinerMarkerAnalysisCache.CachedMarkerLoot cached = cycle.loot();
+            MinerAnalysisController.MarkerAnalysis cached = cycle.loot();
             ServerLevel lootLevel =
                     server.getLevel(ResourceKey.create(Registries.DIMENSION, cached.dimension()));
             if (lootLevel == null
