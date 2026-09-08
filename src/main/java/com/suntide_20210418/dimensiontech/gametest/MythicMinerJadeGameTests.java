@@ -6,6 +6,8 @@ import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.integration.jade.MythicMinerJadeProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
@@ -17,8 +19,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.gametest.framework.GameTest;
-import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import snownee.jade.api.BlockAccessor;
@@ -40,7 +40,8 @@ public final class MythicMinerJadeGameTests {
         }
         miner.getEnergyStorage().receiveEnergy(4_096, false);
         CompoundTag data = new CompoundTag();
-        MythicMinerJadeProvider.INSTANCE.appendServerData(data, new MinerAccessor(level, position, miner));
+        MythicMinerJadeProvider.INSTANCE.appendServerData(
+                data, new MinerAccessor(level, position, miner));
 
         if (!data.contains("Status")
                 || data.getInt("SlotCount") != miner.getSlotCountForScript()

@@ -19,8 +19,10 @@ public sealed interface FrozenJson {
 
     default String fingerprint() {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(toJson().toString().getBytes(StandardCharsets.UTF_8)));
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(toJson().toString().getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is unavailable", impossible);
         }
@@ -30,8 +32,9 @@ public sealed interface FrozenJson {
         Objects.requireNonNull(json, "json");
         if (json.isJsonObject()) {
             Map<String, FrozenJson> fields = new TreeMap<>();
-            json.getAsJsonObject().entrySet().forEach(entry ->
-                    fields.put(entry.getKey(), freeze(entry.getValue())));
+            json.getAsJsonObject()
+                    .entrySet()
+                    .forEach(entry -> fields.put(entry.getKey(), freeze(entry.getValue())));
             return new ObjectValue(fields);
         }
         if (json.isJsonArray()) {
@@ -43,7 +46,9 @@ public sealed interface FrozenJson {
     }
 
     record ObjectValue(Map<String, FrozenJson> fields) implements FrozenJson {
-        public ObjectValue { fields = Map.copyOf(fields); }
+        public ObjectValue {
+            fields = Map.copyOf(fields);
+        }
 
         @Override
         public JsonObject toJson() {
@@ -54,7 +59,9 @@ public sealed interface FrozenJson {
     }
 
     record ArrayValue(List<FrozenJson> elements) implements FrozenJson {
-        public ArrayValue { elements = List.copyOf(elements); }
+        public ArrayValue {
+            elements = List.copyOf(elements);
+        }
 
         @Override
         public JsonArray toJson() {
@@ -75,6 +82,8 @@ public sealed interface FrozenJson {
         }
 
         @Override
-        public JsonElement toJson() { return JsonParser.parseString(json); }
+        public JsonElement toJson() {
+            return JsonParser.parseString(json);
+        }
     }
 }

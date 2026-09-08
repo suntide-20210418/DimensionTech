@@ -37,7 +37,17 @@ final class MinerUpgradeController {
             int aggregateUpgradeCount,
             int[] upgradeCountsByTypeAndTier) {
         static final UpgradeState NONE =
-                new UpgradeState(1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0,
+                new UpgradeState(
+                        1.0D,
+                        1.0D,
+                        100,
+                        0.0D,
+                        1.0D,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
                         new int[MythicMinerUpgradeBlock.Type.values().length * 6]);
 
         private static UpgradeState from(ServerLevel level, BlockPos position) {
@@ -60,7 +70,9 @@ final class MinerUpgradeController {
                 switch (block.getType()) {
                     case EFFICIENCY -> {
                         efficiencyCount++;
-                        efficiency += ModConfigs.UPGRADE_TIERS[block.getTier() - 1].efficiencyIncreasePercent();
+                        efficiency +=
+                                ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
+                                        .efficiencyIncreasePercent();
                     }
                     case ENERGY -> {
                         energyCount++;
@@ -70,7 +82,9 @@ final class MinerUpgradeController {
                     }
                     case PARALLEL -> {
                         parallelCount++;
-                        parallel += ModConfigs.UPGRADE_TIERS[block.getTier() - 1].parallelIncreasePercent();
+                        parallel +=
+                                ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
+                                        .parallelIncreasePercent();
                     }
                     case LUCK -> {
                         luckCount++;
@@ -89,17 +103,25 @@ final class MinerUpgradeController {
                 }
             }
             consumption *= Math.max(0.0D, 1.0D - additiveReduction / 100.0D);
-            return new UpgradeState(1.0D + efficiency / 100.0D,
+            return new UpgradeState(
+                    1.0D + efficiency / 100.0D,
                     1.0D + capacity / 100.0D,
                     (int) Math.min(Integer.MAX_VALUE, Math.round(100.0D + parallel)),
-                    luck, Math.max(0.0D, consumption), efficiencyCount, energyCount,
-                    parallelCount, luckCount, aggregateCount, counts);
+                    luck,
+                    Math.max(0.0D, consumption),
+                    efficiencyCount,
+                    energyCount,
+                    parallelCount,
+                    luckCount,
+                    aggregateCount,
+                    counts);
         }
 
         int countFor(MythicMinerUpgradeBlock.Type type, int tier) {
             int index = (type.ordinal() - 1) * 6 + tier - 1;
             return index >= 0 && index < upgradeCountsByTypeAndTier.length
-                    ? upgradeCountsByTypeAndTier[index] : 0;
+                    ? upgradeCountsByTypeAndTier[index]
+                    : 0;
         }
     }
 }

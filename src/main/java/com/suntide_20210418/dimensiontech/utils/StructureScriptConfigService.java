@@ -1,11 +1,10 @@
 package com.suntide_20210418.dimensiontech.utils;
 
+import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
-
-import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
 import net.minecraft.resources.ResourceLocation;
 
 /** Server-script overrides for structure analysis and value calculation. */
@@ -150,12 +149,12 @@ public final class StructureScriptConfigService {
     public static String fingerprint() {
         com.google.gson.JsonObject root = new com.google.gson.JsonObject();
         com.google.gson.JsonObject dimensions = new com.google.gson.JsonObject();
-        DIMENSION_VALUES.forEach((id, value) ->
-                dimensions.addProperty(id.toString(), Double.toHexString(value)));
+        DIMENSION_VALUES.forEach(
+                (id, value) -> dimensions.addProperty(id.toString(), Double.toHexString(value)));
         root.add("dimensions", dimensions);
         com.google.gson.JsonObject items = new com.google.gson.JsonObject();
-        ITEM_MULTIPLIERS.forEach((regex, value) ->
-                items.addProperty(regex, Double.toHexString(value)));
+        ITEM_MULTIPLIERS.forEach(
+                (regex, value) -> items.addProperty(regex, Double.toHexString(value)));
         root.add("items", items);
         addList(root, "dimensionWhitelist", dimensionWhitelist);
         addList(root, "dimensionBlacklist", dimensionBlacklist);
@@ -171,8 +170,7 @@ public final class StructureScriptConfigService {
         addNullable(root, "uncommonMultiplier", uncommonMultiplier);
         addNullable(root, "rareMultiplier", rareMultiplier);
         addNullable(root, "epicMultiplier", epicMultiplier);
-        return FrozenJson
-                .freeze(root).fingerprint();
+        return FrozenJson.freeze(root).fingerprint();
     }
 
     private static void addList(com.google.gson.JsonObject root, String name, List<String> values) {

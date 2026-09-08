@@ -3,12 +3,13 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.util.Optional;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Comparator;
+import java.util.Optional;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -18,7 +19,6 @@ import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /** Serializes the server's loaded loot objects, including Forge load-event modifications. */
@@ -93,19 +93,25 @@ public class RuntimeLootAstSource {
             ResourceLocation id = referenced.iterator().next();
             referenced.remove(id);
             if (!visitedReferences.add(id)) continue;
-            live.predicate(id).ifPresent(value -> {
-                predicates.put(id, value.json());
-                collectReferences(value.json(), referenced);
-            });
-            live.modifier(id).ifPresent(value -> {
-                modifiers.put(id, value.json());
-                collectReferences(value.json(), referenced);
-            });
+            live.predicate(id)
+                    .ifPresent(
+                            value -> {
+                                predicates.put(id, value.json());
+                                collectReferences(value.json(), referenced);
+                            });
+            live.modifier(id)
+                    .ifPresent(
+                            value -> {
+                                modifiers.put(id, value.json());
+                                collectReferences(value.json(), referenced);
+                            });
         }
-        return new RuntimeLootAstSource(tables, predicates, modifiers, runtimeSemanticsFingerprint());
+        return new RuntimeLootAstSource(
+                tables, predicates, modifiers, runtimeSemanticsFingerprint());
     }
 
-    private static void collectNestedTables(JsonElement element, Collection<ResourceLocation> output) {
+    private static void collectNestedTables(
+            JsonElement element, Collection<ResourceLocation> output) {
         if (element == null || element.isJsonNull()) return;
         if (element.isJsonArray()) {
             element.getAsJsonArray().forEach(child -> collectNestedTables(child, output));
@@ -113,7 +119,8 @@ public class RuntimeLootAstSource {
         }
         if (!element.isJsonObject()) return;
         var object = element.getAsJsonObject();
-        if (object.has("type") && object.has("name")
+        if (object.has("type")
+                && object.has("name")
                 && "minecraft:loot_table".equals(object.get("type").getAsString())) {
             ResourceLocation id = ResourceLocation.tryParse(object.get("name").getAsString());
             if (id != null) output.add(id);
@@ -121,7 +128,8 @@ public class RuntimeLootAstSource {
         object.entrySet().forEach(entry -> collectNestedTables(entry.getValue(), output));
     }
 
-    private static void collectReferences(JsonElement element, Collection<ResourceLocation> output) {
+    private static void collectReferences(
+            JsonElement element, Collection<ResourceLocation> output) {
         if (element == null || element.isJsonNull()) return;
         if (element.isJsonArray()) {
             element.getAsJsonArray().forEach(child -> collectReferences(child, output));
@@ -130,11 +138,15 @@ public class RuntimeLootAstSource {
         if (!element.isJsonObject()) return;
         var object = element.getAsJsonObject();
         if (object.has("name")) {
-            JsonElement kind = object.has("condition") ? object.get("condition")
-                    : object.has("function") ? object.get("function") : object.get("type");
+            JsonElement kind =
+                    object.has("condition")
+                            ? object.get("condition")
+                            : object.has("function") ? object.get("function") : object.get("type");
             String type = kind != null && kind.isJsonPrimitive() ? kind.getAsString() : "";
-            if (type.equals("reference") || type.equals("referenced")
-                    || type.endsWith(":reference") || type.endsWith(":referenced")) {
+            if (type.equals("reference")
+                    || type.equals("referenced")
+                    || type.endsWith(":reference")
+                    || type.endsWith(":referenced")) {
                 ResourceLocation id = ResourceLocation.tryParse(object.get("name").getAsString());
                 if (id != null) output.add(id);
             }
@@ -148,11 +160,13 @@ public class RuntimeLootAstSource {
 
     public Optional<RuntimeAst<LootTable>> table(ResourceLocation id) {
         FrozenJson snap = tableSnapshot.get(id);
-        if (snap != null)
-            return Optional.of(new RuntimeAst<LootTable>(snap, snap.toJson()));
+        if (snap != null) return Optional.of(new RuntimeAst<LootTable>(snap, snap.toJson()));
         if (lootData == null) return Optional.empty();
         return lootData.getElementOptional(LootDataType.TABLE, id)
-                .map(value -> new RuntimeAst<>(value, serializeObject(RuntimeSerializers.TABLE, value)));
+                .map(
+                        value ->
+                                new RuntimeAst<>(
+                                        value, serializeObject(RuntimeSerializers.TABLE, value)));
     }
 
     public Optional<RuntimeAst<LootItemCondition>> predicate(ResourceLocation id) {
@@ -161,16 +175,21 @@ public class RuntimeLootAstSource {
             return Optional.of(new RuntimeAst<LootItemCondition>(snap, snap.toJson()));
         if (lootData == null) return Optional.empty();
         return lootData.getElementOptional(LootDataType.PREDICATE, id)
-                .map(value -> new RuntimeAst<>(value, RuntimeSerializers.PREDICATE.toJsonTree(value)));
+                .map(
+                        value ->
+                                new RuntimeAst<>(
+                                        value, RuntimeSerializers.PREDICATE.toJsonTree(value)));
     }
 
     public Optional<RuntimeAst<LootItemFunction>> modifier(ResourceLocation id) {
         FrozenJson snap = modifierSnapshot.get(id);
-        if (snap != null)
-            return Optional.of(new RuntimeAst<LootItemFunction>(snap, snap.toJson()));
+        if (snap != null) return Optional.of(new RuntimeAst<LootItemFunction>(snap, snap.toJson()));
         if (lootData == null) return Optional.empty();
         return lootData.getElementOptional(LootDataType.MODIFIER, id)
-                .map(value -> new RuntimeAst<>(value, RuntimeSerializers.MODIFIER.toJsonTree(value)));
+                .map(
+                        value ->
+                                new RuntimeAst<>(
+                                        value, RuntimeSerializers.MODIFIER.toJsonTree(value)));
     }
 
     private static JsonObject serializeObject(Gson serializer, Object value) {
@@ -184,19 +203,24 @@ public class RuntimeLootAstSource {
     /** Includes recursively referenced tables, predicates and functions, in stable key order. */
     public String inputFingerprint() {
         if (lootData != null) throw new IllegalStateException("Freeze the live source first");
-        return new FrozenJson.ObjectValue(Map.of(
-                "tables", frozenEntries(tableSnapshot),
-                "predicates", frozenEntries(predicateSnapshot),
-                "modifiers", frozenEntries(modifierSnapshot),
-                "runtimeSemantics", new FrozenJson.ScalarValue(
-                        new com.google.gson.Gson().toJson(runtimeSemanticsFingerprint)))).fingerprint();
+        return new FrozenJson.ObjectValue(
+                        Map.of(
+                                "tables", frozenEntries(tableSnapshot),
+                                "predicates", frozenEntries(predicateSnapshot),
+                                "modifiers", frozenEntries(modifierSnapshot),
+                                "runtimeSemantics",
+                                        new FrozenJson.ScalarValue(
+                                                new com.google.gson.Gson()
+                                                        .toJson(runtimeSemanticsFingerprint))))
+                .fingerprint();
     }
 
     /** Must be called on the server thread immediately before runtime-backed evaluation. */
     public void verifyRuntimeInputs() {
         if (!runtimeSemanticsFingerprint.isEmpty()
                 && !runtimeSemanticsFingerprint.equals(runtimeSemanticsFingerprint())) {
-            throw new IllegalStateException("Runtime registry/tag inputs changed after snapshot capture");
+            throw new IllegalStateException(
+                    "Runtime registry/tag inputs changed after snapshot capture");
         }
     }
 
@@ -204,27 +228,44 @@ public class RuntimeLootAstSource {
         com.google.gson.JsonObject root = new com.google.gson.JsonObject();
         com.google.gson.JsonObject itemTags = new com.google.gson.JsonObject();
         if (ForgeRegistries.ITEMS.tags() != null) {
-            ForgeRegistries.ITEMS.tags().getTagNames()
+            ForgeRegistries.ITEMS
+                    .tags()
+                    .getTagNames()
                     .sorted(Comparator.comparing(tag -> tag.location().toString()))
-                    .forEach(tag -> {
-                        com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
-                        ForgeRegistries.ITEMS.tags().getTag(tag).stream()
-                                .map(ForgeRegistries.ITEMS::getKey)
-                                .filter(java.util.Objects::nonNull)
-                                .map(ResourceLocation::toString).sorted().forEach(ids::add);
-                        itemTags.add(tag.location().toString(), ids);
-                    });
+                    .forEach(
+                            tag -> {
+                                com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
+                                ForgeRegistries.ITEMS.tags().getTag(tag).stream()
+                                        .map(ForgeRegistries.ITEMS::getKey)
+                                        .filter(java.util.Objects::nonNull)
+                                        .map(ResourceLocation::toString)
+                                        .sorted()
+                                        .forEach(ids::add);
+                                itemTags.add(tag.location().toString(), ids);
+                            });
         }
         root.add("itemTags", itemTags);
         com.google.gson.JsonObject instrumentTags = new com.google.gson.JsonObject();
-        BuiltInRegistries.INSTRUMENT.getTagNames()
+        BuiltInRegistries.INSTRUMENT
+                .getTagNames()
                 .sorted(Comparator.comparing(tag -> tag.location().toString()))
-                .forEach(tag -> {
-                    com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
-                    BuiltInRegistries.INSTRUMENT.getTag(tag).ifPresent(set -> set.forEach(holder ->
-                            holder.unwrapKey().ifPresent(key -> ids.add(key.location().toString()))));
-                    instrumentTags.add(tag.location().toString(), ids);
-                });
+                .forEach(
+                        tag -> {
+                            com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
+                            BuiltInRegistries.INSTRUMENT
+                                    .getTag(tag)
+                                    .ifPresent(
+                                            set ->
+                                                    set.forEach(
+                                                            holder ->
+                                                                    holder.unwrapKey()
+                                                                            .ifPresent(
+                                                                                    key ->
+                                                                                            ids.add(
+                                                                                                    key.location()
+                                                                                                            .toString()))));
+                            instrumentTags.add(tag.location().toString(), ids);
+                        });
         root.add("instrumentTags", instrumentTags);
         return FrozenJson.freeze(root).fingerprint();
     }

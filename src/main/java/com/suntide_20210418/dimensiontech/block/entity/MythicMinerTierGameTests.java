@@ -31,7 +31,8 @@ public final class MythicMinerTierGameTests {
             int tier = index + 1;
             BlockPos position = helper.absolutePos(new BlockPos(index * 4, 0, 0));
             helper.getLevel().setBlock(position, blocks.get(index).defaultBlockState(), 3);
-            if (!(helper.getLevel().getBlockEntity(position) instanceof BaseMinerBlockEntity miner)) {
+            if (!(helper.getLevel().getBlockEntity(position)
+                    instanceof BaseMinerBlockEntity miner)) {
                 helper.fail("Tier " + tier + " did not create a miner block entity");
                 return;
             }

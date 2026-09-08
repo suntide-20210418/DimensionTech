@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 /** Server-owned mathematical results. Request generations belong to consumers, never this cache. */
 final class AnalysisTaskCache implements AutoCloseable {
     record Key(String layer, String input, String config, int algorithmVersion) {}
+
     record Failure(long failedAtMillis, String error) {}
 
     private final ThreadPoolExecutor executor;
@@ -25,12 +26,19 @@ final class AnalysisTaskCache implements AutoCloseable {
     private boolean closed;
 
     AnalysisTaskCache(int threads, int capacity) {
-        executor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(capacity), runnable -> {
-                    Thread thread = new Thread(runnable, "dimension-tech-analysis");
-                    thread.setDaemon(true);
-                    return thread;
-                }, new ThreadPoolExecutor.AbortPolicy());
+        executor =
+                new ThreadPoolExecutor(
+                        threads,
+                        threads,
+                        0L,
+                        TimeUnit.MILLISECONDS,
+                        new ArrayBlockingQueue<>(capacity),
+                        runnable -> {
+                            Thread thread = new Thread(runnable, "dimension-tech-analysis");
+                            thread.setDaemon(true);
+                            return thread;
+                        },
+                        new ThreadPoolExecutor.AbortPolicy());
     }
 
     @SuppressWarnings("unchecked")
@@ -41,20 +49,23 @@ final class AnalysisTaskCache implements AutoCloseable {
     @SuppressWarnings("unchecked")
     synchronized <T> CompletableFuture<T> submit(
             Key key, Supplier<T> computation, boolean retainResult) {
-        if (closed) return CompletableFuture.failedFuture(
-                new RejectedExecutionException("Analysis service is closed"));
+        if (closed)
+            return CompletableFuture.failedFuture(
+                    new RejectedExecutionException("Analysis service is closed"));
         CompletableFuture<?> existing = inFlight.get(key);
         if (existing != null) return (CompletableFuture<T>) existing;
-        if (results.containsKey(key)) return CompletableFuture.completedFuture((T) results.get(key));
+        if (results.containsKey(key))
+            return CompletableFuture.completedFuture((T) results.get(key));
         Pending<T> task = new Pending<>(key, computation, retainResult);
         failures.remove(key);
         inFlight.put(key, task.future);
         pending.put(key, task);
-        task.future.whenComplete((value, error) -> {
-            synchronized (AnalysisTaskCache.this) {
-                inFlight.remove(key, task.future);
-            }
-        });
+        task.future.whenComplete(
+                (value, error) -> {
+                    synchronized (AnalysisTaskCache.this) {
+                        inFlight.remove(key, task.future);
+                    }
+                });
         try {
             executor.execute(task);
         } catch (RejectedExecutionException error) {
@@ -83,24 +94,31 @@ final class AnalysisTaskCache implements AutoCloseable {
         CompletableFuture<T> shared = new CompletableFuture<>();
         inFlight.put(key, shared);
         try {
-            executor.execute(() -> {
-                try {
-                    computation.get().whenComplete((value, error) -> {
-                        synchronized (AnalysisTaskCache.this) {
-                            inFlight.remove(key, shared);
-                            if (error == null && !closed) results.put(key, value);
+            executor.execute(
+                    () -> {
+                        try {
+                            computation
+                                    .get()
+                                    .whenComplete(
+                                            (value, error) -> {
+                                                synchronized (AnalysisTaskCache.this) {
+                                                    inFlight.remove(key, shared);
+                                                    if (error == null && !closed)
+                                                        results.put(key, value);
+                                                }
+                                                if (error == null) shared.complete(value);
+                                                else shared.completeExceptionally(error);
+                                            });
+                        } catch (Throwable error) {
+                            synchronized (AnalysisTaskCache.this) {
+                                inFlight.remove(key, shared);
+                                failures.put(
+                                        key,
+                                        new Failure(System.currentTimeMillis(), error.toString()));
+                            }
+                            shared.completeExceptionally(error);
                         }
-                        if (error == null) shared.complete(value);
-                        else shared.completeExceptionally(error);
                     });
-                } catch (Throwable error) {
-                    synchronized (AnalysisTaskCache.this) {
-                        inFlight.remove(key, shared);
-                        failures.put(key, new Failure(System.currentTimeMillis(), error.toString()));
-                    }
-                    shared.completeExceptionally(error);
-                }
-            });
         } catch (RejectedExecutionException error) {
             inFlight.remove(key, shared);
             shared.completeExceptionally(error);
@@ -118,9 +136,17 @@ final class AnalysisTaskCache implements AutoCloseable {
         return true;
     }
 
-    synchronized int inFlightCount() { return inFlight.size(); }
-    synchronized int cachedCount() { return results.size(); }
-    synchronized Failure failure(Key key) { return failures.get(key); }
+    synchronized int inFlightCount() {
+        return inFlight.size();
+    }
+
+    synchronized int cachedCount() {
+        return results.size();
+    }
+
+    synchronized Failure failure(Key key) {
+        return failures.get(key);
+    }
 
     synchronized AnalysisLifecycle.TaskStatus taskStatus(Key key) {
         if (pending.containsKey(key)) return AnalysisLifecycle.TaskStatus.QUEUED;
@@ -128,7 +154,11 @@ final class AnalysisTaskCache implements AutoCloseable {
         if (failures.containsKey(key)) return AnalysisLifecycle.TaskStatus.FAILED;
         return results.containsKey(key) ? AnalysisLifecycle.TaskStatus.SUCCEEDED : null;
     }
-    int queuedCount() { return executor.getQueue().size(); }
+
+    int queuedCount() {
+        return executor.getQueue().size();
+    }
+
     boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         return executor.awaitTermination(timeout, unit);
     }
@@ -137,7 +167,8 @@ final class AnalysisTaskCache implements AutoCloseable {
     public synchronized void close() {
         if (closed) return;
         closed = true;
-        // Remove waiting work before shutdown; running pure computations finish without interruption.
+        // Remove waiting work before shutdown; running pure computations finish without
+        // interruption.
         for (Key key : new ArrayList<>(pending.keySet())) discardQueued(key);
         executor.shutdown();
         results.clear();

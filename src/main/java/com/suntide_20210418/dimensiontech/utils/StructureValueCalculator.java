@@ -4,20 +4,19 @@ import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.config.ModConfigs.ItemExpectationMethod;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.loot.expectation.*;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackKey;
-
+import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
+import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.StructureLoot;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.ToDoubleFunction;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.ToDoubleFunction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -27,6 +26,7 @@ import net.minecraft.world.item.ItemStack;
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
 public final class StructureValueCalculator {
     private static final int EXPECTATION_ALGORITHM_VERSION = 1;
+
     private StructureValueCalculator() {}
 
     public static StructureValue calculate(ServerLevel level, MarkerInfo markerInfo) {
@@ -54,12 +54,16 @@ public final class StructureValueCalculator {
             float luck,
             DiscoveryResult discovery,
             RuntimeLootAstSource source) {
-        if (!server.isSameThread()) throw new IllegalStateException("Freeze analysis on the server thread");
+        if (!server.isSameThread())
+            throw new IllegalStateException("Freeze analysis on the server thread");
         if (!Float.isFinite(luck)) {
-            return CompletableFuture.completedFuture(unsupported(
-                    ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension()),
-                    List.of(new Diagnostic(
-                            "VALUE_SEMANTICS", "Machine luck must be finite: " + luck))));
+            return CompletableFuture.completedFuture(
+                    unsupported(
+                            ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension()),
+                            List.of(
+                                    new Diagnostic(
+                                            "VALUE_SEMANTICS",
+                                            "Machine luck must be finite: " + luck))));
         }
         com.google.gson.JsonObject input = new com.google.gson.JsonObject();
         input.addProperty("loot", source.inputFingerprint());
@@ -69,48 +73,89 @@ public final class StructureValueCalculator {
         input.addProperty("z", markerInfo.position().getZ());
         input.addProperty("status", discovery.status().name());
         com.google.gson.JsonObject roots = new com.google.gson.JsonObject();
-        rootTableWeightsForValue(discovery).forEach((id, weight) -> roots.addProperty(id.toString(), weight.toString()));
+        rootTableWeightsForValue(discovery)
+                .forEach((id, weight) -> roots.addProperty(id.toString(), weight.toString()));
         input.add("roots", roots);
         String contentFingerprint = FrozenJson.freeze(input).fingerprint();
         StructureAnalysisService service = StructureAnalysisService.forServer(server);
         ItemExpectationMethod method = ModConfigs.STRUCTURE_VALUE.itemExpectationMethod();
         int samples = ModConfigs.STRUCTURE_VALUE.samplingCount();
-        String expectationConfig = ModConfigs.STRUCTURE_VALUE.expectationFingerprint()
-                + "|luck=" + Float.floatToIntBits(luck);
+        String expectationConfig =
+                ModConfigs.STRUCTURE_VALUE.expectationFingerprint()
+                        + "|luck="
+                        + Float.floatToIntBits(luck);
         net.minecraft.core.BlockPos position = markerInfo.position().immutable();
         CompletableFuture<LootExpectationSnapshot> expectation;
         if (method == ItemExpectationMethod.SAMPLING) {
-            expectation = requestSamples(server, markerInfo, luck, discovery, source,
-                    contentFingerprint, expectationConfig, samples);
+            expectation =
+                    requestSamples(
+                            server,
+                            markerInfo,
+                            luck,
+                            discovery,
+                            source,
+                            contentFingerprint,
+                            expectationConfig,
+                            samples);
         } else {
-            expectation = service.capture(server, "loot-expectation", contentFingerprint,
-                    expectationConfig, EXPECTATION_ALGORITHM_VERSION,
-                    () -> exactExpectation(source, position, luck, discovery));
-            expectation = expectation.thenComposeAsync(result -> {
-                if (result.status() == AnalysisStatus.EXACT || result.status() == AnalysisStatus.APPROXIMATE
-                        || (discovery.status() != AnalysisStatus.EXACT && discovery.status() != AnalysisStatus.APPROXIMATE)) {
-                    return CompletableFuture.completedFuture(result);
-                }
-                return requestSamples(server, markerInfo, luck, discovery, source,
-                        contentFingerprint, expectationConfig, samples);
-            }, server);
+            expectation =
+                    service.capture(
+                            server,
+                            "loot-expectation",
+                            contentFingerprint,
+                            expectationConfig,
+                            EXPECTATION_ALGORITHM_VERSION,
+                            () -> exactExpectation(source, position, luck, discovery));
+            expectation =
+                    expectation.thenComposeAsync(
+                            result -> {
+                                if (result.status() == AnalysisStatus.EXACT
+                                        || result.status() == AnalysisStatus.APPROXIMATE
+                                        || (discovery.status() != AnalysisStatus.EXACT
+                                                && discovery.status()
+                                                        != AnalysisStatus.APPROXIMATE)) {
+                                    return CompletableFuture.completedFuture(result);
+                                }
+                                return requestSamples(
+                                        server,
+                                        markerInfo,
+                                        luck,
+                                        discovery,
+                                        source,
+                                        contentFingerprint,
+                                        expectationConfig,
+                                        samples);
+                            },
+                            server);
         }
-        return expectation.thenComposeAsync(result -> {
-            if (!ModConfigs.STRUCTURE_VALUE.allowsDimension(markerInfo.dimension())
-                    || !ModConfigs.STRUCTURE_VALUE.allowsStructure(markerInfo.structure().id())) {
-                return CompletableFuture.completedFuture(unsupported(
-                        ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension()),
-                        List.of(new Diagnostic("STRUCTURE_FILTERED", "Structure or dimension is blocked by configuration."))));
-            }
-            StructureValueSnapshot.Config valueConfig = captureValueConfig(result.terminal(), markerInfo);
-            return service.value(result.terminal(), valueConfig)
-                    .thenApplyAsync(value -> restoreValue(result, value), server);
-        }, server);
+        return expectation.thenComposeAsync(
+                result -> {
+                    if (!ModConfigs.STRUCTURE_VALUE.allowsDimension(markerInfo.dimension())
+                            || !ModConfigs.STRUCTURE_VALUE.allowsStructure(
+                                    markerInfo.structure().id())) {
+                        return CompletableFuture.completedFuture(
+                                unsupported(
+                                        ModConfigs.STRUCTURE_VALUE.dimensionValue(
+                                                markerInfo.dimension()),
+                                        List.of(
+                                                new Diagnostic(
+                                                        "STRUCTURE_FILTERED",
+                                                        "Structure or dimension is blocked by"
+                                                                + " configuration."))));
+                    }
+                    StructureValueSnapshot.Config valueConfig =
+                            captureValueConfig(result.terminal(), markerInfo);
+                    return service.value(result.terminal(), valueConfig)
+                            .thenApplyAsync(value -> restoreValue(result, value), server);
+                },
+                server);
     }
 
     private static LootExpectationSnapshot exactExpectation(
             RuntimeLootAstSource source,
-            net.minecraft.core.BlockPos position, float luck, DiscoveryResult discovery) {
+            net.minecraft.core.BlockPos position,
+            float luck,
+            DiscoveryResult discovery) {
         source.verifyRuntimeInputs();
         List<Diagnostic> diagnostics = new ArrayList<>(discovery.diagnostics());
         StackMeasure measure = new StackMeasure();
@@ -119,87 +164,204 @@ public final class StructureValueCalculator {
         AnalysisStatus status = discovery.status();
         LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck);
         for (var root : rootTableWeightsForValue(discovery).entrySet()) {
-            var result = DistributionalLootTableExecutor1201.evaluate(source, root.getKey(), context, 1_000_000);
+            var result =
+                    DistributionalLootTableExecutor1201.evaluate(
+                            source, root.getKey(), context, 1_000_000);
             diagnostics.addAll(result.diagnostics());
             if (result.status() != AnalysisStatus.EXACT) {
-                return freezeExpectation(AnalysisStatus.UNSUPPORTED, new StackMeasure(),
-                        TerminalStackMeasure.empty(), false, diagnostics);
+                return freezeExpectation(
+                        AnalysisStatus.UNSUPPORTED,
+                        new StackMeasure(),
+                        TerminalStackMeasure.empty(),
+                        false,
+                        diagnostics);
             }
             terminal = terminal.plus(result.terminalMeasure().scale(root.getValue()));
-            if (full && result.fullStackMeasureAvailable()) measure.addAll(result.measure(), root.getValue());
+            if (full && result.fullStackMeasureAvailable())
+                measure.addAll(result.measure(), root.getValue());
             if (!result.fullStackMeasureAvailable()) full = false;
         }
-        return freezeExpectation(status, full ? measure : new StackMeasure(), terminal, full, diagnostics);
+        return freezeExpectation(
+                status, full ? measure : new StackMeasure(), terminal, full, diagnostics);
     }
 
-    private record SampleBatch(Map<StructureValueSnapshot.TerminalItem, Long> counts, int samples,
-            ExactProbability occurrenceScale, List<Diagnostic> diagnostics) {
-        private SampleBatch { counts = Map.copyOf(counts); diagnostics = List.copyOf(diagnostics); }
+    private record SampleBatch(
+            Map<StructureValueSnapshot.TerminalItem, Long> counts,
+            int samples,
+            ExactProbability occurrenceScale,
+            List<Diagnostic> diagnostics) {
+        private SampleBatch {
+            counts = Map.copyOf(counts);
+            diagnostics = List.copyOf(diagnostics);
+        }
     }
 
-    private static CompletableFuture<LootExpectationSnapshot> requestSamples(MinecraftServer server,
-            MarkerInfo info, float luck, DiscoveryResult discovery,
+    private static CompletableFuture<LootExpectationSnapshot> requestSamples(
+            MinecraftServer server,
+            MarkerInfo info,
+            float luck,
+            DiscoveryResult discovery,
             RuntimeLootAstSource source,
-            String input, String config, int samples) {
-        if (discovery.status() != AnalysisStatus.EXACT && discovery.status() != AnalysisStatus.APPROXIMATE) {
-            return CompletableFuture.completedFuture(new LootExpectationSnapshot(discovery.status(),
-                    new StructureValueSnapshot.Expectation(Map.of()), Map.of(), false, discovery.diagnostics()));
+            String input,
+            String config,
+            int samples) {
+        if (discovery.status() != AnalysisStatus.EXACT
+                && discovery.status() != AnalysisStatus.APPROXIMATE) {
+            return CompletableFuture.completedFuture(
+                    new LootExpectationSnapshot(
+                            discovery.status(),
+                            new StructureValueSnapshot.Expectation(Map.of()),
+                            Map.of(),
+                            false,
+                            discovery.diagnostics()));
         }
         StructureAnalysisService service = StructureAnalysisService.forServer(server);
-        return service.capture(server, "loot-runtime-samples", input, config, 1, () -> {
-            ServerLevel level = server.getLevel(net.minecraft.resources.ResourceKey.create(
-                    net.minecraft.core.registries.Registries.DIMENSION, info.dimension()));
-            if (level == null) throw new IllegalStateException("Sampling dimension is unavailable");
-            if (samples <= 0) throw new IllegalArgumentException("Sample count must be positive");
-            var roots = rootTableWeightsForValue(discovery).keySet();
-            String currentSource = RuntimeLootAstSource
-                    .snapshotTables(server, roots).inputFingerprint();
-            if (!source.inputFingerprint().equals(currentSource)) throw new IllegalStateException("Loot data changed before sampling");
-            Map<StructureValueSnapshot.TerminalItem, Long> counts = new LinkedHashMap<>();
-            for (StructureLoot structure : discovery.structures()) {
-                for (var table : structure.occurrences().entrySet()) {
-                    for (int occurrence = 0; occurrence < table.getValue(); occurrence++) {
-                        for (ItemStack stack : LootTableLottery.draw(level,
-                                net.minecraft.world.phys.Vec3.atCenterOf(info.position()),
-                                List.of(table.getKey()), null, luck, samples)) {
-                            if (stack.isEmpty() || stack.getCount() <= 0) continue;
-                            String id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-                            var item = new StructureValueSnapshot.TerminalItem(id, 1,
-                                    new ItemStack(stack.getItem()).getRarity().name());
-                            counts.merge(item, (long) stack.getCount(), Math::addExact);
-                        }
-                    }
-                }
-            }
-            return new SampleBatch(counts, samples, discovery.occurrenceScale(), discovery.diagnostics());
-        }).thenCompose(batch -> service.computeSnapshot("loot-sample-expectation", input, config,
-                EXPECTATION_ALGORITHM_VERSION, () -> {
-            Map<StructureValueSnapshot.TerminalItem, ExactProbability> masses = new LinkedHashMap<>();
-            batch.counts().forEach((item, count) -> masses.put(item,
-                    ExactProbability.of(count, batch.samples()).multiply(batch.occurrenceScale())));
-            List<Diagnostic> diagnostics = new ArrayList<>(batch.diagnostics());
-            diagnostics.add(new Diagnostic("SAMPLING_APPROXIMATION",
-                    "Per-item expectations estimated from " + batch.samples() + " Monte Carlo samples"));
-            return new LootExpectationSnapshot(AnalysisStatus.APPROXIMATE,
-                    new StructureValueSnapshot.Expectation(masses), Map.of(), false, diagnostics);
-        }));
+        return service.capture(
+                        server,
+                        "loot-runtime-samples",
+                        input,
+                        config,
+                        1,
+                        () -> {
+                            ServerLevel level =
+                                    server.getLevel(
+                                            net.minecraft.resources.ResourceKey.create(
+                                                    net.minecraft.core.registries.Registries
+                                                            .DIMENSION,
+                                                    info.dimension()));
+                            if (level == null)
+                                throw new IllegalStateException(
+                                        "Sampling dimension is unavailable");
+                            if (samples <= 0)
+                                throw new IllegalArgumentException("Sample count must be positive");
+                            var roots = rootTableWeightsForValue(discovery).keySet();
+                            String currentSource =
+                                    RuntimeLootAstSource.snapshotTables(server, roots)
+                                            .inputFingerprint();
+                            if (!source.inputFingerprint().equals(currentSource))
+                                throw new IllegalStateException(
+                                        "Loot data changed before sampling");
+                            Map<StructureValueSnapshot.TerminalItem, Long> counts =
+                                    new LinkedHashMap<>();
+                            for (StructureLoot structure : discovery.structures()) {
+                                for (var table : structure.occurrences().entrySet()) {
+                                    for (int occurrence = 0;
+                                            occurrence < table.getValue();
+                                            occurrence++) {
+                                        for (ItemStack stack :
+                                                LootTableLottery.draw(
+                                                        level,
+                                                        net.minecraft.world.phys.Vec3.atCenterOf(
+                                                                info.position()),
+                                                        List.of(table.getKey()),
+                                                        null,
+                                                        luck,
+                                                        samples)) {
+                                            if (stack.isEmpty() || stack.getCount() <= 0) continue;
+                                            String id =
+                                                    net.minecraft.core.registries.BuiltInRegistries
+                                                            .ITEM
+                                                            .getKey(stack.getItem())
+                                                            .toString();
+                                            var item =
+                                                    new StructureValueSnapshot.TerminalItem(
+                                                            id,
+                                                            1,
+                                                            new ItemStack(stack.getItem())
+                                                                    .getRarity()
+                                                                    .name());
+                                            counts.merge(
+                                                    item, (long) stack.getCount(), Math::addExact);
+                                        }
+                                    }
+                                }
+                            }
+                            return new SampleBatch(
+                                    counts,
+                                    samples,
+                                    discovery.occurrenceScale(),
+                                    discovery.diagnostics());
+                        })
+                .thenCompose(
+                        batch ->
+                                service.computeSnapshot(
+                                        "loot-sample-expectation",
+                                        input,
+                                        config,
+                                        EXPECTATION_ALGORITHM_VERSION,
+                                        () -> {
+                                            Map<
+                                                            StructureValueSnapshot.TerminalItem,
+                                                            ExactProbability>
+                                                    masses = new LinkedHashMap<>();
+                                            batch.counts()
+                                                    .forEach(
+                                                            (item, count) ->
+                                                                    masses.put(
+                                                                            item,
+                                                                            ExactProbability.of(
+                                                                                            count,
+                                                                                            batch
+                                                                                                    .samples())
+                                                                                    .multiply(
+                                                                                            batch
+                                                                                                    .occurrenceScale())));
+                                            List<Diagnostic> diagnostics =
+                                                    new ArrayList<>(batch.diagnostics());
+                                            diagnostics.add(
+                                                    new Diagnostic(
+                                                            "SAMPLING_APPROXIMATION",
+                                                            "Per-item expectations estimated from "
+                                                                    + batch.samples()
+                                                                    + " Monte Carlo samples"));
+                                            return new LootExpectationSnapshot(
+                                                    AnalysisStatus.APPROXIMATE,
+                                                    new StructureValueSnapshot.Expectation(masses),
+                                                    Map.of(),
+                                                    false,
+                                                    diagnostics);
+                                        }));
     }
 
-    private static LootExpectationSnapshot freezeExpectation(AnalysisStatus status, StackMeasure full,
-            TerminalStackMeasure terminal, boolean fullAvailable, List<Diagnostic> diagnostics) {
-        Map<StructureValueSnapshot.TerminalItem, ExactProbability> occurrences = new LinkedHashMap<>();
-        terminal.values().forEach((item, mass) -> occurrences.put(new StructureValueSnapshot.TerminalItem(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item.item()).toString(),
-                item.count(), item.rarity().name()), mass));
+    private static LootExpectationSnapshot freezeExpectation(
+            AnalysisStatus status,
+            StackMeasure full,
+            TerminalStackMeasure terminal,
+            boolean fullAvailable,
+            List<Diagnostic> diagnostics) {
+        Map<StructureValueSnapshot.TerminalItem, ExactProbability> occurrences =
+                new LinkedHashMap<>();
+        terminal.values()
+                .forEach(
+                        (item, mass) ->
+                                occurrences.put(
+                                        new StructureValueSnapshot.TerminalItem(
+                                                net.minecraft.core.registries.BuiltInRegistries.ITEM
+                                                        .getKey(item.item())
+                                                        .toString(),
+                                                item.count(),
+                                                item.rarity().name()),
+                                        mass));
         Map<LootExpectationSnapshot.StackData, ExactProbability> stacks = new LinkedHashMap<>();
-        full.values().forEach((state, mass) -> {
-            ItemStack stack = state.stack();
-            stacks.put(new LootExpectationSnapshot.StackData(
-                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
-                    state.count(), state.serializedStackData()), mass);
-        });
-        return new LootExpectationSnapshot(status, new StructureValueSnapshot.Expectation(occurrences),
-                stacks, fullAvailable, diagnostics);
+        full.values()
+                .forEach(
+                        (state, mass) -> {
+                            ItemStack stack = state.stack();
+                            stacks.put(
+                                    new LootExpectationSnapshot.StackData(
+                                            net.minecraft.core.registries.BuiltInRegistries.ITEM
+                                                    .getKey(stack.getItem())
+                                                    .toString(),
+                                            state.count(),
+                                            state.serializedStackData()),
+                                    mass);
+                        });
+        return new LootExpectationSnapshot(
+                status,
+                new StructureValueSnapshot.Expectation(occurrences),
+                stacks,
+                fullAvailable,
+                diagnostics);
     }
 
     private static StructureValueSnapshot.Config captureValueConfig(
@@ -210,41 +372,81 @@ public final class StructureValueCalculator {
             for (var terminal : expectation.occurrences().keySet()) {
                 ResourceLocation id = ResourceLocation.parse(terminal.itemId());
                 if (!ModConfigs.STRUCTURE_VALUE.allowsItem(id)) continue;
-                Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(id)
-                        .orElseThrow(() -> new IllegalStateException("Frozen item is no longer registered: " + id));
+                Item item =
+                        net.minecraft.core.registries.BuiltInRegistries.ITEM
+                                .getOptional(id)
+                                .orElseThrow(
+                                        () ->
+                                                new IllegalStateException(
+                                                        "Frozen item is no longer registered: "
+                                                                + id));
                 items.computeIfAbsent(terminal.itemId(), ignored -> new LinkedHashMap<>())
-                        .put(terminal.rarity(), ModConfigs.STRUCTURE_VALUE.itemMultiplier(item,
-                                net.minecraft.world.item.Rarity.valueOf(terminal.rarity())));
+                        .put(
+                                terminal.rarity(),
+                                ModConfigs.STRUCTURE_VALUE.itemMultiplier(
+                                        item,
+                                        net.minecraft.world.item.Rarity.valueOf(
+                                                terminal.rarity())));
             }
         }
-        return new StructureValueSnapshot.Config(ModConfigs.STRUCTURE_VALUE.dimensionValue(marker.dimension()), items);
+        return new StructureValueSnapshot.Config(
+                ModConfigs.STRUCTURE_VALUE.dimensionValue(marker.dimension()), items);
     }
 
-    private static StructureValue restoreValue(LootExpectationSnapshot input, StructureValueSnapshot.Result value) {
+    private static StructureValue restoreValue(
+            LootExpectationSnapshot input, StructureValueSnapshot.Result value) {
         List<Diagnostic> diagnostics = new ArrayList<>(input.diagnostics());
         if (!value.supported()) diagnostics.add(new Diagnostic("VALUE_SEMANTICS", value.failure()));
-        if (!value.supported() || (input.status() != AnalysisStatus.EXACT && input.status() != AnalysisStatus.APPROXIMATE)) {
+        if (!value.supported()
+                || (input.status() != AnalysisStatus.EXACT
+                        && input.status() != AnalysisStatus.APPROXIMATE)) {
             return unsupported(value.dimensionValue(), diagnostics);
         }
         Map<TerminalStackKey, ExactProbability> terminal = new LinkedHashMap<>();
-        value.expectation().occurrences().forEach((item, mass) -> terminal.put(new TerminalStackKey(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(item.itemId())),
-                item.count(), net.minecraft.world.item.Rarity.valueOf(item.rarity())), mass));
+        value.expectation()
+                .occurrences()
+                .forEach(
+                        (item, mass) ->
+                                terminal.put(
+                                        new TerminalStackKey(
+                                                net.minecraft.core.registries.BuiltInRegistries.ITEM
+                                                        .get(ResourceLocation.parse(item.itemId())),
+                                                item.count(),
+                                                net.minecraft.world.item.Rarity.valueOf(
+                                                        item.rarity())),
+                                        mass));
         StackMeasure full = new StackMeasure();
-        java.util.Set<String> includedItems = value.expectation().occurrences().keySet().stream()
-                .map(StructureValueSnapshot.TerminalItem::itemId).collect(java.util.stream.Collectors.toSet());
-        if (input.fullStackMeasureAvailable()) input.stacks().forEach((data, mass) -> {
-            if (!includedItems.contains(data.itemId())) return;
-            try {
-                ItemStack stack = ItemStack.of(net.minecraft.nbt.TagParser.parseTag(data.serializedNbt()));
-                stack.setCount(data.count());
-                full.add(new StackState(stack), mass);
-            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException error) {
-                throw new IllegalStateException("Invalid frozen stack data", error);
-            }
-        });
-        return new StructureValue(input.status(), value.dimensionValue(), value.structureValue(), full,
-                TerminalStackMeasure.of(terminal), input.fullStackMeasureAvailable(), diagnostics);
+        java.util.Set<String> includedItems =
+                value.expectation().occurrences().keySet().stream()
+                        .map(StructureValueSnapshot.TerminalItem::itemId)
+                        .collect(java.util.stream.Collectors.toSet());
+        if (input.fullStackMeasureAvailable())
+            input.stacks()
+                    .forEach(
+                            (data, mass) -> {
+                                if (!includedItems.contains(data.itemId())) return;
+                                try {
+                                    ItemStack stack =
+                                            ItemStack.of(
+                                                    net.minecraft.nbt.TagParser.parseTag(
+                                                            data.serializedNbt()));
+                                    stack.setCount(data.count());
+                                    full.add(new StackState(stack), mass);
+                                } catch (
+                                        com.mojang.brigadier.exceptions.CommandSyntaxException
+                                                error) {
+                                    throw new IllegalStateException(
+                                            "Invalid frozen stack data", error);
+                                }
+                            });
+        return new StructureValue(
+                input.status(),
+                value.dimensionValue(),
+                value.structureValue(),
+                full,
+                TerminalStackMeasure.of(terminal),
+                input.fullStackMeasureAvailable(),
+                diagnostics);
     }
 
     private static StructureValue calculate(

@@ -7,8 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Immutable expectation-layer output, including optional complete stack data for legacy adapters. */
-public record LootExpectationSnapshot(AnalysisStatus status,
+/**
+ * Immutable expectation-layer output, including optional complete stack data for legacy adapters.
+ */
+public record LootExpectationSnapshot(
+        AnalysisStatus status,
         StructureValueSnapshot.Expectation terminal,
         Map<StackData, ExactProbability> stacks,
         boolean fullStackMeasureAvailable,

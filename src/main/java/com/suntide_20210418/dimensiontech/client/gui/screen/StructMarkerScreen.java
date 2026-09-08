@@ -2,10 +2,10 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
-import com.suntide_20210418.dimensiontech.network.ModNetwork;
-import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.network.ModNetwork;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

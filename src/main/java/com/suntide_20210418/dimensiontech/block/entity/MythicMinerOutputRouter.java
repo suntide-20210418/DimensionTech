@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.items.IItemHandler;
@@ -33,7 +33,8 @@ final class MythicMinerOutputRouter {
             ItemStack remainder = FullDurabilityLoot.normalize(stack);
             if (outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK) {
                 for (BlockEntity interfaceBlock : targets.meInterfaces()) {
-                    remainder = Ae2Integration.insertIntoInterfaceNetwork(interfaceBlock, remainder);
+                    remainder =
+                            Ae2Integration.insertIntoInterfaceNetwork(interfaceBlock, remainder);
                     if (remainder.isEmpty()) break;
                 }
             }

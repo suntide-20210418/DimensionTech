@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.utils;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
-import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer.DiscoveryResult;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -141,7 +141,8 @@ public final class StructureAnalysisService {
     private final Map<Key, Integer> attemptedCandidates = new HashMap<>();
     private final ArrayDeque<Key> queue = new ArrayDeque<>();
     private final AnalysisTaskCache tasks = new AnalysisTaskCache(1, 32);
-    private final MainThreadTaskCache<AnalysisTaskCache.Key, Object> runtimeCaptures = new MainThreadTaskCache<>(32);
+    private final MainThreadTaskCache<AnalysisTaskCache.Key, Object> runtimeCaptures =
+            new MainThreadTaskCache<>(32);
     private boolean closed;
     private int admissionTick = Integer.MIN_VALUE;
     private int admittedThisTick;
@@ -151,30 +152,54 @@ public final class StructureAnalysisService {
 
     public CompletableFuture<StructureValueSnapshot.Result> value(
             StructureValueSnapshot.Expectation input, StructureValueSnapshot.Config config) {
-        return tasks.submit(new AnalysisTaskCache.Key("structure-value", input.inputFingerprint(),
-                        config.configFingerprint(), StructureValueSnapshot.ALGORITHM_VERSION),
+        return tasks.submit(
+                new AnalysisTaskCache.Key(
+                        "structure-value",
+                        input.inputFingerprint(),
+                        config.configFingerprint(),
+                        StructureValueSnapshot.ALGORITHM_VERSION),
                 () -> StructureValueSnapshot.calculate(input, config));
     }
 
-    public <T> CompletableFuture<T> computeSnapshot(String layer, String input, String config,
-            int algorithmVersion, Supplier<T> computation) {
-        return tasks.submit(new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), computation);
+    public <T> CompletableFuture<T> computeSnapshot(
+            String layer,
+            String input,
+            String config,
+            int algorithmVersion,
+            Supplier<T> computation) {
+        return tasks.submit(
+                new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), computation);
     }
 
     /** Shares the complete asynchronous analysis pipeline, not only its inner snapshots. */
-    public <T> CompletableFuture<T> computeAsync(String layer, String input, String config,
-            int algorithmVersion, Supplier<CompletableFuture<T>> computation) {
-        return tasks.submitAsync(new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), computation);
+    public <T> CompletableFuture<T> computeAsync(
+            String layer,
+            String input,
+            String config,
+            int algorithmVersion,
+            Supplier<CompletableFuture<T>> computation) {
+        return tasks.submitAsync(
+                new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), computation);
     }
 
-    /** Captures runtime-only data with the same shared-key and per-tick budget rules as discovery. */
+    /**
+     * Captures runtime-only data with the same shared-key and per-tick budget rules as discovery.
+     */
     @SuppressWarnings("unchecked")
-    public <T> CompletableFuture<T> capture(MinecraftServer server, String layer, String input,
-            String config, int algorithmVersion, Supplier<T> capture) {
+    public <T> CompletableFuture<T> capture(
+            MinecraftServer server,
+            String layer,
+            String input,
+            String config,
+            int algorithmVersion,
+            Supplier<T> capture) {
         requireServerThread(server);
-        return (CompletableFuture<T>) (CompletableFuture<?>) runtimeCaptures.submit(
-                new AnalysisTaskCache.Key(layer, input, config, algorithmVersion), capture::get,
-                () -> admit(server));
+        return (CompletableFuture<T>)
+                (CompletableFuture<?>)
+                        runtimeCaptures.submit(
+                                new AnalysisTaskCache.Key(layer, input, config, algorithmVersion),
+                                capture::get,
+                                () -> admit(server));
     }
 
     private synchronized void close() {
@@ -183,8 +208,10 @@ public final class StructureAnalysisService {
         tasks.close();
         runtimeCaptures.close();
         templateTasks.close();
-        for (CompletableFuture<DiscoveryResult> future : new ArrayList<>(discoveryFutures.values())) {
-            future.completeExceptionally(new java.util.concurrent.CancellationException("Server stopped"));
+        for (CompletableFuture<DiscoveryResult> future :
+                new ArrayList<>(discoveryFutures.values())) {
+            future.completeExceptionally(
+                    new java.util.concurrent.CancellationException("Server stopped"));
         }
         discoveryFutures.clear();
         queue.clear();
@@ -210,38 +237,54 @@ public final class StructureAnalysisService {
             latestStates.put(logicalKey, exact);
             return exact;
         }
-        State waiting = new State(key, 0, ModConfigs.STRUCTURE_VALUE.virtualStructureSamples(),
-                existing == null ? null : existing.result(),
-                existing == null ? List.of() : existing.diagnostics(), false,
-                AnalysisLifecycle.TaskStatus.QUEUED, 0L, null);
+        State waiting =
+                new State(
+                        key,
+                        0,
+                        ModConfigs.STRUCTURE_VALUE.virtualStructureSamples(),
+                        existing == null ? null : existing.result(),
+                        existing == null ? List.of() : existing.diagnostics(),
+                        false,
+                        AnalysisLifecycle.TaskStatus.QUEUED,
+                        0L,
+                        null);
         states.put(key, waiting);
         latestStates.put(logicalKey, waiting);
         CompletableFuture<DiscoveryResult> future = new CompletableFuture<>();
         discoveryFutures.put(key, future);
         future.whenComplete((result, error) -> discoveryFutures.remove(key, future));
-        boolean dimensionAllowed = ModConfigs.STRUCTURE_VALUE.allowsDimension(level.dimension().location());
+        boolean dimensionAllowed =
+                ModConfigs.STRUCTURE_VALUE.allowsDimension(level.dimension().location());
         boolean structureAllowed = ModConfigs.STRUCTURE_VALUE.allowsStructure(structure);
-        templateTasks.submit(StaticKey.from(level, structure),
+        templateTasks
+                .submit(
+                        StaticKey.from(level, structure),
                         () -> discoverStatic(level, structure, dimensionAllowed, structureAllowed),
                         () -> admit(level.getServer()))
-                .whenComplete((result, error) -> {
-                    if (closed) return;
-                    if (error != null) {
-                        failDiscovery(key, error);
-                    } else if (result.status() == AnalysisStatus.EXACT || !mayUseVirtualAnalysis(structure)
-                            || !dimensionAllowed || !structureAllowed) {
-                        publishState(key, waiting.complete(0, result));
-                        future.complete(result);
-                    } else if (queue.size() >= 32) {
-                        failDiscovery(key, new java.util.concurrent.RejectedExecutionException("Virtual sampling queue is full"));
-                    } else {
-                        staticDiscoveries.put(key, result);
-                        observedTables.remove(key);
-                        failedSamples.remove(key);
-                        attemptedCandidates.remove(key);
-                        queue.addLast(key);
-                    }
-                });
+                .whenComplete(
+                        (result, error) -> {
+                            if (closed) return;
+                            if (error != null) {
+                                failDiscovery(key, error);
+                            } else if (result.status() == AnalysisStatus.EXACT
+                                    || !mayUseVirtualAnalysis(structure)
+                                    || !dimensionAllowed
+                                    || !structureAllowed) {
+                                publishState(key, waiting.complete(0, result));
+                                future.complete(result);
+                            } else if (queue.size() >= 32) {
+                                failDiscovery(
+                                        key,
+                                        new java.util.concurrent.RejectedExecutionException(
+                                                "Virtual sampling queue is full"));
+                            } else {
+                                staticDiscoveries.put(key, result);
+                                observedTables.remove(key);
+                                failedSamples.remove(key);
+                                attemptedCandidates.remove(key);
+                                queue.addLast(key);
+                            }
+                        });
         return states.getOrDefault(key, State.missing());
     }
 
@@ -249,25 +292,37 @@ public final class StructureAnalysisService {
     public synchronized CompletableFuture<DiscoveryResult> discover(
             ServerLevel level, ResourceLocation structure) {
         State state = request(level, structure, false);
-        CompletableFuture<DiscoveryResult> future = discoveryFutures.get(Key.from(level, structure));
+        CompletableFuture<DiscoveryResult> future =
+                discoveryFutures.get(Key.from(level, structure));
         if (future != null) return future;
-        if (state.complete() && state.result() != null) return CompletableFuture.completedFuture(state.result());
-        return CompletableFuture.failedFuture(new java.util.concurrent.RejectedExecutionException("Discovery unavailable"));
+        if (state.complete() && state.result() != null)
+            return CompletableFuture.completedFuture(state.result());
+        return CompletableFuture.failedFuture(
+                new java.util.concurrent.RejectedExecutionException("Discovery unavailable"));
     }
 
     private void failDiscovery(Key key, Throwable error) {
         State old = states.get(key);
-        if (old != null) publishState(key,
-                new State(key, old.completedSamples(), old.totalSamples(), old.result(),
-                        List.of(new Diagnostic("DISCOVERY_FAILED", error.toString())), false,
-                        AnalysisLifecycle.TaskStatus.FAILED, System.currentTimeMillis(),
-                        error.toString()));
+        if (old != null)
+            publishState(
+                    key,
+                    new State(
+                            key,
+                            old.completedSamples(),
+                            old.totalSamples(),
+                            old.result(),
+                            List.of(new Diagnostic("DISCOVERY_FAILED", error.toString())),
+                            false,
+                            AnalysisLifecycle.TaskStatus.FAILED,
+                            System.currentTimeMillis(),
+                            error.toString()));
         CompletableFuture<DiscoveryResult> future = discoveryFutures.get(key);
         if (future != null) future.completeExceptionally(error);
     }
 
     private static void requireServerThread(MinecraftServer server) {
-        if (!server.isSameThread()) throw new IllegalStateException("Discovery must run on the server thread");
+        if (!server.isSameThread())
+            throw new IllegalStateException("Discovery must run on the server thread");
     }
 
     private boolean admit(MinecraftServer server) {
@@ -282,8 +337,11 @@ public final class StructureAnalysisService {
         return true;
     }
 
-    private DiscoveryResult discoverStatic(ServerLevel level, ResourceLocation structure,
-            boolean dimensionAllowed, boolean structureAllowed) {
+    private DiscoveryResult discoverStatic(
+            ServerLevel level,
+            ResourceLocation structure,
+            boolean dimensionAllowed,
+            boolean structureAllowed) {
         List<Diagnostic> filterDiagnostics = new ArrayList<>();
         if (!dimensionAllowed)
             filterDiagnostics.add(
@@ -334,7 +392,8 @@ public final class StructureAnalysisService {
                             "No fixed vanilla container loot-table location is registered for "
                                     + structure
                                     + "."));
-            return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), unavailableDiagnostics);
+            return new DiscoveryResult(
+                    AnalysisStatus.UNSUPPORTED, List.of(), unavailableDiagnostics);
         }
         return staticResult;
     }
@@ -358,12 +417,13 @@ public final class StructureAnalysisService {
         requireServerThread(server);
         if (closed) return;
         int budget = Math.max(1, ModConfigs.STRUCTURE_VALUE.virtualStructureStepsPerTick());
-        ExecutionBudget allocated = allocateExecutionBudget(
-                budget,
-                executionLayer,
-                templateTasks.queuedCount(),
-                runtimeCaptures.queuedCount(),
-                queue.size());
+        ExecutionBudget allocated =
+                allocateExecutionBudget(
+                        budget,
+                        executionLayer,
+                        templateTasks.queuedCount(),
+                        runtimeCaptures.queuedCount(),
+                        queue.size());
         executionLayer = allocated.nextLayer();
         templateTasks.tick(allocated.templates());
         runtimeCaptures.tick(allocated.runtimeCaptures());
@@ -378,105 +438,110 @@ public final class StructureAnalysisService {
                 continue;
             }
             try {
-            int attempt = attemptedCandidates.merge(key, 1, Integer::sum) - 1;
-            int next = state.completedSamples() + 1;
-            // Origin derivation is intentionally separate from placement. A placement adapter must
-            // write only to an in-memory WorldGenLevel; do not substitute ServerLevel here.
-            BlockPos origin = sampleOrigin(level, key.structure(), attempt);
-            Structure structure =
-                    level.registryAccess()
-                            .registryOrThrow(Registries.STRUCTURE)
-                            .get(key.structure());
-            if (structure != null) {
-                try {
-                    VirtualStructureSampler.Sample sample =
-                            VirtualStructureSampler.sample(level, structure, origin);
-                    if (!sample.generated()) {
-                        // Placement gave us a candidate, but biome/terrain/structure-specific
-                        // generation conditions rejected it. It is not a statistical sample.
-                        if (attempt < state.totalSamples() * 32) {
-                            queue.addLast(key);
-                            continue;
+                int attempt = attemptedCandidates.merge(key, 1, Integer::sum) - 1;
+                int next = state.completedSamples() + 1;
+                // Origin derivation is intentionally separate from placement. A placement adapter
+                // must
+                // write only to an in-memory WorldGenLevel; do not substitute ServerLevel here.
+                BlockPos origin = sampleOrigin(level, key.structure(), attempt);
+                Structure structure =
+                        level.registryAccess()
+                                .registryOrThrow(Registries.STRUCTURE)
+                                .get(key.structure());
+                if (structure != null) {
+                    try {
+                        VirtualStructureSampler.Sample sample =
+                                VirtualStructureSampler.sample(level, structure, origin);
+                        if (!sample.generated()) {
+                            // Placement gave us a candidate, but biome/terrain/structure-specific
+                            // generation conditions rejected it. It is not a statistical sample.
+                            if (attempt < state.totalSamples() * 32) {
+                                queue.addLast(key);
+                                continue;
+                            }
+                            failedSamples.merge(key, 1, Integer::sum);
                         }
+                        sample.lootTables()
+                                .forEach(
+                                        (table, count) ->
+                                                observedTables
+                                                        .computeIfAbsent(
+                                                                key, ignored -> new HashMap<>())
+                                                        .merge(table, count, Integer::sum));
+                    } catch (RuntimeException exception) {
+                        // A modded structure may require generation services outside WorldGenLevel.
+                        // Keep processing the other deterministic samples and report the final
+                        // count.
                         failedSamples.merge(key, 1, Integer::sum);
                     }
-                    sample.lootTables()
-                            .forEach(
-                                    (table, count) ->
-                                            observedTables
-                                                    .computeIfAbsent(
-                                                            key, ignored -> new HashMap<>())
-                                                    .merge(table, count, Integer::sum));
-                } catch (RuntimeException exception) {
-                    // A modded structure may require generation services outside WorldGenLevel.
-                    // Keep processing the other deterministic samples and report the final count.
-                    failedSamples.merge(key, 1, Integer::sum);
                 }
-            }
-            if (next < state.totalSamples()) {
-                publishState(key, state.withProgress(next));
-                queue.addLast(key);
-                continue;
-            }
-            List<Diagnostic> diagnostics = new ArrayList<>();
-            diagnostics.add(
-                    new Diagnostic(
-                            "VIRTUAL_SAMPLE_REQUIRED",
-                            "Static template discovery found no root LootTable; "
-                                    + state.totalSamples()
-                                    + " virtual samples were requested."));
-            int failures = failedSamples.getOrDefault(key, 0);
-            int attempts = attemptedCandidates.getOrDefault(key, 0);
-            int acceptedSamples = state.totalSamples() - failures;
-            if (acceptedSamples <= 0) {
-                throw new IllegalStateException("No virtual structure sample could be generated");
-            }
-            if (failures > 0) {
+                if (next < state.totalSamples()) {
+                    publishState(key, state.withProgress(next));
+                    queue.addLast(key);
+                    continue;
+                }
+                List<Diagnostic> diagnostics = new ArrayList<>();
                 diagnostics.add(
                         new Diagnostic(
-                                "VIRTUAL_SAMPLE_FAILURES",
-                                failures + " virtual samples could not be generated or placed."));
-            }
-            if (attempts > state.totalSamples()) {
-                diagnostics.add(
-                        new Diagnostic(
-                                "VIRTUAL_GENERATION_CONDITIONS",
-                                "Accepted "
-                                        + acceptedSamples
-                                        + " structure samples after "
-                                        + attempts
-                                        + " placement/biome/terrain candidates."));
-            }
-            Map<ResourceLocation, Integer> observed = observedTables.remove(key);
-            failedSamples.remove(key);
-            attemptedCandidates.remove(key);
-            DiscoveryResult result =
-                    StructureLootAnalyzer.discoverVirtualForValue(
-                            level,
-                            key.structure(),
-                            observed == null ? Map.of() : observed,
-                            Math.max(1, acceptedSamples),
-                            diagnostics);
-            DiscoveryResult staticResult = staticDiscoveries.remove(key);
-            if (result.status() == AnalysisStatus.UNSUPPORTED
-                    && staticResult != null
-                    && staticResult.status() == AnalysisStatus.EXACT) {
-                List<Diagnostic> fallbackDiagnostics = new ArrayList<>(result.diagnostics());
-                fallbackDiagnostics.add(
-                        new Diagnostic(
-                                "VIRTUAL_FALLBACK_TO_TEMPLATE",
-                                "Virtual samples found no runtime container table; using the static"
-                                        + " template result."));
-                result =
-                        new DiscoveryResult(
-                                AnalysisStatus.EXACT,
-                                staticResult.structures(),
-                                fallbackDiagnostics,
-                                staticResult.occurrenceScale());
-            }
-            publishState(key, state.complete(next, result));
-            CompletableFuture<DiscoveryResult> future = discoveryFutures.get(key);
-            if (future != null) future.complete(result);
+                                "VIRTUAL_SAMPLE_REQUIRED",
+                                "Static template discovery found no root LootTable; "
+                                        + state.totalSamples()
+                                        + " virtual samples were requested."));
+                int failures = failedSamples.getOrDefault(key, 0);
+                int attempts = attemptedCandidates.getOrDefault(key, 0);
+                int acceptedSamples = state.totalSamples() - failures;
+                if (acceptedSamples <= 0) {
+                    throw new IllegalStateException(
+                            "No virtual structure sample could be generated");
+                }
+                if (failures > 0) {
+                    diagnostics.add(
+                            new Diagnostic(
+                                    "VIRTUAL_SAMPLE_FAILURES",
+                                    failures
+                                            + " virtual samples could not be generated or"
+                                            + " placed."));
+                }
+                if (attempts > state.totalSamples()) {
+                    diagnostics.add(
+                            new Diagnostic(
+                                    "VIRTUAL_GENERATION_CONDITIONS",
+                                    "Accepted "
+                                            + acceptedSamples
+                                            + " structure samples after "
+                                            + attempts
+                                            + " placement/biome/terrain candidates."));
+                }
+                Map<ResourceLocation, Integer> observed = observedTables.remove(key);
+                failedSamples.remove(key);
+                attemptedCandidates.remove(key);
+                DiscoveryResult result =
+                        StructureLootAnalyzer.discoverVirtualForValue(
+                                level,
+                                key.structure(),
+                                observed == null ? Map.of() : observed,
+                                Math.max(1, acceptedSamples),
+                                diagnostics);
+                DiscoveryResult staticResult = staticDiscoveries.remove(key);
+                if (result.status() == AnalysisStatus.UNSUPPORTED
+                        && staticResult != null
+                        && staticResult.status() == AnalysisStatus.EXACT) {
+                    List<Diagnostic> fallbackDiagnostics = new ArrayList<>(result.diagnostics());
+                    fallbackDiagnostics.add(
+                            new Diagnostic(
+                                    "VIRTUAL_FALLBACK_TO_TEMPLATE",
+                                    "Virtual samples found no runtime container table; using the"
+                                            + " static template result."));
+                    result =
+                            new DiscoveryResult(
+                                    AnalysisStatus.EXACT,
+                                    staticResult.structures(),
+                                    fallbackDiagnostics,
+                                    staticResult.occurrenceScale());
+                }
+                publishState(key, state.complete(next, result));
+                CompletableFuture<DiscoveryResult> future = discoveryFutures.get(key);
+                if (future != null) future.complete(result);
             } catch (RuntimeException error) {
                 observedTables.remove(key);
                 failedSamples.remove(key);
@@ -511,8 +576,7 @@ public final class StructureAnalysisService {
         return new ExecutionBudget(allocated[0], allocated[1], allocated[2], next);
     }
 
-    record ExecutionBudget(
-            int templates, int runtimeCaptures, int virtualSamples, int nextLayer) {}
+    record ExecutionBudget(int templates, int runtimeCaptures, int virtualSamples, int nextLayer) {}
 
     public record State(
             Key key,
@@ -540,19 +604,43 @@ public final class StructureAnalysisService {
         }
 
         State withProgress(int progress) {
-            return new State(key, progress, totalSamples, result, diagnostics, false,
-                    AnalysisLifecycle.TaskStatus.RUNNING, 0L, null);
+            return new State(
+                    key,
+                    progress,
+                    totalSamples,
+                    result,
+                    diagnostics,
+                    false,
+                    AnalysisLifecycle.TaskStatus.RUNNING,
+                    0L,
+                    null);
         }
 
         State complete(int progress, DiscoveryResult value) {
-            return new State(key, progress, totalSamples, value, value.diagnostics(), true,
-                    AnalysisLifecycle.TaskStatus.SUCCEEDED, 0L, null);
+            return new State(
+                    key,
+                    progress,
+                    totalSamples,
+                    value,
+                    value.diagnostics(),
+                    true,
+                    AnalysisLifecycle.TaskStatus.SUCCEEDED,
+                    0L,
+                    null);
         }
 
         State staleFor(Key requestedKey) {
             if (result == null) return missing();
-            return new State(requestedKey, completedSamples, totalSamples, result, diagnostics, false,
-                    null, 0L, null);
+            return new State(
+                    requestedKey,
+                    completedSamples,
+                    totalSamples,
+                    result,
+                    diagnostics,
+                    false,
+                    null,
+                    0L,
+                    null);
         }
     }
 
@@ -586,9 +674,10 @@ public final class StructureAnalysisService {
 
     record StaticKey(String dimension, String structure, String configFingerprint) {
         static StaticKey from(ServerLevel level, ResourceLocation structure) {
-            return new StaticKey(level.dimension().location().toString(), structure.toString(),
+            return new StaticKey(
+                    level.dimension().location().toString(),
+                    structure.toString(),
                     ModConfigs.STRUCTURE_VALUE.discoveryFingerprint());
         }
     }
-
 }

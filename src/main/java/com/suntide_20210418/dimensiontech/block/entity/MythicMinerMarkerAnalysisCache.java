@@ -1,15 +1,15 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
-import com.suntide_20210418.dimensiontech.config.ModConfigs;
-import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
-import com.suntide_20210418.dimensiontech.utils.StructureAnalysisService;
-import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
+import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
+import com.suntide_20210418.dimensiontech.utils.StructureAnalysisService;
+import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,9 +31,9 @@ import net.minecraftforge.items.ItemStackHandler;
 /**
  * Owns the miner-specific Marker analysis lifecycle.
  *
- * <p>The submitted and completion-time fingerprints must match before an async result is
- * accepted. Consequently, a completed entry can only be reused while its analysis inputs remain
- * equal. This is deliberately not a general-purpose task cache.
+ * <p>The submitted and completion-time fingerprints must match before an async result is accepted.
+ * Consequently, a completed entry can only be reused while its analysis inputs remain equal. This
+ * is deliberately not a general-purpose task cache.
  */
 final class MythicMinerMarkerAnalysisCache {
     private static final long RETRY_DELAY_TICKS = 100L;
@@ -68,10 +68,13 @@ final class MythicMinerMarkerAnalysisCache {
         this.analysisStarter = analysisStarter;
     }
 
-    /** Refreshes only when analysis inputs changed or a failed analysis becomes eligible to retry. */
+    /**
+     * Refreshes only when analysis inputs changed or a failed analysis becomes eligible to retry.
+     */
     List<Integer> refresh(MinecraftServer server, float luck, long gameTime) {
         LootAnalysisFingerprint fingerprint = currentFingerprint.get();
-        boolean retry = gameTime >= retryAt && tasks.containsValue(AnalysisLifecycle.TaskStatus.FAILED);
+        boolean retry =
+                gameTime >= retryAt && tasks.containsValue(AnalysisLifecycle.TaskStatus.FAILED);
         if (fingerprint.equals(analyzedFingerprint) && !retry) return List.of();
 
         long refreshGeneration = ++generation;
@@ -93,7 +96,15 @@ final class MythicMinerMarkerAnalysisCache {
                 invalidate(slot, invalidatedSlots);
                 continue;
             }
-            request(server, refreshGeneration, fingerprint, slot, marker, info.get(), luck, gameTime);
+            request(
+                    server,
+                    refreshGeneration,
+                    fingerprint,
+                    slot,
+                    marker,
+                    info.get(),
+                    luck,
+                    gameTime);
             if (previous != null) refreshed.add(previous);
         }
         cachedLoot = List.copyOf(refreshed);
@@ -123,7 +134,8 @@ final class MythicMinerMarkerAnalysisCache {
 
     /** Cancels stale lifecycle state only when the cache-reuse invariant no longer holds. */
     void invalidateIfAnalysisInputsChanged() {
-        if (analyzedFingerprint == null || analyzedFingerprint.equals(currentFingerprint.get())) return;
+        if (analyzedFingerprint == null || analyzedFingerprint.equals(currentFingerprint.get()))
+            return;
         generation++;
         pending.clear();
         tasks.clear();
@@ -147,7 +159,8 @@ final class MythicMinerMarkerAnalysisCache {
             float luck,
             long gameTime) {
         tasks.put(slot, AnalysisLifecycle.TaskStatus.QUEUED);
-        ResourceKey<Level> dimensionKey = ResourceKey.create(Registries.DIMENSION, info.dimension());
+        ResourceKey<Level> dimensionKey =
+                ResourceKey.create(Registries.DIMENSION, info.dimension());
         ServerLevel analysisLevel = server.getLevel(dimensionKey);
         if (analysisLevel == null) {
             tasks.put(slot, AnalysisLifecycle.TaskStatus.FAILED);
@@ -223,16 +236,33 @@ final class MythicMinerMarkerAnalysisCache {
             MinecraftServer server, ServerLevel analysisLevel, MarkerInfo info, float luck) {
         String input = info.dimension() + "|" + info.position() + "|" + info.structure().id();
         String config = ModConfigs.STRUCTURE_VALUE.calculationFingerprint() + "|luck=" + luck;
-        return StructureAnalysisService.forServer(server).computeAsync(
-                "miner-structure-value", input, config, LootAnalysisFingerprint.ALGORITHM_VERSION,
-                () -> StructureAnalysisService.forServer(server)
-                        .discover(analysisLevel, info.structure().id())
-                        .thenComposeAsync(discovery -> {
-                            List<ResourceLocation> roots = discovery.structures().stream()
-                                    .flatMap(value -> value.lootTables().stream()).distinct().toList();
-                            RuntimeLootAstSource source = RuntimeLootAstSource.snapshotTables(server, roots);
-                            return StructureValueCalculator.calculateAsync(server, info, luck, discovery, source);
-                        }, server));
+        return StructureAnalysisService.forServer(server)
+                .computeAsync(
+                        "miner-structure-value",
+                        input,
+                        config,
+                        LootAnalysisFingerprint.ALGORITHM_VERSION,
+                        () ->
+                                StructureAnalysisService.forServer(server)
+                                        .discover(analysisLevel, info.structure().id())
+                                        .thenComposeAsync(
+                                                discovery -> {
+                                                    List<ResourceLocation> roots =
+                                                            discovery.structures().stream()
+                                                                    .flatMap(
+                                                                            value ->
+                                                                                    value
+                                                                                            .lootTables()
+                                                                                            .stream())
+                                                                    .distinct()
+                                                                    .toList();
+                                                    RuntimeLootAstSource source =
+                                                            RuntimeLootAstSource.snapshotTables(
+                                                                    server, roots);
+                                                    return StructureValueCalculator.calculateAsync(
+                                                            server, info, luck, discovery, source);
+                                                },
+                                                server));
     }
 
     @FunctionalInterface

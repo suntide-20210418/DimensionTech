@@ -189,7 +189,8 @@ public final class StructureLootAnalyzer {
                                     + structureId));
             return new DiscoveryResult(AnalysisStatus.UNSUPPORTED, List.of(), result);
         }
-        LootTableItems items = resolveLootTableItems(level.getServer(), occurrences.keySet(), false);
+        LootTableItems items =
+                resolveLootTableItems(level.getServer(), occurrences.keySet(), false);
         return new DiscoveryResult(
                 AnalysisStatus.APPROXIMATE,
                 List.of(

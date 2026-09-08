@@ -62,11 +62,13 @@ public final class LootAnalysisFingerprintGameTests {
 
     private static ItemStack marker(GameTestHelper helper) {
         ItemStack marker = new ItemStack(ModItems.STRUCTURE_MARKER.get());
-        marker.getOrCreateTag().put(
-                "StructureMarkerData",
-                StructMarkerItem.createCatalogueMarkerData(
-                        helper.getLevel(),
-                        ResourceLocation.fromNamespaceAndPath("minecraft", "jungle_pyramid")));
+        marker.getOrCreateTag()
+                .put(
+                        "StructureMarkerData",
+                        StructMarkerItem.createCatalogueMarkerData(
+                                helper.getLevel(),
+                                ResourceLocation.fromNamespaceAndPath(
+                                        "minecraft", "jungle_pyramid")));
         return marker;
     }
 
@@ -74,7 +76,8 @@ public final class LootAnalysisFingerprintGameTests {
         return fingerprint(marker, 0.0F, "test-config");
     }
 
-    private static LootAnalysisFingerprint fingerprint(ItemStack marker, float luck, String config) {
+    private static LootAnalysisFingerprint fingerprint(
+            ItemStack marker, float luck, String config) {
         ItemStackHandler inventory = new ItemStackHandler(1);
         inventory.setStackInSlot(0, marker);
         return LootAnalysisFingerprint.from(inventory, luck, config);

@@ -40,7 +40,10 @@ final class MythicMinerUpgradeMath {
                         - upgradedBaseParallel(machineBaseParallel, upgradeMultiplierHundredths));
     }
 
-    /** Computes the immutable processing plan for a marker value before mutable slot state applies it. */
+    /**
+     * Computes the immutable processing plan for a marker value before mutable slot state applies
+     * it.
+     */
     static ProcessingPlan processingPlan(
             double structureValue,
             double efficiency,
@@ -49,9 +52,7 @@ final class MythicMinerUpgradeMath {
             int baseParallel) {
         int defaultTicks = Math.max(1, minimumNaturalTicks);
         int configuredTicks =
-                configuredProcessingTime > 0
-                        ? Math.max(defaultTicks, configuredProcessingTime)
-                        : 0;
+                configuredProcessingTime > 0 ? Math.max(defaultTicks, configuredProcessingTime) : 0;
         if (!Double.isFinite(efficiency)
                 || efficiency <= 0.0D
                 || !Double.isFinite(structureValue)

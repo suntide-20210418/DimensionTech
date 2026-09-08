@@ -1,8 +1,8 @@
 package com.suntide_20210418.dimensiontech.config;
 
 import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
-import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
 import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackKey;
+import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -278,12 +278,20 @@ public final class ModConfigs {
                     + StructureScriptConfigService.fingerprint();
         }
 
-        /** Fingerprint for structure discovery only; loot/value and machine settings are excluded. */
+        /**
+         * Fingerprint for structure discovery only; loot/value and machine settings are excluded.
+         */
         public String discoveryFingerprint() {
             com.google.gson.JsonObject config = new com.google.gson.JsonObject();
             config.addProperty("algorithmVersion", 1);
-            addFilterFingerprint(config, "dimension", merged("dimension", dimensionWhitelist.get(), dimensionBlacklist.get()));
-            addFilterFingerprint(config, "structure", merged("structure", structureWhitelist.get(), structureBlacklist.get()));
+            addFilterFingerprint(
+                    config,
+                    "dimension",
+                    merged("dimension", dimensionWhitelist.get(), dimensionBlacklist.get()));
+            addFilterFingerprint(
+                    config,
+                    "structure",
+                    merged("structure", structureWhitelist.get(), structureBlacklist.get()));
             return FrozenJson.freeze(config).fingerprint();
         }
 
@@ -295,8 +303,8 @@ public final class ModConfigs {
             return "algorithm=1|method=" + itemExpectationMethod() + "|samples=" + samplingCount();
         }
 
-        private static void addFilterFingerprint(com.google.gson.JsonObject config, String name,
-                List<? extends String>[] filters) {
+        private static void addFilterFingerprint(
+                com.google.gson.JsonObject config, String name, List<? extends String>[] filters) {
             com.google.gson.JsonArray white = new com.google.gson.JsonArray();
             com.google.gson.JsonArray black = new com.google.gson.JsonArray();
             filters[0].forEach(white::add);

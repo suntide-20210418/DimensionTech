@@ -26,30 +26,33 @@ final class MythicMinerUpgradeResolver {
                 new int[MythicMinerUpgradeBlock.Type.values().length * 6];
         for (MythicMinerUpgradeBlock block : MythicMinerMultiblock.upgrades(level, minerPosition)) {
             if (block.getType() != MythicMinerUpgradeBlock.Type.NONE) {
-                upgradeCountsByTypeAndTier[(block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
+                upgradeCountsByTypeAndTier[
+                        (block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
             }
             switch (block.getType()) {
                 case EFFICIENCY -> {
                     efficiencyUpgradeCount++;
-                    efficiencyPercent += ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
-                            .efficiencyIncreasePercent();
+                    efficiencyPercent +=
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
+                                    .efficiencyIncreasePercent();
                 }
                 case ENERGY -> {
                     energyUpgradeCount++;
                     ModConfigs.MythicMinerUpgradeTierConfig config =
                             ModConfigs.UPGRADE_TIERS[block.getTier() - 1];
                     capacityPercent += config.energyCapacityIncreasePercent();
-                    consumptionMultiplier *= 1.0D - config.energyConsumptionReductionPercent() / 100.0D;
+                    consumptionMultiplier *=
+                            1.0D - config.energyConsumptionReductionPercent() / 100.0D;
                 }
                 case PARALLEL -> {
                     parallelUpgradeCount++;
-                    parallelPercent += ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
-                            .parallelIncreasePercent();
+                    parallelPercent +=
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1].parallelIncreasePercent();
                 }
                 case LUCK -> {
                     luckUpgradeCount++;
-                    luckPercent += ModConfigs.UPGRADE_TIERS[block.getTier() - 1]
-                            .luckIncreasePercent();
+                    luckPercent +=
+                            ModConfigs.UPGRADE_TIERS[block.getTier() - 1].luckIncreasePercent();
                 }
                 case AGGREGATE -> {
                     aggregateUpgradeCount++;
@@ -57,14 +60,16 @@ final class MythicMinerUpgradeResolver {
                             ModConfigs.AGGREGATE_UPGRADE_TIERS[block.getTier() - 1];
                     efficiencyPercent += config.efficiencyIncreasePercent();
                     capacityPercent += config.energyCapacityIncreasePercent();
-                    additiveConsumptionReductionPercent += config.energyConsumptionReductionPercent();
+                    additiveConsumptionReductionPercent +=
+                            config.energyConsumptionReductionPercent();
                     parallelPercent += config.parallelIncreasePercent();
                     luckPercent += config.luckIncreasePercent();
                 }
                 case NONE -> {}
             }
         }
-        consumptionMultiplier *= Math.max(0.0D, 1.0D - additiveConsumptionReductionPercent / 100.0D);
+        consumptionMultiplier *=
+                Math.max(0.0D, 1.0D - additiveConsumptionReductionPercent / 100.0D);
         int parallelMultiplierHundredths =
                 (int) Math.min(Integer.MAX_VALUE, Math.round(100.0D + parallelPercent));
         return new Bonuses(
@@ -94,7 +99,17 @@ final class MythicMinerUpgradeResolver {
             int aggregateUpgradeCount,
             int[] upgradeCountsByTypeAndTier) {
         static final Bonuses NONE =
-                new Bonuses(1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0,
+                new Bonuses(
+                        1.0D,
+                        1.0D,
+                        100,
+                        0.0D,
+                        1.0D,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
                         new int[MythicMinerUpgradeBlock.Type.values().length * 6]);
 
         int countFor(MythicMinerUpgradeBlock.Type type, int tier) {

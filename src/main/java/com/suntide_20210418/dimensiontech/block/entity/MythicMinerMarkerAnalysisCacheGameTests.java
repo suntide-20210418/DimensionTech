@@ -70,8 +70,11 @@ public final class MythicMinerMarkerAnalysisCacheGameTests {
                             () -> {
                                 var cached = fixture.cache.entryForSlot(0);
                                 if (cached == null
-                                        || !ItemStack.isSameItemSameTags(cached.marker(), replacement)) {
-                                    helper.fail("Old async completion overwrote the replacement marker");
+                                        || !ItemStack.isSameItemSameTags(
+                                                cached.marker(), replacement)) {
+                                    helper.fail(
+                                            "Old async completion overwrote the replacement"
+                                                    + " marker");
                                     return;
                                 }
                                 helper.succeed();
@@ -137,7 +140,8 @@ public final class MythicMinerMarkerAnalysisCacheGameTests {
                 new AtomicReference<>(LootAnalysisFingerprint.from(inventory, 0.0F, "test"));
         AtomicBoolean removed = new AtomicBoolean();
         AtomicInteger starts = new AtomicInteger();
-        List<CompletableFuture<StructureValueCalculator.StructureValue>> futures = new ArrayList<>();
+        List<CompletableFuture<StructureValueCalculator.StructureValue>> futures =
+                new ArrayList<>();
         MythicMinerMarkerAnalysisCache cache =
                 new MythicMinerMarkerAnalysisCache(
                         inventory,
@@ -160,11 +164,13 @@ public final class MythicMinerMarkerAnalysisCacheGameTests {
 
     private static ItemStack marker(GameTestHelper helper, int x) {
         ItemStack marker = new ItemStack(ModItems.STRUCTURE_MARKER.get());
-        marker.getOrCreateTag().put(
-                "StructureMarkerData",
-                StructMarkerItem.createCatalogueMarkerData(
-                        helper.getLevel(),
-                        ResourceLocation.fromNamespaceAndPath("minecraft", "jungle_pyramid")));
+        marker.getOrCreateTag()
+                .put(
+                        "StructureMarkerData",
+                        StructMarkerItem.createCatalogueMarkerData(
+                                helper.getLevel(),
+                                ResourceLocation.fromNamespaceAndPath(
+                                        "minecraft", "jungle_pyramid")));
         marker.getTag().getCompound("StructureMarkerData").getCompound("Position").putInt("X", x);
         return marker;
     }

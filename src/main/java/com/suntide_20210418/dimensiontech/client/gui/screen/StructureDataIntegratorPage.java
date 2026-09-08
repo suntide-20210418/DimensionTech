@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -284,9 +284,7 @@ final class StructureDataIntegratorPage {
                                         0xFFFF5555,
                                         false));
         if (s.totalAnalysisSamples() > 0
-                && StructMarkerItem.getAnalysisStatus(marker)
-                        == AnalysisStatus
-                                .APPROXIMATE) {
+                && StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.APPROXIMATE) {
             g.drawString(
                     s.getMinecraft().font,
                     Component.translatable(

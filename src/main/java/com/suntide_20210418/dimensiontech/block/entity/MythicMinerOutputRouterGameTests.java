@@ -30,12 +30,13 @@ public final class MythicMinerOutputRouterGameTests {
         BlockPos chestPosition = minerPosition.relative(Direction.NORTH);
         level.setBlock(chestPosition, Blocks.CHEST.defaultBlockState(), 3);
 
-        List<ItemStack> remainder = MythicMinerOutputRouter.output(
-                level,
-                minerPosition,
-                BaseMinerBlockEntity.OutputState.ITEM_HANDLER,
-                direction -> direction == Direction.NORTH,
-                List.of(new ItemStack(Items.STONE, 4)));
+        List<ItemStack> remainder =
+                MythicMinerOutputRouter.output(
+                        level,
+                        minerPosition,
+                        BaseMinerBlockEntity.OutputState.ITEM_HANDLER,
+                        direction -> direction == Direction.NORTH,
+                        List.of(new ItemStack(Items.STONE, 4)));
         if (!(level.getBlockEntity(chestPosition) instanceof ChestBlockEntity chest)
                 || !remainder.isEmpty()
                 || !chest.getItem(0).is(Items.STONE)
@@ -56,7 +57,8 @@ public final class MythicMinerOutputRouterGameTests {
         BlockPos chestPosition = interfacePosition.relative(Direction.WEST);
         level.setBlock(interfacePosition, AEBlocks.INTERFACE.block().defaultBlockState(), 3);
         level.setBlock(controllerPosition, AEBlocks.CONTROLLER.block().defaultBlockState(), 3);
-        level.setBlock(energyPosition, AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState(), 3);
+        level.setBlock(
+                energyPosition, AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState(), 3);
         level.setBlock(chestPosition, AEBlocks.CHEST.block().defaultBlockState(), 3);
         if (!(level.getBlockEntity(chestPosition)
                 instanceof appeng.blockentity.storage.ChestBlockEntity chest)) {
@@ -68,7 +70,8 @@ public final class MythicMinerOutputRouterGameTests {
         helper.runAfterDelay(
                 40,
                 () -> {
-                    if (!(level.getBlockEntity(interfacePosition) instanceof InterfaceBlockEntity interfaceBlock)
+                    if (!(level.getBlockEntity(interfacePosition)
+                                    instanceof InterfaceBlockEntity interfaceBlock)
                             || !interfaceBlock.getMainNode().isOnline()) {
                         helper.fail("AE2 interface did not join the test network");
                         return;

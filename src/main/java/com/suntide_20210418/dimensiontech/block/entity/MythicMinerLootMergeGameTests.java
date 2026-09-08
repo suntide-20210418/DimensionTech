@@ -31,7 +31,9 @@ public final class MythicMinerLootMergeGameTests {
                 || merged.get(0).getCount() != 5
                 || !merged.get(1).is(Items.DIAMOND)
                 || merged.get(1).getCount() != 1) {
-            helper.fail("Equivalent stacks did not merge with stable first-occurrence order: " + merged);
+            helper.fail(
+                    "Equivalent stacks did not merge with stable first-occurrence order: "
+                            + merged);
             return;
         }
         helper.succeed();
@@ -102,7 +104,8 @@ public final class MythicMinerLootMergeGameTests {
         return templates;
     }
 
-    private static long runMergeBenchmark(List<ItemStack> templates, MergeCase mergeCase, int iterations) {
+    private static long runMergeBenchmark(
+            List<ItemStack> templates, MergeCase mergeCase, int iterations) {
         List<List<ItemStack>> inputs = new ArrayList<>(iterations);
         ItemStack candidate = candidate(templates, mergeCase);
         for (int iteration = 0; iteration < iterations; iteration++) {
@@ -111,7 +114,8 @@ public final class MythicMinerLootMergeGameTests {
             inputs.add(merged);
         }
         long start = System.nanoTime();
-        for (List<ItemStack> merged : inputs) ExpectationRewardGenerator.mergeEquivalent(merged, candidate);
+        for (List<ItemStack> merged : inputs)
+            ExpectationRewardGenerator.mergeEquivalent(merged, candidate);
         return System.nanoTime() - start;
     }
 

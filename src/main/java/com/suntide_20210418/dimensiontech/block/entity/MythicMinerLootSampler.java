@@ -18,8 +18,8 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Generates rewards from cached item expectations.
  *
- * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original
- * LootTable joint distribution, pool selection, function chain, or random sequence.
+ * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original LootTable
+ * joint distribution, pool selection, function chain, or random sequence.
  */
 final class ExpectationRewardGenerator {
     private ExpectationRewardGenerator() {}
@@ -58,7 +58,9 @@ final class ExpectationRewardGenerator {
         return result;
     }
 
-    /** Builds all loot for completed miner cycles, including filtering, dismantling, and rewards. */
+    /**
+     * Builds all loot for completed miner cycles, including filtering, dismantling, and rewards.
+     */
     static List<ItemStack> generate(
             MinecraftServer server,
             List<Cycle> cycles,
@@ -71,7 +73,9 @@ final class ExpectationRewardGenerator {
             MythicMinerMarkerAnalysisCache.CachedMarkerLoot cached = cycle.loot();
             ServerLevel lootLevel =
                     server.getLevel(ResourceKey.create(Registries.DIMENSION, cached.dimension()));
-            if (lootLevel == null || !Double.isFinite(cached.quantity()) || cached.quantity() <= 0.0D) {
+            if (lootLevel == null
+                    || !Double.isFinite(cached.quantity())
+                    || cached.quantity() <= 0.0D) {
                 continue;
             }
             for (ItemStack generated :
@@ -82,7 +86,8 @@ final class ExpectationRewardGenerator {
                                 : List.of(generated);
                 for (ItemStack stack : output) {
                     ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-                    if (itemId == null || !disabledItems.contains(itemId)) mergeEquivalent(merged, stack);
+                    if (itemId == null || !disabledItems.contains(itemId))
+                        mergeEquivalent(merged, stack);
                 }
             }
             addDimensionCoreReward(lootLevel, merged, cycle.parallel(), clampedTier, disabledItems);
@@ -105,7 +110,8 @@ final class ExpectationRewardGenerator {
     private static void addTieredRewards(List<ItemStack> mergedLoot, int parallel, int tier) {
         int count = Math.min(10, Math.max(0, parallel));
         if (count <= 0) return;
-        mergeEquivalent(mergedLoot, new ItemStack(ModItems.DIMENSION_FRAGMENTS[tier - 1].get(), count));
+        mergeEquivalent(
+                mergedLoot, new ItemStack(ModItems.DIMENSION_FRAGMENTS[tier - 1].get(), count));
         mergeEquivalent(mergedLoot, new ItemStack(ModItems.MINING_TOKENS[tier - 1].get(), count));
     }
 
@@ -122,8 +128,7 @@ final class ExpectationRewardGenerator {
         }
         if (cores > 0) {
             mergeEquivalent(
-                    mergedLoot,
-                    new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), cores));
+                    mergedLoot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), cores));
         }
     }
 

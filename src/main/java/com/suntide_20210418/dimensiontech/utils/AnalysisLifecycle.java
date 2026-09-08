@@ -6,8 +6,18 @@ import java.util.Objects;
 public final class AnalysisLifecycle {
     private AnalysisLifecycle() {}
 
-    public enum CacheStatus { MISSING, COMPLETE, STALE }
-    public enum TaskStatus { QUEUED, RUNNING, SUCCEEDED, FAILED }
+    public enum CacheStatus {
+        MISSING,
+        COMPLETE,
+        STALE
+    }
+
+    public enum TaskStatus {
+        QUEUED,
+        RUNNING,
+        SUCCEEDED,
+        FAILED
+    }
 
     public record CommitToken(long generation, String inputFingerprint, String configFingerprint) {
         public CommitToken {
@@ -22,8 +32,12 @@ public final class AnalysisLifecycle {
         }
     }
 
-    public record CacheEntry<T>(CacheStatus status, T result, String inputFingerprint,
-            String configFingerprint, int algorithmVersion) {
+    public record CacheEntry<T>(
+            CacheStatus status,
+            T result,
+            String inputFingerprint,
+            String configFingerprint,
+            int algorithmVersion) {
         public CacheEntry {
             Objects.requireNonNull(status, "status");
             inputFingerprint = inputFingerprint == null ? "" : inputFingerprint;
@@ -40,19 +54,27 @@ public final class AnalysisLifecycle {
             return new CacheEntry<>(CacheStatus.MISSING, null, "", "", 0);
         }
 
-        public static <T> CacheEntry<T> complete(T result, String input, String config, int version) {
+        public static <T> CacheEntry<T> complete(
+                T result, String input, String config, int version) {
             return new CacheEntry<>(CacheStatus.COMPLETE, result, input, config, version);
         }
 
         public CacheEntry<T> stale() {
-            return status == CacheStatus.MISSING ? this
-                    : new CacheEntry<>(CacheStatus.STALE, result, inputFingerprint,
-                            configFingerprint, algorithmVersion);
+            return status == CacheStatus.MISSING
+                    ? this
+                    : new CacheEntry<>(
+                            CacheStatus.STALE,
+                            result,
+                            inputFingerprint,
+                            configFingerprint,
+                            algorithmVersion);
         }
 
         public boolean mathematicallyMatches(String input, String config, int version) {
-            return status != CacheStatus.MISSING && algorithmVersion == version
-                    && inputFingerprint.equals(input) && configFingerprint.equals(config);
+            return status != CacheStatus.MISSING
+                    && algorithmVersion == version
+                    && inputFingerprint.equals(input)
+                    && configFingerprint.equals(config);
         }
     }
 }

@@ -14,7 +14,8 @@ final class MinerAnalysisController {
     private final Supplier<Float> luck;
     private final MythicMinerMarkerAnalysisCache cache;
 
-    MinerAnalysisController(ItemStackHandler inventory, Supplier<Float> luck, BooleanSupplier removed) {
+    MinerAnalysisController(
+            ItemStackHandler inventory, Supplier<Float> luck, BooleanSupplier removed) {
         this.inventory = inventory;
         this.luck = luck;
         this.cache = new MythicMinerMarkerAnalysisCache(inventory, this::fingerprint, removed);
@@ -24,11 +25,25 @@ final class MinerAnalysisController {
         return cache.refresh(server, luck.get(), gameTime);
     }
 
-    void invalidateIfInputsChanged() { cache.invalidateIfAnalysisInputsChanged(); }
-    List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> entries() { return cache.entries(); }
-    MythicMinerMarkerAnalysisCache.CachedMarkerLoot entryForSlot(int slot) { return cache.entryForSlot(slot); }
-    String cacheStatus(int slot) { return cache.cacheStatus(slot); }
-    AnalysisLifecycle.TaskStatus taskStatus(int slot) { return cache.taskStatus(slot); }
+    void invalidateIfInputsChanged() {
+        cache.invalidateIfAnalysisInputsChanged();
+    }
+
+    List<MythicMinerMarkerAnalysisCache.CachedMarkerLoot> entries() {
+        return cache.entries();
+    }
+
+    MythicMinerMarkerAnalysisCache.CachedMarkerLoot entryForSlot(int slot) {
+        return cache.entryForSlot(slot);
+    }
+
+    String cacheStatus(int slot) {
+        return cache.cacheStatus(slot);
+    }
+
+    AnalysisLifecycle.TaskStatus taskStatus(int slot) {
+        return cache.taskStatus(slot);
+    }
 
     private LootAnalysisFingerprint fingerprint() {
         return LootAnalysisFingerprint.from(

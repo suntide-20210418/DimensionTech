@@ -5,10 +5,10 @@ import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
 import com.suntide_20210418.dimensiontech.utils.StructureAnalysisService;
 import com.suntide_20210418.dimensiontech.utils.StructureLootAnalyzer;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculator;
-import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -183,8 +183,10 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
     public ItemStack analyseCatalogueEntry(ResourceLocation dimension, ResourceLocation id) {
         CatalogueKey key = new CatalogueKey(dimension, id);
         ItemStack cached = analysedCatalogueEntries.get(key);
-        if (cached != null && ModConfigs.STRUCTURE_VALUE.calculationFingerprint()
-                .equals(catalogueValueConfigs.get(key))) return cached.copy();
+        if (cached != null
+                && ModConfigs.STRUCTURE_VALUE
+                        .calculationFingerprint()
+                        .equals(catalogueValueConfigs.get(key))) return cached.copy();
         if (catalogue.stream()
                 .noneMatch(
                         entry ->
@@ -208,18 +210,29 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         pendingCatalogueValues.put(key, request);
         String config = ModConfigs.STRUCTURE_VALUE.calculationFingerprint();
         StructMarkerItem.MarkedStructure structure =
-                new StructMarkerItem.MarkedStructure(id, new net.minecraft.world.level.levelgen.structure.BoundingBox(0, 0, 0, 0, 0, 0));
+                new StructMarkerItem.MarkedStructure(
+                        id,
+                        new net.minecraft.world.level.levelgen.structure.BoundingBox(
+                                0, 0, 0, 0, 0, 0));
         StructMarkerItem.MarkerInfo info =
-                new StructMarkerItem.MarkerInfo(level.dimension().location(), net.minecraft.core.BlockPos.ZERO, structure);
-        StructureAnalysisService.forServer(level.getServer()).discover(level, id)
-                .thenComposeAsync(discovery -> {
-                    List<ResourceLocation> roots = discovery.structures().stream()
-                            .flatMap(value -> value.lootTables().stream()).distinct().toList();
-                    RuntimeLootAstSource source = RuntimeLootAstSource.snapshotTables(level.getServer(), roots);
-                    return StructureValueCalculator.calculateAsync(
-                                    level.getServer(), info, 0.0F, discovery, source)
-                            .thenApply(value -> new CatalogueCalculation(discovery, value));
-                }, level.getServer())
+                new StructMarkerItem.MarkerInfo(
+                        level.dimension().location(), net.minecraft.core.BlockPos.ZERO, structure);
+        StructureAnalysisService.forServer(level.getServer())
+                .discover(level, id)
+                .thenComposeAsync(
+                        discovery -> {
+                            List<ResourceLocation> roots =
+                                    discovery.structures().stream()
+                                            .flatMap(value -> value.lootTables().stream())
+                                            .distinct()
+                                            .toList();
+                            RuntimeLootAstSource source =
+                                    RuntimeLootAstSource.snapshotTables(level.getServer(), roots);
+                            return StructureValueCalculator.calculateAsync(
+                                            level.getServer(), info, 0.0F, discovery, source)
+                                    .thenApply(value -> new CatalogueCalculation(discovery, value));
+                        },
+                        level.getServer())
                 .whenComplete(
                         (calculation, error) ->
                                 level.getServer()
@@ -227,12 +240,32 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                 () -> {
                                                     if (!pendingCatalogueValues.remove(key, request)
                                                             || isRemoved()
-                                                            || !config.equals(ModConfigs.STRUCTURE_VALUE.calculationFingerprint())) return;
-                                                    if (error == null && calculation != null
-                                                            && (calculation.value().status() == AnalysisStatus.EXACT
-                                                            || calculation.value().status() == AnalysisStatus.APPROXIMATE)) {
-                                                        ItemStack marker = new ItemStack(ModItems.STRUCTURE_MARKER.get());
-                                                        marker.getOrCreateTag().put("StructureMarkerData", StructMarkerItem.createCatalogueMarkerData(level, id, calculation.discovery(), calculation.value()));
+                                                            || !config.equals(
+                                                                    ModConfigs.STRUCTURE_VALUE
+                                                                            .calculationFingerprint()))
+                                                        return;
+                                                    if (error == null
+                                                            && calculation != null
+                                                            && (calculation.value().status()
+                                                                            == AnalysisStatus.EXACT
+                                                                    || calculation.value().status()
+                                                                            == AnalysisStatus
+                                                                                    .APPROXIMATE)) {
+                                                        ItemStack marker =
+                                                                new ItemStack(
+                                                                        ModItems.STRUCTURE_MARKER
+                                                                                .get());
+                                                        marker.getOrCreateTag()
+                                                                .put(
+                                                                        "StructureMarkerData",
+                                                                        StructMarkerItem
+                                                                                .createCatalogueMarkerData(
+                                                                                        level,
+                                                                                        id,
+                                                                                        calculation
+                                                                                                .discovery(),
+                                                                                        calculation
+                                                                                                .value()));
                                                         analysedCatalogueEntries.put(key, marker);
                                                         catalogueValueConfigs.put(key, config);
                                                     }
@@ -268,7 +301,8 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         requestCatalogueValue(candidateLevel, id);
     }
 
-    private record CatalogueCalculation(StructureLootAnalyzer.DiscoveryResult discovery,
+    private record CatalogueCalculation(
+            StructureLootAnalyzer.DiscoveryResult discovery,
             StructureValueCalculator.StructureValue value) {}
 
     public boolean clearOperandData() {

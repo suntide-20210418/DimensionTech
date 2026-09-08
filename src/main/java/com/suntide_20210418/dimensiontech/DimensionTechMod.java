@@ -2,23 +2,23 @@ package com.suntide_20210418.dimensiontech;
 
 import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.block.ModBlocks;
+import com.suntide_20210418.dimensiontech.block.entity.LootAnalysisFingerprintGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.ModBlockEntities;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerLootMergeGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerMarkerAnalysisCacheGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerOutputRouterGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerTierGameTests;
-import com.suntide_20210418.dimensiontech.block.entity.LootAnalysisFingerprintGameTests;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.gametest.LootExpectationGameTests;
-import com.suntide_20210418.dimensiontech.gametest.MythicMinerTickContractGameTests;
 import com.suntide_20210418.dimensiontech.gametest.MythicMinerJadeGameTests;
+import com.suntide_20210418.dimensiontech.gametest.MythicMinerTickContractGameTests;
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
-import com.suntide_20210418.dimensiontech.utils.VirtualStructureSamplerGameTests;
 import com.suntide_20210418.dimensiontech.utils.StructureValueCalculatorGameTests;
+import com.suntide_20210418.dimensiontech.utils.VirtualStructureSamplerGameTests;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -70,5 +70,4 @@ public class DimensionTechMod {
         event.register(StructureValueCalculatorGameTests.class);
         event.register(VirtualStructureSamplerGameTests.class);
     }
-
 }

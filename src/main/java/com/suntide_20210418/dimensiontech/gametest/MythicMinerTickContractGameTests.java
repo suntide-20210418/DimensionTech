@@ -7,12 +7,12 @@ import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.integration.kubejs.MinerBlockEntityJS;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -52,7 +52,8 @@ public final class MythicMinerTickContractGameTests {
         miner.serverTick();
 
         if (miner.getEnergyStored() != before || !miner.isStructureComplete()) {
-            helper.fail("Complete miner without a marker consumed energy or lost its structure state");
+            helper.fail(
+                    "Complete miner without a marker consumed energy or lost its structure state");
             return;
         }
         helper.succeed();
@@ -63,65 +64,74 @@ public final class MythicMinerTickContractGameTests {
         BaseMinerBlockEntity miner = placeAnalyzedMiner(helper, 1);
         miner.getEnergyStorage().receiveEnergy(10_000, false);
 
-        helper.succeedWhen(() -> {
-            if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.refreshMarkerAnalysis();
-                return;
-            }
-            int energyBefore = miner.getEnergyStored();
-            int progressBefore = miner.getSlotProgress(0);
-            miner.serverTick();
-            if (miner.getEnergyStored() != energyBefore || miner.getSlotProgress(0) != progressBefore) {
-                helper.fail("Redstone stop consumed energy or advanced progress");
-                return;
-            }
-        });
+        helper.succeedWhen(
+                () -> {
+                    if (miner.getSlotProcessingTime(0) <= 0) {
+                        miner.refreshMarkerAnalysis();
+                        return;
+                    }
+                    int energyBefore = miner.getEnergyStored();
+                    int progressBefore = miner.getSlotProgress(0);
+                    miner.serverTick();
+                    if (miner.getEnergyStored() != energyBefore
+                            || miner.getSlotProgress(0) != progressBefore) {
+                        helper.fail("Redstone stop consumed energy or advanced progress");
+                        return;
+                    }
+                });
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 400)
     public static void insufficientEnergyDoesNotDrainFluidOrAdvanceProgress(GameTestHelper helper) {
         BaseMinerBlockEntity miner = placeAnalyzedMiner(helper, 2);
         miner.getFluidTank()
-                .fill(new FluidStack(miner.getRequiredFluid(), BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
+                .fill(
+                        new FluidStack(
+                                miner.getRequiredFluid(),
+                                BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
                         net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
 
-        helper.succeedWhen(() -> {
-            if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.refreshMarkerAnalysis();
-                return;
-            }
-            miner.cycleRedstoneMode();
-            int fluidBefore = miner.getFluidTank().getFluidAmount();
-            int progressBefore = miner.getSlotProgress(0);
-            miner.serverTick();
-            if (miner.getFluidTank().getFluidAmount() != fluidBefore
-                    || miner.getSlotProgress(0) != progressBefore
-                    || miner.getEnergyStored() != 0) {
-                helper.fail("Insufficient energy drained fluid or advanced progress");
-                return;
-            }
-        });
+        helper.succeedWhen(
+                () -> {
+                    if (miner.getSlotProcessingTime(0) <= 0) {
+                        miner.refreshMarkerAnalysis();
+                        return;
+                    }
+                    miner.cycleRedstoneMode();
+                    int fluidBefore = miner.getFluidTank().getFluidAmount();
+                    int progressBefore = miner.getSlotProgress(0);
+                    miner.serverTick();
+                    if (miner.getFluidTank().getFluidAmount() != fluidBefore
+                            || miner.getSlotProgress(0) != progressBefore
+                            || miner.getEnergyStored() != 0) {
+                        helper.fail("Insufficient energy drained fluid or advanced progress");
+                        return;
+                    }
+                });
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 400)
-    public static void insufficientFluidDoesNotConsumeEnergyOrAdvanceProgress(GameTestHelper helper) {
+    public static void insufficientFluidDoesNotConsumeEnergyOrAdvanceProgress(
+            GameTestHelper helper) {
         BaseMinerBlockEntity miner = placeAnalyzedMiner(helper, 2);
         miner.getEnergyStorage().receiveEnergy(10_000, false);
 
-        helper.succeedWhen(() -> {
-            if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.refreshMarkerAnalysis();
-                return;
-            }
-            miner.cycleRedstoneMode();
-            int energyBefore = miner.getEnergyStored();
-            int progressBefore = miner.getSlotProgress(0);
-            miner.serverTick();
-            if (miner.getEnergyStored() != energyBefore || miner.getSlotProgress(0) != progressBefore) {
-                helper.fail("Insufficient fluid consumed energy or advanced progress");
-                return;
-            }
-        });
+        helper.succeedWhen(
+                () -> {
+                    if (miner.getSlotProcessingTime(0) <= 0) {
+                        miner.refreshMarkerAnalysis();
+                        return;
+                    }
+                    miner.cycleRedstoneMode();
+                    int energyBefore = miner.getEnergyStored();
+                    int progressBefore = miner.getSlotProgress(0);
+                    miner.serverTick();
+                    if (miner.getEnergyStored() != energyBefore
+                            || miner.getSlotProgress(0) != progressBefore) {
+                        helper.fail("Insufficient fluid consumed energy or advanced progress");
+                        return;
+                    }
+                });
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 400)
@@ -129,21 +139,24 @@ public final class MythicMinerTickContractGameTests {
         BaseMinerBlockEntity miner = placeAnalyzedMiner(helper, 1);
         miner.getEnergyStorage().receiveEnergy(10_000, false);
 
-        helper.succeedWhen(() -> {
-            if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.refreshMarkerAnalysis();
-                return;
-            }
-            miner.cycleRedstoneMode();
-            int energyBefore = miner.getEnergyStored();
-            int progressBefore = miner.getSlotProgress(0);
-            miner.serverTick();
-            if (miner.getEnergyStored() >= energyBefore
-                    || miner.getSlotProgress(0) <= progressBefore) {
-                helper.fail("A successful tick did not consume energy before advancing progress");
-                return;
-            }
-        });
+        helper.succeedWhen(
+                () -> {
+                    if (miner.getSlotProcessingTime(0) <= 0) {
+                        miner.refreshMarkerAnalysis();
+                        return;
+                    }
+                    miner.cycleRedstoneMode();
+                    int energyBefore = miner.getEnergyStored();
+                    int progressBefore = miner.getSlotProgress(0);
+                    miner.serverTick();
+                    if (miner.getEnergyStored() >= energyBefore
+                            || miner.getSlotProgress(0) <= progressBefore) {
+                        helper.fail(
+                                "A successful tick did not consume energy before advancing"
+                                        + " progress");
+                        return;
+                    }
+                });
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 400)
@@ -158,24 +171,25 @@ public final class MythicMinerTickContractGameTests {
                                 BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
                         net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
 
-        helper.succeedWhen(() -> {
-            if (miner.getSlotProcessingTime(0) <= 0) {
-                miner.refreshMarkerAnalysis();
-                return;
-            }
-            int energyBefore = miner.getEnergyStored();
-            int fluidBefore = miner.getFluidTank().getFluidAmount();
-            miner.serverTick();
-            miner.serverTick();
-            int expectedEnergy = energyBefore - miner.getEffectiveEnergyConsumption();
-            if (miner.getEnergyStored() != expectedEnergy
-                    || miner.getFluidTank().getFluidAmount()
-                            != fluidBefore - BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB
-                    || miner.getSlotProgress(0) != 1) {
-                helper.fail("Same gameTime repeated resource use or logical progress");
-                return;
-            }
-        });
+        helper.succeedWhen(
+                () -> {
+                    if (miner.getSlotProcessingTime(0) <= 0) {
+                        miner.refreshMarkerAnalysis();
+                        return;
+                    }
+                    int energyBefore = miner.getEnergyStored();
+                    int fluidBefore = miner.getFluidTank().getFluidAmount();
+                    miner.serverTick();
+                    miner.serverTick();
+                    int expectedEnergy = energyBefore - miner.getEffectiveEnergyConsumption();
+                    if (miner.getEnergyStored() != expectedEnergy
+                            || miner.getFluidTank().getFluidAmount()
+                                    != fluidBefore - BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB
+                            || miner.getSlotProgress(0) != 1) {
+                        helper.fail("Same gameTime repeated resource use or logical progress");
+                        return;
+                    }
+                });
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty")
@@ -273,7 +287,8 @@ public final class MythicMinerTickContractGameTests {
         CompoundTag saved = miner.saveWithFullMetadata();
         saved.putIntArray("SlotProgress", new int[] {17});
         ListTag pendingOutput = new ListTag();
-        pendingOutput.add(new ItemStack(ModItems.STRUCTURE_MARKER.get(), 3).save(new CompoundTag()));
+        pendingOutput.add(
+                new ItemStack(ModItems.STRUCTURE_MARKER.get(), 3).save(new CompoundTag()));
         saved.put("PendingOutput", pendingOutput);
 
         miner.load(saved);
@@ -283,7 +298,8 @@ public final class MythicMinerTickContractGameTests {
                 || miner.getSlotProgress(0) != 17
                 || miner.isSlotEnabled(0)
                 || miner.getPendingOutputCount() != 3) {
-            helper.fail("Miner save/load did not preserve energy, fluid, progress, slots, or output");
+            helper.fail(
+                    "Miner save/load did not preserve energy, fluid, progress, slots, or output");
             return;
         }
         helper.succeed();
@@ -305,10 +321,13 @@ public final class MythicMinerTickContractGameTests {
         ServerLevel level = helper.getLevel();
         MythicMinerMultiblock.place(level, miner.getBlockPos(), miner.getMinerTier());
         ItemStack marker = new ItemStack(ModItems.STRUCTURE_MARKER.get());
-        marker.getOrCreateTag().put(
-                "StructureMarkerData",
-                StructMarkerItem.createCatalogueMarkerData(
-                        level, ResourceLocation.fromNamespaceAndPath("minecraft", "jungle_pyramid")));
+        marker.getOrCreateTag()
+                .put(
+                        "StructureMarkerData",
+                        StructMarkerItem.createCatalogueMarkerData(
+                                level,
+                                ResourceLocation.fromNamespaceAndPath(
+                                        "minecraft", "jungle_pyramid")));
         miner.getItemHandler().insertItem(0, marker, false);
         miner.cycleRedstoneMode();
         miner.cycleRedstoneMode();
@@ -325,7 +344,9 @@ public final class MythicMinerTickContractGameTests {
         ServerLevel level = helper.getLevel();
         level.setBlock(
                 position,
-                (tier == 2 ? ModBlocks.TIER_2_MYTHIC_MINER.get() : ModBlocks.TIER_1_MYTHIC_MINER.get())
+                (tier == 2
+                                ? ModBlocks.TIER_2_MYTHIC_MINER.get()
+                                : ModBlocks.TIER_1_MYTHIC_MINER.get())
                         .defaultBlockState(),
                 3);
         if (level.getBlockEntity(position) instanceof BaseMinerBlockEntity miner) return miner;

@@ -31,15 +31,20 @@ final class MinerOutputController {
         for (BaseMinerBlockEntity.CompletedMarker cycle : completed) {
             var loot = cycle.loot();
             if (Double.isFinite(loot.quantity()) && loot.quantity() > 0.0D) {
-                cycles.add(new ExpectationRewardGenerator.Cycle(
-                        loot, cycle.parallel(), drawsForSlot.apply(loot.slot())));
+                cycles.add(
+                        new ExpectationRewardGenerator.Cycle(
+                                loot, cycle.parallel(), drawsForSlot.apply(loot.slot())));
             }
         }
-        List<ItemStack> generated = ExpectationRewardGenerator.generate(
-                server, cycles, disabledItems, equipmentDismantling, tier);
-        MinerIntegrationHooks.OutputResult hook = MinerIntegrationHooks.postOutput(miner, level, generated);
-        return hook.cancelled() ? List.of() : MythicMinerOutputRouter.output(
-                level, position, outputState, outputFaceEnabled, hook.outputs());
+        List<ItemStack> generated =
+                ExpectationRewardGenerator.generate(
+                        server, cycles, disabledItems, equipmentDismantling, tier);
+        MinerIntegrationHooks.OutputResult hook =
+                MinerIntegrationHooks.postOutput(miner, level, generated);
+        return hook.cancelled()
+                ? List.of()
+                : MythicMinerOutputRouter.output(
+                        level, position, outputState, outputFaceEnabled, hook.outputs());
     }
 
     List<ItemStack> retry(
@@ -48,6 +53,7 @@ final class MinerOutputController {
             BaseMinerBlockEntity.OutputState outputState,
             Predicate<Direction> outputFaceEnabled,
             List<ItemStack> pending) {
-        return MythicMinerOutputRouter.output(level, position, outputState, outputFaceEnabled, pending);
+        return MythicMinerOutputRouter.output(
+                level, position, outputState, outputFaceEnabled, pending);
     }
 }
