@@ -1028,26 +1028,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private void resetSlotState(int slot) {
         accelerationController.reset(slot);
-        accelerationController.reset(slot);
-    }
-
-    private static void loadFractions(int[] target, int[] saved) {
-        java.util.Arrays.fill(target, 0);
-        for (int slot = 0; slot < Math.min(target.length, saved.length); slot++) {
-            target[slot] = Math.max(0, Math.min(99, saved[slot]));
-        }
-    }
-
-    private static long readLongCompat(CompoundTag tag, String key, String legacyKey) {
-        if (tag.contains(key, Tag.TAG_LONG)) return Math.max(0L, tag.getLong(key));
-        if (tag.contains(key, Tag.TAG_INT)) return Math.max(0L, tag.getInt(key));
-        if (legacyKey != null && tag.contains(legacyKey, Tag.TAG_LONG)) {
-            return Math.max(0L, tag.getLong(legacyKey));
-        }
-        if (legacyKey != null && tag.contains(legacyKey, Tag.TAG_INT)) {
-            return Math.max(0L, tag.getInt(legacyKey));
-        }
-        return 0L;
     }
 
     record CompletedMarker(MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel) {}
