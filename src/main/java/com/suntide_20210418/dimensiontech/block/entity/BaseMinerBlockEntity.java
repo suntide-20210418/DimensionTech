@@ -698,9 +698,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public boolean isStructureComplete() {
-        if (level instanceof ServerLevel serverLevel) {
-            structureComplete = isStructureComplete(serverLevel);
-        }
         return structureComplete;
     }
 

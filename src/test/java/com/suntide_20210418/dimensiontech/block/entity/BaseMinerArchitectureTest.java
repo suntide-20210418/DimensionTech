@@ -17,4 +17,15 @@ class BaseMinerArchitectureTest {
             assertFalse(text.contains(forbidden), "BaseMinerBlockEntity must not reference " + forbidden);
         }
     }
+
+    @Test
+    void structureQueryDoesNotScanOrMutateWorld() throws Exception {
+        Path source = Path.of("src/main/java/com/suntide_20210418/dimensiontech/block/entity/BaseMinerBlockEntity.java");
+        String text = Files.readString(source);
+        int start = text.indexOf("public boolean isStructureComplete()");
+        int end = text.indexOf("private boolean isStructureComplete(ServerLevel", start);
+        String method = text.substring(start, end);
+        assertFalse(method.contains("MythicMinerMultiblock"));
+        assertFalse(method.contains("structureComplete ="));
+    }
 }
