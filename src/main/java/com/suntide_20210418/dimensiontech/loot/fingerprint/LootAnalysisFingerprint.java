@@ -1,4 +1,4 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.loot.fingerprint;
 
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
@@ -11,16 +11,16 @@ import net.minecraftforge.items.ItemStackHandler;
  * Inputs whose equality means that a cached marker analysis is safe to reuse. This is deliberately
  * local to miner analysis and is not a general cache key.
  */
-record LootAnalysisFingerprint(
+public record LootAnalysisFingerprint(
         int algorithmVersion, List<String> markerSlots, int luckBits, String analysisConfig) {
-    static final int ALGORITHM_VERSION = 1;
+    public static final int ALGORITHM_VERSION = 1;
 
     LootAnalysisFingerprint {
         markerSlots = List.copyOf(markerSlots);
         analysisConfig = analysisConfig == null ? "" : analysisConfig;
     }
 
-    static LootAnalysisFingerprint from(
+    public static LootAnalysisFingerprint from(
             ItemStackHandler itemHandler, float effectiveLuck, String analysisConfig) {
         List<String> slots = new ArrayList<>(itemHandler.getSlots());
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {

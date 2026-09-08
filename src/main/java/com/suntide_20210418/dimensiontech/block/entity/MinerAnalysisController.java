@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import java.util.List;
 import java.util.Map;
