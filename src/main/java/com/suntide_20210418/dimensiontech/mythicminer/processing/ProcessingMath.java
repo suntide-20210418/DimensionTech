@@ -23,7 +23,8 @@ public final class ProcessingMath {
         return Math.max(1, (int) Math.min(Integer.MAX_VALUE, scaled / 10_000L));
     }
 
-    public static int upgradedBaseParallel(int machineBaseParallel, int upgradeMultiplierHundredths) {
+    public static int upgradedBaseParallel(
+            int machineBaseParallel, int upgradeMultiplierHundredths) {
         return totalParallel(machineBaseParallel, 100, upgradeMultiplierHundredths);
     }
 

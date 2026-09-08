@@ -1,12 +1,11 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
-import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
-
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
+import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import java.util.ArrayList;
 import java.util.List;

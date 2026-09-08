@@ -3,12 +3,11 @@ package com.suntide_20210418.dimensiontech.structure.analysis;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.utils.AnalysisTaskCache;
 import com.suntide_20210418.dimensiontech.utils.MainThreadTaskCache;
-import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.VanillaStructureLootResolver;
-import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -581,7 +580,8 @@ public final class StructureAnalysisService {
         return new ExecutionBudget(allocated[0], allocated[1], allocated[2], next);
     }
 
-    public record ExecutionBudget(int templates, int runtimeCaptures, int virtualSamples, int nextLayer) {}
+    public record ExecutionBudget(
+            int templates, int runtimeCaptures, int virtualSamples, int nextLayer) {}
 
     public record State(
             Key key,

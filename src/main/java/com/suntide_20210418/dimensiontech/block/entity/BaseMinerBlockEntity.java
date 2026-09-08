@@ -6,7 +6,6 @@ import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
-import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
@@ -15,17 +14,11 @@ import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -95,6 +88,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
     private boolean autoExtractFluid;
     private boolean structureComplete;
+
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
 
@@ -517,8 +511,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel serverLevel) || !validSlot(slot)) {
             return MythicMinerAnalysisSnapshot.EMPTY;
         }
-        return analysisController.snapshot(slot, serverLevel, slotAverageParallelHundredths(slot) / 100.0D,
-                DRAWS_PER_PARALLEL, getQuantityReference(), isEquipmentDismantlingEnabled(),
+        return analysisController.snapshot(
+                slot,
+                serverLevel,
+                slotAverageParallelHundredths(slot) / 100.0D,
+                DRAWS_PER_PARALLEL,
+                getQuantityReference(),
+                isEquipmentDismantlingEnabled(),
                 outputController.disabledItems());
     }
 
@@ -575,8 +574,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         updateMachineState(serverLevel);
         if (!canRunThisTick(serverLevel)) return;
         if (!consumeWorkResources(serverLevel)) return;
-        List<MarkerAnalysis> completedSlots =
-                advanceWork(serverLevel);
+        List<MarkerAnalysis> completedSlots = advanceWork(serverLevel);
         List<CompletedMarker> completedMarkers = completeWork(serverLevel, completedSlots);
         outputCompletedWork(serverLevel, completedMarkers);
         setChanged();
@@ -627,13 +625,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     /**
      * Advances only per-slot progress and acceleration state; completion work follows this phase.
      */
-    private List<MarkerAnalysis> advanceWork(
-            ServerLevel serverLevel) {
+    private List<MarkerAnalysis> advanceWork(ServerLevel serverLevel) {
         List<MarkerAnalysis> completedSlots = new ArrayList<>();
         for (MinerAccelerationController.CompletedSlot completed :
                 accelerationController.advance(serverLevel.getGameTime(), slotEnabled)) {
-            MarkerAnalysis cachedLoot =
-                    analysisController.entryForSlot(completed.slot());
+            MarkerAnalysis cachedLoot = analysisController.entryForSlot(completed.slot());
             if (cachedLoot != null) completedSlots.add(cachedLoot);
         }
         return completedSlots;
@@ -641,8 +637,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     /** Completes all reached slots before any loot is generated or output is attempted. */
     private List<CompletedMarker> completeWork(
-            ServerLevel serverLevel,
-            List<MarkerAnalysis> completedSlots) {
+            ServerLevel serverLevel, List<MarkerAnalysis> completedSlots) {
         List<CompletedMarker> completedMarkers = new ArrayList<>();
         for (MarkerAnalysis cachedLoot : completedSlots) {
             int slot = cachedLoot.slot();
@@ -744,7 +739,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!(level instanceof ServerLevel outputLevel)) {
             return;
         }
-        outputController.setPending(outputController.emit(
+        outputController.setPending(
+                outputController.emit(
                         this,
                         server,
                         outputLevel,
@@ -757,7 +753,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                         slot,
                                         completedMarkers.stream()
                                                 .filter(value -> value.loot().slot() == slot)
-                                                .findFirst().orElseThrow().parallel(),
+                                                .findFirst()
+                                                .orElseThrow()
+                                                .parallel(),
                                         analysisController.entryForSlot(slot).quantity(),
                                         getQuantityReference())));
         setChanged();
@@ -779,9 +777,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return analysisController.taskStatus(slot);
     }
 
-
     private void updateProcessingPlans() {
-        double efficiency = getBaseMachineEfficiency() * upgradeController.state().efficiencyMultiplier();
+        double efficiency =
+                getBaseMachineEfficiency() * upgradeController.state().efficiencyMultiplier();
         MinerScriptConfig config = scriptConfig();
         int configuredProcessingTime =
                 config != null && config.processingTime() != null ? config.processingTime() : 0;
@@ -795,8 +793,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void autoExtractFluid(ServerLevel serverLevel) {
-        outputController.extractFluid(this, serverLevel, worldPosition, fluidTank, getRequiredFluid(),
-                isAutoExtractFluidEnabled(), this::getFluidFaceMode);
+        outputController.extractFluid(
+                this,
+                serverLevel,
+                worldPosition,
+                fluidTank,
+                getRequiredFluid(),
+                isAutoExtractFluidEnabled(),
+                this::getFluidFaceMode);
     }
 
     private IFluidHandler createFluidInputHandler() {
@@ -878,10 +882,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void retryPendingOutput(ServerLevel outputLevel) {
-        outputController.setPending(outputController.retry(
-                        outputLevel,
-                        worldPosition,
-                        this::isWorldOutputFaceEnabled));
+        outputController.setPending(
+                outputController.retry(outputLevel, worldPosition, this::isWorldOutputFaceEnabled));
         setChanged();
     }
 

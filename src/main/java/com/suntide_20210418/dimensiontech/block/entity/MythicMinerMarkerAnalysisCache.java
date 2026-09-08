@@ -1,7 +1,5 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
-import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
-
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
@@ -9,9 +7,10 @@ import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
-import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
+import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureAnalysisService;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
+import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.utils;
 
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueSnapshot;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueSnapshot;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

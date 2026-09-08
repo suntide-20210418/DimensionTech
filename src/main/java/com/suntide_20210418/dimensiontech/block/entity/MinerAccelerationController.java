@@ -1,7 +1,7 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
-import com.suntide_20210418.dimensiontech.mythicminer.processing.ExternalTickAcceleration;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExpectationMath;
+import com.suntide_20210418.dimensiontech.mythicminer.processing.ExternalTickAcceleration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -191,12 +191,9 @@ final class MinerAccelerationController {
             boolean targetReached =
                     e.contains("TargetReached", Tag.TAG_BYTE)
                             ? e.getBoolean("TargetReached")
-                            : actualTicks
-                                            >= ExternalTickAcceleration
-                                                    .MINIMUM_NATURAL_TICKS
+                            : actualTicks >= ExternalTickAcceleration.MINIMUM_NATURAL_TICKS
                                     && naturalTicks
-                                            < ExternalTickAcceleration
-                                                    .MINIMUM_NATURAL_TICKS;
+                                            < ExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
             acceleration[slot].load(
                     new ExternalTickAcceleration.State(
                             e.getLong("LastGameTime"),

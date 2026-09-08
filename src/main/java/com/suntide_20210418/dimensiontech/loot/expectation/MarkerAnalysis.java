@@ -7,8 +7,13 @@ import net.minecraft.world.item.ItemStack;
 
 /** Immutable marker analysis input shared by processing and expectation-preserving output. */
 public record MarkerAnalysis(
-        int slot, ItemStack marker, ResourceLocation dimension, BlockPos position,
-        double dimensionValue, double structureValue, double quantity,
+        int slot,
+        ItemStack marker,
+        ResourceLocation dimension,
+        BlockPos position,
+        double dimensionValue,
+        double structureValue,
+        double quantity,
         Map<ResourceLocation, ExactProbability> expectedItems) {
     public MarkerAnalysis {
         marker = marker.copy();

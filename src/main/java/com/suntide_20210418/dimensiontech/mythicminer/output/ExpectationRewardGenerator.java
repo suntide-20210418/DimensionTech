@@ -1,8 +1,8 @@
 package com.suntide_20210418.dimensiontech.mythicminer.output;
 
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +19,8 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Generates miner rewards from cached item expectations.
  *
- * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original
- * LootTable joint distribution, pool selection, function chain, or random sequence.
+ * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original LootTable
+ * joint distribution, pool selection, function chain, or random sequence.
  */
 public final class ExpectationRewardGenerator {
     private ExpectationRewardGenerator() {}

@@ -4,9 +4,9 @@ import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.mythicminer.processing.ProcessingMath;
+import java.util.Arrays;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import java.util.Arrays;
 
 /** Owns multiblock upgrade discovery and exposes one immutable bonus snapshot per refresh. */
 final class MinerUpgradeController {
@@ -33,7 +33,9 @@ final class MinerUpgradeController {
 
     int totalParallel(int machineBaseParallel, int efficiencyParallelHundredths) {
         return ProcessingMath.totalParallel(
-                machineBaseParallel, efficiencyParallelHundredths, state.parallelMultiplierHundredths());
+                machineBaseParallel,
+                efficiencyParallelHundredths,
+                state.parallelMultiplierHundredths());
     }
 
     int upgradedBaseParallel(int machineBaseParallel) {
@@ -43,7 +45,9 @@ final class MinerUpgradeController {
 
     int extraEfficiencyParallel(int machineBaseParallel, int efficiencyParallelHundredths) {
         return ProcessingMath.extraEfficiencyParallel(
-                machineBaseParallel, efficiencyParallelHundredths, state.parallelMultiplierHundredths());
+                machineBaseParallel,
+                efficiencyParallelHundredths,
+                state.parallelMultiplierHundredths());
     }
 
     float effectiveLuck(float machineLuck) {
@@ -71,6 +75,7 @@ final class MinerUpgradeController {
         public int[] upgradeCountsByTypeAndTier() {
             return Arrays.copyOf(upgradeCountsByTypeAndTier, upgradeCountsByTypeAndTier.length);
         }
+
         static final UpgradeState NONE =
                 new UpgradeState(
                         1.0D,

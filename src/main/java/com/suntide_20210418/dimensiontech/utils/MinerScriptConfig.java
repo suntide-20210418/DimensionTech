@@ -15,7 +15,8 @@ public record MinerScriptConfig(
         Boolean requiresFluid) {
     public MinerScriptConfig {
         if (blockId == null) throw new IllegalArgumentException("blockId is required");
-        if (processingTime != null && processingTime < ExternalTickAcceleration.MINIMUM_NATURAL_TICKS)
+        if (processingTime != null
+                && processingTime < ExternalTickAcceleration.MINIMUM_NATURAL_TICKS)
             throw new IllegalArgumentException(
                     "processingTime must be at least "
                             + ExternalTickAcceleration.MINIMUM_NATURAL_TICKS);

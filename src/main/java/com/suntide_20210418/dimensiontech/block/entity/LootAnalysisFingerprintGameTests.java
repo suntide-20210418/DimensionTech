@@ -1,10 +1,9 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
-import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
-
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;

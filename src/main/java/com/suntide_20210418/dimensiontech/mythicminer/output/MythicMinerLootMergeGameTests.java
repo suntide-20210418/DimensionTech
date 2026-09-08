@@ -1,6 +1,5 @@
 package com.suntide_20210418.dimensiontech.mythicminer.output;
 
-
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import java.util.ArrayList;
 import java.util.List;

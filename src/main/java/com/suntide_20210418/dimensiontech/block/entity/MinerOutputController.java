@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
-import java.util.function.Function;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -50,18 +50,27 @@ final class MinerOutputController {
         if (!enabled || required == null || tank.getFluidAmount() >= tank.getCapacity()) return;
         int remaining = tank.getCapacity() - tank.getFluidAmount();
         for (Direction direction : Direction.values()) {
-            if (remaining <= 0 || faceMode.apply(direction) != BaseMinerBlockEntity.FluidFaceMode.INPUT) continue;
+            if (remaining <= 0
+                    || faceMode.apply(direction) != BaseMinerBlockEntity.FluidFaceMode.INPUT)
+                continue;
             BlockEntity adjacent = level.getBlockEntity(position.relative(direction));
             if (adjacent == null) continue;
             if (AE2_LOADED && Ae2Integration.isOnlineInterface(adjacent)) {
                 if (outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK) {
-                    remaining -= Ae2Integration.extractFluidFromInterfaceNetwork(adjacent, required, remaining, tank);
+                    remaining -=
+                            Ae2Integration.extractFluidFromInterfaceNetwork(
+                                    adjacent, required, remaining, tank);
                 }
                 continue;
             }
-            IFluidHandler handler = adjacent.getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite()).orElse(null);
+            IFluidHandler handler =
+                    adjacent.getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite())
+                            .orElse(null);
             if (handler == null) continue;
-            FluidStack simulated = handler.drain(new FluidStack(required, remaining), IFluidHandler.FluidAction.SIMULATE);
+            FluidStack simulated =
+                    handler.drain(
+                            new FluidStack(required, remaining),
+                            IFluidHandler.FluidAction.SIMULATE);
             int accepted = tank.fill(simulated, IFluidHandler.FluidAction.SIMULATE);
             if (accepted <= 0) continue;
             FluidStack drained = handler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
@@ -71,26 +80,56 @@ final class MinerOutputController {
         }
     }
 
-    boolean blocked() { return !pending.isEmpty(); }
-    int pendingCount() { return pending.stream().mapToInt(ItemStack::getCount).sum(); }
-    BaseMinerBlockEntity.OutputState outputState() { return outputState; }
-    void cycleOutputState() {
-        outputState = outputState == BaseMinerBlockEntity.OutputState.ITEM_HANDLER
-                ? BaseMinerBlockEntity.OutputState.ME_NETWORK
-                : BaseMinerBlockEntity.OutputState.ITEM_HANDLER;
+    boolean blocked() {
+        return !pending.isEmpty();
     }
-    int outputFaceMask() { return outputFaceMask; }
+
+    int pendingCount() {
+        return pending.stream().mapToInt(ItemStack::getCount).sum();
+    }
+
+    BaseMinerBlockEntity.OutputState outputState() {
+        return outputState;
+    }
+
+    void cycleOutputState() {
+        outputState =
+                outputState == BaseMinerBlockEntity.OutputState.ITEM_HANDLER
+                        ? BaseMinerBlockEntity.OutputState.ME_NETWORK
+                        : BaseMinerBlockEntity.OutputState.ITEM_HANDLER;
+    }
+
+    int outputFaceMask() {
+        return outputFaceMask;
+    }
+
     boolean outputFaceEnabled(Direction worldDirection) {
         return (outputFaceMask & (1 << worldDirection.ordinal())) != 0;
     }
-    void toggleOutputFace(Direction worldDirection) { outputFaceMask ^= 1 << worldDirection.ordinal(); }
-    boolean equipmentDismantling() { return equipmentDismantling; }
-    void toggleEquipmentDismantling() { equipmentDismantling = !equipmentDismantling; }
+
+    void toggleOutputFace(Direction worldDirection) {
+        outputFaceMask ^= 1 << worldDirection.ordinal();
+    }
+
+    boolean equipmentDismantling() {
+        return equipmentDismantling;
+    }
+
+    void toggleEquipmentDismantling() {
+        equipmentDismantling = !equipmentDismantling;
+    }
+
     void toggleDisabledItem(ResourceLocation item) {
         if (!disabledItems.add(item)) disabledItems.remove(item);
     }
-    boolean disabled(ResourceLocation item) { return disabledItems.contains(item); }
-    Set<ResourceLocation> disabledItems() { return Set.copyOf(disabledItems); }
+
+    boolean disabled(ResourceLocation item) {
+        return disabledItems.contains(item);
+    }
+
+    Set<ResourceLocation> disabledItems() {
+        return Set.copyOf(disabledItems);
+    }
 
     List<ItemStack> emit(
             BaseMinerBlockEntity miner,
@@ -126,9 +165,7 @@ final class MinerOutputController {
     }
 
     List<ItemStack> retry(
-            ServerLevel level,
-            BlockPos position,
-            Predicate<Direction> outputFaceEnabled) {
+            ServerLevel level, BlockPos position, Predicate<Direction> outputFaceEnabled) {
         return MythicMinerOutputRouter.output(
                 level,
                 position,
@@ -137,7 +174,9 @@ final class MinerOutputController {
                 pending);
     }
 
-    void setPending(List<ItemStack> output) { pending = List.copyOf(output); }
+    void setPending(List<ItemStack> output) {
+        pending = List.copyOf(output);
+    }
 
     void save(CompoundTag tag, String equipmentTag, String pendingTag) {
         tag.putInt("ConfiguredOutputState", outputState.ordinal());
@@ -152,12 +191,18 @@ final class MinerOutputController {
     }
 
     void load(CompoundTag tag, String equipmentTag, String pendingTag) {
-        int ordinal = tag.contains("ConfiguredOutputState", Tag.TAG_INT)
-                ? tag.getInt("ConfiguredOutputState") : BaseMinerBlockEntity.OutputState.ITEM_HANDLER.ordinal();
-        outputState = ordinal == BaseMinerBlockEntity.OutputState.ME_NETWORK.ordinal()
-                ? BaseMinerBlockEntity.OutputState.ME_NETWORK : BaseMinerBlockEntity.OutputState.ITEM_HANDLER;
-        outputFaceMask = tag.contains("OutputFaceMask", Tag.TAG_INT)
-                ? tag.getInt("OutputFaceMask") & ALL_FACES : ALL_FACES;
+        int ordinal =
+                tag.contains("ConfiguredOutputState", Tag.TAG_INT)
+                        ? tag.getInt("ConfiguredOutputState")
+                        : BaseMinerBlockEntity.OutputState.ITEM_HANDLER.ordinal();
+        outputState =
+                ordinal == BaseMinerBlockEntity.OutputState.ME_NETWORK.ordinal()
+                        ? BaseMinerBlockEntity.OutputState.ME_NETWORK
+                        : BaseMinerBlockEntity.OutputState.ITEM_HANDLER;
+        outputFaceMask =
+                tag.contains("OutputFaceMask", Tag.TAG_INT)
+                        ? tag.getInt("OutputFaceMask") & ALL_FACES
+                        : ALL_FACES;
         equipmentDismantling = tag.getBoolean(equipmentTag);
         disabledItems.clear();
         for (Tag value : tag.getList("DisabledExpectedItems", Tag.TAG_STRING)) {

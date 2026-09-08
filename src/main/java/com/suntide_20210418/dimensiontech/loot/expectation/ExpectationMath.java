@@ -32,7 +32,8 @@ public final class ExpectationMath {
         return averageParallel * drawsPerParallel * quantityFactorHundredths / 100.0D;
     }
 
-    public static double expectedItemCount(double itemWeight, double totalWeight, double expectedDraws) {
+    public static double expectedItemCount(
+            double itemWeight, double totalWeight, double expectedDraws) {
         if (!Double.isFinite(itemWeight)
                 || itemWeight <= 0.0D
                 || !Double.isFinite(totalWeight)
@@ -45,7 +46,8 @@ public final class ExpectationMath {
     }
 
     /** Converts hundredths into whole units while retaining a bounded per-slot remainder. */
-    public static AccumulatedValue accumulateHundredths(int remainderHundredths, long scaledHundredths) {
+    public static AccumulatedValue accumulateHundredths(
+            int remainderHundredths, long scaledHundredths) {
         long nonNegativeScaled = Math.max(0L, scaledHundredths);
         int remainder = Math.max(0, Math.min(99, remainderHundredths));
         long whole = nonNegativeScaled / 100L;
