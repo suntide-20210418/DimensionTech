@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.loot.expectation.ExpectationMath;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -114,7 +115,7 @@ final class MinerAccelerationController {
     }
 
     int drawsForQuantity(int slot, int parallel, double quantity, double quantityReference) {
-        int factor = MythicMinerExpectationMath.quantityFactorHundredths(quantity, quantityReference);
+        int factor = ExpectationMath.quantityFactorHundredths(quantity, quantityReference);
         long scaled = (long) parallel * 8L * factor;
         return drawsForQuantity(slot, scaled);
     }

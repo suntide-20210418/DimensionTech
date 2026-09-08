@@ -1,13 +1,13 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.loot.expectation;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /** Pure long-run expectation calculations matching the miner's fractional accumulation rules. */
-final class MythicMinerExpectationMath {
-    private MythicMinerExpectationMath() {}
+public final class ExpectationMath {
+    private ExpectationMath() {}
 
-    static int quantityFactorHundredths(double quantity, double reference) {
+    public static int quantityFactorHundredths(double quantity, double reference) {
         if (!Double.isFinite(reference) || reference <= 0.0D) {
             return 100;
         }
@@ -21,18 +21,18 @@ final class MythicMinerExpectationMath {
                 .intValue();
     }
 
-    static double averageParallel(
+    public static double averageParallel(
             int baseParallel, int efficiencyHundredths, int upgradeHundredths) {
         long scaled = (long) baseParallel * efficiencyHundredths * upgradeHundredths / 100L;
         return scaled / 100.0D;
     }
 
-    static double expectedDraws(
+    public static double expectedDraws(
             double averageParallel, int drawsPerParallel, int quantityFactorHundredths) {
         return averageParallel * drawsPerParallel * quantityFactorHundredths / 100.0D;
     }
 
-    static double expectedItemCount(double itemWeight, double totalWeight, double expectedDraws) {
+    public static double expectedItemCount(double itemWeight, double totalWeight, double expectedDraws) {
         if (!Double.isFinite(itemWeight)
                 || itemWeight <= 0.0D
                 || !Double.isFinite(totalWeight)
@@ -45,7 +45,7 @@ final class MythicMinerExpectationMath {
     }
 
     /** Converts hundredths into whole units while retaining a bounded per-slot remainder. */
-    static AccumulatedValue accumulateHundredths(int remainderHundredths, long scaledHundredths) {
+    public static AccumulatedValue accumulateHundredths(int remainderHundredths, long scaledHundredths) {
         long nonNegativeScaled = Math.max(0L, scaledHundredths);
         int remainder = Math.max(0, Math.min(99, remainderHundredths));
         long whole = nonNegativeScaled / 100L;
@@ -57,5 +57,5 @@ final class MythicMinerExpectationMath {
         return new AccumulatedValue(whole, combinedRemainder);
     }
 
-    record AccumulatedValue(long whole, int remainderHundredths) {}
+    public record AccumulatedValue(long whole, int remainderHundredths) {}
 }

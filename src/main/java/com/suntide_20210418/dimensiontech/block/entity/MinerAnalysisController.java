@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExpectationMath;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import java.util.List;
 import java.util.Map;
@@ -78,11 +79,11 @@ final class MinerAnalysisController {
             java.util.Set<ResourceLocation> disabledItems) {
         MarkerAnalysis loot = entryForSlot(slot);
         if (loot == null || loot.quantity() <= 0.0D) return MythicMinerAnalysisSnapshot.EMPTY;
-        int factor = MythicMinerExpectationMath.quantityFactorHundredths(loot.quantity(), quantityReference);
-        double draws = MythicMinerExpectationMath.expectedDraws(averageParallel, drawsPerParallel, factor);
+        int factor = ExpectationMath.quantityFactorHundredths(loot.quantity(), quantityReference);
+        double draws = ExpectationMath.expectedDraws(averageParallel, drawsPerParallel, factor);
         Map<ResourceLocation, Double> expectations = new java.util.LinkedHashMap<>();
         loot.expectedItems().forEach((item, weight) -> {
-            double value = MythicMinerExpectationMath.expectedItemCount(weight.finiteDoubleValue(), loot.quantity(), draws);
+            double value = ExpectationMath.expectedItemCount(weight.finiteDoubleValue(), loot.quantity(), draws);
             if (Double.isFinite(value) && value > 0.0D) expectations.put(item, value);
         });
         Map<ResourceLocation, Double> displayed = dismantling

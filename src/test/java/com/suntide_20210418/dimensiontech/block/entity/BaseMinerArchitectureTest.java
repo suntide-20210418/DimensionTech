@@ -13,7 +13,7 @@ class BaseMinerArchitectureTest {
         String text = Files.readString(source);
         for (String forbidden : new String[] {
             "LootAnalysisFingerprint", "ExpectationRewardGenerator", "MythicMinerOutputRouter",
-            "MythicMinerUpgradeResolver", "MythicMinerExternalTickAcceleration", "LootTable"}) {
+            "MythicMinerUpgradeResolver", "MythicMinerExternalTickAcceleration", "MythicMinerExpectationMath", "LootTable"}) {
             assertFalse(text.contains(forbidden), "BaseMinerBlockEntity must not reference " + forbidden);
         }
     }
