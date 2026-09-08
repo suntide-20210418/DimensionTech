@@ -1,6 +1,7 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.output;
 
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
+import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +17,12 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 
 /** Routes generated stacks to the miner's enabled adjacent outputs. */
-final class MythicMinerOutputRouter {
+public final class MythicMinerOutputRouter {
     private static final boolean AE2_LOADED = ModList.get().isLoaded("ae2");
 
     private MythicMinerOutputRouter() {}
 
-    static List<ItemStack> output(
+    public static List<ItemStack> output(
             ServerLevel level,
             BlockPos position,
             BaseMinerBlockEntity.OutputState outputState,

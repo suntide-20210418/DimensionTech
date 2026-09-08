@@ -6,7 +6,7 @@ import com.suntide_20210418.dimensiontech.block.entity.LootAnalysisFingerprintGa
 import com.suntide_20210418.dimensiontech.block.entity.ModBlockEntities;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerLootMergeGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerMarkerAnalysisCacheGameTests;
-import com.suntide_20210418.dimensiontech.block.entity.MythicMinerOutputRouterGameTests;
+import com.suntide_20210418.dimensiontech.mythicminer.output.MythicMinerOutputRouterGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.MythicMinerTierGameTests;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;

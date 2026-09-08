@@ -1,9 +1,10 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.output;
 
 import appeng.blockentity.misc.InterfaceBlockEntity;
 import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEItems;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
