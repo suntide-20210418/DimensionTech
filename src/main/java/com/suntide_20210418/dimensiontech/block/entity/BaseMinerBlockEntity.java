@@ -95,9 +95,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
     private boolean autoExtractFluid;
     private boolean structureComplete;
-    private MinerUpgradeController.UpgradeState upgradeBonuses =
-            MinerUpgradeController.UpgradeState.NONE;
-
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
 
@@ -220,22 +217,18 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         int slot = firstActiveSlot();
         return slot >= 0
                 ? getSlotDrawParallel(slot)
-                : MythicMinerUpgradeMath.totalParallel(
-                        getBaseParallel(), 100, upgradeBonuses.parallelMultiplierHundredths());
+                : upgradeController.totalParallel(getBaseParallel(), 100);
     }
 
     public int getEffectiveBaseParallel() {
-        return MythicMinerUpgradeMath.upgradedBaseParallel(
-                getBaseParallelCount(), upgradeBonuses.parallelMultiplierHundredths());
+        return upgradeController.upgradedBaseParallel(getBaseParallelCount());
     }
 
     public int getExtraEfficiencyParallel() {
         int slot = firstActiveSlot();
         return slot >= 0
-                ? MythicMinerUpgradeMath.extraEfficiencyParallel(
-                        getBaseParallel(),
-                        accelerationController.currentParallelHundredths(slot),
-                        upgradeBonuses.parallelMultiplierHundredths())
+                ? upgradeController.extraEfficiencyParallel(
+                        getBaseParallel(), accelerationController.currentParallelHundredths(slot))
                 : 0;
     }
 
@@ -307,7 +300,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                                                 != null
                                                 ? scriptConfig().energyConsumption()
                                                 : getEnergyConsumption())
-                                        * upgradeBonuses.energyConsumptionMultiplier()));
+                                        * upgradeController.state().energyConsumptionMultiplier()));
     }
 
     /** Total energy consumed per machine tick by all currently working slots. */
@@ -327,7 +320,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public double getEffectiveMachineEfficiency() {
-        return getBaseMachineEfficiency() * upgradeBonuses.efficiencyMultiplier();
+        return getBaseMachineEfficiency() * upgradeController.state().efficiencyMultiplier();
     }
 
     public double getBaseMachineEfficiency() {
@@ -346,37 +339,36 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public float getEffectiveMachineLuck() {
-        return MythicMinerUpgradeMath.effectiveLuck(
-                getBaseMachineLuck(), upgradeBonuses.luckIncreasePercent());
+        return upgradeController.effectiveLuck(getBaseMachineLuck());
     }
 
     public double getEfficiencyUpgradePercent() {
-        return (upgradeBonuses.efficiencyMultiplier() - 1.0D) * 100.0D;
+        return (upgradeController.state().efficiencyMultiplier() - 1.0D) * 100.0D;
     }
 
     public double getEnergyCapacityUpgradePercent() {
-        return (upgradeBonuses.energyCapacityMultiplier() - 1.0D) * 100.0D;
+        return (upgradeController.state().energyCapacityMultiplier() - 1.0D) * 100.0D;
     }
 
     public double getEnergyConsumptionReductionPercent() {
-        return (1.0D - upgradeBonuses.energyConsumptionMultiplier()) * 100.0D;
+        return (1.0D - upgradeController.state().energyConsumptionMultiplier()) * 100.0D;
     }
 
     public double getParallelUpgradePercent() {
-        return upgradeBonuses.parallelMultiplierHundredths() - 100.0D;
+        return upgradeController.state().parallelMultiplierHundredths() - 100.0D;
     }
 
     public double getLuckUpgradePercent() {
-        return upgradeBonuses.luckIncreasePercent();
+        return upgradeController.state().luckIncreasePercent();
     }
 
     public int getUpgradeCount(MythicMinerUpgradeBlock.Type type) {
         return switch (type) {
-            case EFFICIENCY -> upgradeBonuses.efficiencyUpgradeCount();
-            case ENERGY -> upgradeBonuses.energyUpgradeCount();
-            case PARALLEL -> upgradeBonuses.parallelUpgradeCount();
-            case LUCK -> upgradeBonuses.luckUpgradeCount();
-            case AGGREGATE -> upgradeBonuses.aggregateUpgradeCount();
+            case EFFICIENCY -> upgradeController.state().efficiencyUpgradeCount();
+            case ENERGY -> upgradeController.state().energyUpgradeCount();
+            case PARALLEL -> upgradeController.state().parallelUpgradeCount();
+            case LUCK -> upgradeController.state().luckUpgradeCount();
+            case AGGREGATE -> upgradeController.state().aggregateUpgradeCount();
             case NONE -> 0;
         };
     }
@@ -385,15 +377,16 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (tier < 1 || tier > 6 || type == MythicMinerUpgradeBlock.Type.NONE) {
             return 0;
         }
-        return upgradeBonuses.countFor(type, tier);
+        return upgradeController.state().countFor(type, tier);
     }
 
     public int getTotalUpgradeCount() {
-        return upgradeBonuses.efficiencyUpgradeCount()
-                + upgradeBonuses.energyUpgradeCount()
-                + upgradeBonuses.parallelUpgradeCount()
-                + upgradeBonuses.luckUpgradeCount()
-                + upgradeBonuses.aggregateUpgradeCount();
+        MinerUpgradeController.UpgradeState upgrades = upgradeController.state();
+        return upgrades.efficiencyUpgradeCount()
+                + upgrades.energyUpgradeCount()
+                + upgrades.parallelUpgradeCount()
+                + upgrades.luckUpgradeCount()
+                + upgrades.aggregateUpgradeCount();
     }
 
     public int getAccumulatedParallelHundredths() {
@@ -596,9 +589,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             setChanged();
         }
         applyUpgradeBonuses(
-                complete
-                        ? upgradeController.refresh(serverLevel)
-                        : MinerUpgradeController.UpgradeState.NONE);
+                complete ? upgradeController.refresh(serverLevel) : upgradeController.clear());
     }
 
     private boolean canRunThisTick(ServerLevel serverLevel) {
@@ -707,7 +698,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
-        upgradeBonuses = bonuses;
         long capacity = Math.round(getBaseEnergyCapacity() * bonuses.energyCapacityMultiplier());
         energyStorage.setCapacity((int) Math.max(1L, Math.min(Integer.MAX_VALUE, capacity)));
     }
@@ -732,7 +722,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
                         * accelerationController.currentParallelHundredths(slot)
-                        * upgradeBonuses.parallelMultiplierHundredths()
+                        * upgradeController.state().parallelMultiplierHundredths()
                         / 100L;
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
@@ -743,7 +733,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
                         * accelerationController.currentParallelHundredths(slot)
-                        * upgradeBonuses.parallelMultiplierHundredths()
+                        * upgradeController.state().parallelMultiplierHundredths()
                         / 100L;
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
@@ -791,17 +781,17 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
 
     private void updateProcessingPlans() {
-        double efficiency = getBaseMachineEfficiency() * upgradeBonuses.efficiencyMultiplier();
+        double efficiency = getBaseMachineEfficiency() * upgradeController.state().efficiencyMultiplier();
         MinerScriptConfig config = scriptConfig();
         int configuredProcessingTime =
                 config != null && config.processingTime() != null ? config.processingTime() : 0;
-        analysisController.refreshPlans(efficiency, configuredProcessingTime,
-                MINIMUM_PROCESSING_TIME, getBaseParallelCount(), slotEnabled);
-        accelerationController.clearPlans();
-        for (int slot = 0; slot < accelerationController.slotCount(); slot++) {
-            MythicMinerUpgradeMath.ProcessingPlan plan = analysisController.plan(slot);
-            accelerationController.setPlan(slot, plan.processingTicks(), plan.parallelHundredths());
-        }
+        analysisController.refreshPlans(
+                efficiency,
+                configuredProcessingTime,
+                MINIMUM_PROCESSING_TIME,
+                getBaseParallelCount(),
+                slotEnabled,
+                accelerationController);
     }
 
     private void autoExtractFluid(ServerLevel serverLevel) {

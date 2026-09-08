@@ -16,6 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.mythicminer.output.EquipmentDismantler;
+import com.suntide_20210418.dimensiontech.mythicminer.processing.ProcessingMath;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -24,7 +25,7 @@ final class MinerAnalysisController {
     private final ItemStackHandler inventory;
     private final Supplier<Float> luck;
     private final MythicMinerMarkerAnalysisCache cache;
-    private Map<Integer, MythicMinerUpgradeMath.ProcessingPlan> plans = Map.of();
+    private Map<Integer, ProcessingMath.ProcessingPlan> plans = Map.of();
 
     MinerAnalysisController(
             ItemStackHandler inventory, Supplier<Float> luck, BooleanSupplier removed) {
@@ -59,20 +60,25 @@ final class MinerAnalysisController {
     }
 
     void refreshPlans(double efficiency, int configuredProcessingTime, int minimumNaturalTicks,
-            int baseParallel, boolean[] enabledSlots) {
-        Map<Integer, MythicMinerUpgradeMath.ProcessingPlan> next = new HashMap<>();
+            int baseParallel, boolean[] enabledSlots, MinerAccelerationController acceleration) {
+        Map<Integer, ProcessingMath.ProcessingPlan> next = new HashMap<>();
         for (MarkerAnalysis loot : entries()) {
             int slot = loot.slot();
             if (slot >= 0 && slot < enabledSlots.length && enabledSlots[slot]) {
-                next.put(slot, MythicMinerUpgradeMath.processingPlan(loot.structureValue(), efficiency,
+                next.put(slot, ProcessingMath.processingPlan(loot.structureValue(), efficiency,
                         configuredProcessingTime, minimumNaturalTicks, baseParallel));
             }
         }
         plans = Map.copyOf(next);
+        acceleration.clearPlans();
+        for (int slot = 0; slot < acceleration.slotCount(); slot++) {
+            ProcessingMath.ProcessingPlan plan = plan(slot);
+            acceleration.setPlan(slot, plan.processingTicks(), plan.parallelHundredths());
+        }
     }
 
-    MythicMinerUpgradeMath.ProcessingPlan plan(int slot) {
-        return plans.getOrDefault(slot, new MythicMinerUpgradeMath.ProcessingPlan(0, 0));
+    ProcessingMath.ProcessingPlan plan(int slot) {
+        return plans.getOrDefault(slot, new ProcessingMath.ProcessingPlan(0, 0));
     }
 
     MythicMinerAnalysisSnapshot snapshot(int slot, ServerLevel level, double averageParallel,

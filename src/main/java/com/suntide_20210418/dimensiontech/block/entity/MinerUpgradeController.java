@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.block.entity;
 import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.mythicminer.processing.ProcessingMath;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import java.util.Arrays;
@@ -23,6 +24,30 @@ final class MinerUpgradeController {
 
     UpgradeState state() {
         return state;
+    }
+
+    UpgradeState clear() {
+        state = UpgradeState.NONE;
+        return state;
+    }
+
+    int totalParallel(int machineBaseParallel, int efficiencyParallelHundredths) {
+        return ProcessingMath.totalParallel(
+                machineBaseParallel, efficiencyParallelHundredths, state.parallelMultiplierHundredths());
+    }
+
+    int upgradedBaseParallel(int machineBaseParallel) {
+        return ProcessingMath.upgradedBaseParallel(
+                machineBaseParallel, state.parallelMultiplierHundredths());
+    }
+
+    int extraEfficiencyParallel(int machineBaseParallel, int efficiencyParallelHundredths) {
+        return ProcessingMath.extraEfficiencyParallel(
+                machineBaseParallel, efficiencyParallelHundredths, state.parallelMultiplierHundredths());
+    }
+
+    float effectiveLuck(float machineLuck) {
+        return ProcessingMath.effectiveLuck(machineLuck, state.luckIncreasePercent());
     }
 
     record UpgradeState(

@@ -1,18 +1,18 @@
-package com.suntide_20210418.dimensiontech.block.entity;
+package com.suntide_20210418.dimensiontech.mythicminer.processing;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/** Pure upgrade calculations shared by machine logic and unit tests. */
-final class MythicMinerUpgradeMath {
-    private MythicMinerUpgradeMath() {}
+/** Pure processing and attribute calculations shared by miner controllers. */
+public final class ProcessingMath {
+    private ProcessingMath() {}
 
-    static float effectiveLuck(float machineLuck, double luckIncreasePercent) {
+    public static float effectiveLuck(float machineLuck, double luckIncreasePercent) {
         double percentageBase = machineLuck < 1.0F ? 1.0D : machineLuck;
         return (float) (machineLuck + percentageBase * luckIncreasePercent / 100.0D);
     }
 
-    static int totalParallel(
+    public static int totalParallel(
             int machineBaseParallel,
             int efficiencyParallelHundredths,
             int upgradeMultiplierHundredths) {
@@ -23,11 +23,11 @@ final class MythicMinerUpgradeMath {
         return Math.max(1, (int) Math.min(Integer.MAX_VALUE, scaled / 10_000L));
     }
 
-    static int upgradedBaseParallel(int machineBaseParallel, int upgradeMultiplierHundredths) {
+    public static int upgradedBaseParallel(int machineBaseParallel, int upgradeMultiplierHundredths) {
         return totalParallel(machineBaseParallel, 100, upgradeMultiplierHundredths);
     }
 
-    static int extraEfficiencyParallel(
+    public static int extraEfficiencyParallel(
             int machineBaseParallel,
             int efficiencyParallelHundredths,
             int upgradeMultiplierHundredths) {
@@ -44,7 +44,7 @@ final class MythicMinerUpgradeMath {
      * Computes the immutable processing plan for a marker value before mutable slot state applies
      * it.
      */
-    static ProcessingPlan processingPlan(
+    public static ProcessingPlan processingPlan(
             double structureValue,
             double efficiency,
             int configuredProcessingTime,
@@ -87,5 +87,5 @@ final class MythicMinerUpgradeMath {
         return new ProcessingPlan(configuredTicks > 0 ? configuredTicks : defaultTicks, 100);
     }
 
-    record ProcessingPlan(int processingTicks, int parallelHundredths) {}
+    public record ProcessingPlan(int processingTicks, int parallelHundredths) {}
 }
