@@ -15,7 +15,7 @@ public record LootAnalysisFingerprint(
         int algorithmVersion, List<String> markerSlots, int luckBits, String analysisConfig) {
     public static final int ALGORITHM_VERSION = 1;
 
-    LootAnalysisFingerprint {
+    public LootAnalysisFingerprint {
         markerSlots = List.copyOf(markerSlots);
         analysisConfig = analysisConfig == null ? "" : analysisConfig;
     }
