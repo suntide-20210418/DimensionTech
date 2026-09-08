@@ -37,6 +37,20 @@ class MythicMinerExternalTickAccelerationTest {
     }
 
     @Test
+    void completionWaitsForTheNaturalWindowBoundary() {
+        MythicMinerExternalTickAcceleration acceleration =
+                new MythicMinerExternalTickAcceleration();
+        MythicMinerExternalTickAcceleration.Observation observation = null;
+        for (long gameTime = 0; gameTime < 399; gameTime++) {
+            observation = acceleration.observe(gameTime, 400);
+        }
+        assertFalse(observation.complete());
+        observation = acceleration.observe(399L, 400);
+        assertTrue(observation.complete());
+        assertEquals(400L, observation.completedActualTicks());
+    }
+
+    @Test
     void acceleratedCycleWaitsFor400NaturalTicksAndSettlesParallel() {
         MythicMinerExternalTickAcceleration acceleration =
                 new MythicMinerExternalTickAcceleration();

@@ -72,6 +72,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             "LastEnergyConsumptionGameTime";
     private static final int DRAWS_PER_PARALLEL = 8;
     public static final int FLUID_PER_WORK_CYCLE_MB = 25;
+    /** A cycle must span the complete natural observation window used for acceleration accounting. */
+    public static final int MINIMUM_PROCESSING_TIME =
+            MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
 
     private final ItemStackHandler itemHandler;
     private final MinerEnergyStorage energyStorage;
@@ -80,8 +83,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private LazyOptional<IFluidHandler> fluidCapability;
     private LazyOptional<IFluidHandler> fluidOutputCapability;
     private final FluidTank fluidTank;
-    public static final int DEFAULT_PROCESSING_TIME =
-            MythicMinerExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
+    public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
     private final MythicMinerMarkerAnalysisCache markerLootCache;
     private List<ItemStack> pendingOutput = new ArrayList<>();
     private final MythicMinerSlotProgress slotProgress;
@@ -656,11 +658,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!redstoneMode.allows(level.getBestNeighborSignal(worldPosition), redstoneThreshold)) {
             return false;
         }
+        autoExtractFluid(serverLevel);
         if (!pendingOutput.isEmpty()) {
             retryPendingOutput(serverLevel);
             return false;
         }
-        autoExtractFluid(serverLevel);
         if (!hasValidMarker()) return false;
         refreshMarkerLootCache(serverLevel.getServer());
         updateProcessingPlans();
@@ -905,7 +907,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 structureValue,
                 efficiency,
                 configuredProcessingTime,
-                DEFAULT_PROCESSING_TIME,
+                MINIMUM_PROCESSING_TIME,
                 getBaseParallelCount());
         slotProcessingTimes[slot] = plan.processingTicks();
         slotParallelHundredths[slot] = plan.parallelHundredths();

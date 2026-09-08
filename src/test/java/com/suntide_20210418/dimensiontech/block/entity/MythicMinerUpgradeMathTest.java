@@ -19,12 +19,28 @@ class MythicMinerUpgradeMathTest {
         MythicMinerUpgradeMath.ProcessingPlan calculated =
                 MythicMinerUpgradeMath.processingPlan(450.1D, 1.0D, 0, 400, 1);
         MythicMinerUpgradeMath.ProcessingPlan configured =
-                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 275, 400, 1);
+                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 600, 400, 1);
 
         assertEquals(451, calculated.processingTicks());
         assertEquals(100, calculated.parallelHundredths());
-        assertEquals(275, configured.processingTicks());
+        assertEquals(600, configured.processingTicks());
         assertEquals(100, configured.parallelHundredths());
+    }
+
+    @Test
+    void configuredProcessingTimeCannotUndercutTheNaturalWindow() {
+        assertEquals(
+                400,
+                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 399, 400, 1)
+                        .processingTicks());
+        assertEquals(
+                400,
+                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 400, 400, 1)
+                        .processingTicks());
+        assertEquals(
+                401,
+                MythicMinerUpgradeMath.processingPlan(100.0D, 1.0D, 401, 400, 1)
+                        .processingTicks());
     }
 
     @Test

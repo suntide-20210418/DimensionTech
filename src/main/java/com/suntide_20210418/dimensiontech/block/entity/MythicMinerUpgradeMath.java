@@ -48,22 +48,26 @@ final class MythicMinerUpgradeMath {
             int minimumNaturalTicks,
             int baseParallel) {
         int defaultTicks = Math.max(1, minimumNaturalTicks);
+        int configuredTicks =
+                configuredProcessingTime > 0
+                        ? Math.max(defaultTicks, configuredProcessingTime)
+                        : 0;
         if (!Double.isFinite(efficiency)
                 || efficiency <= 0.0D
                 || !Double.isFinite(structureValue)
                 || structureValue <= 0.0D) {
-            return configuredOrDefault(configuredProcessingTime, defaultTicks);
+            return configuredOrDefault(configuredTicks, defaultTicks);
         }
 
         double calculatedTicks = structureValue / efficiency;
         if (!Double.isFinite(calculatedTicks)) {
             return new ProcessingPlan(
-                    configuredProcessingTime > 0 ? configuredProcessingTime : Integer.MAX_VALUE, 100);
+                    configuredTicks > 0 ? configuredTicks : Integer.MAX_VALUE, 100);
         }
         if (calculatedTicks >= defaultTicks) {
             int ticks = (int) Math.min(Integer.MAX_VALUE, Math.ceil(calculatedTicks));
-            return configuredProcessingTime > 0
-                    ? new ProcessingPlan(configuredProcessingTime, 100)
+            return configuredTicks > 0
+                    ? new ProcessingPlan(configuredTicks, 100)
                     : new ProcessingPlan(ticks, 100);
         }
 
@@ -74,12 +78,12 @@ final class MythicMinerUpgradeMath {
                         .movePointRight(2)
                         .min(BigDecimal.valueOf(maxParallelHundredths))
                         .intValue();
-        if (configuredProcessingTime > 0) return new ProcessingPlan(configuredProcessingTime, 100);
+        if (configuredTicks > 0) return new ProcessingPlan(configuredTicks, 100);
         return new ProcessingPlan(defaultTicks, Math.max(100, parallelHundredths));
     }
 
-    private static ProcessingPlan configuredOrDefault(int configuredProcessingTime, int defaultTicks) {
-        return new ProcessingPlan(configuredProcessingTime > 0 ? configuredProcessingTime : defaultTicks, 100);
+    private static ProcessingPlan configuredOrDefault(int configuredTicks, int defaultTicks) {
+        return new ProcessingPlan(configuredTicks > 0 ? configuredTicks : defaultTicks, 100);
     }
 
     record ProcessingPlan(int processingTicks, int parallelHundredths) {}

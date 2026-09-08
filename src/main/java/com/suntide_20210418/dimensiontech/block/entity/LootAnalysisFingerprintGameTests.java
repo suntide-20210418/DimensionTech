@@ -33,11 +33,27 @@ public final class LootAnalysisFingerprintGameTests {
                 .getCompound("StructureMarkerData")
                 .getCompound("Position")
                 .putInt("X", 42);
+        ItemStack boundsChanged = original.copy();
+        boundsChanged
+                .getTag()
+                .getCompound("StructureMarkerData")
+                .getCompound("Structure")
+                .getCompound("Bounds")
+                .putInt("MaxX", 42);
+        ItemStack dimensionChanged = original.copy();
+        dimensionChanged
+                .getTag()
+                .getCompound("StructureMarkerData")
+                .putString("Dimension", "minecraft:the_nether");
 
         LootAnalysisFingerprint baseline = fingerprint(original);
         if (!baseline.equals(fingerprint(countChanged))
                 || !baseline.equals(fingerprint(analysisPayloadChanged))
-                || baseline.equals(fingerprint(positionChanged))) {
+                || baseline.equals(fingerprint(positionChanged))
+                || baseline.equals(fingerprint(boundsChanged))
+                || baseline.equals(fingerprint(dimensionChanged))
+                || baseline.equals(fingerprint(original, 1.0F, "test-config"))
+                || baseline.equals(fingerprint(original, 0.0F, "changed-config"))) {
             helper.fail("Marker fingerprint did not distinguish only analysis-relevant inputs");
             return;
         }
@@ -55,8 +71,12 @@ public final class LootAnalysisFingerprintGameTests {
     }
 
     private static LootAnalysisFingerprint fingerprint(ItemStack marker) {
+        return fingerprint(marker, 0.0F, "test-config");
+    }
+
+    private static LootAnalysisFingerprint fingerprint(ItemStack marker, float luck, String config) {
         ItemStackHandler inventory = new ItemStackHandler(1);
         inventory.setStackInSlot(0, marker);
-        return LootAnalysisFingerprint.from(inventory, 0.0F, "test-config");
+        return LootAnalysisFingerprint.from(inventory, luck, config);
     }
 }

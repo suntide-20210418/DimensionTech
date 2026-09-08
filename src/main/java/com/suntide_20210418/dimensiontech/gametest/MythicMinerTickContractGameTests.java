@@ -10,6 +10,7 @@ import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
@@ -145,6 +146,38 @@ public final class MythicMinerTickContractGameTests {
         });
     }
 
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 400)
+    public static void repeatedCallsInOneNaturalTickConsumeResourcesOnlyOnce(
+            GameTestHelper helper) {
+        BaseMinerBlockEntity miner = placeAnalyzedMiner(helper, 2);
+        miner.getEnergyStorage().receiveEnergy(100_000, false);
+        miner.getFluidTank()
+                .fill(
+                        new FluidStack(
+                                miner.getRequiredFluid(),
+                                BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
+                        net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
+
+        helper.succeedWhen(() -> {
+            if (miner.getSlotProcessingTime(0) <= 0) {
+                miner.getMarkerAnalysisSnapshot(0);
+                return;
+            }
+            int energyBefore = miner.getEnergyStored();
+            int fluidBefore = miner.getFluidTank().getFluidAmount();
+            miner.serverTick();
+            miner.serverTick();
+            int expectedEnergy = energyBefore - miner.getEffectiveEnergyConsumption();
+            if (miner.getEnergyStored() != expectedEnergy
+                    || miner.getFluidTank().getFluidAmount()
+                            != fluidBefore - BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB
+                    || miner.getSlotProgress(0) != 1) {
+                helper.fail("Same gameTime repeated resource use or logical progress");
+                return;
+            }
+        });
+    }
+
     @GameTest(templateNamespace = "minecraft", template = "empty")
     public static void pendingOutputOnlyRetriesOutput(GameTestHelper helper) {
         BaseMinerBlockEntity miner = placeMiner(helper, 2);
@@ -171,6 +204,58 @@ public final class MythicMinerTickContractGameTests {
                 || miner.getFluidTank().getFluidAmount() != fluidBefore
                 || miner.getSlotProgress(0) != progressBefore) {
             helper.fail("Blocked output started work instead of only retrying output");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty")
+    public static void autoExtractFluidPrecedesPendingOutputRetry(GameTestHelper helper) {
+        BaseMinerBlockEntity target = placeMiner(helper, 2);
+        ServerLevel level = helper.getLevel();
+        MythicMinerMultiblock.place(level, target.getBlockPos(), target.getMinerTier());
+
+        BlockPos sourcePosition = target.getBlockPos().north();
+        level.setBlock(sourcePosition, ModBlocks.TIER_2_MYTHIC_MINER.get().defaultBlockState(), 3);
+        if (!(level.getBlockEntity(sourcePosition) instanceof BaseMinerBlockEntity source)) {
+            helper.fail("Fluid source miner did not create a block entity");
+            return;
+        }
+        for (Direction logicalDirection : Direction.values()) {
+            source.cycleFluidFace(logicalDirection);
+            if (source.getFluidFaceMode(Direction.SOUTH)
+                    == BaseMinerBlockEntity.FluidFaceMode.OUTPUT) {
+                break;
+            }
+        }
+        if (source.getFluidFaceMode(Direction.SOUTH) != BaseMinerBlockEntity.FluidFaceMode.OUTPUT) {
+            helper.fail("Fluid source miner did not expose its south face as output");
+            return;
+        }
+        source.getFluidTank()
+                .fill(
+                        new FluidStack(target.getRequiredFluid(), 100),
+                        net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
+        target.toggleAutoExtractFluid();
+        for (Direction logicalDirection : Direction.values()) {
+            target.toggleOutputFace(logicalDirection);
+        }
+
+        CompoundTag saved = target.saveWithFullMetadata();
+        ListTag pendingOutput = new ListTag();
+        pendingOutput.add(new ItemStack(ModItems.STRUCTURE_MARKER.get()).save(new CompoundTag()));
+        saved.put("PendingOutput", pendingOutput);
+        target.load(saved);
+
+        int energyBefore = target.getEnergyStored();
+        target.serverTick();
+
+        if (target.getFluidTank().getFluidAmount() != 100
+                || source.getFluidTank().getFluidAmount() != 0
+                || !target.isOutputBlocked()
+                || target.getEnergyStored() != energyBefore
+                || target.getSlotProgress(0) != 0) {
+            helper.fail("Pending output retried before automatic fluid extraction");
             return;
         }
         helper.succeed();

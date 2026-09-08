@@ -40,6 +40,7 @@ final class MythicMinerMarkerAnalysisCache {
     private final ItemStackHandler inventory;
     private final Supplier<LootAnalysisFingerprint> currentFingerprint;
     private final BooleanSupplier removed;
+    private final AnalysisStarter analysisStarter;
     private LootAnalysisFingerprint analyzedFingerprint;
     private List<CachedMarkerLoot> cachedLoot = List.of();
     private final Map<Integer, CompletableFuture<StructureValueCalculator.StructureValue>> pending =
@@ -52,9 +53,18 @@ final class MythicMinerMarkerAnalysisCache {
             ItemStackHandler inventory,
             Supplier<LootAnalysisFingerprint> currentFingerprint,
             BooleanSupplier removed) {
+        this(inventory, currentFingerprint, removed, MythicMinerMarkerAnalysisCache::startAnalysis);
+    }
+
+    MythicMinerMarkerAnalysisCache(
+            ItemStackHandler inventory,
+            Supplier<LootAnalysisFingerprint> currentFingerprint,
+            BooleanSupplier removed,
+            AnalysisStarter analysisStarter) {
         this.inventory = inventory;
         this.currentFingerprint = currentFingerprint;
         this.removed = removed;
+        this.analysisStarter = analysisStarter;
     }
 
     /** Refreshes only when analysis inputs changed or a failed analysis becomes eligible to retry. */
@@ -145,21 +155,7 @@ final class MythicMinerMarkerAnalysisCache {
         }
         ItemStack requestedMarker = marker.copy();
         CompletableFuture<StructureValueCalculator.StructureValue> future =
-                StructureAnalysisService.forServer(server)
-                        .discover(analysisLevel, info.structure().id())
-                        .thenComposeAsync(
-                                discovery -> {
-                                    List<ResourceLocation> roots =
-                                            discovery.structures().stream()
-                                                    .flatMap(value -> value.lootTables().stream())
-                                                    .distinct()
-                                                    .toList();
-                                    RuntimeLootAstSource source =
-                                            RuntimeLootAstSource.snapshotTables(server, roots);
-                                    return StructureValueCalculator.calculateAsync(
-                                            server, info, luck, discovery, source);
-                                },
-                                server);
+                analysisStarter.start(server, analysisLevel, info, luck);
         pending.put(slot, future);
         tasks.put(slot, AnalysisLifecycle.TaskStatus.RUNNING);
         future.whenComplete(
@@ -220,6 +216,30 @@ final class MythicMinerMarkerAnalysisCache {
             if (entry.slot() == slot) return entry;
         }
         return null;
+    }
+
+    private static CompletableFuture<StructureValueCalculator.StructureValue> startAnalysis(
+            MinecraftServer server, ServerLevel analysisLevel, MarkerInfo info, float luck) {
+        return StructureAnalysisService.forServer(server)
+                .discover(analysisLevel, info.structure().id())
+                .thenComposeAsync(
+                        discovery -> {
+                            List<ResourceLocation> roots =
+                                    discovery.structures().stream()
+                                            .flatMap(value -> value.lootTables().stream())
+                                            .distinct()
+                                            .toList();
+                            RuntimeLootAstSource source = RuntimeLootAstSource.snapshotTables(server, roots);
+                            return StructureValueCalculator.calculateAsync(
+                                    server, info, luck, discovery, source);
+                        },
+                        server);
+    }
+
+    @FunctionalInterface
+    interface AnalysisStarter {
+        CompletableFuture<StructureValueCalculator.StructureValue> start(
+                MinecraftServer server, ServerLevel level, MarkerInfo info, float luck);
     }
 
     private void replace(

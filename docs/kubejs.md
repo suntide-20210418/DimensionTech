@@ -8,7 +8,7 @@ Put this in `kubejs/server_scripts/dimension_tech.js`:
 
 ```js
 DimensionTech.miner('dimension_tech:tier_1_miner', {
-  processingTime: 200,
+  processingTime: 400,
   energyConsumption: 50,
   energyCapacity: 10000,
   baseParallel: 2,
@@ -19,12 +19,15 @@ DimensionTech.miner('dimension_tech:tier_1_miner', {
 
 // The fluent form is also supported.
 DimensionTech.miner('dimension_tech:tier_2_miner')
-  .processingTime(300)
+  .processingTime(600)
   .energyConsumption(80)
   .requiresFluid(true)
 ```
 
 Configuration is server-scoped and is rebuilt after every KubeJS server-script reload. Values are keyed by block ID, so custom blocks can use the same API if they use Dimension Tech's miner block entity.
+
+`processingTime` is a minimum of 400 ticks. This is the same natural-tick window used to
+account for external tick acceleration, so shorter configured cycles are rejected.
 
 ## Events
 

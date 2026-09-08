@@ -71,43 +71,61 @@ public final class MythicMinerLootMergeGameTests {
         helper.succeed();
     }
 
-    /**
-     * Baseline only: a realistic high-parallel merge is measured before considering an index.
-     * There is deliberately no time assertion because GameTest hosts have variable load.
-     */
+    /** Baseline only: report merge cost without imposing host-dependent timing assertions. */
     @GameTest(templateNamespace = "minecraft", template = "empty")
-    public static void linearMergeBenchmarkReportsHighParallelBaseline(GameTestHelper helper) {
-        final int existingStacks = 128;
-        final int iterations = 500;
-        List<ItemStack> templates = new ArrayList<>(existingStacks);
-        for (int index = 0; index < existingStacks; index++) {
+    public static void linearMergeBenchmarkReportsRepresentativeBaseline(GameTestHelper helper) {
+        for (int existingStacks : List.of(8, 32, 128, 512)) {
+            List<ItemStack> templates = templates(existingStacks);
+            for (MergeCase mergeCase : MergeCase.values()) {
+                long[] samples = new long[7];
+                for (int sample = 0; sample < samples.length; sample++) {
+                    samples[sample] = runMergeBenchmark(templates, mergeCase, 250);
+                }
+                java.util.Arrays.sort(samples);
+                DimensionTechMod.LOGGER.info(
+                        "Mythic miner linear merge baseline: {} ns/merge ({} distinct stacks, {})",
+                        samples[samples.length / 2] / 250,
+                        existingStacks,
+                        mergeCase.name().toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        helper.succeed();
+    }
+
+    private static List<ItemStack> templates(int size) {
+        List<ItemStack> templates = new ArrayList<>(size);
+        for (int index = 0; index < size; index++) {
             ItemStack stack = new ItemStack(Items.STONE, 1);
             stack.getOrCreateTag().putInt("BenchmarkVariant", index);
             templates.add(stack);
         }
-        ItemStack candidate = new ItemStack(Items.STONE, 1);
-        candidate.getOrCreateTag().putInt("BenchmarkVariant", -1);
-
-        runMergeBenchmark(templates, candidate, 50);
-        long bestNanos = Long.MAX_VALUE;
-        for (int sample = 0; sample < 5; sample++) {
-            bestNanos = Math.min(bestNanos, runMergeBenchmark(templates, candidate, iterations));
-        }
-        DimensionTechMod.LOGGER.info(
-                "Mythic miner linear merge baseline: {} ns/merge ({} existing distinct stacks)",
-                bestNanos / iterations,
-                existingStacks);
-        helper.succeed();
+        return templates;
     }
 
-    private static long runMergeBenchmark(
-            List<ItemStack> templates, ItemStack candidate, int iterations) {
-        long start = System.nanoTime();
+    private static long runMergeBenchmark(List<ItemStack> templates, MergeCase mergeCase, int iterations) {
+        List<List<ItemStack>> inputs = new ArrayList<>(iterations);
+        ItemStack candidate = candidate(templates, mergeCase);
         for (int iteration = 0; iteration < iterations; iteration++) {
             List<ItemStack> merged = new ArrayList<>(templates.size() + 1);
             for (ItemStack template : templates) merged.add(template.copy());
-            MythicMinerLootSampler.mergeEquivalent(merged, candidate);
+            inputs.add(merged);
         }
+        long start = System.nanoTime();
+        for (List<ItemStack> merged : inputs) MythicMinerLootSampler.mergeEquivalent(merged, candidate);
         return System.nanoTime() - start;
+    }
+
+    private static ItemStack candidate(List<ItemStack> templates, MergeCase mergeCase) {
+        if (mergeCase == MergeCase.FIRST_HIT) return templates.get(0).copy();
+        if (mergeCase == MergeCase.LAST_HIT) return templates.get(templates.size() - 1).copy();
+        ItemStack stack = new ItemStack(Items.STONE, 1);
+        stack.getOrCreateTag().putInt("BenchmarkVariant", -1);
+        return stack;
+    }
+
+    private enum MergeCase {
+        FIRST_HIT,
+        LAST_HIT,
+        MISS
     }
 }

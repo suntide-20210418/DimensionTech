@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.utils;
 
+import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import net.minecraft.resources.ResourceLocation;
 
 /** Server-scoped, optional overrides supplied by integrations such as KubeJS. */
@@ -14,8 +15,10 @@ public record MinerScriptConfig(
         Boolean requiresFluid) {
     public MinerScriptConfig {
         if (blockId == null) throw new IllegalArgumentException("blockId is required");
-        if (processingTime != null && processingTime < 1)
-            throw new IllegalArgumentException("processingTime must be positive");
+        if (processingTime != null && processingTime < BaseMinerBlockEntity.MINIMUM_PROCESSING_TIME)
+            throw new IllegalArgumentException(
+                    "processingTime must be at least "
+                            + BaseMinerBlockEntity.MINIMUM_PROCESSING_TIME);
         if (energyConsumption != null && energyConsumption < 0)
             throw new IllegalArgumentException("energyConsumption must be non-negative");
         if (energyCapacity != null && energyCapacity < 0)
