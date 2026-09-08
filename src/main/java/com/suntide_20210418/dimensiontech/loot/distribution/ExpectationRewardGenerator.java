@@ -24,7 +24,7 @@ import net.minecraft.world.item.ItemStack;
 public final class ExpectationRewardGenerator {
     private ExpectationRewardGenerator() {}
 
-    static List<ItemStack> draw(
+    public static List<ItemStack> draw(
             ServerLevel level,
             Map<ResourceLocation, ExactProbability> expectedItems,
             Set<ResourceLocation> disabledItems,
@@ -61,7 +61,7 @@ public final class ExpectationRewardGenerator {
     /**
      * Builds all loot for completed miner cycles, including filtering, dismantling, and rewards.
      */
-    static List<ItemStack> generate(
+    public static List<ItemStack> generate(
             MinecraftServer server,
             List<Cycle> cycles,
             Set<ResourceLocation> disabledItems,
@@ -96,7 +96,7 @@ public final class ExpectationRewardGenerator {
         return List.copyOf(merged);
     }
 
-    static void mergeEquivalent(List<ItemStack> mergedLoot, ItemStack stack) {
+    public static void mergeEquivalent(List<ItemStack> mergedLoot, ItemStack stack) {
         if (stack.isEmpty()) return;
         for (ItemStack merged : mergedLoot) {
             if (net.minecraftforge.items.ItemHandlerHelper.canItemStacksStack(merged, stack)) {
@@ -132,7 +132,7 @@ public final class ExpectationRewardGenerator {
         }
     }
 
-    record Cycle(MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel, int draws) {}
+    public record Cycle(MythicMinerMarkerAnalysisCache.CachedMarkerLoot loot, int parallel, int draws) {}
 
     private record WeightedItem(Item item, double weight) {}
 }
