@@ -84,7 +84,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private LazyOptional<IFluidHandler> fluidOutputCapability;
     private final FluidTank fluidTank;
     public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
-    private final MythicMinerMarkerAnalysisCache markerLootCache;
+    private final MinerAnalysisController analysisController;
     private final MinerUpgradeController upgradeController;
     private List<ItemStack> pendingOutput = new ArrayList<>();
     private final MythicMinerSlotProgress slotProgress;
@@ -116,9 +116,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         super(type, position, blockState);
         this.itemHandler = createItemHandler();
         this.upgradeController = new MinerUpgradeController(position);
-        this.markerLootCache =
-                new MythicMinerMarkerAnalysisCache(
-                        itemHandler, this::currentLootAnalysisFingerprint, this::isRemoved);
+        this.analysisController =
+                new MinerAnalysisController(itemHandler, this::getEffectiveMachineLuck, this::isRemoved);
         int slotCount = itemHandler.getSlots();
         this.slotProgress = new MythicMinerSlotProgress(slotCount);
         this.slotProcessingTimes = new int[slotCount];
@@ -553,7 +552,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             return MythicMinerAnalysisSnapshot.EMPTY;
         }
         MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot =
-                markerLootCache.entryForSlot(slot);
+                analysisController.entryForSlot(slot);
         if (cachedLoot == null || cachedLoot.quantity() <= 0.0D) {
             return MythicMinerAnalysisSnapshot.EMPTY;
         }
@@ -703,7 +702,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         for (MinerAccelerationController.CompletedSlot completed :
                 accelerationController.advance(serverLevel.getGameTime(), slotEnabled)) {
             MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot =
-                    markerLootCache.entryForSlot(completed.slot());
+                    analysisController.entryForSlot(completed.slot());
             if (cachedLoot != null) completedSlots.add(cachedLoot);
         }
         return completedSlots;
@@ -836,31 +835,24 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 this::isWorldOutputFaceEnabled,
                 slot -> drawsForQuantity(slot, completedMarkers.stream()
                         .filter(value -> value.loot().slot() == slot).findFirst().orElseThrow().parallel(),
-                        markerLootCache.entryForSlot(slot).quantity()));
+                        analysisController.entryForSlot(slot).quantity()));
         setChanged();
     }
 
     private void refreshMarkerLootCache(MinecraftServer server) {
         long gameTime = level == null ? 0L : level.getGameTime();
-        for (int slot : markerLootCache.refresh(server, getEffectiveMachineLuck(), gameTime)) {
+        for (int slot : analysisController.refresh(server, gameTime)) {
             resetSlotState(slot);
         }
     }
 
     /** Cache freshness is independent from the execution outcome of the current task. */
     public String markerAnalysisCacheStatus(int slot) {
-        return markerLootCache.cacheStatus(slot);
-    }
-
-    private LootAnalysisFingerprint currentLootAnalysisFingerprint() {
-        return LootAnalysisFingerprint.from(
-                itemHandler,
-                getEffectiveMachineLuck(),
-                ModConfigs.STRUCTURE_VALUE.calculationFingerprint());
+        return analysisController.cacheStatus(slot);
     }
 
     public AnalysisLifecycle.TaskStatus markerAnalysisTaskStatus(int slot) {
-        return markerLootCache.taskStatus(slot);
+        return analysisController.taskStatus(slot);
     }
 
     private int drawsForQuantity(int slot, int parallel, double quantity) {
@@ -878,7 +870,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private void updateProcessingPlans() {
         java.util.Arrays.fill(slotProcessingTimes, 0);
         java.util.Arrays.fill(slotParallelHundredths, 0);
-        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot : markerLootCache.entries()) {
+        for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot : analysisController.entries()) {
             if (slotEnabled[cachedLoot.slot()]) {
                 updateProcessingPlan(cachedLoot.slot(), cachedLoot.structureValue());
             }
@@ -1091,7 +1083,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
             @Override
             protected void onContentsChanged(int slot) {
-                if (markerLootCache != null) markerLootCache.invalidateIfAnalysisInputsChanged();
+                if (analysisController != null) analysisController.invalidateIfInputsChanged();
                 ItemStack marker = getStackInSlot(slot);
                 if (!marker.is(ModItems.STRUCTURE_MARKER.get())
                         || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
