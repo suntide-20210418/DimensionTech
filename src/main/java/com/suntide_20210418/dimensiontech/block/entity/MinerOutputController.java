@@ -118,14 +118,23 @@ final class MinerOutputController {
         return hook.cancelled()
                 ? List.of()
                 : MythicMinerOutputRouter.output(
-                        level, position, outputState, outputFaceEnabled, hook.outputs());
+                        level,
+                        position,
+                        outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK,
+                        outputFaceEnabled,
+                        hook.outputs());
     }
 
     List<ItemStack> retry(
             ServerLevel level,
             BlockPos position,
             Predicate<Direction> outputFaceEnabled) {
-        return MythicMinerOutputRouter.output(level, position, outputState, outputFaceEnabled, pending);
+        return MythicMinerOutputRouter.output(
+                level,
+                position,
+                outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK,
+                outputFaceEnabled,
+                pending);
     }
 
     void setPending(List<ItemStack> output) { pending = List.copyOf(output); }

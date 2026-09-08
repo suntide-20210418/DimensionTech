@@ -4,7 +4,6 @@ import appeng.blockentity.misc.InterfaceBlockEntity;
 import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEItems;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -35,7 +34,7 @@ public final class MythicMinerOutputRouterGameTests {
                 MythicMinerOutputRouter.output(
                         level,
                         minerPosition,
-                        BaseMinerBlockEntity.OutputState.ITEM_HANDLER,
+                        false,
                         direction -> direction == Direction.NORTH,
                         List.of(new ItemStack(Items.STONE, 4)));
         if (!(level.getBlockEntity(chestPosition) instanceof ChestBlockEntity chest)
@@ -81,7 +80,7 @@ public final class MythicMinerOutputRouterGameTests {
                             MythicMinerOutputRouter.output(
                                     level,
                                     routerPosition,
-                                    BaseMinerBlockEntity.OutputState.ME_NETWORK,
+                                    true,
                                     direction -> direction == Direction.NORTH,
                                     List.of(new ItemStack(Items.STONE, 4)));
                     if (!remainder.isEmpty()) {

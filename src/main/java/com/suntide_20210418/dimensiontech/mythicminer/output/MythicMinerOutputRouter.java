@@ -1,7 +1,6 @@
 package com.suntide_20210418.dimensiontech.mythicminer.output;
 
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
-import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,21 +24,21 @@ public final class MythicMinerOutputRouter {
     public static List<ItemStack> output(
             ServerLevel level,
             BlockPos position,
-            BaseMinerBlockEntity.OutputState outputState,
+            boolean useMeNetwork,
             Predicate<Direction> outputFaceEnabled,
             List<ItemStack> stacks) {
         Targets targets = findTargets(level, position, outputFaceEnabled);
         List<ItemStack> remainders = new ArrayList<>();
         for (ItemStack stack : stacks) {
             ItemStack remainder = FullDurabilityLoot.normalize(stack);
-            if (outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK) {
+            if (useMeNetwork) {
                 for (BlockEntity interfaceBlock : targets.meInterfaces()) {
                     remainder =
                             Ae2Integration.insertIntoInterfaceNetwork(interfaceBlock, remainder);
                     if (remainder.isEmpty()) break;
                 }
             }
-            if (outputState == BaseMinerBlockEntity.OutputState.ITEM_HANDLER) {
+            if (!useMeNetwork) {
                 for (IItemHandler handler : targets.itemHandlers()) {
                     if (remainder.isEmpty()) break;
                     remainder = ItemHandlerHelper.insertItemStacked(handler, remainder, false);

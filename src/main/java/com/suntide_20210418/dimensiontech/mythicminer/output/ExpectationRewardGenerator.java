@@ -17,12 +17,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Generates rewards from cached item expectations.
- *
- * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original LootTable
- * joint distribution, pool selection, function chain, or random sequence.
- */
-/**
  * Generates miner rewards from cached item expectations.
  *
  * <p>This is expectation-preserving reward generation, not a replay of Vanilla's original
