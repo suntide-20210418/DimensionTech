@@ -87,15 +87,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final MinerAnalysisController analysisController;
     private final MinerUpgradeController upgradeController;
     private List<ItemStack> pendingOutput = new ArrayList<>();
-    private final MythicMinerSlotProgress slotProgress;
     private final MinerAccelerationController accelerationController;
     private final MinerOutputController outputController = new MinerOutputController();
-    private final int[] slotProcessingTimes;
-    private final int[] slotParallelHundredths;
-    private final int[] slotParallelFractionHundredths;
-    private final int[] slotQuantityFractionHundredths;
     private final boolean[] slotEnabled;
-    private final MythicMinerExternalTickAcceleration[] externalTickAcceleration;
     private RedstoneMode redstoneMode = RedstoneMode.ALWAYS;
     private int redstoneThreshold = 8;
     private OutputState configuredOutputState = OutputState.ITEM_HANDLER;
@@ -119,18 +113,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         this.analysisController =
                 new MinerAnalysisController(itemHandler, this::getEffectiveMachineLuck, this::isRemoved);
         int slotCount = itemHandler.getSlots();
-        this.slotProgress = new MythicMinerSlotProgress(slotCount);
-        this.slotProcessingTimes = new int[slotCount];
-        this.slotParallelHundredths = new int[slotCount];
-        this.slotParallelFractionHundredths = new int[slotCount];
-        this.slotQuantityFractionHundredths = new int[slotCount];
-        this.externalTickAcceleration = new MythicMinerExternalTickAcceleration[slotCount];
-        for (int slot = 0; slot < slotCount; slot++) {
-            this.externalTickAcceleration[slot] = new MythicMinerExternalTickAcceleration();
-        }
-        this.accelerationController =
-                new MinerAccelerationController(
-                        slotProgress, slotProcessingTimes, externalTickAcceleration);
+        this.accelerationController = new MinerAccelerationController(slotCount);
         this.slotEnabled = new boolean[slotCount];
         java.util.Arrays.fill(this.slotEnabled, true);
         java.util.Arrays.fill(this.fluidFaceModes, FluidFaceMode.INPUT);
@@ -254,7 +237,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return slot >= 0
                 ? MythicMinerUpgradeMath.extraEfficiencyParallel(
                         getBaseParallel(),
-                        slotParallelHundredths[slot],
+                        accelerationController.currentParallelHundredths(slot),
                         upgradeBonuses.parallelMultiplierHundredths())
                 : 0;
     }
@@ -271,19 +254,19 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public int getSlotExternalAccelerationParallelHundredths(int slot) {
         return validSlot(slot)
-                ? externalTickAcceleration[slot].currentExtraParallelHundredths()
+                ? accelerationController.currentExtraParallel(slot)
                 : 0;
     }
 
     public long getSlotExternalEquivalentAccelerationTicks(int slot) {
         return validSlot(slot)
-                ? externalTickAcceleration[slot].currentEquivalentAccelerationTicks()
+                ? accelerationController.equivalentTicks(slot)
                 : 0;
     }
 
     public double getSlotCurrentCycleExternalEquivalentAcceleration(int slot) {
-        return slot >= 0 && slot < externalTickAcceleration.length
-                ? externalTickAcceleration[slot].currentCycleEquivalentAcceleration()
+        return validSlot(slot)
+                ? accelerationController.cycleEquivalent(slot)
                 : 0.0D;
     }
 
@@ -293,29 +276,29 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public long getSlotCurrentExternalAccelerationMachineTicks(int slot) {
-        return validSlot(slot) ? externalTickAcceleration[slot].currentActualTicks() : 0;
+        return validSlot(slot) ? accelerationController.currentActualTicks(slot) : 0;
     }
 
     public long getSlotCurrentNaturalTicks(int slot) {
-        return validSlot(slot) ? externalTickAcceleration[slot].currentNaturalTicks() : 0;
+        return validSlot(slot) ? accelerationController.currentNaturalTicks(slot) : 0;
     }
 
     /** Logical progress in the current machine cycle, independent of acceleration calls. */
     public long getSlotLogicalProgress(int slot) {
-        return validSlot(slot) ? externalTickAcceleration[slot].currentCycleNaturalTicks() : 0;
+        return validSlot(slot) ? accelerationController.currentNaturalTicks(slot) : 0;
     }
 
     public boolean isSlotWaitingForNaturalWindow(int slot) {
-        return validSlot(slot) && externalTickAcceleration[slot].waitingForNaturalWindow();
+        return validSlot(slot) && accelerationController.waitingForNaturalWindow(slot);
     }
 
     public long getSlotPreviousExternalAccelerationMachineTicks(int slot) {
-        return validSlot(slot) ? externalTickAcceleration[slot].previousActualTicks() : 0;
+        return validSlot(slot) ? accelerationController.previousActualTicks(slot) : 0;
     }
 
     public int getSlotPreviousExternalAccelerationParallelHundredths(int slot) {
         return validSlot(slot)
-                ? externalTickAcceleration[slot].previousExtraParallelHundredths()
+                ? accelerationController.previousExtraParallel(slot)
                 : 0;
     }
 
@@ -346,8 +329,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public int getWorkingThreadCount() {
         int working = 0;
-        for (int slot = 0; slot < slotProcessingTimes.length; slot++) {
-            if (slotEnabled[slot] && slotProcessingTimes[slot] > 0) {
+        for (int slot = 0; slot < accelerationController.slotCount(); slot++) {
+            if (slotEnabled[slot] && accelerationController.processingTime(slot) > 0) {
                 working++;
             }
         }
@@ -426,7 +409,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public int getAccumulatedParallelHundredths() {
         int slot = firstActiveSlot();
-        return slot >= 0 ? slotParallelFractionHundredths[slot] : 0;
+        return slot >= 0 ? accelerationController.parallelFraction(slot) : 0;
     }
 
     public int getAdditionalItemCount() {
@@ -520,11 +503,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotProgress(int slot) {
-        return validSlot(slot) ? slotProgress.get(slot) : 0;
+        return accelerationController.progress(slot);
     }
 
     public int getSlotProcessingTime(int slot) {
-        return validSlot(slot) && slotEnabled[slot] ? slotProcessingTimes[slot] : 0;
+        return validSlot(slot) && slotEnabled[slot] ? accelerationController.processingTime(slot) : 0;
     }
 
     public boolean isSlotEnabled(int slot) {
@@ -538,7 +521,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     public int getSlotDrawParallel(int slot) {
-        if (!validSlot(slot) || !slotEnabled[slot] || slotProcessingTimes[slot] <= 0) {
+        if (!validSlot(slot) || !slotEnabled[slot] || accelerationController.processingTime(slot) <= 0) {
             return 0;
         }
         return (int)
@@ -735,10 +718,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private int countStartingCycles() {
         if (!requiresFluidInput()) return 0;
         int startingCycles = 0;
-        for (int slot = 0; slot < slotProcessingTimes.length; slot++) {
+        for (int slot = 0; slot < accelerationController.slotCount(); slot++) {
             if (slotEnabled[slot]
-                    && slotProcessingTimes[slot] > 0
-                    && externalTickAcceleration[slot].currentActualTicks() == 0L) {
+                    && accelerationController.processingTime(slot) > 0
+                    && accelerationController.currentActualTicks(slot) == 0L) {
                 startingCycles++;
             }
         }
@@ -794,35 +777,31 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private int drawParallelForCycle(int slot) {
         long scaledParallel = slotAverageParallelHundredths(slot);
-        MythicMinerExpectationMath.AccumulatedValue accumulated =
-                MythicMinerExpectationMath.accumulateHundredths(
-                        slotParallelFractionHundredths[slot], scaledParallel);
-        slotParallelFractionHundredths[slot] = accumulated.remainderHundredths();
-        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, accumulated.whole()));
+        return accelerationController.drawParallel(slot, scaledParallel);
     }
 
     private long slotAverageParallelHundredths(int slot) {
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
-                        * slotParallelHundredths[slot]
+                        * accelerationController.currentParallelHundredths(slot)
                         * upgradeBonuses.parallelMultiplierHundredths()
                         / 100L;
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
                 machineParallelHundredths
-                        + externalTickAcceleration[slot].settledExtraParallelHundredths());
+                        + accelerationController.previousExtraParallel(slot));
     }
 
     private long slotDisplayParallelHundredths(int slot) {
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
-                        * slotParallelHundredths[slot]
+                        * accelerationController.currentParallelHundredths(slot)
                         * upgradeBonuses.parallelMultiplierHundredths()
                         / 100L;
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
                 machineParallelHundredths
-                        + externalTickAcceleration[slot].currentExtraParallelHundredths());
+                        + accelerationController.currentExtraParallel(slot));
     }
 
     private void drawMarkerLoot(MinecraftServer server, List<CompletedMarker> completedMarkers) {
@@ -860,16 +839,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 MythicMinerExpectationMath.quantityFactorHundredths(
                         quantity, getQuantityReference());
         long scaled = (long) parallel * DRAWS_PER_PARALLEL * factorHundredths;
-        MythicMinerExpectationMath.AccumulatedValue accumulated =
-                MythicMinerExpectationMath.accumulateHundredths(
-                        slotQuantityFractionHundredths[slot], scaled);
-        slotQuantityFractionHundredths[slot] = accumulated.remainderHundredths();
-        return (int) Math.min(Integer.MAX_VALUE, accumulated.whole());
+        return accelerationController.drawsForQuantity(slot, scaled);
     }
 
     private void updateProcessingPlans() {
-        java.util.Arrays.fill(slotProcessingTimes, 0);
-        java.util.Arrays.fill(slotParallelHundredths, 0);
+        accelerationController.clearPlans();
         for (MythicMinerMarkerAnalysisCache.CachedMarkerLoot cachedLoot : analysisController.entries()) {
             if (slotEnabled[cachedLoot.slot()]) {
                 updateProcessingPlan(cachedLoot.slot(), cachedLoot.structureValue());
@@ -888,9 +862,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 configuredProcessingTime,
                 MINIMUM_PROCESSING_TIME,
                 getBaseParallelCount());
-        slotProcessingTimes[slot] = plan.processingTicks();
-        slotParallelHundredths[slot] = plan.parallelHundredths();
-        slotProgress.clamp(slot, slotProcessingTimes[slot]);
+        accelerationController.setPlan(slot, plan.processingTicks(), plan.parallelHundredths());
     }
 
     private void autoExtractFluid(ServerLevel serverLevel) {
@@ -1027,8 +999,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private int firstActiveSlot() {
-        for (int slot = 0; slot < slotProcessingTimes.length; slot++) {
-            if (slotProcessingTimes[slot] > 0) {
+        for (int slot = 0; slot < accelerationController.slotCount(); slot++) {
+            if (accelerationController.processingTime(slot) > 0) {
                 return slot;
             }
         }
@@ -1036,15 +1008,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private boolean validSlot(int slot) {
-        return slot >= 0 && slot < slotProcessingTimes.length;
+        return slot >= 0 && slot < accelerationController.slotCount();
     }
 
     private void resetSlotState(int slot) {
         accelerationController.reset(slot);
-        slotParallelHundredths[slot] = 0;
-        slotParallelFractionHundredths[slot] = 0;
-        slotQuantityFractionHundredths[slot] = 0;
-        externalTickAcceleration[slot] = new MythicMinerExternalTickAcceleration();
+        accelerationController.reset(slot);
     }
 
     private static void loadFractions(int[] target, int[] saved) {
@@ -1102,36 +1071,15 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (requiresFluidInput()) tag.put("Fluid", fluidTank.writeToNBT(new CompoundTag()));
         tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
         tag.putInt(PROGRESS_TAG, getProgress());
-        tag.putIntArray(SLOT_PROGRESS_TAG, slotProgress.save());
+        tag.putIntArray(SLOT_PROGRESS_TAG, accelerationController.progressValues());
         tag.putInt(PARALLEL_FRACTION_TAG, getAccumulatedParallelHundredths());
-        tag.putIntArray(SLOT_PARALLEL_FRACTION_TAG, slotParallelFractionHundredths);
+        tag.putIntArray(SLOT_PARALLEL_FRACTION_TAG, new int[] {getAccumulatedParallelHundredths()});
         int firstActiveSlot = firstActiveSlot();
         tag.putInt(
                 QUANTITY_FRACTION_TAG,
-                firstActiveSlot >= 0 ? slotQuantityFractionHundredths[firstActiveSlot] : 0);
-        tag.putIntArray(SLOT_QUANTITY_FRACTION_TAG, slotQuantityFractionHundredths);
-        ListTag accelerationStates = new ListTag();
-        for (MythicMinerExternalTickAcceleration acceleration : externalTickAcceleration) {
-            MythicMinerExternalTickAcceleration.State state = acceleration.save();
-            CompoundTag accelerationTag = new CompoundTag();
-            accelerationTag.putLong("LastGameTime", state.lastGameTime());
-            accelerationTag.putLong("ActualTicks", state.actualTicks());
-            accelerationTag.putLong("NaturalTicks", state.naturalTicks());
-            accelerationTag.putLong(
-                    "ActualTicksAtNaturalTickStart", state.actualTicksAtNaturalTickStart());
-            accelerationTag.putLong(
-                    "EquivalentAccelerationTicks", state.equivalentAccelerationTicks());
-            accelerationTag.putBoolean("TargetReached", state.targetReached());
-            accelerationTag.putInt(
-                    "SettledExtraParallelHundredths", state.settledExtraParallelHundredths());
-            accelerationTag.putLong("PreviousActualTicks", state.previousActualTicks());
-            accelerationTag.putInt(
-                    "PreviousExtraParallelHundredths", state.previousExtraParallelHundredths());
-            accelerationTag.putBoolean(
-                    "ExternalParallelEligible", state.externalParallelEligible());
-            accelerationStates.add(accelerationTag);
-        }
-        tag.put(EXTERNAL_ACCELERATION_STATES_TAG, accelerationStates);
+                firstActiveSlot >= 0 ? accelerationController.quantityFraction(firstActiveSlot) : 0);
+        accelerationController.save(tag, SLOT_PROGRESS_TAG, SLOT_PARALLEL_FRACTION_TAG,
+                SLOT_QUANTITY_FRACTION_TAG, EXTERNAL_ACCELERATION_STATES_TAG);
         tag.putInt("RedstoneMode", redstoneMode.ordinal());
         tag.putInt("RedstoneThreshold", redstoneThreshold);
         tag.putInt("ConfiguredOutputState", configuredOutputState.ordinal());
@@ -1174,64 +1122,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 tag.contains(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, Tag.TAG_LONG)
                         ? tag.getLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG)
                         : Long.MIN_VALUE;
-        if (tag.contains(SLOT_PROGRESS_TAG, Tag.TAG_INT_ARRAY)) {
-            slotProgress.load(tag.getIntArray(SLOT_PROGRESS_TAG));
-        } else {
-            slotProgress.load(new int[] {Math.max(0, tag.getInt(PROGRESS_TAG))});
-        }
-        if (tag.contains(SLOT_PARALLEL_FRACTION_TAG, Tag.TAG_INT_ARRAY)) {
-            loadFractions(
-                    slotParallelFractionHundredths, tag.getIntArray(SLOT_PARALLEL_FRACTION_TAG));
-        } else {
-            loadFractions(
-                    slotParallelFractionHundredths, new int[] {tag.getInt(PARALLEL_FRACTION_TAG)});
-        }
-        if (tag.contains(SLOT_QUANTITY_FRACTION_TAG, Tag.TAG_INT_ARRAY)) {
-            loadFractions(
-                    slotQuantityFractionHundredths, tag.getIntArray(SLOT_QUANTITY_FRACTION_TAG));
-        } else {
-            loadFractions(
-                    slotQuantityFractionHundredths, new int[] {tag.getInt(QUANTITY_FRACTION_TAG)});
-        }
-        if (tag.contains(EXTERNAL_ACCELERATION_STATES_TAG, Tag.TAG_LIST)) {
-            ListTag accelerationStates =
-                    tag.getList(EXTERNAL_ACCELERATION_STATES_TAG, Tag.TAG_COMPOUND);
-            for (int slot = 0;
-                    slot < Math.min(accelerationStates.size(), externalTickAcceleration.length);
-                    slot++) {
-                CompoundTag accelerationTag = accelerationStates.getCompound(slot);
-                externalTickAcceleration[slot].load(
-                        new MythicMinerExternalTickAcceleration.State(
-                                accelerationTag.getLong("LastGameTime"),
-                                readLongCompat(
-                                        accelerationTag, "ActualTicks", "StatisticsActualTicks"),
-                                readLongCompat(
-                                        accelerationTag, "NaturalTicks", "StatisticsNaturalTicks"),
-                                readLongCompat(
-                                        accelerationTag, "ActualTicksAtNaturalTickStart", null),
-                                readLongCompat(
-                                        accelerationTag, "EquivalentAccelerationTicks", null),
-                                accelerationTag.contains("TargetReached", Tag.TAG_BYTE)
-                                        ? accelerationTag.getBoolean("TargetReached")
-                                        : readLongCompat(
-                                                                accelerationTag,
-                                                                "ActualTicks",
-                                                                "StatisticsActualTicks")
-                                                        >= MythicMinerExternalTickAcceleration
-                                                                .MINIMUM_NATURAL_TICKS
-                                                && readLongCompat(
-                                                                accelerationTag,
-                                                                "NaturalTicks",
-                                                                "StatisticsNaturalTicks")
-                                                        < MythicMinerExternalTickAcceleration
-                                                                .MINIMUM_NATURAL_TICKS,
-                                accelerationTag.getInt("SettledExtraParallelHundredths"),
-                                readLongCompat(accelerationTag, "PreviousActualTicks", null),
-                                accelerationTag.getInt("PreviousExtraParallelHundredths"),
-                                !accelerationTag.contains("ExternalParallelEligible")
-                                        || accelerationTag.getBoolean("ExternalParallelEligible")));
-            }
-        }
+        accelerationController.load(tag, SLOT_PROGRESS_TAG, PROGRESS_TAG,
+                SLOT_PARALLEL_FRACTION_TAG, PARALLEL_FRACTION_TAG,
+                SLOT_QUANTITY_FRACTION_TAG, QUANTITY_FRACTION_TAG,
+                EXTERNAL_ACCELERATION_STATES_TAG);
         redstoneMode =
                 RedstoneMode.values()[
                         Math.max(
