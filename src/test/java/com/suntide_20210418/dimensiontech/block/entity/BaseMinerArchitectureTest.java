@@ -20,6 +20,16 @@ class BaseMinerArchitectureTest {
     }
 
     @Test
+    void lifecycleCoordinatorUsesTheReusableEnergyContract() throws Exception {
+        Path source = Path.of("src/main/java/com/suntide_20210418/dimensiontech/block/entity/BaseMinerBlockEntity.java");
+        String text = Files.readString(source);
+
+        assertFalse(text.contains("class MinerEnergyStorage"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("EnergyContainer"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("getEnergyContainer()"));
+    }
+
+    @Test
     void structureQueryDoesNotScanOrMutateWorld() throws Exception {
         Path source = Path.of("src/main/java/com/suntide_20210418/dimensiontech/block/entity/BaseMinerBlockEntity.java");
         String text = Files.readString(source);

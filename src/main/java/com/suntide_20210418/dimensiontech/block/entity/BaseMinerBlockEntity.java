@@ -4,6 +4,8 @@ import com.suntide_20210418.dimensiontech.block.BaseMinerBlock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
+import com.suntide_20210418.dimensiontech.energy.EnergyContainer;
+import com.suntide_20210418.dimensiontech.energy.SimpleEnergyContainer;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
 import com.suntide_20210418.dimensiontech.item.ModItems;
@@ -71,7 +73,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             MinerAccelerationController.MINIMUM_NATURAL_TICKS;
 
     private final ItemStackHandler itemHandler;
-    private final MinerEnergyStorage energyStorage;
+    private final EnergyContainer energyStorage;
     private LazyOptional<IItemHandler> itemHandlerCapability;
     private LazyOptional<IEnergyStorage> energyCapability;
     private LazyOptional<IFluidHandler> fluidCapability;
@@ -105,7 +107,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         this.slotEnabled = new boolean[slotCount];
         java.util.Arrays.fill(this.slotEnabled, true);
         java.util.Arrays.fill(this.fluidFaceModes, FluidFaceMode.INPUT);
-        this.energyStorage = new MinerEnergyStorage(getEnergyCapacity());
+        this.energyStorage =
+                new SimpleEnergyContainer(
+                        getEnergyCapacity(), true, false, ignored -> setChanged());
         this.fluidTank =
                 new FluidTank(1000) {
                     @Override
@@ -462,7 +466,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return itemHandler;
     }
 
+    /** Legacy Forge-facing accessor retained for source and binary compatibility. */
     public IEnergyStorage getEnergyStorage() {
+        return energyStorage;
+    }
+
+    /** Returns the reusable machine-side energy contract. */
+    public EnergyContainer getEnergyContainer() {
         return energyStorage;
     }
 
@@ -935,7 +945,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
-        tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
+        energyStorage.save(tag, ENERGY_TAG);
         if (requiresFluidInput()) tag.put("Fluid", fluidTank.writeToNBT(new CompoundTag()));
         tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
         tag.putInt(PROGRESS_TAG, getProgress());
@@ -975,7 +985,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             itemHandler.deserializeNBT(inventoryTag);
         }
         if (tag.contains(ENERGY_TAG, Tag.TAG_INT)) {
-            energyStorage.setEnergy(tag.getInt(ENERGY_TAG));
+            energyStorage.load(tag, ENERGY_TAG);
         }
         if (tag.contains("Fluid", Tag.TAG_COMPOUND)) {
             fluidTank.readFromNBT(tag.getCompound("Fluid"));
@@ -1124,70 +1134,5 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         };
 
         abstract boolean allows(int signal, int threshold);
-    }
-
-    private final class MinerEnergyStorage implements IEnergyStorage {
-        private int capacity;
-        private int energy;
-
-        private MinerEnergyStorage(int capacity) {
-            if (capacity <= 0) {
-                throw new IllegalStateException("Mythic miner energy capacity must be positive");
-            }
-            this.capacity = capacity;
-        }
-
-        @Override
-        public int receiveEnergy(int maxReceive, boolean simulate) {
-            int received = Math.min(capacity - energy, Math.max(0, maxReceive));
-            if (!simulate && received > 0) {
-                energy += received;
-                setChanged();
-            }
-            return received;
-        }
-
-        @Override
-        public int extractEnergy(int maxExtract, boolean simulate) {
-            return 0;
-        }
-
-        @Override
-        public int getEnergyStored() {
-            return energy;
-        }
-
-        @Override
-        public int getMaxEnergyStored() {
-            return capacity;
-        }
-
-        @Override
-        public boolean canExtract() {
-            return false;
-        }
-
-        @Override
-        public boolean canReceive() {
-            return true;
-        }
-
-        private void setEnergy(int energy) {
-            this.energy = Math.min(capacity, Math.max(0, energy));
-        }
-
-        private void setCapacity(int capacity) {
-            this.capacity = Math.max(1, capacity);
-            energy = Math.min(energy, this.capacity);
-        }
-
-        private boolean canConsume(int amount) {
-            return amount > 0 && energy >= amount;
-        }
-
-        private void consume(int amount) {
-            energy -= amount;
-            setChanged();
-        }
     }
 }
