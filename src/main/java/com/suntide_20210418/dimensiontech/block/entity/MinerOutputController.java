@@ -1,12 +1,14 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
+import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+import java.util.function.Function;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -17,6 +19,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.templates.FluidTank;
+import net.minecraftforge.fml.ModList;
 
 /** Owns reward generation, output hooks, and routing for completed miner cycles. */
 final class MinerOutputController {
@@ -27,6 +35,39 @@ final class MinerOutputController {
     private int outputFaceMask = ALL_FACES;
     private boolean equipmentDismantling;
     private final Set<ResourceLocation> disabledItems = new HashSet<>();
+    private static final boolean AE2_LOADED = ModList.get().isLoaded("ae2");
+
+    void extractFluid(
+            BaseMinerBlockEntity miner,
+            ServerLevel level,
+            BlockPos position,
+            FluidTank tank,
+            net.minecraft.world.level.material.Fluid required,
+            boolean enabled,
+            Function<Direction, BaseMinerBlockEntity.FluidFaceMode> faceMode) {
+        if (!enabled || required == null || tank.getFluidAmount() >= tank.getCapacity()) return;
+        int remaining = tank.getCapacity() - tank.getFluidAmount();
+        for (Direction direction : Direction.values()) {
+            if (remaining <= 0 || faceMode.apply(direction) != BaseMinerBlockEntity.FluidFaceMode.INPUT) continue;
+            BlockEntity adjacent = level.getBlockEntity(position.relative(direction));
+            if (adjacent == null) continue;
+            if (AE2_LOADED && Ae2Integration.isOnlineInterface(adjacent)) {
+                if (outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK) {
+                    remaining -= Ae2Integration.extractFluidFromInterfaceNetwork(adjacent, required, remaining, tank);
+                }
+                continue;
+            }
+            IFluidHandler handler = adjacent.getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite()).orElse(null);
+            if (handler == null) continue;
+            FluidStack simulated = handler.drain(new FluidStack(required, remaining), IFluidHandler.FluidAction.SIMULATE);
+            int accepted = tank.fill(simulated, IFluidHandler.FluidAction.SIMULATE);
+            if (accepted <= 0) continue;
+            FluidStack drained = handler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
+            int filled = tank.fill(drained, IFluidHandler.FluidAction.EXECUTE);
+            if (filled < drained.getAmount()) miner.setChanged();
+            remaining -= filled;
+        }
+    }
 
     boolean blocked() { return !pending.isEmpty(); }
     int pendingCount() { return pending.stream().mapToInt(ItemStack::getCount).sum(); }

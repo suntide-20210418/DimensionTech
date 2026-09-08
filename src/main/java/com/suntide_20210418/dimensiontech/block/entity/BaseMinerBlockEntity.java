@@ -860,52 +860,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private void autoExtractFluid(ServerLevel serverLevel) {
-        if (!isAutoExtractFluidEnabled() || fluidTank.getFluidAmount() >= fluidTank.getCapacity()) {
-            return;
-        }
-        Fluid required = getRequiredFluid();
-        if (required == null) {
-            return;
-        }
-        int remaining = fluidTank.getCapacity() - fluidTank.getFluidAmount();
-        for (Direction direction : Direction.values()) {
-            if (remaining <= 0 || getFluidFaceMode(direction) != FluidFaceMode.INPUT) {
-                continue;
-            }
-            BlockEntity adjacent = serverLevel.getBlockEntity(worldPosition.relative(direction));
-            if (adjacent == null) {
-                continue;
-            }
-            if (AE2_LOADED && Ae2Integration.isOnlineInterface(adjacent)) {
-                if (outputController.outputState() == OutputState.ME_NETWORK) {
-                    remaining -=
-                            Ae2Integration.extractFluidFromInterfaceNetwork(
-                                    adjacent, required, remaining, fluidTank);
-                }
-                continue;
-            }
-            IFluidHandler handler =
-                    adjacent.getCapability(ForgeCapabilities.FLUID_HANDLER, direction.getOpposite())
-                            .orElse(null);
-            if (handler == null) {
-                continue;
-            }
-            FluidStack simulated =
-                    handler.drain(
-                            new FluidStack(required, remaining),
-                            IFluidHandler.FluidAction.SIMULATE);
-            int accepted = fluidTank.fill(simulated, IFluidHandler.FluidAction.SIMULATE);
-            if (accepted > 0) {
-                FluidStack drained = handler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
-                int filled = fluidTank.fill(drained, IFluidHandler.FluidAction.EXECUTE);
-                if (filled < drained.getAmount()) {
-                    // The simulation contract of a fluid handler should prevent this path.
-                    // Keeping the mismatch visible avoids silently duplicating fluid.
-                    setChanged();
-                }
-                remaining -= filled;
-            }
-        }
+        outputController.extractFluid(this, serverLevel, worldPosition, fluidTank, getRequiredFluid(),
+                isAutoExtractFluidEnabled(), this::getFluidFaceMode);
     }
 
     private IFluidHandler createFluidInputHandler() {
