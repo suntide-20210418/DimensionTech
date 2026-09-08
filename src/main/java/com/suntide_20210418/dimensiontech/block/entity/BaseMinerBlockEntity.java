@@ -85,6 +85,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final FluidTank fluidTank;
     public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
     private final MythicMinerMarkerAnalysisCache markerLootCache;
+    private final MinerUpgradeController upgradeController;
     private List<ItemStack> pendingOutput = new ArrayList<>();
     private final MythicMinerSlotProgress slotProgress;
     private final int[] slotProcessingTimes;
@@ -112,6 +113,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
         super(type, position, blockState);
         this.itemHandler = createItemHandler();
+        this.upgradeController = new MinerUpgradeController(position);
         this.markerLootCache =
                 new MythicMinerMarkerAnalysisCache(
                         itemHandler, this::currentLootAnalysisFingerprint, this::isRemoved);
@@ -652,10 +654,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             structureComplete = complete;
             setChanged();
         }
-        applyUpgradeBonuses(
-                complete
-                        ? MythicMinerUpgradeResolver.resolve(serverLevel, worldPosition)
-                        : MythicMinerUpgradeResolver.Bonuses.NONE);
+        applyUpgradeBonuses(complete
+                ? upgradeController.refresh(serverLevel)
+                : MinerUpgradeController.UpgradeState.NONE);
     }
 
     private boolean canRunThisTick(ServerLevel serverLevel) {
@@ -770,8 +771,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return MythicMinerMultiblock.isComplete(serverLevel, worldPosition, getMinerTier());
     }
 
-    private void applyUpgradeBonuses(MythicMinerUpgradeResolver.Bonuses bonuses) {
-        upgradeBonuses = bonuses;
+    private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
+        upgradeBonuses = new MythicMinerUpgradeResolver.Bonuses(
+                bonuses.efficiencyMultiplier(), bonuses.energyCapacityMultiplier(),
+                bonuses.parallelMultiplierHundredths(), bonuses.luckIncreasePercent(),
+                bonuses.energyConsumptionMultiplier(), bonuses.efficiencyUpgradeCount(),
+                bonuses.energyUpgradeCount(), bonuses.parallelUpgradeCount(),
+                bonuses.luckUpgradeCount(), bonuses.aggregateUpgradeCount(),
+                bonuses.upgradeCountsByTypeAndTier());
         long capacity = Math.round(getBaseEnergyCapacity() * bonuses.energyCapacityMultiplier());
         energyStorage.setCapacity((int) Math.max(1L, Math.min(Integer.MAX_VALUE, capacity)));
     }
