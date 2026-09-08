@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -7,7 +8,9 @@ import org.junit.jupiter.api.Test;
 class MinerUpgradeControllerTest {
     @Test
     void upgradeStateDoesNotExposeMutableCountArray() {
-        int[] counts = {1, 2, 3};
+        int[] counts = new int[30];
+        counts[18] = 1;
+        counts[19] = 2;
         var state = new MinerUpgradeController.UpgradeState(
                 1.0D, 1.0D, 100, 0.0D, 1.0D, 0, 0, 0, 0, 0, counts);
         counts[0] = 99;
