@@ -65,6 +65,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             "LastEnergyConsumptionGameTime";
     private static final int DRAWS_PER_PARALLEL = 8;
     public static final int FLUID_PER_WORK_CYCLE_MB = 25;
+    public static final int FLUID_TANK_CAPACITY_MB = 16_000;
 
     /**
      * A cycle must span the complete natural observation window used for acceleration accounting.
@@ -111,7 +112,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 new SimpleEnergyContainer(
                         getEnergyCapacity(), true, false, ignored -> setChanged());
         this.fluidTank =
-                new FluidTank(1000) {
+                new FluidTank(FLUID_TANK_CAPACITY_MB) {
                     @Override
                     public boolean isFluidValid(FluidStack stack) {
                         Fluid required = ModFluids.forMinerTier(getMinerTier());

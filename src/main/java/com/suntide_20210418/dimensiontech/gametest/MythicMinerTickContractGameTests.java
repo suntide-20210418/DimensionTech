@@ -27,6 +27,27 @@ public final class MythicMinerTickContractGameTests {
     private MythicMinerTickContractGameTests() {}
 
     @GameTest(templateNamespace = "minecraft", template = "empty")
+    public static void fluidTankHasSixteenThousandMillilitreCapacity(GameTestHelper helper) {
+        BaseMinerBlockEntity miner = placeMiner(helper, 2);
+        int accepted =
+                miner.getFluidTank()
+                        .fill(
+                                new FluidStack(
+                                        miner.getRequiredFluid(),
+                                        BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB + 1),
+                                net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
+
+        if (miner.getFluidTank().getCapacity() != BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB
+                || accepted != BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB
+                || miner.getFluidTank().getFluidAmount()
+                        != BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB) {
+            helper.fail("Fluid tank capacity is not 16000 mB");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty")
     public static void incompleteStructureDoesNotConsumeEnergy(GameTestHelper helper) {
         BaseMinerBlockEntity miner = placeMiner(helper);
         miner.getEnergyStorage().receiveEnergy(10_000, false);
