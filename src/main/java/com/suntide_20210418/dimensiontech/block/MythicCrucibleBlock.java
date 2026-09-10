@@ -34,8 +34,10 @@ public final class MythicCrucibleBlock extends BaseEntityBlock {
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
-        if (!state.is(replacement.getBlock()) && level.getBlockEntity(pos) instanceof MythicCrucibleBlockEntity crucible)
+        if (!state.is(replacement.getBlock()) && level.getBlockEntity(pos) instanceof MythicCrucibleBlockEntity crucible) {
             crucible.abortAndReturnResources();
+            crucible.dropContents();
+        }
         super.onRemove(state, level, pos, replacement, moving);
     }
 }

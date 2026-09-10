@@ -119,6 +119,19 @@ public final class MythicCrucibleBlockEntity extends BlockEntity implements Menu
         setChanged();
     }
 
+    /** Drops both cached operation inputs and ordinary fragment inventory on block removal. */
+    public void dropContents() {
+        if (level == null) return;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                net.minecraft.world.Containers.dropItemStack(
+                        level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
+                inventory.setStackInSlot(slot, ItemStack.EMPTY);
+            }
+        }
+    }
+
     @Override public Component getDisplayName() { return Component.translatable("block.dimension_tech.mythic_crucible"); }
     @Override public AbstractContainerMenu createMenu(int id, Inventory player, Player owner) { return new MythicCrucibleMenu(id, player, this); }
     public ContainerData data() { return new ContainerData() {
