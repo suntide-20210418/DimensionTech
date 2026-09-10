@@ -12,10 +12,12 @@ import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.gametest.LootExpectationGameTests;
 import com.suntide_20210418.dimensiontech.gametest.MythicMinerJadeGameTests;
 import com.suntide_20210418.dimensiontech.gametest.MythicMinerTickContractGameTests;
+import com.suntide_20210418.dimensiontech.gametest.MythicCrucibleGameTests;
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.mythicminer.output.MythicMinerLootMergeGameTests;
 import com.suntide_20210418.dimensiontech.mythicminer.output.MythicMinerOutputRouterGameTests;
+import com.suntide_20210418.dimensiontech.mythiccrucible.MythicCrucibleRecipes;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculatorGameTests;
 import com.suntide_20210418.dimensiontech.structure.analysis.VirtualStructureSamplerGameTests;
@@ -55,12 +57,16 @@ public class DimensionTechMod {
     }
 
     private static void commonSetup(final FMLCommonSetupEvent event) {
-        event.enqueueWork(ModNetwork::register);
+        event.enqueueWork(() -> {
+            MythicCrucibleRecipes.resetDefaults();
+            ModNetwork.register();
+        });
     }
 
     private static void registerGameTests(RegisterGameTestsEvent event) {
         event.register(LootExpectationGameTests.class);
         event.register(MythicMinerTickContractGameTests.class);
+        event.register(MythicCrucibleGameTests.class);
         event.register(MythicMinerJadeGameTests.class);
         event.register(MythicMinerLootMergeGameTests.class);
         event.register(MythicMinerMarkerAnalysisCacheGameTests.class);
