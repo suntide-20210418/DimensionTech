@@ -4,6 +4,7 @@ import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.client.gui.screen.MythicMinerScreen;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
+import com.suntide_20210418.dimensiontech.client.gui.screen.MythicCrucibleScreen;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
@@ -30,6 +31,7 @@ public final class ClientModEvents {
                         MenuScreens.register(
                                 ModMenu.STRUCTURE_DATA_OPERATOR.get(),
                                 StructureDataOperatorScreen::new));
+        event.enqueueWork(() -> MenuScreens.register(ModMenu.MYTHIC_CRUCIBLE.get(), MythicCrucibleScreen::new));
     }
 
     @SubscribeEvent

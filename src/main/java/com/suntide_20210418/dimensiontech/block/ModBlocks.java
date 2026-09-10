@@ -21,7 +21,9 @@ public final class ModBlocks {
                     "structure_data_operator",
                     () ->
                             new StructureDataOperatorBlock(
-                                    BlockBehaviour.Properties.of().strength(4.0F)));
+                            BlockBehaviour.Properties.of().strength(4.0F)));
+    public static final RegistryObject<Block> MYTHIC_CRUCIBLE =
+            BLOCKS.register("mythic_crucible", () -> new MythicCrucibleBlock(BlockBehaviour.Properties.of().strength(4.0F)));
 
     public static final RegistryObject<Block> TIER_1_MYTHIC_MINER =
             BLOCKS.register(

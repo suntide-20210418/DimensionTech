@@ -50,6 +50,7 @@ public final class ModItems {
                     "structure_interpreter", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> STRUCTURE_DATA_OPERATOR =
             blockItem("structure_data_operator", ModBlocks.STRUCTURE_DATA_OPERATOR);
+    public static final RegistryObject<Item> MYTHIC_CRUCIBLE = blockItem("mythic_crucible", ModBlocks.MYTHIC_CRUCIBLE);
 
     public static final RegistryObject<Item> MYTHIC_ESSENCE_BUCKET =
             fluidBucket("mythic_essence_bucket", ModFluids.MYTHIC_ESSENCE);

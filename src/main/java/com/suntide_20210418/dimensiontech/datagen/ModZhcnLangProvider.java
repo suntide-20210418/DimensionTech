@@ -28,6 +28,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.item("structure_interpreter"), "结构阐释器");
         add("block.dimension_tech.structure_data_operator", "结构数据操作仪");
         add("container.dimension_tech.structure_data_operator", "结构数据操作仪");
+        add("block.dimension_tech.mythic_crucible", "神话坩埚");
+        add("container.dimension_tech.mythic_crucible", "神话坩埚");
         add("screen.dimension_tech.structure_operator.copy", "↓复制↓");
         add("screen.dimension_tech.structure_operator.clear", "清除");
         add("screen.dimension_tech.structure_operator.refresh", "已探索结构");

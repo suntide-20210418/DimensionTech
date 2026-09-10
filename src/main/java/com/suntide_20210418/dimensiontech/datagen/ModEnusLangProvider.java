@@ -31,6 +31,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.item("data_integrator"), "Data Integrator");
         add(TranslateHelper.item("structure_interpreter"), "Structure Interpreter");
         add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
+        add("block.dimension_tech.mythic_crucible", "Mythic Crucible");
+        add("container.dimension_tech.mythic_crucible", "Mythic Crucible");
         add("container.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("screen.dimension_tech.structure_operator.copy", "↓Copy↓");
         add("screen.dimension_tech.structure_operator.clear", "Clear");
