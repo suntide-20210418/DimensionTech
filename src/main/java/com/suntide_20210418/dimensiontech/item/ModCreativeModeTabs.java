@@ -45,6 +45,7 @@ public final class ModCreativeModeTabs {
                                                 output.accept(ModItems.STRUCTURE_INTERPRETER.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_DATA_OPERATOR.get());
+                                                output.accept(ModItems.MYTHIC_CRUCIBLE.get());
                                                 output.accept(ModItems.MYTHIC_ESSENCE_BUCKET.get());
                                                 output.accept(
                                                         ModItems.SURGING_MYTHIC_ESSENCE_BUCKET

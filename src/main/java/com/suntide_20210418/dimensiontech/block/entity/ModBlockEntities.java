@@ -22,8 +22,13 @@ public final class ModBlockEntities {
                                                     ModBlocks.STRUCTURE_DATA_OPERATOR.get())
                                             .build(null));
     public static final RegistryObject<BlockEntityType<MythicCrucibleBlockEntity>> MYTHIC_CRUCIBLE =
-            BLOCK_ENTITY_TYPES.register("mythic_crucible", () -> BlockEntityType.Builder.of(
-                    MythicCrucibleBlockEntity::new, ModBlocks.MYTHIC_CRUCIBLE.get()).build(null));
+            BLOCK_ENTITY_TYPES.register(
+                    "mythic_crucible",
+                    () ->
+                            BlockEntityType.Builder.of(
+                                            MythicCrucibleBlockEntity::new,
+                                            ModBlocks.MYTHIC_CRUCIBLE.get())
+                                    .build(null));
 
     public static final RegistryObject<
                     BlockEntityType<Tier1MythicShellChikensVoidStructreResourceMinerBlockEntity>>

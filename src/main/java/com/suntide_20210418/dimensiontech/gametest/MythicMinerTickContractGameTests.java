@@ -35,7 +35,8 @@ public final class MythicMinerTickContractGameTests {
                                 new FluidStack(
                                         miner.getRequiredFluid(),
                                         BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB + 1),
-                                net.minecraftforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
+                                net.minecraftforge.fluids.capability.IFluidHandler.FluidAction
+                                        .EXECUTE);
 
         if (miner.getFluidTank().getCapacity() != BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB
                 || accepted != BaseMinerBlockEntity.FLUID_TANK_CAPACITY_MB

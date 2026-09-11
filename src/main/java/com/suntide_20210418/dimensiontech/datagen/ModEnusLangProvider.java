@@ -33,6 +33,24 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("block.dimension_tech.mythic_crucible", "Mythic Crucible");
         add("container.dimension_tech.mythic_crucible", "Mythic Crucible");
+        add("screen.dimension_tech.mythic_crucible.status.idle", "Idle");
+        add("screen.dimension_tech.mythic_crucible.status.running", "Running");
+        add("screen.dimension_tech.mythic_crucible.status.ready", "Ready to commit");
+        add("screen.dimension_tech.mythic_crucible.stage.branch", "Branch");
+        add("screen.dimension_tech.mythic_crucible.stage.recurse", "Recurse");
+        add("screen.dimension_tech.mythic_crucible.stage.converge", "Converge");
+        add("screen.dimension_tech.mythic_crucible.stage.stabilize", "Stabilize");
+        add("screen.dimension_tech.mythic_crucible.input", "Input essence");
+        add("screen.dimension_tech.mythic_crucible.output", "Output essence");
+        add("screen.dimension_tech.mythic_crucible.ritual", "Ritual sequence");
+        add("screen.dimension_tech.mythic_crucible.current", "Current: %s %s/%s ticks");
+        add(
+                "screen.dimension_tech.mythic_crucible.waiting",
+                "Waiting for input essence / fragments");
+        add("screen.dimension_tech.mythic_crucible.fragments", "Fragments");
+        add("screen.dimension_tech.mythic_crucible.operation", "Operation");
+        add("screen.dimension_tech.mythic_crucible.reward", "Reward window %s-%s");
+        add("screen.dimension_tech.mythic_crucible.inventory", "Player inventory");
         add("container.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("screen.dimension_tech.structure_operator.copy", "↓Copy↓");
         add("screen.dimension_tech.structure_operator.clear", "Clear");

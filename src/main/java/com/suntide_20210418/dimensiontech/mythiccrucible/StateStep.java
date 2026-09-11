@@ -1,10 +1,13 @@
 package com.suntide_20210418.dimensiontech.mythiccrucible;
 
 import java.util.Objects;
-import net.minecraft.world.item.crafting.Ingredient;
 
-/** A state and the one operation item that settles it. */
-public record StateStep(StateId state, Ingredient operation) {
+/**
+ * A state and the one operation item that settles it.
+ *
+ * @param <S> the supplied stack type, an {@code ItemStack} in production
+ */
+public record StateStep<S>(StateId state, OperationMatcher<S> operation) {
     public StateStep {
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(operation, "operation");

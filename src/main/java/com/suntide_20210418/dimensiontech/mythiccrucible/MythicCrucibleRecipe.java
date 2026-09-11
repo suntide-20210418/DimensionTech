@@ -6,8 +6,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 
-/** Immutable V1 crucible recipe. A recipe has one DSL, except tier five's explicit A/B pair. */
-public final class MythicCrucibleRecipe {
+/**
+ * Immutable V1 crucible recipe. A recipe has one DSL, except tier five's explicit A/B pair.
+ *
+ * @param <S> the supplied stack type, an {@code ItemStack} in production
+ */
+public final class MythicCrucibleRecipe<S> {
     public static final int BASE_TIME_TICKS = 400;
     public static final int DEFAULT_FLUID_COST_MB = 1_000;
     public static final int DEFAULT_OUTPUT_AMOUNT_MB = 1_000;
@@ -19,8 +23,8 @@ public final class MythicCrucibleRecipe {
     private final int fragmentCount;
     private final int baseFluidCost;
     private final int targetOutput;
-    private final List<StateStep> sequenceA;
-    private final List<StateStep> sequenceB;
+    private final List<StateStep<S>> sequenceA;
+    private final List<StateStep<S>> sequenceB;
 
     public MythicCrucibleRecipe(
             ResourceLocation id,
@@ -30,13 +34,14 @@ public final class MythicCrucibleRecipe {
             int fragmentCount,
             int baseFluidCost,
             int targetOutput,
-            List<StateStep> sequenceA,
-            List<StateStep> sequenceB) {
+            List<StateStep<S>> sequenceA,
+            List<StateStep<S>> sequenceB) {
         this.id = Objects.requireNonNull(id, "id");
-        this.input = Objects.requireNonNull(input, "input");
-        this.output = Objects.requireNonNull(output, "output");
-        this.fragment = Objects.requireNonNull(fragment, "fragment");
-        if (fragment.isEmpty()) throw new IllegalArgumentException("fragment must not be empty");
+        this.input = input;
+        this.output = output;
+        this.fragment = fragment;
+        if (fragment != null && fragment.isEmpty())
+            throw new IllegalArgumentException("fragment must not be empty");
         if (fragmentCount < 1 || baseFluidCost < 1 || targetOutput < 1)
             throw new IllegalArgumentException("recipe costs and output must be positive");
         this.fragmentCount = fragmentCount;
@@ -45,12 +50,14 @@ public final class MythicCrucibleRecipe {
         this.sequenceA = validate(sequenceA, "stateSequence");
         this.sequenceB = sequenceB == null ? List.of() : validate(sequenceB, "stateSequenceB");
         if (!this.sequenceB.isEmpty() && !hasSameEndpoints(this.sequenceA, this.sequenceB))
-            throw new IllegalArgumentException("A/B sequences must share branch and stabilize endpoints");
+            throw new IllegalArgumentException(
+                    "A/B sequences must share branch and stabilize endpoints");
     }
 
-    private static List<StateStep> validate(List<StateStep> source, String name) {
-        if (source == null || source.isEmpty()) throw new IllegalArgumentException(name + " must not be empty");
-        List<StateStep> steps = List.copyOf(source);
+    private static <S> List<StateStep<S>> validate(List<StateStep<S>> source, String name) {
+        if (source == null || source.isEmpty())
+            throw new IllegalArgumentException(name + " must not be empty");
+        List<StateStep<S>> steps = List.copyOf(source);
         if (steps.get(0).state() != StateId.BRANCH)
             throw new IllegalArgumentException(name + " must begin with branch");
         if (steps.get(steps.size() - 1).state() != StateId.STABILIZE)
@@ -64,32 +71,63 @@ public final class MythicCrucibleRecipe {
         return steps;
     }
 
-    private static boolean hasSameEndpoints(List<StateStep> a, List<StateStep> b) {
+    private static <S> boolean hasSameEndpoints(List<StateStep<S>> a, List<StateStep<S>> b) {
         return a.get(0).state() == StateId.BRANCH
                 && b.get(0).state() == StateId.BRANCH
                 && a.get(a.size() - 1).state() == StateId.STABILIZE
                 && b.get(b.size() - 1).state() == StateId.STABILIZE;
     }
 
-    public ResourceLocation id() { return id; }
-    public Fluid input() { return input; }
-    public Fluid output() { return output; }
-    public Ingredient fragment() { return fragment; }
-    public int fragmentCount() { return fragmentCount; }
-    public int baseFluidCost() { return baseFluidCost; }
-    public int targetOutput() { return targetOutput; }
-    public boolean hasAlternateBranch() { return !sequenceB.isEmpty(); }
-    public List<StateStep> sequence(Branch branch) {
-        return branch == Branch.B && hasAlternateBranch() ? sequenceB : sequenceA;
+    public ResourceLocation id() {
+        return id;
     }
+
+    public Fluid input() {
+        return input;
+    }
+
+    public Fluid output() {
+        return output;
+    }
+
+    public Ingredient fragment() {
+        return fragment;
+    }
+
+    public int fragmentCount() {
+        return fragmentCount;
+    }
+
+    public int baseFluidCost() {
+        return baseFluidCost;
+    }
+
+    public int targetOutput() {
+        return targetOutput;
+    }
+
+    public boolean hasAlternateBranch() {
+        return !sequenceB.isEmpty();
+    }
+
+    public List<StateStep<S>> sequence(Branch branch) {
+        if (branch != Branch.B || !hasAlternateBranch()) return sequenceA;
+        @SuppressWarnings("unchecked")
+        List<StateStep<S>> alternate = (List<StateStep<S>>) (List<?>) sequenceB;
+        return alternate;
+    }
+
     public int targetDepth(Branch branch) {
-        return (int) sequence(branch).stream().filter(step -> step.state() == StateId.RECURSE).count();
+        return (int)
+                sequence(branch).stream().filter(step -> step.state() == StateId.RECURSE).count();
     }
 
     public enum Branch {
         A,
         B;
 
-        public Branch next() { return this == A ? B : A; }
+        public Branch next() {
+            return this == A ? B : A;
+        }
     }
 }
