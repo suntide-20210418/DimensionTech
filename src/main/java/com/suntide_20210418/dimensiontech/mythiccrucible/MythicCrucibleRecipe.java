@@ -12,7 +12,9 @@ import net.minecraft.world.level.material.Fluid;
  * @param <S> the supplied stack type, an {@code ItemStack} in production
  */
 public final class MythicCrucibleRecipe<S> {
-    public static final int BASE_TIME_TICKS = 400;
+    /** Kept as the recipe-facing alias of the formula's unrewarded settlement time. */
+    public static final int BASE_TIME_TICKS = CrucibleFormula.NATURAL_TIME_TICKS;
+
     public static final int DEFAULT_FLUID_COST_MB = 1_000;
     public static final int DEFAULT_OUTPUT_AMOUNT_MB = 1_000;
 

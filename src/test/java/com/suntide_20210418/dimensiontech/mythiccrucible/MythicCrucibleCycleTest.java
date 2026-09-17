@@ -58,7 +58,7 @@ class MythicCrucibleCycleTest {
 
     @Test
     void correctInputsOutsideTheWindowResolveWithoutReward() {
-        for (int ticks : new int[] {0, 19, 61, 100}) {
+        for (int ticks : new int[] {0, 19, 61}) {
             assertEquals(
                     MythicCrucibleCycle.Resolution.CORRECT,
                     resolveAfterTicks(ticks, SHALLOW, BRANCH),
@@ -74,6 +74,19 @@ class MythicCrucibleCycleTest {
         assertEquals(MythicCrucibleCycle.Resolution.PHASE_IDLE, cycle.resolve(BRANCH));
         assertEquals(0, cycle.stateIndex(), "phase idle must not advance the state");
         assertEquals(460, cycle.finalResult().timeTicks(), "phase idle must add sixty ticks");
+    }
+
+    @Test
+    void stateTimerStopsAtTheTimeoutBoundary() {
+        MythicCrucibleCycle<String> cycle = started(SHALLOW, null);
+        advance(cycle, MythicCrucibleCycle.STATE_TIMEOUT_TICKS + 20);
+
+        assertEquals(MythicCrucibleCycle.STATE_TIMEOUT_TICKS, cycle.stateTicks());
+        assertEquals(
+                MythicCrucibleCycle.Resolution.PHASE_IDLE,
+                cycle.resolve(BRANCH),
+                "the timeout is settled exactly at the boundary");
+        assertEquals(0, cycle.stateTicks());
     }
 
     @Test
@@ -107,6 +120,63 @@ class MythicCrucibleCycleTest {
         assertEquals(0, cycle.stateIndex(), "an empty slot must keep the current state");
         assertEquals(20, cycle.stateTicks(), "an empty slot must not reset the wait timer");
         assertEquals(400, cycle.finalResult().timeTicks(), "an empty slot must not penalize");
+    }
+
+    /**
+     * The tick loop asks once per tick, so an idle crucible submits an empty slot sixty times in a
+     * row. The wait timer has to survive that and reach the reward window.
+     */
+    @Test
+    void anIdleCrucibleStillReachesItsRewardWindow() {
+        MythicCrucibleCycle<String> cycle = started(SHALLOW, null);
+        for (int tick = 0; tick < MythicCrucibleCycle.REWARD_END_TICK; tick++) {
+            cycle.tick();
+            assertEquals(MythicCrucibleCycle.Resolution.NONE, cycle.resolve(null, true));
+        }
+
+        assertEquals(MythicCrucibleCycle.REWARD_END_TICK, cycle.stateTicks());
+        assertEquals(
+                MythicCrucibleCycle.Resolution.CORRECT_REWARDED,
+                cycle.resolve(BRANCH, false),
+                "waiting without inserting anything must still earn the reward");
+    }
+
+    /**
+     * The reward window only measures the current state, so a display layer needs a separate
+     * whole-cycle counter for the ritual's elapsed time.
+     */
+    @Test
+    void elapsedTicksSurviveStateChangesAndRestartWithTheNextCycle() {
+        MythicCrucibleCycle<String> cycle = started(SHALLOW, null);
+        advance(cycle, 30);
+        cycle.resolve(BRANCH);
+
+        assertEquals(0, cycle.stateTicks(), "settling a state restarts its own window");
+        assertEquals(0, cycle.elapsedTicks(), "refining must not start during item input states");
+        advance(cycle, 10);
+        assertEquals(10, cycle.stateTicks());
+        assertEquals(0, cycle.elapsedTicks());
+
+        cycle.abort(false);
+        assertEquals(0, cycle.elapsedTicks(), "a rolled back cycle has no elapsed time");
+    }
+
+    @Test
+    void refiningStartsOnlyAfterEveryOperationAndCompletesAtTheFinalTime() {
+        MythicCrucibleCycle<String> cycle = started(SHALLOW, null);
+        resolve(cycle, BRANCH);
+        resolve(cycle, CONVERGE);
+        resolve(cycle, STABILIZE);
+
+        assertEquals(MythicCrucibleCycle.Status.REFINING, cycle.status());
+        assertEquals(0, cycle.elapsedTicks());
+        advance(cycle, cycle.finalResult().timeTicks() - 1);
+        assertEquals(MythicCrucibleCycle.Status.REFINING, cycle.status());
+        assertEquals(cycle.finalResult().timeTicks() - 1, cycle.elapsedTicks());
+
+        cycle.tick();
+        assertEquals(MythicCrucibleCycle.Status.READY_TO_COMMIT, cycle.status());
+        assertEquals(cycle.finalResult().timeTicks(), cycle.elapsedTicks());
     }
 
     @Test
@@ -184,7 +254,7 @@ class MythicCrucibleCycleTest {
         advance(cycle, 5);
         assertEquals(MythicCrucibleCycle.Resolution.CORRECT, resolve(cycle, STABILIZE));
         assertEquals(0, cycle.extraFragmentCost(), "a correct stabilize costs no fragments");
-        assertEquals(MythicCrucibleCycle.Status.READY_TO_COMMIT, cycle.status());
+        assertEquals(MythicCrucibleCycle.Status.REFINING, cycle.status());
     }
 
     @Test
@@ -215,7 +285,7 @@ class MythicCrucibleCycleTest {
         resolve(cycle, CONVERGE);
         advance(cycle, 60);
         assertEquals(MythicCrucibleCycle.Resolution.CORRECT_REWARDED, resolve(cycle, STABILIZE));
-        assertEquals(MythicCrucibleCycle.Status.READY_TO_COMMIT, cycle.status());
+        assertEquals(MythicCrucibleCycle.Status.REFINING, cycle.status());
 
         CrucibleFormula.Result result = cycle.finalResult();
         assertEquals(320, result.timeTicks(), "the forty reduction ticks doubled");
@@ -390,6 +460,8 @@ class MythicCrucibleCycleTest {
                 assertTrue(result.consumesInput(), "a supplied input must settle the state");
             }
         }
+        assertEquals(MythicCrucibleCycle.Status.REFINING, cycle.status());
+        advance(cycle, cycle.finalResult().timeTicks());
         assertEquals(
                 MythicCrucibleCycle.Status.READY_TO_COMMIT,
                 cycle.status(),

@@ -14,10 +14,41 @@ public final class MythicCrucibleCycle<S> {
     public static final int REWARD_END_TICK = 60;
     public static final int MAX_CARRIED_EXTRA_RECURSION = 4;
 
+    /** Waiting at or past {@link #STATE_TIMEOUT_TICKS}, or submitting an unknown operation. */
+    public static final int WRONG_STATE_TIME_PENALTY_TICKS = 60;
+
+    /** Submitting the other branch's operation at the same index. */
+    public static final int BRANCH_CONFLICT_TIME_PENALTY_TICKS = 80;
+
+    /** Submitting recurse below the target depth. */
+    public static final int RECURSION_OVERFLOW_FLUID_PENALTY_BP = 2_500;
+
+    /** Submitting converge before the target depth, charged per missing depth level. */
+    public static final int EARLY_CONVERGE_OUTPUT_PENALTY_BP_PER_DEPTH = 1_000;
+
+    /** Rewarded branch. */
+    public static final int REWARD_BRANCH_TIME_REDUCTION_TICKS = 40;
+
+    /** Rewarded recurse: cheaper fluid plus one extra recursion advance. */
+    public static final int REWARD_RECURSE_FLUID_REDUCTION_BP = 1_000;
+
+    /** Rewarded converge. */
+    public static final int REWARD_CONVERGE_OUTPUT_BONUS_BP = 2_500;
+
+    /** Submitting stabilize while the cycle is not ready to stabilize. */
+    public static final int STABILIZE_FAILURE_EXTRA_FRAGMENTS = 1;
+
+    /** A failed stabilize may at most double the recipe's fragment cost. */
+    public static final int MAX_EXTRA_FRAGMENT_MULTIPLIER = 2;
+
     private MythicCrucibleRecipe<S> recipe;
     private MythicCrucibleRecipe.Branch branch = MythicCrucibleRecipe.Branch.A;
     private int stateIndex;
     private int stateTicks;
+
+    /** Ticks spent in the dedicated refining phase. */
+    private int elapsedTicks;
+
     private int currentDepth;
     private int timeReduction;
     private int timePenalty;
@@ -51,6 +82,7 @@ public final class MythicCrucibleCycle<S> {
         }
         this.recipe = recipe;
         stateIndex = stateTicks = currentDepth = 0;
+        elapsedTicks = 0;
         timeReduction =
                 timePenalty =
                         fluidReductionBp = fluidPenaltyBp = outputBonusBp = outputPenaltyBp = 0;
@@ -60,7 +92,12 @@ public final class MythicCrucibleCycle<S> {
 
     /** Advance the waiting timer; callers resolve an inserted item during the same server tick. */
     public void tick() {
-        if (status == Status.RUNNING) stateTicks++;
+        if (status == Status.RUNNING) {
+            stateTicks = Math.min(STATE_TIMEOUT_TICKS, stateTicks + 1);
+        } else if (status == Status.REFINING) {
+            elapsedTicks++;
+            if (elapsedTicks >= finalResult().timeTicks()) status = Status.READY_TO_COMMIT;
+        }
     }
 
     /** Resolves a possibly empty supplied stack. */
@@ -71,8 +108,8 @@ public final class MythicCrucibleCycle<S> {
     /** Resolves exactly one supplied operation stack. Empty stacks are intentionally ignored. */
     public Resolution resolve(S stack, boolean inputEmpty) {
         if (status != Status.RUNNING || inputEmpty) return Resolution.NONE;
-        if (stateTicks > STATE_TIMEOUT_TICKS) {
-            timePenalty += 60;
+        if (stateTicks >= STATE_TIMEOUT_TICKS) {
+            timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
             stateTicks = 0;
             return Resolution.PHASE_IDLE;
         }
@@ -81,7 +118,7 @@ public final class MythicCrucibleCycle<S> {
         StateId submitted = stateFor(stack);
         if (submitted == expectedState && expected.operation().test(stack)) return correct();
         if (submitted == null) {
-            timePenalty += 60;
+            timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
             stateTicks = 0;
             return Resolution.PHASE_IDLE;
         }
@@ -94,7 +131,9 @@ public final class MythicCrucibleCycle<S> {
                     case CONVERGE -> {}
                     case BRANCH, RECURSE, STABILIZE -> {
                         extraFragmentCost =
-                                Math.min(recipe.fragmentCount() * 2, extraFragmentCost + 1);
+                                Math.min(
+                                        recipe.fragmentCount() * MAX_EXTRA_FRAGMENT_MULTIPLIER,
+                                        extraFragmentCost + STABILIZE_FAILURE_EXTRA_FRAGMENTS);
                         stateTicks = 0;
                         return Resolution.STABILIZE_FAILURE;
                     }
@@ -102,7 +141,9 @@ public final class MythicCrucibleCycle<S> {
             }
             case CONVERGE -> {
                 if (currentDepth < targetDepth) {
-                    outputPenaltyBp += 1_000 * (targetDepth - currentDepth);
+                    outputPenaltyBp +=
+                            EARLY_CONVERGE_OUTPUT_PENALTY_BP_PER_DEPTH
+                                    * (targetDepth - currentDepth);
                     switch (expectedState) {
                         case CONVERGE -> stateIndex++;
                         case BRANCH, RECURSE, STABILIZE -> stateIndex = convergeIndex() + 1;
@@ -114,7 +155,7 @@ public final class MythicCrucibleCycle<S> {
             }
             case RECURSE -> {
                 if (currentDepth > targetDepth) {
-                    fluidPenaltyBp += 2_500;
+                    fluidPenaltyBp += RECURSION_OVERFLOW_FLUID_PENALTY_BP;
                     currentDepth = Math.max(0, targetDepth - 1);
                     stateTicks = 0;
                     return Resolution.RECURSION_OVERFLOW;
@@ -123,12 +164,12 @@ public final class MythicCrucibleCycle<S> {
             case BRANCH -> {}
         }
         if (isBranchConflict(submitted)) {
-            timePenalty += 80;
+            timePenalty += BRANCH_CONFLICT_TIME_PENALTY_TICKS;
             stateIndex = branchIndex();
             stateTicks = 0;
             return Resolution.BRANCH_CONFLICT;
         }
-        timePenalty += 60;
+        timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
         stateTicks = 0;
         return Resolution.PHASE_IDLE;
     }
@@ -138,12 +179,12 @@ public final class MythicCrucibleCycle<S> {
         StateId id = currentStep().state();
         if (rewarded) {
             switch (id) {
-                case BRANCH -> timeReduction += 40;
+                case BRANCH -> timeReduction += REWARD_BRANCH_TIME_REDUCTION_TICKS;
                 case RECURSE -> {
-                    fluidReductionBp += 1_000;
+                    fluidReductionBp += REWARD_RECURSE_FLUID_REDUCTION_BP;
                     currentCycleExtraRecursion++;
                 }
-                case CONVERGE -> outputBonusBp += 2_500;
+                case CONVERGE -> outputBonusBp += REWARD_CONVERGE_OUTPUT_BONUS_BP;
                 case STABILIZE -> settleStabilizeReward();
             }
         }
@@ -151,7 +192,7 @@ public final class MythicCrucibleCycle<S> {
         stateIndex++;
         stateTicks = 0;
         settleStep();
-        if (stateIndex >= sequence().size()) status = Status.READY_TO_COMMIT;
+        if (stateIndex >= sequence().size()) status = Status.REFINING;
         return rewarded ? Resolution.CORRECT_REWARDED : Resolution.CORRECT;
     }
 
@@ -175,7 +216,7 @@ public final class MythicCrucibleCycle<S> {
      */
     private void settleStep() {
         if (stateIndex >= sequence().size()) {
-            status = Status.READY_TO_COMMIT;
+            status = Status.REFINING;
             flushExtraRecursion();
             return;
         }
@@ -198,7 +239,7 @@ public final class MythicCrucibleCycle<S> {
         stateIndex++;
         stateTicks = 0;
         if (stateIndex >= sequence().size()) {
-            status = Status.READY_TO_COMMIT;
+            status = Status.REFINING;
             flushExtraRecursion();
             return;
         }
@@ -244,6 +285,7 @@ public final class MythicCrucibleCycle<S> {
         recipe = null;
         status = Status.IDLE;
         stateIndex = stateTicks = currentDepth = 0;
+        elapsedTicks = 0;
         timeReduction =
                 timePenalty =
                         fluidReductionBp = fluidPenaltyBp = outputBonusBp = outputPenaltyBp = 0;
@@ -318,6 +360,14 @@ public final class MythicCrucibleCycle<S> {
         return stateTicks;
     }
 
+    /**
+     * Ticks spent on the cycle so far. It keeps counting across state changes, unlike {@link
+     * #stateTicks()}, so a display layer can report the ritual's total elapsed time.
+     */
+    public int elapsedTicks() {
+        return elapsedTicks;
+    }
+
     public int stateIndex() {
         return stateIndex;
     }
@@ -334,6 +384,32 @@ public final class MythicCrucibleCycle<S> {
         return extraFragmentCost;
     }
 
+    /** Accumulated rewards of the current cycle, in ticks. */
+    public int timeReduction() {
+        return timeReduction;
+    }
+
+    /** Accumulated time penalties of the current cycle, in ticks. */
+    public int timePenalty() {
+        return timePenalty;
+    }
+
+    public int fluidReductionBp() {
+        return fluidReductionBp;
+    }
+
+    public int fluidPenaltyBp() {
+        return fluidPenaltyBp;
+    }
+
+    public int outputBonusBp() {
+        return outputBonusBp;
+    }
+
+    public int outputPenaltyBp() {
+        return outputPenaltyBp;
+    }
+
     public void save(CompoundTag tag) {
         tag.putInt("CrucibleBranch", branch.ordinal());
         tag.putInt("CrucibleCarriedRecursion", carriedExtraRecursion);
@@ -342,6 +418,7 @@ public final class MythicCrucibleCycle<S> {
         if (recipe != null) tag.putString("CrucibleRecipe", recipe.id().toString());
         tag.putInt("CrucibleStateIndex", stateIndex);
         tag.putInt("CrucibleStateTicks", stateTicks);
+        tag.putInt("CrucibleElapsedTicks", elapsedTicks);
         tag.putInt("CrucibleDepth", currentDepth);
         tag.putInt("CrucibleTimeReduction", timeReduction);
         tag.putInt("CrucibleTimePenalty", timePenalty);
@@ -381,11 +458,14 @@ public final class MythicCrucibleCycle<S> {
             return;
         }
         status =
-                savedStatus == Status.READY_TO_COMMIT.ordinal()
-                        ? Status.READY_TO_COMMIT
-                        : Status.RUNNING;
-        stateIndex = Math.max(0, Math.min(tag.getInt("CrucibleStateIndex"), sequence().size() - 1));
-        stateTicks = Math.max(0, tag.getInt("CrucibleStateTicks"));
+                switch (savedStatus) {
+                    case 2 -> Status.REFINING;
+                    case 3 -> Status.READY_TO_COMMIT;
+                    default -> Status.RUNNING;
+                };
+        stateIndex = Math.max(0, Math.min(tag.getInt("CrucibleStateIndex"), sequence().size()));
+        stateTicks = Math.min(STATE_TIMEOUT_TICKS, Math.max(0, tag.getInt("CrucibleStateTicks")));
+        elapsedTicks = Math.max(0, tag.getInt("CrucibleElapsedTicks"));
         currentDepth = Math.max(0, tag.getInt("CrucibleDepth"));
         timeReduction = Math.max(0, tag.getInt("CrucibleTimeReduction"));
         timePenalty = Math.max(0, tag.getInt("CrucibleTimePenalty"));
@@ -404,13 +484,14 @@ public final class MythicCrucibleCycle<S> {
         }
         extraFragmentCost =
                 Math.min(
-                        recipe.fragmentCount() * 2,
+                        recipe.fragmentCount() * MAX_EXTRA_FRAGMENT_MULTIPLIER,
                         Math.max(0, tag.getInt("CrucibleExtraFragments")));
     }
 
     public enum Status {
         IDLE,
         RUNNING,
+        REFINING,
         READY_TO_COMMIT
     }
 

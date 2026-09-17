@@ -28,4 +28,12 @@ class CrucibleFormulaTest {
         assertEquals(1_250, result.fluidCostMb());
         assertEquals(900, result.outputAmountMb());
     }
+
+    /** Display layers print whole percentage points; every rule value is a multiple of one. */
+    @Test
+    void basisPointsConvertToWholePercentages() {
+        assertEquals(10, CrucibleFormula.percent(1_000));
+        assertEquals(25, CrucibleFormula.percent(2_500));
+        assertEquals(0, CrucibleFormula.percent(0));
+    }
 }

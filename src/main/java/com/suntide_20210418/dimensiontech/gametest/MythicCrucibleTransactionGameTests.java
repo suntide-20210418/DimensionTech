@@ -145,6 +145,7 @@ public final class MythicCrucibleTransactionGameTests {
         while (cycle.status() == MythicCrucibleCycle.Status.RUNNING) {
             cycle.resolve(new ItemStack(itemFor(cycle.currentState())));
         }
+        while (cycle.status() == MythicCrucibleCycle.Status.REFINING) cycle.tick();
         return cycle.finalResult().fluidCostMb();
     }
 

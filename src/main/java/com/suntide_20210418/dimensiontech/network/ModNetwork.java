@@ -7,6 +7,7 @@ import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.mythiccrucible.CrucibleTooltipSnapshot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,11 +15,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
@@ -73,6 +77,11 @@ public final class ModNetwork {
                 .decoder(MythicMinerSlotTogglePacket::decode)
                 .consumerMainThread(MythicMinerSlotTogglePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(MythicCrucibleTooltipPacket.class, nextId++)
+                .encoder(MythicCrucibleTooltipPacket::encode)
+                .decoder(MythicCrucibleTooltipPacket::decode)
+                .consumerMainThread(MythicCrucibleTooltipPacket::handle)
+                .add();
         CHANNEL.messageBuilder(StructureOperatorActionPacket.class, nextId++)
                 .encoder(StructureOperatorActionPacket::encode)
                 .decoder(StructureOperatorActionPacket::decode)
@@ -119,6 +128,13 @@ public final class ModNetwork {
 
     public static void toggleMythicMinerSlot(int containerId, int slot) {
         CHANNEL.sendToServer(new MythicMinerSlotTogglePacket(containerId, slot));
+    }
+
+    public static void sendCrucibleTooltipSnapshot(
+            ServerPlayer player, int containerId, CrucibleTooltipSnapshot snapshot) {
+        CHANNEL.send(
+                PacketDistributor.PLAYER.with(() -> player),
+                new MythicCrucibleTooltipPacket(containerId, snapshot));
     }
 
     public static void structureOperatorCopy(int containerId) {
@@ -717,6 +733,107 @@ public final class ModNetwork {
                 menu.getBlockEntity().toggleSlotEnabled(packet.slot());
             }
             context.setPacketHandled(true);
+        }
+    }
+
+    private record MythicCrucibleTooltipPacket(int containerId, CrucibleTooltipSnapshot snapshot) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeVarInt(snapshot.revision());
+            writeCandidates(buffer, snapshot.fragmentCandidates());
+            buffer.writeVarInt(snapshot.fragmentCandidateTotal());
+            buffer.writeVarInt(snapshot.fragmentRequiredCount());
+            buffer.writeBoolean(snapshot.operationRequirementKnown());
+            writeCandidates(buffer, snapshot.operationCandidates());
+            buffer.writeVarInt(snapshot.operationCandidateTotal());
+            buffer.writeVarInt(snapshot.operationStepIndex());
+            buffer.writeVarInt(snapshot.operationStepCount());
+            buffer.writeVarInt(snapshot.inputRequiredAmount());
+            buffer.writeVarInt(snapshot.outputExpectedAmount());
+            buffer.writeVarInt(fluidId(snapshot.expectedInputFluid()));
+            buffer.writeVarInt(fluidId(snapshot.expectedOutputFluid()));
+        }
+
+        private static MythicCrucibleTooltipPacket decode(FriendlyByteBuf buffer) {
+            int containerId = buffer.readVarInt();
+            int revision = buffer.readVarInt();
+            List<ItemStack> fragmentCandidates = readCandidates(buffer);
+            int fragmentCandidateTotal = buffer.readVarInt();
+            int fragmentRequiredCount = buffer.readVarInt();
+            boolean operationRequirementKnown = buffer.readBoolean();
+            List<ItemStack> operationCandidates = readCandidates(buffer);
+            int operationCandidateTotal = buffer.readVarInt();
+            int operationStepIndex = buffer.readVarInt();
+            int operationStepCount = buffer.readVarInt();
+            int inputRequiredAmount = buffer.readVarInt();
+            int outputExpectedAmount = buffer.readVarInt();
+            Fluid expectedInputFluid = fluid(buffer.readVarInt());
+            Fluid expectedOutputFluid = fluid(buffer.readVarInt());
+            return new MythicCrucibleTooltipPacket(
+                    containerId,
+                    new CrucibleTooltipSnapshot(
+                            fragmentCandidates,
+                            fragmentCandidateTotal,
+                            fragmentRequiredCount,
+                            operationCandidates,
+                            operationCandidateTotal,
+                            operationRequirementKnown,
+                            operationStepIndex,
+                            operationStepCount,
+                            inputRequiredAmount,
+                            outputExpectedAmount,
+                            expectedInputFluid,
+                            expectedOutputFluid,
+                            revision));
+        }
+
+        private static void handle(
+                MythicCrucibleTooltipPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                    Dist.CLIENT,
+                    () ->
+                            () -> {
+                                net.minecraft.client.Minecraft minecraft =
+                                        net.minecraft.client.Minecraft.getInstance();
+                                if (minecraft.player != null
+                                        && minecraft.player.containerMenu
+                                                instanceof
+                                                com.suntide_20210418.dimensiontech.client.gui.menu
+                                                                .MythicCrucibleMenu
+                                                        menu
+                                        && menu.containerId == packet.containerId())
+                                    menu.applyTooltipSnapshot(packet.snapshot());
+                            });
+            context.setPacketHandled(true);
+        }
+
+        private static void writeCandidates(FriendlyByteBuf buffer, List<ItemStack> candidates) {
+            int count = Math.min(CrucibleTooltipSnapshot.MAX_CANDIDATES, candidates.size());
+            buffer.writeVarInt(count);
+            for (int index = 0; index < count; index++) buffer.writeItem(candidates.get(index));
+        }
+
+        private static List<ItemStack> readCandidates(FriendlyByteBuf buffer) {
+            int count = buffer.readVarInt();
+            if (count < 0 || count > CrucibleTooltipSnapshot.MAX_CANDIDATES)
+                throw new IllegalArgumentException(
+                        "Invalid crucible tooltip candidate count: " + count);
+            List<ItemStack> candidates = new ArrayList<>(count);
+            for (int index = 0; index < count; index++) candidates.add(buffer.readItem());
+            return List.copyOf(candidates);
+        }
+
+        private static int fluidId(Fluid fluid) {
+            return fluid == null || fluid == Fluids.EMPTY
+                    ? -1
+                    : BuiltInRegistries.FLUID.getId(fluid);
+        }
+
+        private static Fluid fluid(int id) {
+            if (id < 0) return Fluids.EMPTY;
+            Fluid fluid = BuiltInRegistries.FLUID.byId(id);
+            return fluid == null ? Fluids.EMPTY : fluid;
         }
     }
 }

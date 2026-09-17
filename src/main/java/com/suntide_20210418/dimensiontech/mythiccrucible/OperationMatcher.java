@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.mythiccrucible;
 
+import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 
@@ -15,6 +16,14 @@ public interface OperationMatcher<S> {
 
     default boolean isEmpty() {
         return false;
+    }
+
+    /**
+     * The operation's ingredient, for display layers such as JEI. The state machine never needs
+     * this, so predicate-backed operations legitimately report nothing.
+     */
+    default Optional<Ingredient> asIngredient() {
+        return Optional.empty();
     }
 
     /** Adapts a vanilla ingredient so recipes keep their existing datapack-facing shape. */
@@ -37,6 +46,11 @@ public interface OperationMatcher<S> {
         @Override
         public boolean isEmpty() {
             return ingredient.isEmpty();
+        }
+
+        @Override
+        public Optional<Ingredient> asIngredient() {
+            return Optional.of(ingredient);
         }
     }
 }
