@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class MythicMinerExpectationMathTest {
+class StructureMinerExpectationMathTest {
     @Test
     void hundredthsAccumulatorCarriesWholeValuesAndKeepsRemainder() {
         ExpectationMath.AccumulatedValue value =

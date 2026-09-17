@@ -1,6 +1,6 @@
 package com.suntide_20210418.dimensiontech.utils;
 
-import com.suntide_20210418.dimensiontech.mythicminer.processing.ExternalTickAcceleration;
+import com.suntide_20210418.dimensiontech.structureminer.processing.ExternalTickAcceleration;
 import net.minecraft.resources.ResourceLocation;
 
 /** Server-scoped, optional overrides supplied by integrations such as KubeJS. */

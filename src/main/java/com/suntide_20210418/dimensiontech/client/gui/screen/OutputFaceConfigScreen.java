@@ -1,7 +1,7 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
@@ -33,12 +33,12 @@ public final class OutputFaceConfigScreen extends Screen {
     private static final int CONTROL_BOTTOM_INSET = 8;
     private static final int CONTROL_GAP = -2;
     private final Screen parent;
-    private final MythicMinerMenu menu;
+    private final StructureMinerMenu menu;
     private int left;
     private int top;
 
-    public OutputFaceConfigScreen(Screen parent, MythicMinerMenu menu) {
-        super(Component.translatable("screen.dimension_tech.mythic_miner.output_face"));
+    public OutputFaceConfigScreen(Screen parent, StructureMinerMenu menu) {
+        super(Component.translatable("screen.dimension_tech.structure_miner.output_face"));
         this.parent = parent;
         this.menu = menu;
     }
@@ -51,7 +51,7 @@ public final class OutputFaceConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        g.fill(0, 0, width, height, MythicMinerTheme.BACKDROP);
+        g.fill(0, 0, width, height, StructureMinerTheme.BACKDROP);
         g.pose().pushPose();
         g.pose().translate(left, top, 0);
         g.blit(
@@ -69,37 +69,37 @@ public final class OutputFaceConfigScreen extends Screen {
             int[] position = buttonPosition(i);
             int x = position[0], y = position[1];
             Direction d = DIRECTIONS[i];
-            MythicMinerSpriteRenderer.smallButton(g, x, y, menu.isOutputFaceEnabled(d));
+            StructureMinerSpriteRenderer.smallButton(g, x, y, menu.isOutputFaceEnabled(d));
             ItemStack stack = adjacentBlock(d);
             if (!stack.isEmpty()) g.renderItem(stack, x + 2, y + 2);
         }
         Component aeLabel =
-                Component.translatable("screen.dimension_tech.mythic_miner.output.ae_mode");
+                Component.translatable("screen.dimension_tech.structure_miner.output.ae_mode");
         Component fluidLabel =
-                Component.translatable("screen.dimension_tech.mythic_miner.output.auto_pull_fluid");
+                Component.translatable("screen.dimension_tech.structure_miner.output.auto_pull_fluid");
         // AE mode: normal frame (48,16)-(63,31), pressed frame (48,32)-(63,47).
         int controlX = controlX();
-        MythicMinerSpriteRenderer.externalIcon(
+        StructureMinerSpriteRenderer.externalIcon(
                 g,
                 controlX,
                 controlY(0),
                 48,
                 menu.getOutputState() == BaseMinerBlockEntity.OutputState.ME_NETWORK ? 32 : 16);
-        MythicMinerSpriteRenderer.externalIcon(
+        StructureMinerSpriteRenderer.externalIcon(
                 g, controlX, controlY(1), 48, menu.isAutoExtractFluidEnabled() ? 32 : 16);
         g.drawString(
                 font,
                 aeLabel,
                 controlX() + CONTROL_SIZE,
                 controlY(0) + 4,
-                MythicMinerScreen.INK,
+                StructureMinerScreen.INK,
                 false);
         g.drawString(
                 font,
                 fluidLabel,
                 controlX() + CONTROL_SIZE,
                 controlY(1) + 4,
-                MythicMinerScreen.INK,
+                StructureMinerScreen.INK,
                 false);
         g.pose().popPose();
         renderTooltip(g, mouseX - left, mouseY - top, mouseX, mouseY);
@@ -166,13 +166,13 @@ public final class OutputFaceConfigScreen extends Screen {
                     font,
                     List.of(
                             Component.translatable(
-                                    "screen.dimension_tech.mythic_miner.face." + d.getName()),
+                                    "screen.dimension_tech.structure_miner.face." + d.getName()),
                             stack.isEmpty()
                                     ? Component.translatable(
-                                            "screen.dimension_tech.mythic_miner.face.empty")
+                                            "screen.dimension_tech.structure_miner.face.empty")
                                     : stack.getHoverName(),
                             Component.translatable(
-                                    "screen.dimension_tech.mythic_miner.face.status." + status)),
+                                    "screen.dimension_tech.structure_miner.face.status." + status)),
                     Optional.empty(),
                     screenX,
                     screenY);

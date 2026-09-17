@@ -61,12 +61,12 @@ class StructureDataOperatorScreenLayoutTest {
         String source = Files.readString(SCREEN);
 
         assertFalse(
-                source.contains("MythicMinerTheme.PANEL);"),
+                source.contains("StructureMinerTheme.PANEL);"),
                 "a raw panel rectangle would be drawn over a slot face");
         // Two slot groups exist: the device slots and the player inventory.
         assertEquals(
                 2,
-                count(source, "MythicMinerTheme.slot(g, slot.x, slot.y, false, false);"),
+                count(source, "StructureMinerTheme.slot(g, slot.x, slot.y, false, false);"),
                 "both slot groups must go through the recessed slot chrome");
     }
 
@@ -86,8 +86,8 @@ class StructureDataOperatorScreenLayoutTest {
     void theSearchFieldInkIsDarkEnoughForTheConsoleFace() throws Exception {
         String source = Files.readString(SCREEN);
 
-        assertTrue(source.contains("search.setTextColor(MythicMinerTheme.INK);"));
-        assertFalse(source.contains("search.setTextColor(MythicMinerTheme.TEXT);"));
+        assertTrue(source.contains("search.setTextColor(StructureMinerTheme.INK);"));
+        assertFalse(source.contains("search.setTextColor(StructureMinerTheme.TEXT);"));
     }
 
     @Test
@@ -97,9 +97,9 @@ class StructureDataOperatorScreenLayoutTest {
         assertTrue(source.contains("StructureDataOperatorScreen.LEFT_X,"));
         assertTrue(source.contains("StructureDataOperatorScreen.RIGHT_X,"));
         assertTrue(
-                source.contains("MythicMinerTheme.SELECT"),
+                source.contains("StructureMinerTheme.SELECT"),
                 "the selected catalogue row must use the shared selection tone");
-        assertTrue(source.contains("MythicMinerTheme.well(g, x, LIST_Y,"));
+        assertTrue(source.contains("StructureMinerTheme.well(g, x, LIST_Y,"));
         assertFalse(source.contains("0xFF536779"));
     }
 

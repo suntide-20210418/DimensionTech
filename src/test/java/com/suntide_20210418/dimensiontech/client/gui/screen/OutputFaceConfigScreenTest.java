@@ -21,7 +21,7 @@ class OutputFaceConfigScreenTest {
                     "src/main/java/com/suntide_20210418/dimensiontech/client/gui/screen/OutputFaceConfigScreen.java");
     private static final Path MENU =
             Path.of(
-                    "src/main/java/com/suntide_20210418/dimensiontech/client/gui/menu/MythicMinerMenu.java");
+                    "src/main/java/com/suntide_20210418/dimensiontech/client/gui/menu/StructureMinerMenu.java");
 
     private static String screenSource() throws Exception {
         return Files.readString(SCREEN);
@@ -76,7 +76,7 @@ class OutputFaceConfigScreenTest {
     void theParentScreenIsNotDrawnBehindThePanel() throws Exception {
         String source = screenSource();
 
-        assertTrue(source.contains("g.fill(0, 0, width, height, MythicMinerTheme.BACKDROP)"));
+        assertTrue(source.contains("g.fill(0, 0, width, height, StructureMinerTheme.BACKDROP)"));
         assertFalse(source.contains("parent.render("));
         assertFalse(source.contains("parent.resize("));
     }

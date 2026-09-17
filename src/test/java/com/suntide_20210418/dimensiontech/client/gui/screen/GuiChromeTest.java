@@ -125,15 +125,15 @@ class GuiChromeTest {
 
     @Test
     void theFacadeExposesThePaletteVerbatim() {
-        assertEquals(GuiPalette.FACE, MythicMinerTheme.PANEL);
-        assertEquals(GuiPalette.BAND, MythicMinerTheme.FRAME);
-        assertEquals(GuiPalette.WELL, MythicMinerTheme.INSET);
-        assertEquals(GuiPalette.HAIRLINE, MythicMinerTheme.EDGE);
-        assertEquals(GuiPalette.SLOT_FACE, MythicMinerTheme.SLOT_FACE);
-        assertEquals(GuiPalette.INK, MythicMinerTheme.INK);
-        assertEquals(GuiPalette.TEXT, MythicMinerTheme.TEXT);
-        assertEquals(GuiPalette.HILIGHT, MythicMinerTheme.SLOT_HIGHLIGHT);
-        assertEquals(GuiChrome.BAND_HEIGHT, MythicMinerTheme.BAND_HEIGHT);
+        assertEquals(GuiPalette.FACE, StructureMinerTheme.PANEL);
+        assertEquals(GuiPalette.BAND, StructureMinerTheme.FRAME);
+        assertEquals(GuiPalette.WELL, StructureMinerTheme.INSET);
+        assertEquals(GuiPalette.HAIRLINE, StructureMinerTheme.EDGE);
+        assertEquals(GuiPalette.SLOT_FACE, StructureMinerTheme.SLOT_FACE);
+        assertEquals(GuiPalette.INK, StructureMinerTheme.INK);
+        assertEquals(GuiPalette.TEXT, StructureMinerTheme.TEXT);
+        assertEquals(GuiPalette.HILIGHT, StructureMinerTheme.SLOT_HIGHLIGHT);
+        assertEquals(GuiChrome.BAND_HEIGHT, StructureMinerTheme.BAND_HEIGHT);
     }
 
     @Test

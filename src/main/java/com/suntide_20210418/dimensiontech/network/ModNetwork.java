@@ -1,13 +1,13 @@
 package com.suntide_20210418.dimensiontech.network;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import com.suntide_20210418.dimensiontech.block.entity.MythicMinerAnalysisSnapshot;
+import com.suntide_20210418.dimensiontech.block.entity.StructureMinerAnalysisSnapshot;
 import com.suntide_20210418.dimensiontech.block.entity.StructureDataOperatorBlockEntity;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
-import com.suntide_20210418.dimensiontech.mythiccrucible.CrucibleTooltipSnapshot;
+import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,30 +57,30 @@ public final class ModNetwork {
                 .decoder(StructureChoicesPacket::decode)
                 .consumerMainThread(StructureChoicesPacket::handle)
                 .add();
-        CHANNEL.messageBuilder(MythicMinerAnalysisRequestPacket.class, nextId++)
-                .encoder(MythicMinerAnalysisRequestPacket::encode)
-                .decoder(MythicMinerAnalysisRequestPacket::decode)
-                .consumerMainThread(MythicMinerAnalysisRequestPacket::handle)
+        CHANNEL.messageBuilder(StructureMinerAnalysisRequestPacket.class, nextId++)
+                .encoder(StructureMinerAnalysisRequestPacket::encode)
+                .decoder(StructureMinerAnalysisRequestPacket::decode)
+                .consumerMainThread(StructureMinerAnalysisRequestPacket::handle)
                 .add();
-        CHANNEL.messageBuilder(MythicMinerAnalysisPacket.class, nextId++)
-                .encoder(MythicMinerAnalysisPacket::encode)
-                .decoder(MythicMinerAnalysisPacket::decode)
-                .consumerMainThread(MythicMinerAnalysisPacket::handle)
+        CHANNEL.messageBuilder(StructureMinerAnalysisPacket.class, nextId++)
+                .encoder(StructureMinerAnalysisPacket::encode)
+                .decoder(StructureMinerAnalysisPacket::decode)
+                .consumerMainThread(StructureMinerAnalysisPacket::handle)
                 .add();
-        CHANNEL.messageBuilder(MythicMinerExpectedItemTogglePacket.class, nextId++)
-                .encoder(MythicMinerExpectedItemTogglePacket::encode)
-                .decoder(MythicMinerExpectedItemTogglePacket::decode)
-                .consumerMainThread(MythicMinerExpectedItemTogglePacket::handle)
+        CHANNEL.messageBuilder(StructureMinerExpectedItemTogglePacket.class, nextId++)
+                .encoder(StructureMinerExpectedItemTogglePacket::encode)
+                .decoder(StructureMinerExpectedItemTogglePacket::decode)
+                .consumerMainThread(StructureMinerExpectedItemTogglePacket::handle)
                 .add();
-        CHANNEL.messageBuilder(MythicMinerSlotTogglePacket.class, nextId++)
-                .encoder(MythicMinerSlotTogglePacket::encode)
-                .decoder(MythicMinerSlotTogglePacket::decode)
-                .consumerMainThread(MythicMinerSlotTogglePacket::handle)
+        CHANNEL.messageBuilder(StructureMinerSlotTogglePacket.class, nextId++)
+                .encoder(StructureMinerSlotTogglePacket::encode)
+                .decoder(StructureMinerSlotTogglePacket::decode)
+                .consumerMainThread(StructureMinerSlotTogglePacket::handle)
                 .add();
-        CHANNEL.messageBuilder(MythicCrucibleTooltipPacket.class, nextId++)
-                .encoder(MythicCrucibleTooltipPacket::encode)
-                .decoder(MythicCrucibleTooltipPacket::decode)
-                .consumerMainThread(MythicCrucibleTooltipPacket::handle)
+        CHANNEL.messageBuilder(StructureReactorTooltipPacket.class, nextId++)
+                .encoder(StructureReactorTooltipPacket::encode)
+                .decoder(StructureReactorTooltipPacket::decode)
+                .consumerMainThread(StructureReactorTooltipPacket::handle)
                 .add();
         CHANNEL.messageBuilder(StructureOperatorActionPacket.class, nextId++)
                 .encoder(StructureOperatorActionPacket::encode)
@@ -117,24 +117,24 @@ public final class ModNetwork {
                 new StructMarkerActionPacket(hand, MarkerAction.CLEAR, BlockPos.ZERO, -1));
     }
 
-    public static void requestMythicMinerAnalysis(int containerId, int slot) {
-        CHANNEL.sendToServer(new MythicMinerAnalysisRequestPacket(containerId, slot));
+    public static void requestStructureMinerAnalysis(int containerId, int slot) {
+        CHANNEL.sendToServer(new StructureMinerAnalysisRequestPacket(containerId, slot));
     }
 
-    public static void toggleMythicMinerExpectedItem(
+    public static void toggleStructureMinerExpectedItem(
             int containerId, int slot, ResourceLocation itemId) {
-        CHANNEL.sendToServer(new MythicMinerExpectedItemTogglePacket(containerId, slot, itemId));
+        CHANNEL.sendToServer(new StructureMinerExpectedItemTogglePacket(containerId, slot, itemId));
     }
 
-    public static void toggleMythicMinerSlot(int containerId, int slot) {
-        CHANNEL.sendToServer(new MythicMinerSlotTogglePacket(containerId, slot));
+    public static void toggleStructureMinerSlot(int containerId, int slot) {
+        CHANNEL.sendToServer(new StructureMinerSlotTogglePacket(containerId, slot));
     }
 
-    public static void sendCrucibleTooltipSnapshot(
-            ServerPlayer player, int containerId, CrucibleTooltipSnapshot snapshot) {
+    public static void sendReactorTooltipSnapshot(
+            ServerPlayer player, int containerId, ReactorTooltipSnapshot snapshot) {
         CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
-                new MythicCrucibleTooltipPacket(containerId, snapshot));
+                new StructureReactorTooltipPacket(containerId, snapshot));
     }
 
     public static void structureOperatorCopy(int containerId) {
@@ -550,32 +550,32 @@ public final class ModNetwork {
         }
     }
 
-    private record MythicMinerAnalysisRequestPacket(int containerId, int slot) {
+    private record StructureMinerAnalysisRequestPacket(int containerId, int slot) {
         private void encode(FriendlyByteBuf buffer) {
             buffer.writeVarInt(containerId);
             buffer.writeVarInt(slot);
         }
 
-        private static MythicMinerAnalysisRequestPacket decode(FriendlyByteBuf buffer) {
-            return new MythicMinerAnalysisRequestPacket(buffer.readVarInt(), buffer.readVarInt());
+        private static StructureMinerAnalysisRequestPacket decode(FriendlyByteBuf buffer) {
+            return new StructureMinerAnalysisRequestPacket(buffer.readVarInt(), buffer.readVarInt());
         }
 
         private static void handle(
-                MythicMinerAnalysisRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
+                StructureMinerAnalysisRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
             NetworkEvent.Context context = supplier.get();
             ServerPlayer player = context.getSender();
             if (player != null
-                    && player.containerMenu instanceof MythicMinerMenu menu
+                    && player.containerMenu instanceof StructureMinerMenu menu
                     && menu.containerId == packet.containerId()
                     && packet.slot() >= 0
                     && packet.slot() < menu.getContainerSlotCount()
                     && menu.stillValid(player)) {
                 menu.getBlockEntity().refreshMarkerAnalysis();
-                MythicMinerAnalysisSnapshot snapshot =
+                StructureMinerAnalysisSnapshot snapshot =
                         menu.getBlockEntity().getMarkerAnalysisSnapshot(packet.slot());
                 CHANNEL.send(
                         PacketDistributor.PLAYER.with(() -> player),
-                        new MythicMinerAnalysisPacket(
+                        new StructureMinerAnalysisPacket(
                                 packet.containerId(),
                                 packet.slot(),
                                 snapshot.dimensionValue(),
@@ -588,7 +588,7 @@ public final class ModNetwork {
         }
     }
 
-    private record MythicMinerAnalysisPacket(
+    private record StructureMinerAnalysisPacket(
             int containerId,
             int slot,
             double dimensionValue,
@@ -598,7 +598,7 @@ public final class ModNetwork {
             Set<ResourceLocation> disabledItems) {
         private static final int MAX_ITEMS = 4096;
 
-        private MythicMinerAnalysisPacket {
+        private StructureMinerAnalysisPacket {
             itemExpectations = Map.copyOf(itemExpectations);
         }
 
@@ -621,7 +621,7 @@ public final class ModNetwork {
             for (ResourceLocation item : disabledItems) buffer.writeResourceLocation(item);
         }
 
-        private static MythicMinerAnalysisPacket decode(FriendlyByteBuf buffer) {
+        private static StructureMinerAnalysisPacket decode(FriendlyByteBuf buffer) {
             int containerId = buffer.readVarInt();
             int slot = buffer.readVarInt();
             double dimensionValue = buffer.readDouble();
@@ -637,7 +637,7 @@ public final class ModNetwork {
             for (int index = 0; index < disabledCount; index++) {
                 disabledItems.add(buffer.readResourceLocation());
             }
-            return new MythicMinerAnalysisPacket(
+            return new StructureMinerAnalysisPacket(
                     containerId,
                     slot,
                     dimensionValue,
@@ -648,14 +648,14 @@ public final class ModNetwork {
         }
 
         private static void handle(
-                MythicMinerAnalysisPacket packet, Supplier<NetworkEvent.Context> supplier) {
+                StructureMinerAnalysisPacket packet, Supplier<NetworkEvent.Context> supplier) {
             NetworkEvent.Context context = supplier.get();
             net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
                     Dist.CLIENT,
                     () ->
                             () ->
                                     com.suntide_20210418.dimensiontech.client.gui.screen
-                                            .MythicMinerScreen.receiveAnalysis(
+                                            .StructureMinerScreen.receiveAnalysis(
                                             packet.containerId(),
                                             packet.slot(),
                                             packet.dimensionValue(),
@@ -667,7 +667,7 @@ public final class ModNetwork {
         }
     }
 
-    private record MythicMinerExpectedItemTogglePacket(
+    private record StructureMinerExpectedItemTogglePacket(
             int containerId, int slot, ResourceLocation itemId) {
         private void encode(FriendlyByteBuf buffer) {
             buffer.writeVarInt(containerId);
@@ -675,29 +675,29 @@ public final class ModNetwork {
             buffer.writeResourceLocation(itemId);
         }
 
-        private static MythicMinerExpectedItemTogglePacket decode(FriendlyByteBuf buffer) {
-            return new MythicMinerExpectedItemTogglePacket(
+        private static StructureMinerExpectedItemTogglePacket decode(FriendlyByteBuf buffer) {
+            return new StructureMinerExpectedItemTogglePacket(
                     buffer.readVarInt(), buffer.readVarInt(), buffer.readResourceLocation());
         }
 
         private static void handle(
-                MythicMinerExpectedItemTogglePacket packet,
+                StructureMinerExpectedItemTogglePacket packet,
                 Supplier<NetworkEvent.Context> supplier) {
             NetworkEvent.Context context = supplier.get();
             ServerPlayer player = context.getSender();
             if (player != null
-                    && player.containerMenu instanceof MythicMinerMenu menu
+                    && player.containerMenu instanceof StructureMinerMenu menu
                     && menu.containerId == packet.containerId()
                     && packet.slot() >= 0
                     && packet.slot() < menu.getContainerSlotCount()
                     && menu.stillValid(player)) {
                 menu.getBlockEntity().toggleExpectedItem(packet.itemId());
                 menu.getBlockEntity().refreshMarkerAnalysis();
-                MythicMinerAnalysisSnapshot snapshot =
+                StructureMinerAnalysisSnapshot snapshot =
                         menu.getBlockEntity().getMarkerAnalysisSnapshot(packet.slot());
                 CHANNEL.send(
                         PacketDistributor.PLAYER.with(() -> player),
-                        new MythicMinerAnalysisPacket(
+                        new StructureMinerAnalysisPacket(
                                 packet.containerId(),
                                 packet.slot(),
                                 snapshot.dimensionValue(),
@@ -710,22 +710,22 @@ public final class ModNetwork {
         }
     }
 
-    private record MythicMinerSlotTogglePacket(int containerId, int slot) {
+    private record StructureMinerSlotTogglePacket(int containerId, int slot) {
         private void encode(FriendlyByteBuf buffer) {
             buffer.writeVarInt(containerId);
             buffer.writeVarInt(slot);
         }
 
-        private static MythicMinerSlotTogglePacket decode(FriendlyByteBuf buffer) {
-            return new MythicMinerSlotTogglePacket(buffer.readVarInt(), buffer.readVarInt());
+        private static StructureMinerSlotTogglePacket decode(FriendlyByteBuf buffer) {
+            return new StructureMinerSlotTogglePacket(buffer.readVarInt(), buffer.readVarInt());
         }
 
         private static void handle(
-                MythicMinerSlotTogglePacket packet, Supplier<NetworkEvent.Context> supplier) {
+                StructureMinerSlotTogglePacket packet, Supplier<NetworkEvent.Context> supplier) {
             NetworkEvent.Context context = supplier.get();
             ServerPlayer player = context.getSender();
             if (player != null
-                    && player.containerMenu instanceof MythicMinerMenu menu
+                    && player.containerMenu instanceof StructureMinerMenu menu
                     && menu.containerId == packet.containerId()
                     && packet.slot() >= 0
                     && packet.slot() < menu.getContainerSlotCount()
@@ -736,7 +736,7 @@ public final class ModNetwork {
         }
     }
 
-    private record MythicCrucibleTooltipPacket(int containerId, CrucibleTooltipSnapshot snapshot) {
+    private record StructureReactorTooltipPacket(int containerId, ReactorTooltipSnapshot snapshot) {
         private void encode(FriendlyByteBuf buffer) {
             buffer.writeVarInt(containerId);
             buffer.writeVarInt(snapshot.revision());
@@ -754,7 +754,7 @@ public final class ModNetwork {
             buffer.writeVarInt(fluidId(snapshot.expectedOutputFluid()));
         }
 
-        private static MythicCrucibleTooltipPacket decode(FriendlyByteBuf buffer) {
+        private static StructureReactorTooltipPacket decode(FriendlyByteBuf buffer) {
             int containerId = buffer.readVarInt();
             int revision = buffer.readVarInt();
             List<ItemStack> fragmentCandidates = readCandidates(buffer);
@@ -769,9 +769,9 @@ public final class ModNetwork {
             int outputExpectedAmount = buffer.readVarInt();
             Fluid expectedInputFluid = fluid(buffer.readVarInt());
             Fluid expectedOutputFluid = fluid(buffer.readVarInt());
-            return new MythicCrucibleTooltipPacket(
+            return new StructureReactorTooltipPacket(
                     containerId,
-                    new CrucibleTooltipSnapshot(
+                    new ReactorTooltipSnapshot(
                             fragmentCandidates,
                             fragmentCandidateTotal,
                             fragmentRequiredCount,
@@ -788,7 +788,7 @@ public final class ModNetwork {
         }
 
         private static void handle(
-                MythicCrucibleTooltipPacket packet, Supplier<NetworkEvent.Context> supplier) {
+                StructureReactorTooltipPacket packet, Supplier<NetworkEvent.Context> supplier) {
             NetworkEvent.Context context = supplier.get();
             net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
                     Dist.CLIENT,
@@ -800,7 +800,7 @@ public final class ModNetwork {
                                         && minecraft.player.containerMenu
                                                 instanceof
                                                 com.suntide_20210418.dimensiontech.client.gui.menu
-                                                                .MythicCrucibleMenu
+                                                                .StructureReactorMenu
                                                         menu
                                         && menu.containerId == packet.containerId())
                                     menu.applyTooltipSnapshot(packet.snapshot());
@@ -809,16 +809,16 @@ public final class ModNetwork {
         }
 
         private static void writeCandidates(FriendlyByteBuf buffer, List<ItemStack> candidates) {
-            int count = Math.min(CrucibleTooltipSnapshot.MAX_CANDIDATES, candidates.size());
+            int count = Math.min(ReactorTooltipSnapshot.MAX_CANDIDATES, candidates.size());
             buffer.writeVarInt(count);
             for (int index = 0; index < count; index++) buffer.writeItem(candidates.get(index));
         }
 
         private static List<ItemStack> readCandidates(FriendlyByteBuf buffer) {
             int count = buffer.readVarInt();
-            if (count < 0 || count > CrucibleTooltipSnapshot.MAX_CANDIDATES)
+            if (count < 0 || count > ReactorTooltipSnapshot.MAX_CANDIDATES)
                 throw new IllegalArgumentException(
-                        "Invalid crucible tooltip candidate count: " + count);
+                        "Invalid reactor tooltip candidate count: " + count);
             List<ItemStack> candidates = new ArrayList<>(count);
             for (int index = 0; index < count; index++) candidates.add(buffer.readItem());
             return List.copyOf(candidates);

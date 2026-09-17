@@ -17,29 +17,29 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        Block miner = ModBlocks.TIER_1_MYTHIC_MINER.get();
+        Block miner = ModBlocks.TIER_1_STRUCTURE_MINER.get();
         Block operator = ModBlocks.STRUCTURE_DATA_OPERATOR.get();
         simpleBlockWithItem(
-                ModBlocks.MYTHIC_CRUCIBLE.get(),
-                models().cubeAll("mythic_crucible", mcLoc("block/raw_iron_block")));
+                ModBlocks.STRUCTURE_REACTOR.get(),
+                models().cubeAll("structure_reactor", mcLoc("block/raw_iron_block")));
         ModelFile operatorModel =
                 models().cubeAll("structure_data_operator", mcLoc("block/raw_iron_block"));
         simpleBlockWithItem(operator, operatorModel);
         ModelFile model =
                 models().cubeAll(
-                                ModBlocks.TIER_1_MYTHIC_MINER_ID.getPath(),
+                                ModBlocks.TIER_1_STRUCTURE_MINER_ID.getPath(),
                                 mcLoc("block/raw_iron_block"));
         horizontalBlock(miner, model);
         simpleBlockItem(miner, model);
-        registerMiner(ModBlocks.TIER_2_MYTHIC_MINER.get(), "tier_2_mythic_miner");
-        registerMiner(ModBlocks.TIER_3_MYTHIC_MINER.get(), "tier_3_mythic_miner");
-        registerMiner(ModBlocks.TIER_4_MYTHIC_MINER.get(), "tier_4_mythic_miner");
-        registerMiner(ModBlocks.TIER_5_MYTHIC_MINER.get(), "tier_5_mythic_miner");
-        registerMiner(ModBlocks.TIER_6_MYTHIC_MINER.get(), "tier_6_mythic_miner");
+        registerMiner(ModBlocks.TIER_2_STRUCTURE_MINER.get(), "tier_2_structure_miner");
+        registerMiner(ModBlocks.TIER_3_STRUCTURE_MINER.get(), "tier_3_structure_miner");
+        registerMiner(ModBlocks.TIER_4_STRUCTURE_MINER.get(), "tier_4_structure_miner");
+        registerMiner(ModBlocks.TIER_5_STRUCTURE_MINER.get(), "tier_5_structure_miner");
+        registerMiner(ModBlocks.TIER_6_STRUCTURE_MINER.get(), "tier_6_structure_miner");
         for (Block block :
                 new Block[] {
-                    ModBlocks.MYTHIC_MINER_CASING.get(),
-                    ModBlocks.MYTHIC_MINER_STRUCTURE.get(),
+                    ModBlocks.STRUCTURE_MINER_CASING.get(),
+                    ModBlocks.STRUCTURE_MINER_STRUCTURE.get(),
                     ModBlocks.UPGRADE_NONE.get(),
                     ModBlocks.UPGRADE_PARALLEL.get(),
                     ModBlocks.UPGRADE_LUCK.get(),

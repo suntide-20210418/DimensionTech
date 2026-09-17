@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
-import com.suntide_20210418.dimensiontech.mythicminer.output.ExpectationRewardGenerator;
-import com.suntide_20210418.dimensiontech.mythicminer.output.MythicMinerOutputRouter;
+import com.suntide_20210418.dimensiontech.structureminer.output.ExpectationRewardGenerator;
+import com.suntide_20210418.dimensiontech.structureminer.output.StructureMinerOutputRouter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -156,7 +156,7 @@ final class MinerOutputController {
                 MinerIntegrationHooks.postOutput(miner, level, generated);
         return hook.cancelled()
                 ? List.of()
-                : MythicMinerOutputRouter.output(
+                : StructureMinerOutputRouter.output(
                         level,
                         position,
                         outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK,
@@ -166,7 +166,7 @@ final class MinerOutputController {
 
     List<ItemStack> retry(
             ServerLevel level, BlockPos position, Predicate<Direction> outputFaceEnabled) {
-        return MythicMinerOutputRouter.output(
+        return StructureMinerOutputRouter.output(
                 level,
                 position,
                 outputState == BaseMinerBlockEntity.OutputState.ME_NETWORK,

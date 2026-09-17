@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 class MinerScriptConfigTest {
     private static final ResourceLocation MINER =
-            ResourceLocation.fromNamespaceAndPath("dimension_tech", "tier_1_mythic_miner");
+            ResourceLocation.fromNamespaceAndPath("dimension_tech", "tier_1_structure_miner");
 
     @Test
     void processingTimeRequiresTheNaturalObservationWindow() {

@@ -12,8 +12,8 @@ class BaseMinerArchitectureTest {
         Path source = Path.of("src/main/java/com/suntide_20210418/dimensiontech/block/entity/BaseMinerBlockEntity.java");
         String text = Files.readString(source);
         for (String forbidden : new String[] {
-            "LootAnalysisFingerprint", "ExpectationRewardGenerator", "MythicMinerOutputRouter",
-            "MythicMinerUpgradeResolver", "MythicMinerExternalTickAcceleration", "MythicMinerExpectationMath",
+            "LootAnalysisFingerprint", "ExpectationRewardGenerator", "StructureMinerOutputRouter",
+            "StructureMinerUpgradeResolver", "StructureMinerExternalTickAcceleration", "StructureMinerExpectationMath",
             "ProcessingMath", "LootTable"}) {
             assertFalse(text.contains(forbidden), "BaseMinerBlockEntity must not reference " + forbidden);
         }
@@ -36,7 +36,7 @@ class BaseMinerArchitectureTest {
         int start = text.indexOf("public boolean isStructureComplete()");
         int end = text.indexOf("private boolean isStructureComplete(ServerLevel", start);
         String method = text.substring(start, end);
-        assertFalse(method.contains("MythicMinerMultiblock"));
+        assertFalse(method.contains("StructureMinerMultiblock"));
         assertFalse(method.contains("structureComplete ="));
     }
 
@@ -55,7 +55,7 @@ class BaseMinerArchitectureTest {
         String base = Files.readString(root.resolve("BaseMinerBlockEntity.java"));
         assertFalse(base.contains("private int[] slotProcessingTimes"));
         assertFalse(base.contains("private int[] slotParallelHundredths"));
-        assertFalse(base.contains("private MythicMinerExternalTickAcceleration"));
+        assertFalse(base.contains("private StructureMinerExternalTickAcceleration"));
         assertFalse(base.contains("private List<ItemStack> pendingOutput"));
     }
 }

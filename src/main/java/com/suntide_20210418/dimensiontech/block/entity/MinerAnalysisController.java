@@ -4,8 +4,8 @@ import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExpectationMath;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
-import com.suntide_20210418.dimensiontech.mythicminer.output.EquipmentDismantler;
-import com.suntide_20210418.dimensiontech.mythicminer.processing.ProcessingMath;
+import com.suntide_20210418.dimensiontech.structureminer.output.EquipmentDismantler;
+import com.suntide_20210418.dimensiontech.structureminer.processing.ProcessingMath;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import java.util.HashMap;
 import java.util.List;
@@ -21,14 +21,14 @@ import net.minecraftforge.items.ItemStackHandler;
 final class MinerAnalysisController {
     private final ItemStackHandler inventory;
     private final Supplier<Float> luck;
-    private final MythicMinerMarkerAnalysisCache cache;
+    private final StructureMinerMarkerAnalysisCache cache;
     private Map<Integer, ProcessingMath.ProcessingPlan> plans = Map.of();
 
     MinerAnalysisController(
             ItemStackHandler inventory, Supplier<Float> luck, BooleanSupplier removed) {
         this.inventory = inventory;
         this.luck = luck;
-        this.cache = new MythicMinerMarkerAnalysisCache(inventory, this::fingerprint, removed);
+        this.cache = new StructureMinerMarkerAnalysisCache(inventory, this::fingerprint, removed);
     }
 
     List<Integer> refresh(MinecraftServer server, long gameTime) {
@@ -89,7 +89,7 @@ final class MinerAnalysisController {
         return plans.getOrDefault(slot, new ProcessingMath.ProcessingPlan(0, 0));
     }
 
-    MythicMinerAnalysisSnapshot snapshot(
+    StructureMinerAnalysisSnapshot snapshot(
             int slot,
             ServerLevel level,
             double averageParallel,
@@ -98,7 +98,7 @@ final class MinerAnalysisController {
             boolean dismantling,
             java.util.Set<ResourceLocation> disabledItems) {
         MarkerAnalysis loot = entryForSlot(slot);
-        if (loot == null || loot.quantity() <= 0.0D) return MythicMinerAnalysisSnapshot.EMPTY;
+        if (loot == null || loot.quantity() <= 0.0D) return StructureMinerAnalysisSnapshot.EMPTY;
         int factor = ExpectationMath.quantityFactorHundredths(loot.quantity(), quantityReference);
         double draws = ExpectationMath.expectedDraws(averageParallel, drawsPerParallel, factor);
         Map<ResourceLocation, Double> expectations = new java.util.LinkedHashMap<>();
@@ -115,7 +115,7 @@ final class MinerAnalysisController {
                 dismantling
                         ? EquipmentDismantler.dismantleExpectations(level, expectations)
                         : expectations;
-        return new MythicMinerAnalysisSnapshot(
+        return new StructureMinerAnalysisSnapshot(
                 loot.dimensionValue(),
                 loot.structureValue(),
                 dismantling,
@@ -128,7 +128,7 @@ final class MinerAnalysisController {
                 inventory, luck.get(), ModConfigs.STRUCTURE_VALUE.calculationFingerprint());
     }
 
-    private static MarkerAnalysis from(MythicMinerMarkerAnalysisCache.CachedMarkerLoot value) {
+    private static MarkerAnalysis from(StructureMinerMarkerAnalysisCache.CachedMarkerLoot value) {
         return new MarkerAnalysis(
                 value.slot(),
                 value.marker(),

@@ -41,15 +41,15 @@ public class ModItemModelsProvider extends ItemModelProvider {
                     .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
 
         String[] fluidBuckets = {
-            "mythic_essence_bucket",
-            "surging_mythic_essence_bucket",
+            "structure_essence_bucket",
+            "surging_structure_essence_bucket",
             "recursive_essence_bucket",
             "surging_recursive_essence_bucket",
             "fractal_essence_bucket"
         };
         ModFluids.EssenceFluid[] fluids = {
-            ModFluids.MYTHIC_ESSENCE,
-            ModFluids.SURGING_MYTHIC_ESSENCE,
+            ModFluids.STRUCTURE_ESSENCE,
+            ModFluids.SURGING_STRUCTURE_ESSENCE,
             ModFluids.RECURSIVE_ESSENCE,
             ModFluids.SURGING_RECURSIVE_ESSENCE,
             ModFluids.FRACTAL_ESSENCE

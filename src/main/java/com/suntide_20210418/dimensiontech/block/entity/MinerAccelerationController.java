@@ -1,7 +1,7 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.loot.expectation.ExpectationMath;
-import com.suntide_20210418.dimensiontech.mythicminer.processing.ExternalTickAcceleration;
+import com.suntide_20210418.dimensiontech.structureminer.processing.ExternalTickAcceleration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,7 +12,7 @@ import net.minecraft.nbt.Tag;
 /** Owns accelerated slot advancement and the shared 400-natural-tick completion window. */
 final class MinerAccelerationController {
     static final int MINIMUM_NATURAL_TICKS = ExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
-    private final MythicMinerSlotProgress progress;
+    private final StructureMinerSlotProgress progress;
     private final int[] processingTimes;
     private final int[] parallelHundredths;
     private final int[] parallelFractionHundredths;
@@ -20,7 +20,7 @@ final class MinerAccelerationController {
     private final ExternalTickAcceleration[] acceleration;
 
     MinerAccelerationController(int slotCount) {
-        this.progress = new MythicMinerSlotProgress(slotCount);
+        this.progress = new StructureMinerSlotProgress(slotCount);
         this.processingTimes = new int[slotCount];
         this.parallelHundredths = new int[slotCount];
         this.parallelFractionHundredths = new int[slotCount];

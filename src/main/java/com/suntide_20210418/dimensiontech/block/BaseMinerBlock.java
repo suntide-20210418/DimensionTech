@@ -55,64 +55,64 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             List<Component> tooltip,
             TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
-        ModConfigs.MythicMinerTierConfig config =
+        ModConfigs.StructureMinerTierConfig config =
                 ModConfigs.TIERS[
                         Math.max(0, Math.min(ModConfigs.TIERS.length - 1, minerTier() - 1))];
         tooltip.add(
                 Component.translatable(
-                                "tooltip.dimension_tech.mythic_miner.base_parallel",
+                                "tooltip.dimension_tech.structure_miner.base_parallel",
                                 config.baseParallel())
                         .withStyle(ChatFormatting.AQUA));
         tooltip.add(
                 Component.translatable(
-                                "tooltip.dimension_tech.mythic_miner.efficiency",
+                                "tooltip.dimension_tech.structure_miner.efficiency",
                                 config.efficiency())
                         .withStyle(ChatFormatting.AQUA));
         tooltip.add(
                 Component.translatable(
-                                "tooltip.dimension_tech.mythic_miner.luck", config.baseLuck())
+                                "tooltip.dimension_tech.structure_miner.luck", config.baseLuck())
                         .withStyle(ChatFormatting.AQUA));
         tooltip.add(
                 Component.translatable(
-                                "tooltip.dimension_tech.mythic_miner.energy_capacity",
+                                "tooltip.dimension_tech.structure_miner.energy_capacity",
                                 config.energyCapacity())
                         .withStyle(ChatFormatting.AQUA));
         tooltip.add(
                 Component.translatable(
-                                "tooltip.dimension_tech.mythic_miner.energy_consumption",
+                                "tooltip.dimension_tech.structure_miner.energy_consumption",
                                 config.energyConsumption())
                         .withStyle(ChatFormatting.AQUA));
         tooltip.add(
                 Component.translatable(
-                                "tooltip.dimension_tech.mythic_miner.marker_slots",
+                                "tooltip.dimension_tech.structure_miner.marker_slots",
                                 config.slotCount())
                         .withStyle(ChatFormatting.AQUA));
         if (Screen.hasShiftDown()) {
             tooltip.add(Component.empty());
             tooltip.add(
-                    Component.translatable("tooltip.dimension_tech.mythic_miner.materials")
+                    Component.translatable("tooltip.dimension_tech.structure_miner.materials")
                             .withStyle(ChatFormatting.GOLD));
             tooltip.add(
                     Component.translatable(
-                                    "tooltip.dimension_tech.mythic_miner.material.casing", 32)
+                                    "tooltip.dimension_tech.structure_miner.material.casing", 32)
                             .withStyle(ChatFormatting.GRAY));
             tooltip.add(
                     Component.translatable(
-                                    "tooltip.dimension_tech.mythic_miner.material.structure", 1)
+                                    "tooltip.dimension_tech.structure_miner.material.structure", 1)
                             .withStyle(ChatFormatting.GRAY));
             tooltip.add(
                     Component.translatable(
-                                    "tooltip.dimension_tech.mythic_miner.material.focus",
+                                    "tooltip.dimension_tech.structure_miner.material.focus",
                                     minerTier(),
                                     8)
                             .withStyle(ChatFormatting.GRAY));
             tooltip.add(
                     Component.translatable(
-                                    "tooltip.dimension_tech.mythic_miner.material.upgrade", 12)
+                                    "tooltip.dimension_tech.structure_miner.material.upgrade", 12)
                             .withStyle(ChatFormatting.GRAY));
         } else {
             tooltip.add(
-                    Component.translatable("tooltip.dimension_tech.mythic_miner.hold_shift")
+                    Component.translatable("tooltip.dimension_tech.structure_miner.hold_shift")
                             .withStyle(ChatFormatting.DARK_GRAY));
         }
     }
@@ -158,7 +158,7 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
                         () ->
                                 () ->
                                         com.suntide_20210418.dimensiontech.client
-                                                .MythicMinerProjectionClient.toggle(
+                                                .StructureMinerProjectionClient.toggle(
                                                 position, minerTier()));
             }
             return InteractionResult.sidedSuccess(level.isClientSide());

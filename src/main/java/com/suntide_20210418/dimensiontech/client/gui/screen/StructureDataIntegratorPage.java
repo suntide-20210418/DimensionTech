@@ -29,35 +29,35 @@ final class StructureDataIntegratorPage {
             int mouseY,
             int accent,
             String titleKey) {
-        MythicMinerTheme.subPanel(
+        StructureMinerTheme.subPanel(
                 g,
                 StructureDataOperatorScreen.LEFT_X,
                 48,
                 StructureDataOperatorScreen.LEFT_W,
                 186,
                 accent);
-        MythicMinerTheme.subPanel(
+        StructureMinerTheme.subPanel(
                 g,
                 StructureDataOperatorScreen.RIGHT_X,
                 48,
                 StructureDataOperatorScreen.RIGHT_W,
                 186,
-                MythicMinerTheme.AMBER);
+                StructureMinerTheme.AMBER);
         g.drawString(
                 s.getMinecraft().font,
                 Component.translatable(titleKey),
                 52,
                 53,
-                MythicMinerTheme.INK,
+                StructureMinerTheme.INK,
                 false);
         g.drawString(
                 s.getMinecraft().font,
                 Component.translatable("screen.dimension_tech.structure_operator.catalogue_marker"),
                 52,
                 66,
-                MythicMinerTheme.DIM,
+                StructureMinerTheme.DIM,
                 false);
-        MythicMinerTheme.well(g, 42, 82, 80, 16);
+        StructureMinerTheme.well(g, 42, 82, 80, 16);
         g.drawString(s.getMinecraft().font, Component.literal("/"), 48, 86, accent, false);
         button(
                 s,
@@ -153,7 +153,7 @@ final class StructureDataIntegratorPage {
     private static void drawCatalogue(
             StructureDataOperatorScreen s, GuiGraphics g, int mouseX, int mouseY, int accent) {
         int x = StructureDataOperatorScreen.LEFT_X;
-        MythicMinerTheme.well(g, x, LIST_Y, StructureDataOperatorScreen.LEFT_W, 126);
+        StructureMinerTheme.well(g, x, LIST_Y, StructureDataOperatorScreen.LEFT_W, 126);
         List<StructureDataOperatorScreen.CatalogueRow> rows = s.catalogueRows();
         if (rows.isEmpty()) {
             g.drawCenteredString(
@@ -161,7 +161,7 @@ final class StructureDataIntegratorPage {
                     Component.translatable("screen.dimension_tech.structure_operator.empty"),
                     x + 68,
                     160,
-                    MythicMinerTheme.TEXT);
+                    StructureMinerTheme.TEXT);
             return;
         }
         for (int row = 0; row < 9 && s.listScroll() + row < rows.size(); row++) {
@@ -189,7 +189,7 @@ final class StructureDataIntegratorPage {
                                 .getString();
                 rowLabel = Component.literal("  " + label);
             }
-            MythicMinerTheme.listRow(
+            StructureMinerTheme.listRow(
                     g,
                     s.getMinecraft().font,
                     x,
@@ -199,9 +199,9 @@ final class StructureDataIntegratorPage {
                             s.getMinecraft().font.plainSubstrByWidth(rowLabel.getString(), 126)),
                     selected,
                     hovered,
-                    selected ? MythicMinerTheme.SELECT : accent);
+                    selected ? StructureMinerTheme.SELECT : accent);
         }
-        MythicMinerTheme.scrollbar(
+        StructureMinerTheme.scrollbar(
                 g,
                 x + StructureDataOperatorScreen.LEFT_W - 4,
                 LIST_Y,
@@ -225,7 +225,7 @@ final class StructureDataIntegratorPage {
                     Component.translatable("screen.dimension_tech.structure_operator.select_entry"),
                     x + 72,
                     136,
-                    MythicMinerTheme.DIM);
+                    StructureMinerTheme.DIM);
             return;
         }
         g.drawString(
@@ -234,7 +234,7 @@ final class StructureDataIntegratorPage {
                         "screen.dimension_tech.structure_operator.catalogue_analysis"),
                 x + 8,
                 55,
-                MythicMinerTheme.INK,
+                StructureMinerTheme.INK,
                 false);
         String dimension =
                 Component.translatable(
@@ -258,7 +258,7 @@ final class StructureDataIntegratorPage {
                 s.getMinecraft().font.plainSubstrByWidth(structure, 128),
                 x + 8,
                 80,
-                MythicMinerTheme.DIM,
+                StructureMinerTheme.DIM,
                 false);
         if (marker.isEmpty()) {
             Component progress =
@@ -270,7 +270,7 @@ final class StructureDataIntegratorPage {
                             : Component.translatable(
                                     "screen.dimension_tech.structure_operator.loading");
             g.drawCenteredString(
-                    s.getMinecraft().font, progress, x + 72, 130, MythicMinerTheme.DIM);
+                    s.getMinecraft().font, progress, x + 72, 130, StructureMinerTheme.DIM);
             return;
         }
         StructMarkerItem.filterDiagnostic(marker)
@@ -281,7 +281,7 @@ final class StructureDataIntegratorPage {
                                         Component.literal(message),
                                         x + 8,
                                         96,
-                                        MythicMinerTheme.ERROR,
+                                        StructureMinerTheme.ERROR,
                                         false));
         if (s.totalAnalysisSamples() > 0
                 && StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.APPROXIMATE) {
@@ -292,7 +292,7 @@ final class StructureDataIntegratorPage {
                             s.totalAnalysisSamples()),
                     x + 8,
                     128,
-                    MythicMinerTheme.DIM,
+                    StructureMinerTheme.DIM,
                     false);
         }
         metric(
@@ -312,8 +312,8 @@ final class StructureDataIntegratorPage {
                 60,
                 "screen.dimension_tech.struct_marker.structure_value",
                 StructMarkerItem.getStructureValue(marker),
-                MythicMinerTheme.AMBER);
-        MythicMinerTheme.well(g, x + 8, 138, 128, 92);
+                StructureMinerTheme.AMBER);
+        StructureMinerTheme.well(g, x + 8, 138, 128, 92);
         List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(marker);
         for (int row = 0; row < 5 && s.detailScroll() + row < rows.size(); row++) {
             int y = 144 + row * 16;
@@ -329,7 +329,7 @@ final class StructureDataIntegratorPage {
                     s.getMinecraft().font.plainSubstrByWidth(name, 78),
                     x + 31,
                     y + 1,
-                    MythicMinerTheme.INK,
+                    StructureMinerTheme.INK,
                     false);
             g.drawString(
                     s.getMinecraft().font,
@@ -340,7 +340,7 @@ final class StructureDataIntegratorPage {
                     accent,
                     false);
         }
-        MythicMinerTheme.scrollbar(
+        StructureMinerTheme.scrollbar(
                 g,
                 x + StructureDataOperatorScreen.RIGHT_W - 4,
                 138,
@@ -359,7 +359,7 @@ final class StructureDataIntegratorPage {
             String key,
             double value,
             int accent) {
-        MythicMinerTheme.metricCard(g, x, y, width, 34, accent);
+        StructureMinerTheme.metricCard(g, x, y, width, 34, accent);
         g.drawString(
                 s.getMinecraft().font,
                 s.getMinecraft()
@@ -367,14 +367,14 @@ final class StructureDataIntegratorPage {
                         .plainSubstrByWidth(Component.translatable(key).getString(), width - 10),
                 x + 6,
                 y + 5,
-                MythicMinerTheme.DIM,
+                StructureMinerTheme.DIM,
                 false);
         g.drawString(
                 s.getMinecraft().font,
                 String.format(java.util.Locale.ROOT, "%.2f", value),
                 x + 6,
                 y + 18,
-                MythicMinerTheme.INK,
+                StructureMinerTheme.INK,
                 false);
     }
 
@@ -403,7 +403,7 @@ final class StructureDataIntegratorPage {
             int accent,
             int mouseX,
             int mouseY) {
-        MythicMinerTheme.button(
+        StructureMinerTheme.button(
                 g,
                 s.getMinecraft().font,
                 x,

@@ -20,46 +20,46 @@ public final class ModConfigs {
     }
 
     public static final ForgeConfigSpec COMMON_SPEC;
-    public static final MythicMinerTierConfig[] TIERS;
-    public static final MythicMinerUpgradeTierConfig[] UPGRADE_TIERS;
-    public static final MythicMinerUpgradeTierConfig[] AGGREGATE_UPGRADE_TIERS;
+    public static final StructureMinerTierConfig[] TIERS;
+    public static final StructureMinerUpgradeTierConfig[] UPGRADE_TIERS;
+    public static final StructureMinerUpgradeTierConfig[] AGGREGATE_UPGRADE_TIERS;
     public static final StructureValueConfig STRUCTURE_VALUE;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
-        builder.comment("Mythic miner settings by tier").push("mythicMiner");
+        builder.comment("Structure miner settings by tier").push("structureMiner");
         TIERS =
-                new MythicMinerTierConfig[] {
-                    new MythicMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100000, 1024, 1.0D),
-                    new MythicMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 400000, 4096, 2.0D),
-                    new MythicMinerTierConfig(builder, "tier3", 5, 2.0D, 3, 1600000, 16384, 3.0D),
-                    new MythicMinerTierConfig(builder, "tier4", 7, 4.0D, 4, 6400000, 65536, 4.0D),
-                    new MythicMinerTierConfig(builder, "tier5", 9, 8.0D, 6, 25600000, 262144, 5.0D),
-                    new MythicMinerTierConfig(
+                new StructureMinerTierConfig[] {
+                    new StructureMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100000, 1024, 1.0D),
+                    new StructureMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 400000, 4096, 2.0D),
+                    new StructureMinerTierConfig(builder, "tier3", 5, 2.0D, 3, 1600000, 16384, 3.0D),
+                    new StructureMinerTierConfig(builder, "tier4", 7, 4.0D, 4, 6400000, 65536, 4.0D),
+                    new StructureMinerTierConfig(builder, "tier5", 9, 8.0D, 6, 25600000, 262144, 5.0D),
+                    new StructureMinerTierConfig(
                             builder, "tier6", 11, 16.0D, 9, 102400000, 1048576, 6.0D)
                 };
         builder.pop();
-        builder.comment("Mythic miner upgrade values by tier").push("mythicMinerUpgrades");
+        builder.comment("Structure miner upgrade values by tier").push("structureMinerUpgrades");
         UPGRADE_TIERS =
-                new MythicMinerUpgradeTierConfig[] {
-                    new MythicMinerUpgradeTierConfig(builder, "tier1", 20, 20, 5, 20, 50),
-                    new MythicMinerUpgradeTierConfig(builder, "tier2", 40, 40, 10, 40, 100),
-                    new MythicMinerUpgradeTierConfig(builder, "tier3", 60, 60, 15, 60, 150),
-                    new MythicMinerUpgradeTierConfig(builder, "tier4", 80, 80, 20, 80, 200),
-                    new MythicMinerUpgradeTierConfig(builder, "tier5", 100, 100, 25, 100, 250),
-                    new MythicMinerUpgradeTierConfig(builder, "tier6", 120, 120, 30, 120, 300)
+                new StructureMinerUpgradeTierConfig[] {
+                    new StructureMinerUpgradeTierConfig(builder, "tier1", 20, 20, 5, 20, 50),
+                    new StructureMinerUpgradeTierConfig(builder, "tier2", 40, 40, 10, 40, 100),
+                    new StructureMinerUpgradeTierConfig(builder, "tier3", 60, 60, 15, 60, 150),
+                    new StructureMinerUpgradeTierConfig(builder, "tier4", 80, 80, 20, 80, 200),
+                    new StructureMinerUpgradeTierConfig(builder, "tier5", 100, 100, 25, 100, 250),
+                    new StructureMinerUpgradeTierConfig(builder, "tier6", 120, 120, 30, 120, 300)
                 };
         builder.pop();
-        builder.comment("Mythic miner aggregate upgrade values by tier")
-                .push("mythicMinerAggregateUpgrades");
+        builder.comment("Structure miner aggregate upgrade values by tier")
+                .push("structureMinerAggregateUpgrades");
         AGGREGATE_UPGRADE_TIERS =
-                new MythicMinerUpgradeTierConfig[] {
-                    new MythicMinerUpgradeTierConfig(builder, "tier1", 15, 15, 2, 15, 25),
-                    new MythicMinerUpgradeTierConfig(builder, "tier2", 30, 30, 3, 30, 50),
-                    new MythicMinerUpgradeTierConfig(builder, "tier3", 45, 45, 4, 45, 75),
-                    new MythicMinerUpgradeTierConfig(builder, "tier4", 60, 60, 5, 60, 100),
-                    new MythicMinerUpgradeTierConfig(builder, "tier5", 75, 75, 6, 75, 125),
-                    new MythicMinerUpgradeTierConfig(builder, "tier6", 90, 90, 7, 90, 150)
+                new StructureMinerUpgradeTierConfig[] {
+                    new StructureMinerUpgradeTierConfig(builder, "tier1", 15, 15, 2, 15, 25),
+                    new StructureMinerUpgradeTierConfig(builder, "tier2", 30, 30, 3, 30, 50),
+                    new StructureMinerUpgradeTierConfig(builder, "tier3", 45, 45, 4, 45, 75),
+                    new StructureMinerUpgradeTierConfig(builder, "tier4", 60, 60, 5, 60, 100),
+                    new StructureMinerUpgradeTierConfig(builder, "tier5", 75, 75, 6, 75, 125),
+                    new StructureMinerUpgradeTierConfig(builder, "tier6", 90, 90, 7, 90, 150)
                 };
         builder.pop();
         STRUCTURE_VALUE = new StructureValueConfig(builder);
@@ -394,7 +394,7 @@ public final class ModConfigs {
         }
     }
 
-    public static final class MythicMinerTierConfig {
+    public static final class StructureMinerTierConfig {
         private final ForgeConfigSpec.IntValue baseParallel;
         private final ForgeConfigSpec.DoubleValue baseLuck;
         private final ForgeConfigSpec.IntValue slotCount;
@@ -403,7 +403,7 @@ public final class ModConfigs {
         private final ForgeConfigSpec.DoubleValue efficiency;
         private final ForgeConfigSpec.DoubleValue quantityReference;
 
-        private MythicMinerTierConfig(
+        private StructureMinerTierConfig(
                 ForgeConfigSpec.Builder builder,
                 String tier,
                 int defaultParallel,
@@ -472,14 +472,14 @@ public final class ModConfigs {
         }
     }
 
-    public static final class MythicMinerUpgradeTierConfig {
+    public static final class StructureMinerUpgradeTierConfig {
         private final ForgeConfigSpec.DoubleValue efficiencyIncreasePercent;
         private final ForgeConfigSpec.DoubleValue energyCapacityIncreasePercent;
         private final ForgeConfigSpec.DoubleValue energyConsumptionReductionPercent;
         private final ForgeConfigSpec.DoubleValue parallelIncreasePercent;
         private final ForgeConfigSpec.DoubleValue luckIncreasePercent;
 
-        private MythicMinerUpgradeTierConfig(
+        private StructureMinerUpgradeTierConfig(
                 ForgeConfigSpec.Builder builder,
                 String tier,
                 double efficiency,

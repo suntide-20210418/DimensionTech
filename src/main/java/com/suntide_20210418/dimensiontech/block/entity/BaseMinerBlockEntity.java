@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.block.BaseMinerBlock;
-import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
-import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
+import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock;
+import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import com.suntide_20210418.dimensiontech.energy.EnergyContainer;
 import com.suntide_20210418.dimensiontech.energy.SimpleEnergyContainer;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
@@ -361,7 +361,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return upgradeController.state().luckIncreasePercent();
     }
 
-    public int getUpgradeCount(MythicMinerUpgradeBlock.Type type) {
+    public int getUpgradeCount(StructureMinerUpgradeBlock.Type type) {
         return switch (type) {
             case EFFICIENCY -> upgradeController.state().efficiencyUpgradeCount();
             case ENERGY -> upgradeController.state().energyUpgradeCount();
@@ -372,8 +372,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         };
     }
 
-    public int getUpgradeCount(MythicMinerUpgradeBlock.Type type, int tier) {
-        if (tier < 1 || tier > 6 || type == MythicMinerUpgradeBlock.Type.NONE) {
+    public int getUpgradeCount(StructureMinerUpgradeBlock.Type type, int tier) {
+        if (tier < 1 || tier > 6 || type == StructureMinerUpgradeBlock.Type.NONE) {
             return 0;
         }
         return upgradeController.state().countFor(type, tier);
@@ -527,9 +527,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         Math.min(Integer.MAX_VALUE, slotDisplayParallelHundredths(slot) / 100L));
     }
 
-    public MythicMinerAnalysisSnapshot getMarkerAnalysisSnapshot(int slot) {
+    public StructureMinerAnalysisSnapshot getMarkerAnalysisSnapshot(int slot) {
         if (!(level instanceof ServerLevel serverLevel) || !validSlot(slot)) {
-            return MythicMinerAnalysisSnapshot.EMPTY;
+            return StructureMinerAnalysisSnapshot.EMPTY;
         }
         return analysisController.snapshot(
                 slot,
@@ -709,7 +709,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private boolean isStructureComplete(ServerLevel serverLevel) {
-        return MythicMinerMultiblock.isComplete(serverLevel, worldPosition, getMinerTier());
+        return StructureMinerMultiblock.isComplete(serverLevel, worldPosition, getMinerTier());
     }
 
     private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
@@ -929,7 +929,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private ItemStackHandler createItemHandler() {
         int slotCount = getSlotCount();
         if (slotCount <= 0) {
-            throw new IllegalStateException("Mythic miner slot count must be positive");
+            throw new IllegalStateException("Structure miner slot count must be positive");
         }
 
         return new ItemStackHandler(slotCount) {
@@ -1102,7 +1102,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     @Override
     public AbstractContainerMenu createMenu(
             int containerId, Inventory playerInventory, Player player) {
-        return new MythicMinerMenu(containerId, playerInventory, this);
+        return new StructureMinerMenu(containerId, playerInventory, this);
     }
 
     public enum OutputState {

@@ -12,7 +12,7 @@ final class StructureInterpreterPage {
                 g,
                 mx,
                 my,
-                MythicMinerTheme.AMBER,
+                StructureMinerTheme.AMBER,
                 "screen.dimension_tech.structure_operator.page.interpreter");
     }
 

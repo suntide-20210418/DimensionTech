@@ -11,8 +11,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
 public final class ModBlocks {
-    public static final ResourceLocation TIER_1_MYTHIC_MINER_ID =
-            ResourceLocationHelper.block("tier_1_mythic_miner");
+    public static final ResourceLocation TIER_1_STRUCTURE_MINER_ID =
+            ResourceLocationHelper.block("tier_1_structure_miner");
 
     public static final DeferredRegister<Block> BLOCKS =
             DeferredRegister.create(ForgeRegistries.BLOCKS, DimensionTechMod.MOD_ID);
@@ -22,79 +22,79 @@ public final class ModBlocks {
                     () ->
                             new StructureDataOperatorBlock(
                                     BlockBehaviour.Properties.of().strength(4.0F)));
-    public static final RegistryObject<Block> MYTHIC_CRUCIBLE =
+    public static final RegistryObject<Block> STRUCTURE_REACTOR =
             BLOCKS.register(
-                    "mythic_crucible",
-                    () -> new MythicCrucibleBlock(BlockBehaviour.Properties.of().strength(4.0F)));
+                    "structure_reactor",
+                    () -> new StructureReactorBlock(BlockBehaviour.Properties.of().strength(4.0F)));
 
-    public static final RegistryObject<Block> TIER_1_MYTHIC_MINER =
+    public static final RegistryObject<Block> TIER_1_STRUCTURE_MINER =
             BLOCKS.register(
-                    ResourceLocationHelper.getPath(TIER_1_MYTHIC_MINER_ID),
+                    ResourceLocationHelper.getPath(TIER_1_STRUCTURE_MINER_ID),
                     () ->
-                            new Tier1MythicShellChikensVoidStructreResourceMinerBlock(
+                            new Tier1StructureMinerBlock(
                                     BlockBehaviour.Properties.of().strength(5.0F)));
-    public static final RegistryObject<Block> TIER_2_MYTHIC_MINER =
+    public static final RegistryObject<Block> TIER_2_STRUCTURE_MINER =
             BLOCKS.register(
-                    "tier_2_mythic_miner",
+                    "tier_2_structure_miner",
                     () ->
-                            new Tier2MythicShellChikensVoidStructreResourceMinerBlock(
+                            new Tier2StructureMinerBlock(
                                     BlockBehaviour.Properties.of().strength(5.0F)));
-    public static final RegistryObject<Block> TIER_3_MYTHIC_MINER =
+    public static final RegistryObject<Block> TIER_3_STRUCTURE_MINER =
             BLOCKS.register(
-                    "tier_3_mythic_miner",
+                    "tier_3_structure_miner",
                     () ->
-                            new Tier3MythicShellChikensVoidStructreResourceMinerBlock(
+                            new Tier3StructureMinerBlock(
                                     BlockBehaviour.Properties.of().strength(5.0F)));
-    public static final RegistryObject<Block> TIER_4_MYTHIC_MINER =
+    public static final RegistryObject<Block> TIER_4_STRUCTURE_MINER =
             BLOCKS.register(
-                    "tier_4_mythic_miner",
+                    "tier_4_structure_miner",
                     () ->
-                            new Tier4MythicShellChikensVoidStructreResourceMinerBlock(
+                            new Tier4StructureMinerBlock(
                                     BlockBehaviour.Properties.of().strength(5.0F)));
-    public static final RegistryObject<Block> TIER_5_MYTHIC_MINER =
+    public static final RegistryObject<Block> TIER_5_STRUCTURE_MINER =
             BLOCKS.register(
-                    "tier_5_mythic_miner",
+                    "tier_5_structure_miner",
                     () ->
-                            new Tier5MythicShellChikensVoidStructreResourceMinerBlock(
+                            new Tier5StructureMinerBlock(
                                     BlockBehaviour.Properties.of().strength(5.0F)));
-    public static final RegistryObject<Block> TIER_6_MYTHIC_MINER =
+    public static final RegistryObject<Block> TIER_6_STRUCTURE_MINER =
             BLOCKS.register(
-                    "tier_6_mythic_miner",
+                    "tier_6_structure_miner",
                     () ->
-                            new KashanVoidStructreResourceMinerBlock(
+                            new Tier6StructureMinerBlock(
                                     BlockBehaviour.Properties.of().strength(5.0F)));
-    public static final RegistryObject<Block> MYTHIC_MINER_CASING =
+    public static final RegistryObject<Block> STRUCTURE_MINER_CASING =
             BLOCKS.register(
-                    "mythic_miner_casing",
+                    "structure_miner_casing",
                     () -> new Block(BlockBehaviour.Properties.of().strength(4.0F)));
-    public static final RegistryObject<Block> MYTHIC_MINER_STRUCTURE =
+    public static final RegistryObject<Block> STRUCTURE_MINER_STRUCTURE =
             BLOCKS.register(
-                    "mythic_miner_structure",
+                    "structure_miner_structure",
                     () ->
-                            new MythicMinerStructureBlock(
+                            new StructureMinerStructureBlock(
                                     BlockBehaviour.Properties.of().strength(3.0F)));
     public static final RegistryObject<Block> UPGRADE_PARALLEL =
-            upgrade("parallel", MythicMinerUpgradeBlock.Type.PARALLEL, 1);
+            upgrade("parallel", StructureMinerUpgradeBlock.Type.PARALLEL, 1);
     public static final RegistryObject<Block> UPGRADE_NONE =
-            upgrade("none", MythicMinerUpgradeBlock.Type.NONE, 1);
+            upgrade("none", StructureMinerUpgradeBlock.Type.NONE, 1);
     public static final RegistryObject<Block> UPGRADE_LUCK =
-            upgrade("luck", MythicMinerUpgradeBlock.Type.LUCK, 1);
+            upgrade("luck", StructureMinerUpgradeBlock.Type.LUCK, 1);
     public static final RegistryObject<Block> UPGRADE_ENERGY =
-            upgrade("energy", MythicMinerUpgradeBlock.Type.ENERGY, 1);
+            upgrade("energy", StructureMinerUpgradeBlock.Type.ENERGY, 1);
     public static final RegistryObject<Block> UPGRADE_EFFICIENCY =
-            upgrade("efficiency", MythicMinerUpgradeBlock.Type.EFFICIENCY, 1);
+            upgrade("efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, 1);
     public static final RegistryObject<Block> UPGRADE_AGGREGATE =
-            upgrade("aggregate", MythicMinerUpgradeBlock.Type.AGGREGATE, 1);
+            upgrade("aggregate", StructureMinerUpgradeBlock.Type.AGGREGATE, 1);
     public static final RegistryObject<Block>[] UPGRADE_PARALLEL_TIERS =
-            upgradeTiers("parallel", MythicMinerUpgradeBlock.Type.PARALLEL, UPGRADE_PARALLEL);
+            upgradeTiers("parallel", StructureMinerUpgradeBlock.Type.PARALLEL, UPGRADE_PARALLEL);
     public static final RegistryObject<Block>[] UPGRADE_LUCK_TIERS =
-            upgradeTiers("luck", MythicMinerUpgradeBlock.Type.LUCK, UPGRADE_LUCK);
+            upgradeTiers("luck", StructureMinerUpgradeBlock.Type.LUCK, UPGRADE_LUCK);
     public static final RegistryObject<Block>[] UPGRADE_ENERGY_TIERS =
-            upgradeTiers("energy", MythicMinerUpgradeBlock.Type.ENERGY, UPGRADE_ENERGY);
+            upgradeTiers("energy", StructureMinerUpgradeBlock.Type.ENERGY, UPGRADE_ENERGY);
     public static final RegistryObject<Block>[] UPGRADE_EFFICIENCY_TIERS =
-            upgradeTiers("efficiency", MythicMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
+            upgradeTiers("efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
     public static final RegistryObject<Block>[] UPGRADE_AGGREGATE_TIERS =
-            upgradeTiers("aggregate", MythicMinerUpgradeBlock.Type.AGGREGATE, UPGRADE_AGGREGATE);
+            upgradeTiers("aggregate", StructureMinerUpgradeBlock.Type.AGGREGATE, UPGRADE_AGGREGATE);
     public static final RegistryObject<Block>[] DIMENSION_FOCUS = new RegistryObject[6];
 
     static {
@@ -108,17 +108,17 @@ public final class ModBlocks {
     }
 
     private static RegistryObject<Block> upgrade(
-            String name, MythicMinerUpgradeBlock.Type type, int tier) {
+            String name, StructureMinerUpgradeBlock.Type type, int tier) {
         return BLOCKS.register(
-                "mythic_miner_upgrade_" + name + (tier == 1 ? "" : "_tier_" + tier),
+                "structure_miner_upgrade_" + name + (tier == 1 ? "" : "_tier_" + tier),
                 () ->
-                        new MythicMinerUpgradeBlock(
+                        new StructureMinerUpgradeBlock(
                                 BlockBehaviour.Properties.of().strength(3.0F), type, tier));
     }
 
     @SuppressWarnings("unchecked")
     private static RegistryObject<Block>[] upgradeTiers(
-            String name, MythicMinerUpgradeBlock.Type type, RegistryObject<Block> tierOne) {
+            String name, StructureMinerUpgradeBlock.Type type, RegistryObject<Block> tierOne) {
         RegistryObject<Block>[] tiers = new RegistryObject[6];
         tiers[0] = tierOne;
         for (int tier = 2; tier <= 6; tier++) {

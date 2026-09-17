@@ -17,9 +17,9 @@ public final class ModFluids {
     public static final DeferredRegister<Fluid> FLUIDS =
             DeferredRegister.create(ForgeRegistries.FLUIDS, DimensionTechMod.MOD_ID);
 
-    public static final EssenceFluid MYTHIC_ESSENCE = essence("mythic_essence", 0xFF57327A);
-    public static final EssenceFluid SURGING_MYTHIC_ESSENCE =
-            essence("surging_mythic_essence", 0xFFA14F4F);
+    public static final EssenceFluid STRUCTURE_ESSENCE = essence("structure_essence", 0xFF57327A);
+    public static final EssenceFluid SURGING_STRUCTURE_ESSENCE =
+            essence("surging_structure_essence", 0xFFA14F4F);
     public static final EssenceFluid RECURSIVE_ESSENCE = essence("recursive_essence", 0xFFA604A4);
     public static final EssenceFluid SURGING_RECURSIVE_ESSENCE =
             essence("surging_recursive_essence", 0xFF302F10);
@@ -27,8 +27,8 @@ public final class ModFluids {
 
     public static Fluid forMinerTier(int tier) {
         return switch (tier) {
-            case 2 -> MYTHIC_ESSENCE.source().get();
-            case 3 -> SURGING_MYTHIC_ESSENCE.source().get();
+            case 2 -> STRUCTURE_ESSENCE.source().get();
+            case 3 -> SURGING_STRUCTURE_ESSENCE.source().get();
             case 4 -> RECURSIVE_ESSENCE.source().get();
             case 5 -> SURGING_RECURSIVE_ESSENCE.source().get();
             case 6 -> FRACTAL_ESSENCE.source().get();

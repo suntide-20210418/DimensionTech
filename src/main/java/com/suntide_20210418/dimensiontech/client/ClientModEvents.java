@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.client;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
-import com.suntide_20210418.dimensiontech.client.gui.screen.MythicCrucibleScreen;
-import com.suntide_20210418.dimensiontech.client.gui.screen.MythicMinerScreen;
+import com.suntide_20210418.dimensiontech.client.gui.screen.StructureReactorScreen;
+import com.suntide_20210418.dimensiontech.client.gui.screen.StructureMinerScreen;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -25,7 +25,7 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(
-                () -> MenuScreens.register(ModMenu.MYTHIC_MINER.get(), MythicMinerScreen::new));
+                () -> MenuScreens.register(ModMenu.STRUCTURE_MINER.get(), StructureMinerScreen::new));
         event.enqueueWork(
                 () ->
                         MenuScreens.register(
@@ -34,15 +34,15 @@ public final class ClientModEvents {
         event.enqueueWork(
                 () ->
                         MenuScreens.register(
-                                ModMenu.MYTHIC_CRUCIBLE.get(), MythicCrucibleScreen::new));
+                                ModMenu.STRUCTURE_REACTOR.get(), StructureReactorScreen::new));
     }
 
     @SubscribeEvent
     public static void registerItemColors(RegisterColorHandlersEvent.Item event) {
         event.register(
                 new DynamicFluidContainerModel.Colors(),
-                ModItems.MYTHIC_ESSENCE_BUCKET.get(),
-                ModItems.SURGING_MYTHIC_ESSENCE_BUCKET.get(),
+                ModItems.STRUCTURE_ESSENCE_BUCKET.get(),
+                ModItems.SURGING_STRUCTURE_ESSENCE_BUCKET.get(),
                 ModItems.RECURSIVE_ESSENCE_BUCKET.get(),
                 ModItems.SURGING_RECURSIVE_ESSENCE_BUCKET.get(),
                 ModItems.FRACTAL_ESSENCE_BUCKET.get());

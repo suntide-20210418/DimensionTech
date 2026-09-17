@@ -50,13 +50,13 @@ public final class ModItems {
                     "structure_interpreter", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> STRUCTURE_DATA_OPERATOR =
             blockItem("structure_data_operator", ModBlocks.STRUCTURE_DATA_OPERATOR);
-    public static final RegistryObject<Item> MYTHIC_CRUCIBLE =
-            blockItem("mythic_crucible", ModBlocks.MYTHIC_CRUCIBLE);
+    public static final RegistryObject<Item> STRUCTURE_REACTOR =
+            blockItem("structure_reactor", ModBlocks.STRUCTURE_REACTOR);
 
-    public static final RegistryObject<Item> MYTHIC_ESSENCE_BUCKET =
-            fluidBucket("mythic_essence_bucket", ModFluids.MYTHIC_ESSENCE);
-    public static final RegistryObject<Item> SURGING_MYTHIC_ESSENCE_BUCKET =
-            fluidBucket("surging_mythic_essence_bucket", ModFluids.SURGING_MYTHIC_ESSENCE);
+    public static final RegistryObject<Item> STRUCTURE_ESSENCE_BUCKET =
+            fluidBucket("structure_essence_bucket", ModFluids.STRUCTURE_ESSENCE);
+    public static final RegistryObject<Item> SURGING_STRUCTURE_ESSENCE_BUCKET =
+            fluidBucket("surging_structure_essence_bucket", ModFluids.SURGING_STRUCTURE_ESSENCE);
     public static final RegistryObject<Item> RECURSIVE_ESSENCE_BUCKET =
             fluidBucket("recursive_essence_bucket", ModFluids.RECURSIVE_ESSENCE);
     public static final RegistryObject<Item> SURGING_RECURSIVE_ESSENCE_BUCKET =
@@ -64,39 +64,39 @@ public final class ModItems {
     public static final RegistryObject<Item> FRACTAL_ESSENCE_BUCKET =
             fluidBucket("fractal_essence_bucket", ModFluids.FRACTAL_ESSENCE);
 
-    public static final RegistryObject<Item> TIER_1_MYTHIC_MINER =
+    public static final RegistryObject<Item> TIER_1_STRUCTURE_MINER =
             ITEMS.register(
-                    ResourceLocationHelper.getPath(ModBlocks.TIER_1_MYTHIC_MINER_ID),
+                    ResourceLocationHelper.getPath(ModBlocks.TIER_1_STRUCTURE_MINER_ID),
                     () ->
                             new BlockItem(
-                                    ModBlocks.TIER_1_MYTHIC_MINER.get(), new Item.Properties()));
-    public static final RegistryObject<Item> TIER_2_MYTHIC_MINER =
-            blockItem("tier_2_mythic_miner", ModBlocks.TIER_2_MYTHIC_MINER);
-    public static final RegistryObject<Item> TIER_3_MYTHIC_MINER =
-            blockItem("tier_3_mythic_miner", ModBlocks.TIER_3_MYTHIC_MINER);
-    public static final RegistryObject<Item> TIER_4_MYTHIC_MINER =
-            blockItem("tier_4_mythic_miner", ModBlocks.TIER_4_MYTHIC_MINER);
-    public static final RegistryObject<Item> TIER_5_MYTHIC_MINER =
-            blockItem("tier_5_mythic_miner", ModBlocks.TIER_5_MYTHIC_MINER);
-    public static final RegistryObject<Item> TIER_6_MYTHIC_MINER =
-            blockItem("tier_6_mythic_miner", ModBlocks.TIER_6_MYTHIC_MINER);
+                                    ModBlocks.TIER_1_STRUCTURE_MINER.get(), new Item.Properties()));
+    public static final RegistryObject<Item> TIER_2_STRUCTURE_MINER =
+            blockItem("tier_2_structure_miner", ModBlocks.TIER_2_STRUCTURE_MINER);
+    public static final RegistryObject<Item> TIER_3_STRUCTURE_MINER =
+            blockItem("tier_3_structure_miner", ModBlocks.TIER_3_STRUCTURE_MINER);
+    public static final RegistryObject<Item> TIER_4_STRUCTURE_MINER =
+            blockItem("tier_4_structure_miner", ModBlocks.TIER_4_STRUCTURE_MINER);
+    public static final RegistryObject<Item> TIER_5_STRUCTURE_MINER =
+            blockItem("tier_5_structure_miner", ModBlocks.TIER_5_STRUCTURE_MINER);
+    public static final RegistryObject<Item> TIER_6_STRUCTURE_MINER =
+            blockItem("tier_6_structure_miner", ModBlocks.TIER_6_STRUCTURE_MINER);
 
-    public static final RegistryObject<Item> MYTHIC_MINER_CASING =
-            blockItem("mythic_miner_casing", ModBlocks.MYTHIC_MINER_CASING);
-    public static final RegistryObject<Item> MYTHIC_MINER_STRUCTURE =
-            blockItem("mythic_miner_structure", ModBlocks.MYTHIC_MINER_STRUCTURE);
+    public static final RegistryObject<Item> STRUCTURE_MINER_CASING =
+            blockItem("structure_miner_casing", ModBlocks.STRUCTURE_MINER_CASING);
+    public static final RegistryObject<Item> STRUCTURE_MINER_STRUCTURE =
+            blockItem("structure_miner_structure", ModBlocks.STRUCTURE_MINER_STRUCTURE);
     public static final RegistryObject<Item> UPGRADE_PARALLEL =
-            blockItem("mythic_miner_upgrade_parallel", ModBlocks.UPGRADE_PARALLEL);
+            blockItem("structure_miner_upgrade_parallel", ModBlocks.UPGRADE_PARALLEL);
     public static final RegistryObject<Item> UPGRADE_NONE =
-            blockItem("mythic_miner_upgrade_none", ModBlocks.UPGRADE_NONE);
+            blockItem("structure_miner_upgrade_none", ModBlocks.UPGRADE_NONE);
     public static final RegistryObject<Item> UPGRADE_LUCK =
-            blockItem("mythic_miner_upgrade_luck", ModBlocks.UPGRADE_LUCK);
+            blockItem("structure_miner_upgrade_luck", ModBlocks.UPGRADE_LUCK);
     public static final RegistryObject<Item> UPGRADE_ENERGY =
-            blockItem("mythic_miner_upgrade_energy", ModBlocks.UPGRADE_ENERGY);
+            blockItem("structure_miner_upgrade_energy", ModBlocks.UPGRADE_ENERGY);
     public static final RegistryObject<Item> UPGRADE_EFFICIENCY =
-            blockItem("mythic_miner_upgrade_efficiency", ModBlocks.UPGRADE_EFFICIENCY);
+            blockItem("structure_miner_upgrade_efficiency", ModBlocks.UPGRADE_EFFICIENCY);
     public static final RegistryObject<Item> UPGRADE_AGGREGATE =
-            blockItem("mythic_miner_upgrade_aggregate", ModBlocks.UPGRADE_AGGREGATE);
+            blockItem("structure_miner_upgrade_aggregate", ModBlocks.UPGRADE_AGGREGATE);
     public static final RegistryObject<Item>[] UPGRADE_PARALLEL_TIERS =
             upgradeItems("parallel", ModBlocks.UPGRADE_PARALLEL_TIERS, UPGRADE_PARALLEL);
     public static final RegistryObject<Item>[] UPGRADE_LUCK_TIERS =
@@ -159,7 +159,7 @@ public final class ModItems {
         tiers[0] = tierOne;
         for (int tier = 2; tier <= 6; tier++) {
             tiers[tier - 1] =
-                    blockItem("mythic_miner_upgrade_" + name + "_tier_" + tier, blocks[tier - 1]);
+                    blockItem("structure_miner_upgrade_" + name + "_tier_" + tier, blocks[tier - 1]);
         }
         return tiers;
     }

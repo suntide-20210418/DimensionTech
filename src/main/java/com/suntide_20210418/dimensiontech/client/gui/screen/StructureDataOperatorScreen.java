@@ -95,7 +95,7 @@ public final class StructureDataOperatorScreen
                         16,
                         Component.translatable("screen.dimension_tech.structure_operator.search"));
         search.setBordered(false);
-        search.setTextColor(MythicMinerTheme.INK);
+        search.setTextColor(StructureMinerTheme.INK);
         search.setVisible(false);
         addRenderableWidget(search);
     }
@@ -370,7 +370,7 @@ public final class StructureDataOperatorScreen
                     Component.translatable(statusKey),
                     leftPos + activeWidth() / 2,
                     topPos + activeHeight() - 12,
-                    MythicMinerTheme.SUCCESS);
+                    StructureMinerTheme.SUCCESS);
         graphics.pose().popPose();
         if (!modalOpen()) {
             renderInventoryItemTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
@@ -389,8 +389,8 @@ public final class StructureDataOperatorScreen
     protected void renderBg(GuiGraphics g, float partial, int mouseX, int mouseY) {
         g.pose().pushPose();
         g.pose().translate(leftPos, topPos, 0.0D);
-        MythicMinerTheme.panel(g, 0, 0, activeWidth(), activeHeight(), MythicMinerTheme.AMBER);
-        MythicMinerTheme.titleBar(g, font, 1, 1, activeWidth() - 2, title);
+        StructureMinerTheme.panel(g, 0, 0, activeWidth(), activeHeight(), StructureMinerTheme.AMBER);
+        StructureMinerTheme.titleBar(g, font, 1, 1, activeWidth() - 2, title);
         drawTabs(g);
         if (page == Page.OPERATION)
             StructureDataOperatorOperationPage.render(this, g, mouseX - leftPos, mouseY - topPos);
@@ -401,8 +401,8 @@ public final class StructureDataOperatorScreen
                     mouseX - leftPos,
                     mouseY - topPos,
                     page == Page.DATA_INTEGRATOR
-                            ? MythicMinerTheme.FLUID_ACCENT
-                            : MythicMinerTheme.AMBER,
+                            ? StructureMinerTheme.FLUID_ACCENT
+                            : StructureMinerTheme.AMBER,
                     page == Page.DATA_INTEGRATOR
                             ? "screen.dimension_tech.structure_operator.page.integrator"
                             : "screen.dimension_tech.structure_operator.page.interpreter");
@@ -428,7 +428,7 @@ public final class StructureDataOperatorScreen
         int tabWidth = activeWidth() / pages.length;
         int tabY = page == Page.OPERATION ? 29 : TAB_Y;
         for (int index = 0; index < pages.length; index++)
-            MythicMinerTheme.tab(
+            StructureMinerTheme.tab(
                     g,
                     font,
                     index * tabWidth + 2,
@@ -442,18 +442,18 @@ public final class StructureDataOperatorScreen
         for (int index = 0; index <= StructureDataOperatorMenu.SOURCE_MARKER_MENU_SLOT; index++) {
             Slot slot = menu.getSlot(index);
             if (!slot.isActive()) continue;
-            MythicMinerTheme.slot(g, slot.x, slot.y, false, false);
+            StructureMinerTheme.slot(g, slot.x, slot.y, false, false);
         }
         drawPluginLabel(
                 g,
                 "screen.dimension_tech.structure_operator.integrator",
                 50,
-                MythicMinerTheme.FLUIX);
+                StructureMinerTheme.FLUIX);
         drawPluginLabel(
                 g,
                 "screen.dimension_tech.structure_operator.interpreter",
                 78,
-                MythicMinerTheme.AMBER);
+                StructureMinerTheme.AMBER);
     }
 
     /** The plugin hangers are fixed at screen x = -26 by the menu; paint them there. */
@@ -461,22 +461,22 @@ public final class StructureDataOperatorScreen
         String label = Component.translatable(key).getString();
         int width = font.width(label);
         int plateX = -26 - width;
-        g.fill(plateX - 3, y + 1, -23, y + 15, MythicMinerTheme.HAIRLINE);
+        g.fill(plateX - 3, y + 1, -23, y + 15, StructureMinerTheme.HAIRLINE);
         g.fill(plateX - 2, y + 2, -24, y + 14, color);
-        g.fill(plateX - 1, y + 3, -25, y + 13, MythicMinerTheme.SLOT_FACE);
-        g.drawString(font, label, plateX, y + 4, MythicMinerTheme.TEXT, false);
+        g.fill(plateX - 1, y + 3, -25, y + 13, StructureMinerTheme.SLOT_FACE);
+        g.drawString(font, label, plateX, y + 4, StructureMinerTheme.TEXT, false);
     }
 
     private void drawInventoryChrome(GuiGraphics g) {
         int dividerX = page == Page.OPERATION ? 8 : 79;
         int dividerY = page == Page.OPERATION ? 188 : 248;
         int dividerWidth = page == Page.OPERATION ? 160 : 162;
-        g.fill(dividerX, dividerY, dividerX + dividerWidth, dividerY + 1, MythicMinerTheme.AMBER);
+        g.fill(dividerX, dividerY, dividerX + dividerWidth, dividerY + 1, StructureMinerTheme.AMBER);
         for (int index = StructureDataOperatorMenu.PLAYER_SLOT_START;
                 index < menu.slots.size();
                 index++) {
             Slot slot = menu.getSlot(index);
-            if (slot.isActive()) MythicMinerTheme.slot(g, slot.x, slot.y, false, false);
+            if (slot.isActive()) StructureMinerTheme.slot(g, slot.x, slot.y, false, false);
         }
     }
 
@@ -612,17 +612,17 @@ public final class StructureDataOperatorScreen
                 0,
                 (int) Math.ceil(width / uiScale),
                 (int) Math.ceil(height / uiScale),
-                MythicMinerTheme.BACKDROP);
+                StructureMinerTheme.BACKDROP);
         int x = leftPos + (page == Page.OPERATION ? 6 : 70),
                 y = topPos + (page == Page.OPERATION ? 84 : 82),
                 w = page == Page.OPERATION ? 164 : 180;
-        MythicMinerTheme.panel(
+        StructureMinerTheme.panel(
                 g,
                 x,
                 y,
                 w,
                 82,
-                confirmWrite ? MythicMinerTheme.AMBER : MythicMinerTheme.FLUID_ACCENT);
+                confirmWrite ? StructureMinerTheme.AMBER : StructureMinerTheme.FLUID_ACCENT);
         g.drawCenteredString(
                 font,
                 Component.translatable(
@@ -631,7 +631,7 @@ public final class StructureDataOperatorScreen
                                 : "screen.dimension_tech.structure_operator.confirm.copy"),
                 x + w / 2,
                 y + 3,
-                MythicMinerTheme.TEXT);
+                StructureMinerTheme.TEXT);
         String source =
                 confirmWrite && selected != null
                         ? TranslateHelper.structureName(selected.structure()).getString()
@@ -641,9 +641,9 @@ public final class StructureDataOperatorScreen
                 font.plainSubstrByWidth(source, w - 12),
                 x + 6,
                 y + 30,
-                MythicMinerTheme.TEXT,
+                StructureMinerTheme.TEXT,
                 false);
-        MythicMinerTheme.button(
+        StructureMinerTheme.button(
                 g,
                 font,
                 x + 8,
@@ -653,8 +653,8 @@ public final class StructureDataOperatorScreen
                 Component.translatable("screen.dimension_tech.structure_operator.cancel"),
                 inside(mouseX, mouseY, x + 8, y + 64, 72, 18),
                 true,
-                MythicMinerTheme.ERROR);
-        MythicMinerTheme.button(
+                StructureMinerTheme.ERROR);
+        StructureMinerTheme.button(
                 g,
                 font,
                 x + 100,
@@ -664,7 +664,7 @@ public final class StructureDataOperatorScreen
                 Component.translatable("screen.dimension_tech.structure_operator.confirm"),
                 inside(mouseX, mouseY, x + 100, y + 64, 72, 18),
                 true,
-                confirmWrite ? MythicMinerTheme.AMBER : MythicMinerTheme.FLUIX);
+                confirmWrite ? StructureMinerTheme.AMBER : StructureMinerTheme.FLUIX);
         g.pose().popPose();
     }
 

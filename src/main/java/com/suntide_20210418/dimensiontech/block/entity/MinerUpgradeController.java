@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
-import com.suntide_20210418.dimensiontech.block.MythicMinerMultiblock;
-import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
+import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock;
+import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
-import com.suntide_20210418.dimensiontech.mythicminer.processing.ProcessingMath;
+import com.suntide_20210418.dimensiontech.structureminer.processing.ProcessingMath;
 import java.util.Arrays;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -88,7 +88,7 @@ final class MinerUpgradeController {
                         0,
                         0,
                         0,
-                        new int[MythicMinerUpgradeBlock.Type.values().length * 6]);
+                        new int[StructureMinerUpgradeBlock.Type.values().length * 6]);
 
         private static UpgradeState from(ServerLevel level, BlockPos position) {
             double efficiency = 0.0D;
@@ -102,9 +102,9 @@ final class MinerUpgradeController {
             int parallelCount = 0;
             int luckCount = 0;
             int aggregateCount = 0;
-            int[] counts = new int[MythicMinerUpgradeBlock.Type.values().length * 6];
-            for (MythicMinerUpgradeBlock block : MythicMinerMultiblock.upgrades(level, position)) {
-                if (block.getType() != MythicMinerUpgradeBlock.Type.NONE) {
+            int[] counts = new int[StructureMinerUpgradeBlock.Type.values().length * 6];
+            for (StructureMinerUpgradeBlock block : StructureMinerMultiblock.upgrades(level, position)) {
+                if (block.getType() != StructureMinerUpgradeBlock.Type.NONE) {
                     counts[(block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
                 }
                 switch (block.getType()) {
@@ -157,7 +157,7 @@ final class MinerUpgradeController {
                     counts);
         }
 
-        int countFor(MythicMinerUpgradeBlock.Type type, int tier) {
+        int countFor(StructureMinerUpgradeBlock.Type type, int tier) {
             int index = (type.ordinal() - 1) * 6 + tier - 1;
             return index >= 0 && index < upgradeCountsByTypeAndTier.length
                     ? upgradeCountsByTypeAndTier[index]

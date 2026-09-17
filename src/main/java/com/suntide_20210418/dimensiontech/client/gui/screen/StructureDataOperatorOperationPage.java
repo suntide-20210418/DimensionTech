@@ -78,7 +78,7 @@ final class StructureDataOperatorOperationPage {
             boolean enabled,
             int mouseX,
             int mouseY) {
-        MythicMinerTheme.button(
+        StructureMinerTheme.button(
                 g,
                 s.getMinecraft().font,
                 x,
@@ -88,6 +88,6 @@ final class StructureDataOperatorOperationPage {
                 Component.translatable(key),
                 StructureDataOperatorScreen.inside(mouseX, mouseY, x, y, w, h),
                 enabled,
-                MythicMinerTheme.FLUID_ACCENT);
+                StructureMinerTheme.FLUID_ACCENT);
     }
 }

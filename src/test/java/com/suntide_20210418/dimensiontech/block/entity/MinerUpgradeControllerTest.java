@@ -1,6 +1,6 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
-import com.suntide_20210418.dimensiontech.block.MythicMinerUpgradeBlock;
+import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ class MinerUpgradeControllerTest {
         counts[0] = 99;
         int[] exposed = state.upgradeCountsByTypeAndTier();
         exposed[1] = 88;
-        assertEquals(1, state.countFor(MythicMinerUpgradeBlock.Type.EFFICIENCY, 1));
-        assertEquals(2, state.countFor(MythicMinerUpgradeBlock.Type.EFFICIENCY, 2));
+        assertEquals(1, state.countFor(StructureMinerUpgradeBlock.Type.EFFICIENCY, 1));
+        assertEquals(2, state.countFor(StructureMinerUpgradeBlock.Type.EFFICIENCY, 2));
     }
 }
