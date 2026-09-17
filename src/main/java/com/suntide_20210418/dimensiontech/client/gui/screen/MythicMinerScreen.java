@@ -33,6 +33,17 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
             ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/void_structre_miner.png");
     private static final ResourceLocation OUTPUT_FACE_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/output_face_config.png");
+    /**
+     * Real pixel size of {@link #GUI_TEXTURE}. {@code blit} normalises UVs by the size it is handed
+     * ({@code (uOffset + uWidth) / textureWidth}), so a size that does not match the file silently
+     * samples column {@code u * 258 / 256} and pushes every region up to two pixels to the right.
+     */
+    private static final int TEXTURE_WIDTH = 258, TEXTURE_HEIGHT = 256;
+    /**
+     * Control panel region: (0,0) to (243,161). The dark outline on column 244 / row 162 is outside
+     * it, matching the measured 244x162.
+     */
+    private static final int PANEL_WIDTH = 244, PANEL_HEIGHT = 162;
     private static final int GUI_WIDTH = 255;
     private static final int GUI_HEIGHT = 254;
     private static final int INFO_X = 32, INFO_Y = 33, INFO_W = 208, INFO_H = 123;
@@ -48,9 +59,10 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     /** Body ink for the light panel face. Also read by {@code OutputFaceConfigScreen}. */
     static final int INK = MythicMinerTheme.INK;
-    private static final int ENERGY_X = 5;
-    private static final int ENERGY_TOP = 46;
-    private static final int ENERGY_HEIGHT = 164;
+    /** Energy fill artwork in the texture: (245,0) to (249,143) inclusive, i.e. 5 wide, 144 tall. */
+    private static final int ENERGY_U = 245, ENERGY_V = 0, ENERGY_SRC_W = 5, ENERGY_SRC_H = 144;
+    /** The well it fills: x 7..11, filled bottom-up, so the last row it can reach is 154. */
+    private static final int ENERGY_BAR_X = 7, ENERGY_BAR_BOTTOM = 155, ENERGY_BAR_H = 121;
     private static final int LEFT_CONTROLS_WIDTH = 30;
 
     /**
@@ -764,7 +776,17 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                     FLUID_Y + FLUID_H,
                     MythicMinerTheme.FLUID);
         }
-        g.blit(GUI_TEXTURE, FLUID_X + FLUID_W - 5, FLUID_Y, 0, 250, 0, 5, 120, 256, 256);
+        g.blit(
+                GUI_TEXTURE,
+                FLUID_X + FLUID_W - 5,
+                FLUID_Y,
+                0,
+                250,
+                0,
+                5,
+                120,
+                TEXTURE_WIDTH,
+                TEXTURE_HEIGHT);
     }
 
     /**
@@ -904,8 +926,28 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private void drawPanel(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.blit(GUI_TEXTURE, x, y, 0, 0, 0, 245, 163, 256, 256);
-        graphics.blit(GUI_TEXTURE, x + 35, y + 167, 0, 35, 167, 175, 87, 256, 256);
+        graphics.blit(
+                GUI_TEXTURE,
+                x,
+                y,
+                0,
+                0,
+                0,
+                PANEL_WIDTH,
+                PANEL_HEIGHT,
+                TEXTURE_WIDTH,
+                TEXTURE_HEIGHT);
+        graphics.blit(
+                GUI_TEXTURE,
+                x + 35,
+                y + 167,
+                0,
+                35,
+                167,
+                175,
+                87,
+                TEXTURE_WIDTH,
+                TEXTURE_HEIGHT);
     }
 
     private void drawHeader(GuiGraphics graphics) {
@@ -1000,10 +1042,29 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         return String.format(java.util.Locale.ROOT, "%.4f", value);
     }
 
+    /**
+     * Fills the energy well bottom-up.
+     *
+     * <p>Source and destination are aligned at their bottom edges: strip row 143 is the row that
+     * lands on the well's last filled row (154), so a partial bar takes the bottom {@code filled}
+     * rows of the strip rather than the top ones.
+     */
     private void drawEnergyRail(GuiGraphics graphics) {
-        int filled = fillPixels(menu.getEnergyStored(), Math.max(1, menu.getEnergyCapacity()), 121);
+        int filled =
+                fillPixels(
+                        menu.getEnergyStored(), Math.max(1, menu.getEnergyCapacity()), ENERGY_BAR_H);
         if (filled > 0) {
-            graphics.blit(GUI_TEXTURE, 7, 155 - filled, 0, 245, 120 - filled, 5, filled, 256, 256);
+            graphics.blit(
+                    GUI_TEXTURE,
+                    ENERGY_BAR_X,
+                    ENERGY_BAR_BOTTOM - filled,
+                    0,
+                    ENERGY_U,
+                    ENERGY_V + ENERGY_SRC_H - filled,
+                    ENERGY_SRC_W,
+                    filled,
+                    TEXTURE_WIDTH,
+                    TEXTURE_HEIGHT);
         }
     }
 
