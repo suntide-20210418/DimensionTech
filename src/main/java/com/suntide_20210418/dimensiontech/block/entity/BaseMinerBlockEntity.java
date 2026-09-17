@@ -411,6 +411,15 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         setChanged();
     }
 
+    public void toggleRedstoneControl() {
+        redstoneMode =
+                redstoneMode == RedstoneMode.NO_SIGNAL
+                        ? RedstoneMode.ALWAYS
+                        : RedstoneMode.NO_SIGNAL;
+        redstoneThreshold = 8;
+        setChanged();
+    }
+
     public void cycleOutputState() {
         outputController.cycleOutputState();
         setChanged();

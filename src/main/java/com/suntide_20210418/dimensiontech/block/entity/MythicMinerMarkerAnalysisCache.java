@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
@@ -9,6 +10,7 @@ import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
 import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureAnalysisService;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.ItemStackHandler;
+import org.slf4j.Logger;
 
 /**
  * Owns the miner-specific Marker analysis lifecycle.
@@ -37,6 +40,7 @@ import net.minecraftforge.items.ItemStackHandler;
  * is deliberately not a general-purpose task cache.
  */
 final class MythicMinerMarkerAnalysisCache {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final long RETRY_DELAY_TICKS = 100L;
 
     private final ItemStackHandler inventory;
@@ -214,6 +218,23 @@ final class MythicMinerMarkerAnalysisCache {
                         && analysis.status() != AnalysisStatus.APPROXIMATE)) {
             tasks.put(slot, AnalysisLifecycle.TaskStatus.FAILED);
             retryAt = requestTime + RETRY_DELAY_TICKS;
+            // The retry loop re-enters here every RETRY_DELAY_TICKS while a marker stays
+            // unsupported, so this is the one place a failed analysis can speak. Without it the
+            // machine just sits at zero progress and the reason exists nowhere outside this frame.
+            if (error != null) {
+                LOGGER.warn(
+                        "Marker analysis for slot {} ({}) failed: {}",
+                        slot,
+                        info.structure().id(),
+                        error.toString());
+            } else {
+                LOGGER.warn(
+                        "Marker analysis for slot {} ({}) produced status {} with diagnostics {}",
+                        slot,
+                        info.structure().id(),
+                        analysis == null ? "null" : analysis.status(),
+                        analysis == null ? List.of() : analysis.diagnostics());
+            }
             return;
         }
         tasks.put(slot, AnalysisLifecycle.TaskStatus.SUCCEEDED);
@@ -243,27 +264,50 @@ final class MythicMinerMarkerAnalysisCache {
                         input,
                         config,
                         LootAnalysisFingerprint.ALGORITHM_VERSION,
-                        () ->
-                                StructureAnalysisService.forServer(server)
-                                        .discover(analysisLevel, info.structure().id())
-                                        .thenComposeAsync(
-                                                discovery -> {
-                                                    List<ResourceLocation> roots =
-                                                            discovery.structures().stream()
-                                                                    .flatMap(
-                                                                            value ->
-                                                                                    value
-                                                                                            .lootTables()
-                                                                                            .stream())
-                                                                    .distinct()
-                                                                    .toList();
-                                                    RuntimeLootAstSource source =
-                                                            RuntimeLootAstSource.snapshotTables(
-                                                                    server, roots);
-                                                    return StructureValueCalculator.calculateAsync(
-                                                            server, info, luck, discovery, source);
-                                                },
-                                                server));
+                        () -> {
+                            // `discover` mutates the service's request bookkeeping and is guarded
+                            // to the server thread, while computeAsync runs this supplier on the
+                            // analysis worker. Hop first; the discovery work itself is already
+                            // server-tick scheduled, and the compose stage below stays on the
+                            // server thread for the loot-table freeze.
+                            CompletableFuture<DiscoveryResult> discoveryStage =
+                                    new CompletableFuture<>();
+                            server.execute(
+                                    () -> {
+                                        try {
+                                            StructureAnalysisService.forServer(server)
+                                                    .discover(
+                                                            analysisLevel,
+                                                            info.structure().id())
+                                                    .whenComplete(
+                                                            (result, error) -> {
+                                                                if (error != null)
+                                                                    discoveryStage
+                                                                            .completeExceptionally(
+                                                                                    error);
+                                                                else discoveryStage.complete(result);
+                                                            });
+                                        } catch (Throwable error) {
+                                            discoveryStage.completeExceptionally(error);
+                                        }
+                                    });
+                            return discoveryStage.thenComposeAsync(
+                                    discovery -> {
+                                        List<ResourceLocation> roots =
+                                                discovery.structures().stream()
+                                                        .flatMap(
+                                                                value ->
+                                                                        value.lootTables()
+                                                                                .stream())
+                                                        .distinct()
+                                                        .toList();
+                                        RuntimeLootAstSource source =
+                                                RuntimeLootAstSource.snapshotTables(server, roots);
+                                        return StructureValueCalculator.calculateAsync(
+                                                server, info, luck, discovery, source);
+                                    },
+                                    server);
+                        });
     }
 
     @FunctionalInterface

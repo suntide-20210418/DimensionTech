@@ -9,6 +9,11 @@ public record MythicMinerTelemetrySnapshot(
         int energyCapacity,
         int energyConsumption,
         int workingThreads,
+        /**
+         * Items the output router could not eject. While this is non-zero the machine refuses to
+         * start new cycles, so a page that hides it turns a jammed machine into a mystery.
+         */
+        int pendingCount,
         int totalParallel,
         int baseParallel,
         int efficiencyHundredths,
@@ -73,6 +78,7 @@ public record MythicMinerTelemetrySnapshot(
                 menu.getEnergyCapacity(),
                 menu.getEffectiveEnergyConsumption(),
                 menu.getWorkingThreadCount(),
+                menu.getTelemetry(9),
                 menu.getTotalParallel(),
                 menu.getBaseParallel(),
                 menu.getEfficiencyHundredths(),

@@ -33,6 +33,25 @@ public final class StructureDataOperatorScreen
     static final int HEIGHT = 340;
     private static final int COMPACT_WIDTH = 176;
     private static final int COMPACT_HEIGHT = 282;
+
+    /**
+     * The operate page's target marker slot, in screen-relative pixels. The menu pins this slot to
+     * the same coordinates, so the chrome around it is laid out from these two values instead of
+     * repeating the numbers.
+     */
+    static final int OPERATE_TARGET_X = 80;
+
+    static final int OPERATE_TARGET_Y = 52;
+
+    /** The operate page's action row: copy holds the wide button, clear the narrow one. */
+    static final int OPERATE_ACTION_Y = 84;
+
+    static final int OPERATE_ACTION_H = 20;
+    static final int OPERATE_COPY_X = 58;
+    static final int OPERATE_COPY_W = 60;
+    static final int OPERATE_CLEAR_X = 122;
+    static final int OPERATE_CLEAR_W = 42;
+
     static final int TAB_Y = 31;
     static final int LEFT_X = 16;
     static final int LEFT_W = 136;
@@ -76,7 +95,7 @@ public final class StructureDataOperatorScreen
                         16,
                         Component.translatable("screen.dimension_tech.structure_operator.search"));
         search.setBordered(false);
-        search.setTextColor(MythicMinerTheme.TEXT);
+        search.setTextColor(MythicMinerTheme.INK);
         search.setVisible(false);
         addRenderableWidget(search);
     }
@@ -371,7 +390,7 @@ public final class StructureDataOperatorScreen
         g.pose().pushPose();
         g.pose().translate(leftPos, topPos, 0.0D);
         MythicMinerTheme.panel(g, 0, 0, activeWidth(), activeHeight(), MythicMinerTheme.AMBER);
-        g.drawString(font, title, 8, 18, MythicMinerTheme.TEXT, false);
+        MythicMinerTheme.titleBar(g, font, 1, 1, activeWidth() - 2, title);
         drawTabs(g);
         if (page == Page.OPERATION)
             StructureDataOperatorOperationPage.render(this, g, mouseX - leftPos, mouseY - topPos);
@@ -381,7 +400,9 @@ public final class StructureDataOperatorScreen
                     g,
                     mouseX - leftPos,
                     mouseY - topPos,
-                    page == Page.DATA_INTEGRATOR ? MythicMinerTheme.FLUIX : MythicMinerTheme.AMBER,
+                    page == Page.DATA_INTEGRATOR
+                            ? MythicMinerTheme.FLUID_ACCENT
+                            : MythicMinerTheme.AMBER,
                     page == Page.DATA_INTEGRATOR
                             ? "screen.dimension_tech.structure_operator.page.integrator"
                             : "screen.dimension_tech.structure_operator.page.interpreter");
@@ -421,7 +442,7 @@ public final class StructureDataOperatorScreen
         for (int index = 0; index <= StructureDataOperatorMenu.SOURCE_MARKER_MENU_SLOT; index++) {
             Slot slot = menu.getSlot(index);
             if (!slot.isActive()) continue;
-            g.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, MythicMinerTheme.PANEL);
+            MythicMinerTheme.slot(g, slot.x, slot.y, false, false);
         }
         drawPluginLabel(
                 g,
@@ -435,9 +456,15 @@ public final class StructureDataOperatorScreen
                 MythicMinerTheme.AMBER);
     }
 
+    /** The plugin hangers are fixed at screen x = -26 by the menu; paint them there. */
     private void drawPluginLabel(GuiGraphics g, String key, int y, int color) {
         String label = Component.translatable(key).getString();
-        g.drawString(font, label, -30 - font.width(label), y + 4, color, false);
+        int width = font.width(label);
+        int plateX = -26 - width;
+        g.fill(plateX - 3, y + 1, -23, y + 15, MythicMinerTheme.HAIRLINE);
+        g.fill(plateX - 2, y + 2, -24, y + 14, color);
+        g.fill(plateX - 1, y + 3, -25, y + 13, MythicMinerTheme.SLOT_FACE);
+        g.drawString(font, label, plateX, y + 4, MythicMinerTheme.TEXT, false);
     }
 
     private void drawInventoryChrome(GuiGraphics g) {
@@ -449,8 +476,7 @@ public final class StructureDataOperatorScreen
                 index < menu.slots.size();
                 index++) {
             Slot slot = menu.getSlot(index);
-            if (slot.isActive())
-                g.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, MythicMinerTheme.PANEL);
+            if (slot.isActive()) MythicMinerTheme.slot(g, slot.x, slot.y, false, false);
         }
     }
 
@@ -591,7 +617,12 @@ public final class StructureDataOperatorScreen
                 y = topPos + (page == Page.OPERATION ? 84 : 82),
                 w = page == Page.OPERATION ? 164 : 180;
         MythicMinerTheme.panel(
-                g, x, y, w, 82, confirmWrite ? MythicMinerTheme.AMBER : MythicMinerTheme.FLUIX);
+                g,
+                x,
+                y,
+                w,
+                82,
+                confirmWrite ? MythicMinerTheme.AMBER : MythicMinerTheme.FLUID_ACCENT);
         g.drawCenteredString(
                 font,
                 Component.translatable(
@@ -599,7 +630,7 @@ public final class StructureDataOperatorScreen
                                 ? "screen.dimension_tech.structure_operator.confirm.write"
                                 : "screen.dimension_tech.structure_operator.confirm.copy"),
                 x + w / 2,
-                y + 10,
+                y + 3,
                 MythicMinerTheme.TEXT);
         String source =
                 confirmWrite && selected != null

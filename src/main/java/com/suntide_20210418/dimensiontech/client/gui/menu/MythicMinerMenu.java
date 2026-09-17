@@ -21,14 +21,18 @@ import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 public class MythicMinerMenu extends AbstractContainerMenu {
-    public static final int CONTAINER_SLOT_Y = MythicMinerLayout.MARKER_SLOT_Y;
-    public static final int BASE_PLAYER_INVENTORY_Y = MythicMinerLayout.BASE_PLAYER_INVENTORY_Y;
+    public static final int BASE_PLAYER_INVENTORY_Y = 258;
     public static final int MENU_WIDTH = 320;
     public static final int FLUID_MENU_WIDTH = 376;
 
+    /**
+     * Where the marker slots are parked. Far enough outside any window that neither the slot pass
+     * nor the hover test can reach them.
+     */
+    private static final int OFFSCREEN_SLOT_X = -2000, OFFSCREEN_SLOT_Y = -2000;
+
     private final BaseMinerBlockEntity blockEntity;
     private final int containerSlotCount;
-    private final int containerRows;
     private final int playerInventoryY;
     private final int menuWidth;
     private final boolean hasFluidInput;
@@ -116,8 +120,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         this.menuWidth = hasFluidInput ? FLUID_MENU_WIDTH : MENU_WIDTH;
         IItemHandler itemHandler = blockEntity.getItemHandler();
         this.containerSlotCount = itemHandler.getSlots();
-        this.containerRows = MythicMinerLayout.rowsForSlotCount(containerSlotCount);
-        this.playerInventoryY = MythicMinerLayout.playerInventoryY(containerRows);
+        this.playerInventoryY = 172;
         this.telemetry = new int[TELEMETRY_BASE_COUNT + containerSlotCount * SLOT_TELEMETRY_STRIDE];
 
         addContainerSlots(itemHandler);
@@ -304,21 +307,24 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         throw new IllegalStateException("Mythic miner block entity is missing at " + position);
     }
 
+    /**
+     * Parks the marker slots outside the window, on purpose.
+     *
+     * <p>{@code AbstractContainerScreen} calls {@code renderSlot} for every slot whose
+     * {@code isActive()} is true, and {@code SlotItemHandler} never overrides it — so the previous
+     * {@code (-100, -100)} drew nine marker icons just outside the panel's top-left corner, visibly
+     * rather than harmlessly. The lane is drawn by the page renderers instead, which hit-test it and
+     * forward clicks back through {@code slotClicked}; the slots only need to exist so that protocol
+     * has something to address.
+     */
     private void addContainerSlots(IItemHandler itemHandler) {
-        int columns = MythicMinerLayout.columnsForSlotCount(containerSlotCount);
         for (int slot = 0; slot < containerSlotCount; slot++) {
-            int row = slot / columns;
-            addSlot(
-                    new SlotItemHandler(
-                            itemHandler,
-                            slot,
-                            MythicMinerLayout.markerSlotX(slot, containerSlotCount),
-                            MythicMinerLayout.markerSlotY(row)));
+            addSlot(new SlotItemHandler(itemHandler, slot, OFFSCREEN_SLOT_X, OFFSCREEN_SLOT_Y));
         }
     }
 
     private void addPlayerInventory(Inventory playerInventory) {
-        int inventoryStartX = (menuWidth - 162) / 2;
+        int inventoryStartX = 42;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(
@@ -326,18 +332,14 @@ public class MythicMinerMenu extends AbstractContainerMenu {
                                 playerInventory,
                                 column + row * 9 + 9,
                                 inventoryStartX + column * 18,
-                                playerInventoryY + row * 18));
+                                playerInventoryY + row * 18 + 1));
             }
         }
 
-        int hotbarY = playerInventoryY + 58;
+        int hotbarY = 231;
         for (int column = 0; column < 9; column++) {
             addSlot(new Slot(playerInventory, column, inventoryStartX + column * 18, hotbarY));
         }
-    }
-
-    public int getContainerRows() {
-        return containerRows;
     }
 
     public int getContainerSlotCount() {
@@ -354,14 +356,6 @@ public class MythicMinerMenu extends AbstractContainerMenu {
 
     public int getMenuWidth() {
         return menuWidth;
-    }
-
-    public int getWorkContentWidth() {
-        return hasFluidInput ? MythicMinerLayout.FLUID_PANEL_X - 36 : menuWidth - 56;
-    }
-
-    public int getWorkContentCenter() {
-        return 28 + getWorkContentWidth() / 2;
     }
 
     public int getFluidAmount() {
@@ -400,6 +394,32 @@ public class MythicMinerMenu extends AbstractContainerMenu {
         return fluidTelemetry[5] != 0;
     }
 
+    public boolean isOutputFaceEnabled(net.minecraft.core.Direction direction) {
+        net.minecraft.core.Direction worldDirection = blockEntity.toWorldDirection(direction);
+        return (getTelemetry(13) & (1 << worldDirection.ordinal())) != 0;
+    }
+
+    public BaseMinerBlockEntity.OutputState getOutputState() {
+        int ordinal =
+                Math.max(
+                        0,
+                        Math.min(
+                                BaseMinerBlockEntity.OutputState.values().length - 1,
+                                getTelemetry(5)));
+        return BaseMinerBlockEntity.OutputState.values()[ordinal];
+    }
+
+    public boolean isRedstoneControlEnabled() {
+        return getTelemetry(11) == BaseMinerBlockEntity.RedstoneMode.NO_SIGNAL.ordinal();
+    }
+
+    /** Sends the dedicated item-output backend toggle used by the AE mode control. */
+    public void toggleAeOutputMode() {
+        net.minecraft.client.Minecraft.getInstance()
+                .gameMode
+                .handleInventoryButtonClick(containerId, 1);
+    }
+
     public BaseMinerBlockEntity getBlockEntity() {
         return blockEntity;
     }
@@ -411,7 +431,7 @@ public class MythicMinerMenu extends AbstractContainerMenu {
             return true;
         }
         if (id == 2 && !player.level().isClientSide) {
-            blockEntity.cycleRedstoneMode();
+            blockEntity.toggleRedstoneControl();
             return true;
         }
         if (id >= 10 && id < 10 + net.minecraft.core.Direction.values().length) {

@@ -12,10 +12,10 @@ final class StructureDataOperatorOperationPage {
         button(
                 s,
                 g,
-                58,
-                84,
-                60,
-                20,
+                StructureDataOperatorScreen.OPERATE_COPY_X,
+                StructureDataOperatorScreen.OPERATE_ACTION_Y,
+                StructureDataOperatorScreen.OPERATE_COPY_W,
+                StructureDataOperatorScreen.OPERATE_ACTION_H,
                 "screen.dimension_tech.structure_operator.copy",
                 canCopy(s),
                 mouseX,
@@ -23,10 +23,10 @@ final class StructureDataOperatorOperationPage {
         button(
                 s,
                 g,
-                122,
-                84,
-                42,
-                20,
+                StructureDataOperatorScreen.OPERATE_CLEAR_X,
+                StructureDataOperatorScreen.OPERATE_ACTION_Y,
+                StructureDataOperatorScreen.OPERATE_CLEAR_W,
+                StructureDataOperatorScreen.OPERATE_ACTION_H,
                 "screen.dimension_tech.structure_operator.clear",
                 s.hasOperands(),
                 mouseX,
@@ -34,11 +34,25 @@ final class StructureDataOperatorOperationPage {
     }
 
     static boolean mouseClicked(StructureDataOperatorScreen s, int x, int y) {
-        if (StructureDataOperatorScreen.inside(x, y, 58, 84, 60, 20) && canCopy(s)) {
+        if (StructureDataOperatorScreen.inside(
+                        x,
+                        y,
+                        StructureDataOperatorScreen.OPERATE_COPY_X,
+                        StructureDataOperatorScreen.OPERATE_ACTION_Y,
+                        StructureDataOperatorScreen.OPERATE_COPY_W,
+                        StructureDataOperatorScreen.OPERATE_ACTION_H)
+                && canCopy(s)) {
             s.showCopyConfirmation();
             return true;
         }
-        if (StructureDataOperatorScreen.inside(x, y, 122, 84, 42, 20) && s.hasOperands()) {
+        if (StructureDataOperatorScreen.inside(
+                        x,
+                        y,
+                        StructureDataOperatorScreen.OPERATE_CLEAR_X,
+                        StructureDataOperatorScreen.OPERATE_ACTION_Y,
+                        StructureDataOperatorScreen.OPERATE_CLEAR_W,
+                        StructureDataOperatorScreen.OPERATE_ACTION_H)
+                && s.hasOperands()) {
             s.clearOperands();
             return true;
         }
@@ -74,6 +88,6 @@ final class StructureDataOperatorOperationPage {
                 Component.translatable(key),
                 StructureDataOperatorScreen.inside(mouseX, mouseY, x, y, w, h),
                 enabled,
-                MythicMinerTheme.FLUIX);
+                MythicMinerTheme.FLUID_ACCENT);
     }
 }

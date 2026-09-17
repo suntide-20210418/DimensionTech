@@ -1,10 +1,9 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
-import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerGeometry;
-import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerLayout;
 import com.suntide_20210418.dimensiontech.client.gui.menu.MythicMinerMenu;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -15,18 +14,30 @@ import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 
 /** Compact mining console with centered marker lanes and live machine telemetry. */
 public final class MythicMinerScreen extends AbstractContainerScreen<MythicMinerMenu>
         implements MythicMinerScreenContext {
+    private static final ResourceLocation GUI_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/void_structre_miner.png");
+    private static final ResourceLocation OUTPUT_FACE_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/output_face_config.png");
+    private static final int GUI_WIDTH = 255;
+    private static final int GUI_HEIGHT = 254;
+    private static final int INFO_X = 32, INFO_Y = 33, INFO_W = 208, INFO_H = 123;
+    private static final int FLUID_X = 18, FLUID_Y = 34, FLUID_W = 8, FLUID_H = 121;
+
     enum Page {
         WORK,
         INFO,
@@ -34,22 +45,29 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private static final int WIDTH = 320;
-    private static final int PANEL = MythicMinerTheme.FRAME;
-    static final int PANEL_INSET = MythicMinerTheme.INSET;
-    static final int PANEL_RAISED = MythicMinerTheme.PANEL;
-    static final int RULE = MythicMinerTheme.EDGE;
-    static final int TEXT = MythicMinerTheme.TEXT;
-    static final int MUTED = MythicMinerTheme.MUTED;
-    static final int CYAN = MythicMinerTheme.FLUIX;
-    static final int CYAN_DARK = MythicMinerTheme.INSET;
-    static final int AMBER = MythicMinerTheme.AMBER;
-    static final int GREEN = MythicMinerTheme.SUCCESS;
-    static final int RED = MythicMinerTheme.ERROR;
-    private static final int SLOT_FACE = MythicMinerTheme.INSET;
+
+    /** Body ink for the light panel face. Also read by {@code OutputFaceConfigScreen}. */
+    static final int INK = MythicMinerTheme.INK;
     private static final int ENERGY_X = 5;
     private static final int ENERGY_TOP = 46;
     private static final int ENERGY_HEIGHT = 164;
     private static final int LEFT_CONTROLS_WIDTH = 30;
+
+    /**
+     * Left control rail, top to bottom: output face, one-click build, equipment dismantling on the
+     * tiers that support it, then redstone. The last two share a slot depending on the tier, so
+     * both are resolved by identity rather than by position.
+     */
+    private static final int PLACE_STRUCTURE_BUTTON_INDEX = 1;
+
+    private static final int EQUIPMENT_DISMANTLING_BUTTON_INDEX = 2;
+
+    /**
+     * Item icons are committed at a raised GUI Z, so anything meant to sit on top of one has to be
+     * raised past that layer instead of relying on draw order alone.
+     */
+    private static final double ICON_MARKER_Z = 200.0D;
+
     private static final int SCREEN_MARGIN = 8;
     private static final int MARKER_INFO_PADDING = 5;
     static final int MARKER_INFO_ROW_HEIGHT = 20;
@@ -59,14 +77,23 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     static final int INFO_SLOT_Y = INFO_PANEL_Y + 22;
     static final int INFO_VIEWPORT_Y = INFO_PANEL_Y + 58;
     private float uiScale = 1.0F;
-    private final MythicMinerGeometry geometry;
     private final MythicMinerUiState uiState = new MythicMinerUiState();
     private int markerInfoContentHeight;
     private int attributeContentHeight;
-    private ItemStack hoveredExpectedItem = ItemStack.EMPTY;
-    private boolean hoveredExpectedItemDisabled;
-    private List<ExpectedItemRow> expectedItemRows = List.of();
+    /**
+     * Expected products as reported by the last analysis packet.
+     *
+     * <p>Not the display source: the marker item carries the same expectations, rewritten only when
+     * they change. See {@link #expectedItemRows()} for why the item wins.
+     */
+    private List<ExpectedItemRow> analysisRows = List.of();
     private Set<ResourceLocation> disabledExpectedItems = Set.of();
+
+    /**
+     * {@code null} until the first analysis request, so the first tick can tell "never asked" from
+     * "asked with this setting".
+     */
+    private Boolean lastDismantlingRequest;
 
     @Override
     public MythicMinerMenu menu() {
@@ -96,11 +123,6 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     @Override
     public float uiScale() {
         return uiScale;
-    }
-
-    @Override
-    public void openOutputFaceScreen() {
-        Minecraft.getInstance().setScreen(new OutputFaceScreen(this, menu));
     }
 
     @Override
@@ -203,9 +225,18 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         uiState.showParallelBreakdown = !uiState.showParallelBreakdown;
     }
 
+    /**
+     * Expected products for the selected marker, read from the marker item first.
+     *
+     * <p>The item carries the exact expectations the marking pass persisted. That makes it the right
+     * source rather than the async snapshot: when a machine cannot recompute a loot table the
+     * snapshot comes back empty, and an empty result printed as data is worse than no result.
+     */
     @Override
     public List<ExpectedItemRow> expectedItemRows() {
-        return expectedItemRows;
+        Map<ResourceLocation, ExactProbability> stored =
+                StructMarkerItem.getExpectedItemCounts(selectedMarkerStack());
+        return stored.isEmpty() ? analysisRows : rowsFromCounts(stored);
     }
 
     @Override
@@ -213,26 +244,89 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         return disabledExpectedItems;
     }
 
+    /**
+     * The marker item is the authority for these numbers. It is what the marking pass persisted, so
+     * it still reads correctly on a machine whose own recomputation yields nothing — which is exactly
+     * the case where the async snapshot shows zero and looks like a real reading.
+     */
     @Override
     public double effectiveDimensionValue() {
-        return uiState.analysis.dimensionValue();
+        return StructMarkerItem.getDimensionValue(selectedMarkerStack());
     }
 
     @Override
     public double effectiveStructureValue() {
-        return uiState.analysis.structureValue();
+        return StructMarkerItem.getStructureValue(selectedMarkerStack());
     }
 
     @Override
-    public void resetExpectedHover() {
-        hoveredExpectedItem = ItemStack.EMPTY;
-        hoveredExpectedItemDisabled = false;
+    public int hoveredMarkerSlot() {
+        return uiState.hoveredMarkerSlot;
     }
 
     @Override
-    public void setExpectedHover(ItemStack stack, boolean disabled) {
-        hoveredExpectedItem = stack;
-        hoveredExpectedItemDisabled = disabled;
+    /**
+     * True when the selected marker actually carries analysis data.
+     *
+     * <p>Judged from the item, not from the packet's arrival. A packet can land carrying zeros —
+     * the server returns an empty snapshot whenever it cannot recompute the loot table — and
+     * accepting that as "ready" is what printed zeroes as if they were readings.
+     */
+    public boolean markerAnalysisReady() {
+        ItemStack stack = selectedMarkerStack();
+        return !stack.isEmpty()
+                && StructMarkerItem.getMarkerInfo(stack).isPresent()
+                && StructMarkerItem.getAnalysisStatus(stack) != AnalysisStatus.LEGACY;
+    }
+
+    /** The selected slot's item, or {@code EMPTY}. Safe to call with nothing selected. */
+    private ItemStack selectedMarkerStack() {
+        int slot = uiState.selectedMarkerSlot;
+        return slot < 0 || slot >= menu.slots.size()
+                ? ItemStack.EMPTY
+                : menu.slots.get(slot).getItem();
+    }
+
+    /** Turns the marker's persisted exact expectations into display rows, sorted like the packet's. */
+    private static List<ExpectedItemRow> rowsFromCounts(
+            Map<ResourceLocation, ExactProbability> counts) {
+        List<ExpectedItemRow> rows = new ArrayList<>(counts.size());
+        for (Map.Entry<ResourceLocation, ExactProbability> entry : counts.entrySet()) {
+            BuiltInRegistries.ITEM
+                    .getOptional(entry.getKey())
+                    .ifPresent(
+                            item ->
+                                    rows.add(
+                                            new ExpectedItemRow(
+                                                    item, entry.getValue().doubleValue())));
+        }
+        rows.sort(
+                Comparator.comparingDouble(ExpectedItemRow::expected)
+                        .reversed()
+                        .thenComparing(
+                                row -> BuiltInRegistries.ITEM.getKey(row.item()).toString()));
+        return List.copyOf(rows);
+    }
+
+    @Override
+    public void clickContainerSlot(int index, int mouseButton) {
+        if (index < 0 || index >= menu.getContainerSlotCount()) return;
+        slotClicked(
+                menu.slots.get(index),
+                index,
+                mouseButton,
+                net.minecraft.world.inventory.ClickType.PICKUP);
+    }
+
+    /**
+     * Resolves the marker cell under a panel-local point, or {@code -1}.
+     *
+     * <p>Deliberately does not consult {@code menu.slots}: the menu parks those off-screen, so the lane
+     * is the only authority on where its cells are drawn.
+     */
+    private int markerSlotAt(double localX, double localY) {
+        if (uiState.page == Page.ATTRIBUTES) return -1;
+        return MythicMinerInfoLayout.markerSlotAt(localX, localY, menu.getContainerSlotCount());
     }
 
     private static final int TAB_Y = 31;
@@ -240,12 +334,10 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
 
     public MythicMinerScreen(MythicMinerMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        geometry =
-                MythicMinerGeometry.forMenu(
-                        menu.getContainerSlotCount(), menu.hasFluidInput(), menu.getMenuWidth());
-        imageWidth = menu.getMenuWidth();
-        imageHeight = geometry.frame().height();
-        inventoryLabelY = menu.getPlayerInventoryY() - 13;
+        imageWidth = GUI_WIDTH;
+        imageHeight = GUI_HEIGHT;
+        inventoryLabelY = Integer.MIN_VALUE;
+        titleLabelY = Integer.MIN_VALUE;
     }
 
     @Override
@@ -264,14 +356,14 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     @Override
     protected void containerTick() {
         super.containerTick();
-        if (uiState.page == Page.INFO
-                && uiState.selectedMarkerSlot >= 0
-                && uiState.analysisSlot == uiState.selectedMarkerSlot
-                && uiState.analysis.equipmentDismantling()
-                        != menu.isEquipmentDismantlingEnabled()) {
-            clearEffectiveAnalysis();
-            ModNetwork.requestMythicMinerAnalysis(menu.containerId, uiState.selectedMarkerSlot);
-        }
+        if (uiState.page != Page.INFO || uiState.selectedMarkerSlot < 0) return;
+        // Compared against what was last requested, not against the snapshot's own flag. The old
+        // comparison made every disagreeing reply clear the analysis and ask again, so the request
+        // cycle never settled: it ran for as long as the screen stayed open.
+        boolean enabled = menu.isEquipmentDismantlingEnabled();
+        if (Boolean.valueOf(enabled).equals(lastDismantlingRequest)) return;
+        lastDismantlingRequest = enabled;
+        ModNetwork.requestMythicMinerAnalysis(menu.containerId, uiState.selectedMarkerSlot);
     }
 
     @Override
@@ -279,22 +371,18 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         renderBackground(graphics);
         int logicalMouseX = toLogical(mouseX);
         int logicalMouseY = toLogical(mouseY);
+        // Traced here rather than inside the pages so the lane has one source of hover truth for both
+        // the work page's lane and the info page's selector, which share the same grid.
+        uiState.hoveredMarkerSlot = markerSlotAt(logicalMouseX - leftPos, logicalMouseY - topPos);
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
-        if (MythicMinerWorkPage.isWorkPage(uiState.page)) {
-            super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
-        } else {
-            graphics.pose().pushPose();
-            graphics.pose().translate(leftPos, topPos, 0.0D);
-            drawPanel(graphics, 0, 0, imageWidth, imageHeight);
-            drawHeader(graphics);
-            drawEnergyRail(graphics);
-            drawPage(graphics, logicalMouseX - leftPos, logicalMouseY - topPos);
-            graphics.pose().popPose();
-        }
-        if (uiState.page == Page.WORK) {
-            MythicMinerWorkPage.renderControls(this, graphics, logicalMouseX, logicalMouseY);
-        }
+        super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
+        // AbstractContainerScreen renders slots/labels after renderBg. Paint the page a second
+        // time on top so slot/background passes can never obscure information text.
+        graphics.pose().pushPose();
+        graphics.pose().translate(leftPos, topPos, 0.0D);
+        drawPage(graphics, logicalMouseX - leftPos, logicalMouseY - topPos);
+        graphics.pose().popPose();
         if (!menu.telemetrySnapshot().structureComplete()) {
             graphics.drawCenteredString(
                     font,
@@ -302,7 +390,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                             "screen.dimension_tech.mythic_miner.structure_incomplete"),
                     leftPos + imageWidth / 2,
                     topPos + 46,
-                    RED);
+                    INK);
         }
         graphics.pose().popPose();
 
@@ -311,15 +399,10 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         // inventory hover information remains visible at every scale.
         renderInventoryItemTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
 
-        if (uiState.page == Page.WORK) {
-            MythicMinerWorkPage.renderTooltip(
-                    this, graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
-            renderFluidTooltip(graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
-        }
-        if (logicalMouseX >= leftPos + ENERGY_X
-                && logicalMouseX <= leftPos + ENERGY_X + 14
-                && logicalMouseY >= topPos + ENERGY_TOP
-                && logicalMouseY <= topPos + ENERGY_TOP + ENERGY_HEIGHT) {
+        if (logicalMouseX >= leftPos + 7
+                && logicalMouseX < leftPos + 11
+                && logicalMouseY >= topPos + 34
+                && logicalMouseY < topPos + 155) {
             List<Component> tooltip = new ArrayList<>();
             tooltip.add(
                     Component.translatable("screen.dimension_tech.mythic_miner.energy_tooltip"));
@@ -334,23 +417,52 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                             menu.getEffectiveEnergyConsumption()));
             graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
         }
-        if (uiState.page == Page.ATTRIBUTES) {
-            MythicMinerAttributesPage.renderTooltip(
-                    this, graphics, logicalMouseX, logicalMouseY, mouseX, mouseY);
-        }
-        if (!hoveredExpectedItem.isEmpty()) {
+        if (logicalMouseX >= leftPos + 18
+                && logicalMouseX < leftPos + 26
+                && logicalMouseY >= topPos + 34
+                && logicalMouseY < topPos + 155) {
+            net.minecraft.world.level.material.Fluid fluid =
+                    menu.hasFluid() ? menu.getFluid() : menu.getRequiredFluid();
+            Component fluidName =
+                    fluid == null || fluid == Fluids.EMPTY
+                            ? Component.translatable(
+                                    "screen.dimension_tech.mythic_miner.fluid_empty")
+                            : Component.translatable(fluid.getFluidType().getDescriptionId());
             graphics.renderTooltip(
                     font,
                     List.of(
-                            hoveredExpectedItem.getHoverName(),
+                            fluidName,
                             Component.translatable(
-                                    hoveredExpectedItemDisabled
-                                            ? "screen.dimension_tech.mythic_miner.expected_item.enable"
-                                            : "screen.dimension_tech.mythic_miner.expected_item.disable")),
+                                    "screen.dimension_tech.mythic_miner.fluid_amount",
+                                    menu.getFluidAmount(),
+                                    menu.getFluidCapacity()),
+                            Component.translatable(
+                                    menu.isAutoExtractFluidEnabled()
+                                            ? "screen.dimension_tech.mythic_miner.auto_extract_enabled"
+                                            : "screen.dimension_tech.mythic_miner.auto_extract_disabled")),
                     Optional.empty(),
                     mouseX,
                     mouseY);
         }
+        int buttonIndex = externalButtonAt(logicalMouseX - leftPos, logicalMouseY - topPos);
+        if (buttonIndex >= 0) {
+            graphics.renderTooltip(
+                    font,
+                    Component.translatable(externalButtonTooltipKey(buttonIndex)),
+                    mouseX,
+                    mouseY);
+        }
+        // Page-owned hovers go through the page router, so a tooltip can only ever describe something
+        // the page actually drew. Panel-local coordinates feed its hit tests; the raw GUI-scaled pair
+        // is handed over separately because renderTooltip draws in window space and ignores the pose.
+        MythicMinerPageRenderer.renderTooltip(
+                this,
+                uiState.page,
+                graphics,
+                logicalMouseX - leftPos,
+                logicalMouseY - topPos,
+                mouseX,
+                mouseY);
     }
 
     private void renderInventoryItemTooltip(
@@ -370,6 +482,104 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         }
     }
 
+    /**
+     * Scrolls the current page by a page or to an end.
+     *
+     * <p>Keys are GLFW constants: 266 PAGE_UP, 267 PAGE_DOWN, 268 HOME, 269 END. A page step leaves
+     * one row of overlap so the reader keeps context, exactly like a text editor's pager.
+     */
+    private boolean scrollByKey(int keyCode) {
+        int viewportH = scrollViewportH();
+        if (viewportH <= 0) return false;
+        int range = Math.max(0, scrollContentHeight() - viewportH);
+        if (range == 0) return false;
+        int step = Math.max(1, viewportH - MythicMinerInfoLayout.ROW_H_INTERACTIVE);
+        int target;
+        switch (keyCode) {
+            case 267 -> target = pageScroll() + step;
+            case 266 -> target = pageScroll() - step;
+            case 269 -> target = range;
+            case 268 -> target = 0;
+            default -> {
+                return false;
+            }
+        }
+        pageScroll(Math.max(0, Math.min(range, target)));
+        return true;
+    }
+
+    // --- scrollbar ---------------------------------------------------------
+
+    /**
+     * Top of the scrolling page's viewport, or {@code -1} when the current page does not scroll.
+     *
+     * <p>The scrollbar is shared chrome between the two scrolling pages, exactly like the tab strip,
+     * so the screen owns the gesture while the pages only own their content.
+     */
+    private int scrollViewportY() {
+        return switch (uiState.page) {
+            case INFO -> MythicMinerInfoLayout.INFO_LIST_Y;
+            case ATTRIBUTES -> MythicMinerInfoLayout.ATTR_LIST_Y;
+            case WORK -> -1;
+        };
+    }
+
+    private int scrollViewportH() {
+        return switch (uiState.page) {
+            case INFO -> MythicMinerInfoLayout.INFO_LIST_H;
+            case ATTRIBUTES -> MythicMinerInfoLayout.ATTR_LIST_H;
+            case WORK -> 0;
+        };
+    }
+
+    /**
+     * Height the pages last reported. The pages write it while drawing, so it is always the height of
+     * what is on screen rather than a value guessed from the menu.
+     */
+    private int scrollContentHeight() {
+        return uiState.page == Page.ATTRIBUTES ? attributeContentHeight : markerInfoContentHeight;
+    }
+
+    private int pageScroll() {
+        return uiState.page == Page.ATTRIBUTES ? uiState.attributeScroll : uiState.markerInfoScroll;
+    }
+
+    private void pageScroll(int value) {
+        if (uiState.page == Page.ATTRIBUTES) {
+            uiState.attributeScroll = value;
+        } else {
+            uiState.markerInfoScroll = value;
+        }
+    }
+
+    /** Grabs the scrollbar when the pointer is on the bar of a page that actually has one. */
+    private boolean beginScrollbarDrag(double localX, double localY) {
+        int viewportY = scrollViewportY();
+        if (viewportY < 0) return false;
+        int viewportH = scrollViewportH();
+        if (!MythicMinerInfoLayout.scrollColumnContains(localX, localY, viewportY, viewportH)) {
+            return false;
+        }
+        // A drag on a bar with nothing to reveal would latch the state and keep swallowing events.
+        if (scrollContentHeight() <= viewportH) return false;
+        uiState.draggingScrollbar = true;
+        uiState.scrollbarDragOriginY = (int) Math.floor(localY);
+        uiState.scrollbarDragOriginScroll = pageScroll();
+        return true;
+    }
+
+    private boolean updateScrollbarDrag(double localY) {
+        if (!uiState.draggingScrollbar) return false;
+        pageScroll(
+                MythicMinerInfoLayout.scrollFromDrag(
+                        uiState.scrollbarDragOriginScroll,
+                        uiState.scrollbarDragOriginY,
+                        localY,
+                        scrollContentHeight(),
+                        scrollViewportH()));
+        return true;
+    }
+
     private int toLogical(double coordinate) {
         return (int) Math.floor(coordinate / uiScale);
     }
@@ -381,17 +591,14 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         if (button == 0 && selectPageAt(mouseX, mouseY)) {
             return true;
         }
-        if (button == 0) {
-            double x = mouseX - leftPos;
-            double y = mouseY - topPos;
-            if (uiState.page == Page.INFO) {
-                return MythicMinerInfoPage.mouseClicked(this, x, y, button);
-            }
-            if (uiState.page == Page.ATTRIBUTES) {
-                return MythicMinerAttributesPage.mouseClicked(this, x, y, button);
-            }
-            if (uiState.page == Page.WORK && mouseClickedFluidControls(x, y)) return true;
-            if (MythicMinerWorkPage.mouseClicked(this, x, y, button)) return true;
+        double localX = mouseX - leftPos;
+        double localY = mouseY - topPos;
+        if (button == 0 && handleExternalButtonClick(localX, localY)) return true;
+        // Ahead of the page dispatch on purpose: the info and attributes pages consume every click
+        // inside their canvas, so a scrollbar grab placed after them would never be reached.
+        if (button == 0 && beginScrollbarDrag(localX, localY)) return true;
+        if (MythicMinerPageRenderer.mouseClicked(this, uiState.page, localX, localY, button)) {
+            return true;
         }
         if (uiState.page != Page.WORK) {
             return true;
@@ -399,38 +606,104 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    private int externalButtonAt(double x, double y) {
+        int index =
+                (int)
+                        ((y - MythicMinerInfoLayout.EXTERNAL_BUTTON_Y)
+                                / MythicMinerInfoLayout.EXTERNAL_BUTTON_STRIDE);
+        int count = menu.supportsEquipmentDismantling() ? 4 : 3;
+        return index >= 0
+                        && index < count
+                        && inside(
+                                x,
+                                y,
+                                MythicMinerInfoLayout.EXTERNAL_BUTTON_X,
+                                MythicMinerInfoLayout.EXTERNAL_BUTTON_Y
+                                        + index * MythicMinerInfoLayout.EXTERNAL_BUTTON_STRIDE,
+                                20,
+                                20)
+                ? index
+                : -1;
+    }
+
+    private boolean handleExternalButtonClick(double x, double y) {
+        int index =
+                (int)
+                        ((y - MythicMinerInfoLayout.EXTERNAL_BUTTON_Y)
+                                / MythicMinerInfoLayout.EXTERNAL_BUTTON_STRIDE);
+        if (!inside(
+                x,
+                y,
+                MythicMinerInfoLayout.EXTERNAL_BUTTON_X,
+                MythicMinerInfoLayout.EXTERNAL_BUTTON_Y
+                        + index * MythicMinerInfoLayout.EXTERNAL_BUTTON_STRIDE,
+                20,
+                20)) return false;
+        if (index == 0) {
+            Minecraft.getInstance().setScreen(new OutputFaceConfigScreen(this, menu));
+            return true;
+        } else if (index == 1) {
+            Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 3);
+        } else if (index == 2 && menu.supportsEquipmentDismantling()) {
+            Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 4);
+        } else if (index == redstoneButtonIndex()) {
+            Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 2);
+        } else return false;
+        return true;
+    }
+
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (uiState.draggingScrollbar) {
+            uiState.draggingScrollbar = false;
+            return true;
+        }
         if (uiState.page != Page.WORK) return true;
         return super.mouseReleased(mouseX / uiScale, mouseY / uiScale, button);
     }
 
+    /**
+     * Escape still closes the screen; the scroll keys are handled by the page instead.
+     *
+     * <p>Keyboard scrolling is a third affordance on purpose. The drag target is only a few pixels
+     * wide and the wheel needs the pointer somewhere sensible, so a key path keeps both off the
+     * critical path of "I need to see the rest of this page".
+     */
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (uiState.page != Page.WORK && keyCode != 256) return true;
+        if (uiState.page != Page.WORK) {
+            // 256 = GLFW escape, which must still close the screen.
+            if (keyCode == 256) return super.keyPressed(keyCode, scanCode, modifiers);
+            scrollByKey(keyCode);
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean mouseDragged(
             double mouseX, double mouseY, int button, double dragX, double dragY) {
+        // Checked before the page guard below: that guard exists to stop drags reaching vanilla slot
+        // handling, and it used to swallow scrollbar drags too, leaving the bar inert.
+        if (updateScrollbarDrag(mouseY / uiScale - topPos)) return true;
         if (uiState.page != Page.WORK) return true;
         return super.mouseDragged(
                 mouseX / uiScale, mouseY / uiScale, button, dragX / uiScale, dragY / uiScale);
     }
 
+    /**
+     * Wheel handling for the whole panel.
+     *
+     * <p>The page is the only scrollable surface on the panel, so the wheel applies anywhere inside
+     * it rather than only over the viewport. A narrower target was the previous failure mode: the
+     * wheel reported success to the game while nothing on screen moved.
+     */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        double logicalMouseX = mouseX / uiScale;
-        double logicalMouseY = mouseY / uiScale;
-        if (uiState.page == Page.ATTRIBUTES) {
-            return MythicMinerAttributesPage.mouseScrolled(
-                    this, logicalMouseX, logicalMouseY, delta);
-        }
-        if (uiState.page == Page.INFO) {
-            return MythicMinerInfoPage.mouseScrolled(this, logicalMouseX, logicalMouseY, delta);
-        }
-        return true;
+        double localX = mouseX / uiScale - leftPos;
+        double localY = mouseY / uiScale - topPos;
+        if (!inside(localX, localY, 0, 0, imageWidth, imageHeight)) return false;
+        return MythicMinerPageRenderer.mouseScrolled(this, uiState.page, delta);
     }
 
     @Override
@@ -440,41 +713,180 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         drawPanel(graphics, 0, 0, imageWidth, imageHeight);
         drawHeader(graphics);
         drawEnergyRail(graphics);
-        drawPage(graphics, mouseX - leftPos, mouseY - topPos);
-        if (uiState.page == Page.WORK) MythicMinerWorkPage.drawInventoryChrome(this, graphics);
-        if (uiState.page == Page.WORK && menu.hasFluidInput()) drawFluidModule(graphics);
+        drawFluidGauge(graphics);
+        drawExternalButtons(graphics, mouseX - leftPos, mouseY - topPos);
         graphics.pose().popPose();
+    }
+
+    private void drawFluidGauge(GuiGraphics g) {
+        int capacity = Math.max(1, menu.getFluidCapacity());
+        int amount = Math.max(0, Math.min(capacity, menu.getFluidAmount()));
+        int filled = fillPixels(amount, capacity, FLUID_H);
+        net.minecraft.world.level.material.Fluid fluid =
+                menu.hasFluid() ? menu.getFluid() : menu.getRequiredFluid();
+        boolean rendered = false;
+        if (filled > 0 && fluid != null && fluid != Fluids.EMPTY) {
+            ResourceLocation still = IClientFluidTypeExtensions.of(fluid).getStillTexture();
+            if (still != null) {
+                TextureAtlasSprite sprite =
+                        Minecraft.getInstance()
+                                .getTextureAtlas(TextureAtlas.LOCATION_BLOCKS)
+                                .apply(still);
+                int tint = IClientFluidTypeExtensions.of(fluid).getTintColor();
+                g.setColor(
+                        ((tint >> 16) & 0xFF) / 255.0F,
+                        ((tint >> 8) & 0xFF) / 255.0F,
+                        (tint & 0xFF) / 255.0F,
+                        1.0F);
+                int top = FLUID_Y + FLUID_H - filled;
+                // A still-fluid texture is greyscale and only becomes fluid-coloured once tinted,
+                // and it tiles at its own 16x16 resolution rather than stretching to the tank.
+                g.enableScissor(
+                        toScreenX(FLUID_X),
+                        toScreenY(top),
+                        toScreenX(FLUID_X + FLUID_W),
+                        toScreenY(FLUID_Y + FLUID_H));
+                for (int tileY = top; tileY < FLUID_Y + FLUID_H; tileY += 16) {
+                    for (int tileX = FLUID_X; tileX < FLUID_X + FLUID_W; tileX += 16) {
+                        g.blit(tileX, tileY, 0, 16, 16, sprite);
+                    }
+                }
+                g.disableScissor();
+                g.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                rendered = true;
+            }
+        }
+        if (filled > 0 && !rendered) {
+            g.fill(
+                    FLUID_X,
+                    FLUID_Y + FLUID_H - filled,
+                    FLUID_X + FLUID_W,
+                    FLUID_Y + FLUID_H,
+                    MythicMinerTheme.FLUID);
+        }
+        g.blit(GUI_TEXTURE, FLUID_X + FLUID_W - 5, FLUID_Y, 0, 250, 0, 5, 120, 256, 256);
+    }
+
+    /**
+     * Projects a panel-local x into the absolute GUI space that scissor rectangles live in. {@code
+     * GuiGraphics.enableScissor} applies the window GUI scale only and ignores the render pose, so a
+     * scissor built from panel-local coordinates clips in the wrong place entirely.
+     */
+    private int toScreenX(int panelX) {
+        return Math.round((leftPos + panelX) * uiScale);
+    }
+
+    /** Panel-local counterpart of {@link #toScreenX(int)}. */
+    private int toScreenY(int panelY) {
+        return Math.round((topPos + panelY) * uiScale);
+    }
+
+    private void drawExternalButtons(GuiGraphics g, int mouseX, int mouseY) {
+        int x = MythicMinerInfoLayout.EXTERNAL_BUTTON_X;
+        int[] iconU = {32, 0, 32};
+        int[] iconV = {16, 16, 32};
+        int count = menu.supportsEquipmentDismantling() ? 4 : 3;
+        for (int i = 0; i < count; i++) {
+            int y =
+                    MythicMinerInfoLayout.EXTERNAL_BUTTON_Y
+                            + i * MythicMinerInfoLayout.EXTERNAL_BUTTON_STRIDE;
+            boolean hovered = inside(mouseX, mouseY, x, y, 20, 20);
+            MythicMinerSpriteRenderer.smallButton(g, x, y, false);
+            if (hovered) MythicMinerSpriteRenderer.smallButton(g, x, y, true);
+            if (i == redstoneButtonIndex()) {
+                drawRedstoneControlIcon(g, x, y);
+            } else {
+                MythicMinerSpriteRenderer.externalIcon(
+                        g,
+                        x + MythicMinerInfoLayout.EXTERNAL_ICON_INSET,
+                        y + MythicMinerInfoLayout.EXTERNAL_ICON_INSET,
+                        iconU[i],
+                        iconV[i]);
+            }
+        }
+    }
+
+    /**
+     * The torch is the control's identity, so it is drawn in every mode; the mode itself only adds
+     * or removes the "off" marker stacked on top of it. Both sit
+     * {@link MythicMinerInfoLayout#REDSTONE_ICON_RISE} pixels above the ordinary icon slots.
+     */
+    private void drawRedstoneControlIcon(GuiGraphics g, int buttonX, int buttonY) {
+        int iconX = buttonX + MythicMinerInfoLayout.EXTERNAL_ICON_INSET;
+        int iconY =
+                buttonY
+                        + MythicMinerInfoLayout.EXTERNAL_ICON_INSET
+                        - MythicMinerInfoLayout.REDSTONE_ICON_RISE;
+        g.renderItem(new ItemStack(Items.REDSTONE_TORCH), iconX, iconY);
+        if (menu.isRedstoneControlEnabled()) return;
+        // Item icons are committed on a raised Z, so the marker has to clear that layer to land on
+        // top of the torch instead of behind it.
+        g.pose().pushPose();
+        g.pose().translate(0.0D, 0.0D, ICON_MARKER_Z);
+        MythicMinerSpriteRenderer.externalIcon(
+                g,
+                iconX,
+                iconY,
+                MythicMinerSpriteRenderer.REDSTONE_OFF_U,
+                MythicMinerSpriteRenderer.REDSTONE_OFF_V);
+        g.pose().popPose();
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        graphics.drawString(font, title, 4, 4, INK, false);
         if (uiState.page == Page.WORK) {
             graphics.drawCenteredString(
-                    font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, MUTED);
+                    font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, INK);
         }
     }
 
     private void drawPage(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (uiState.page == Page.WORK) {
-            MythicMinerWorkPage.render(this, graphics);
-            return;
+        graphics.enableScissor(
+                toScreenX(INFO_X),
+                toScreenY(INFO_Y),
+                toScreenX(INFO_X + INFO_W),
+                toScreenY(INFO_Y + INFO_H));
+        MythicMinerPageRenderer.render(this, graphics, uiState.page);
+        graphics.disableScissor();
+    }
+
+    private int redstoneButtonIndex() {
+        return menu.supportsEquipmentDismantling()
+                ? EQUIPMENT_DISMANTLING_BUTTON_INDEX + 1
+                : EQUIPMENT_DISMANTLING_BUTTON_INDEX;
+    }
+
+    /** Resolves a hovered button's tooltip from what the button is, not from where it sits. */
+    private String externalButtonTooltipKey(int buttonIndex) {
+        if (buttonIndex == redstoneButtonIndex()) {
+            return "screen.dimension_tech.mythic_miner.redstone_control_"
+                    + (menu.isRedstoneControlEnabled() ? "on" : "off");
         }
-        if (MythicMinerInfoPage.isInfoPage(uiState.page)) {
-            MythicMinerInfoPage.render(this, graphics, mouseX, mouseY);
-        } else {
-            MythicMinerAttributesPage.render(this, graphics);
+        if (menu.supportsEquipmentDismantling()
+                && buttonIndex == EQUIPMENT_DISMANTLING_BUTTON_INDEX) {
+            return "screen.dimension_tech.mythic_miner.equipment_dismantling_"
+                    + (menu.isEquipmentDismantlingEnabled() ? "on" : "off");
         }
+        // Everything else the rail accepts is either the output-face or the build button.
+        return buttonIndex == PLACE_STRUCTURE_BUTTON_INDEX
+                ? "screen.dimension_tech.mythic_miner.place_structure"
+                : "screen.dimension_tech.mythic_miner.output_face";
     }
 
     private boolean selectPageAt(double mouseX, double mouseY) {
         double x = mouseX - leftPos;
         double y = mouseY - topPos;
-        if (y < TAB_Y || y >= TAB_Y + TAB_HEIGHT) return false;
-        int tabWidth = imageWidth / 3;
-        if (x < 0 || x >= imageWidth) return false;
-        uiState.page = x < tabWidth ? Page.WORK : x < tabWidth * 2 ? Page.INFO : Page.ATTRIBUTES;
+        if (y < MythicMinerInfoLayout.BUTTON_Y || y >= MythicMinerInfoLayout.BUTTON_Y + 16)
+            return false;
+        if (x < MythicMinerInfoLayout.WORK_BUTTON_X
+                || x >= MythicMinerInfoLayout.ATTR_BUTTON_X + 32) return false;
+        int index =
+                x < MythicMinerInfoLayout.INFO_BUTTON_X
+                        ? 0
+                        : x < MythicMinerInfoLayout.ATTR_BUTTON_X ? 1 : 2;
+        uiState.page = Page.values()[Math.min(Page.values().length - 1, index)];
         uiState.markerInfoScroll = 0;
-        MythicMinerAttributesPage.resetScroll(this);
         return true;
     }
 
@@ -492,12 +904,12 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private void drawPanel(GuiGraphics graphics, int x, int y, int width, int height) {
-        MythicMinerTheme.panel(graphics, x, y, width, height, AMBER);
+        graphics.blit(GUI_TEXTURE, x, y, 0, 0, 0, 245, 163, 256, 256);
+        graphics.blit(GUI_TEXTURE, x + 35, y + 167, 0, 35, 167, 175, 87, 256, 256);
     }
 
     private void drawHeader(GuiGraphics graphics) {
-        graphics.drawString(font, title, 8, 18, TEXT, false);
-        int tabWidth = imageWidth / 3;
+        int tabWidth = 32;
         String[] labels = {
             "screen.dimension_tech.mythic_miner.tab.work",
             "screen.dimension_tech.mythic_miner.tab.info",
@@ -505,159 +917,23 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
         };
         Page[] pages = Page.values();
         for (int index = 0; index < pages.length; index++) {
-            int x = index * tabWidth;
+            int x =
+                    switch (index) {
+                        case 0 -> MythicMinerInfoLayout.WORK_BUTTON_X;
+                        case 1 -> MythicMinerInfoLayout.INFO_BUTTON_X;
+                        default -> MythicMinerInfoLayout.ATTR_BUTTON_X;
+                    };
             boolean selected = uiState.page == pages[index];
-            MythicMinerTheme.tab(
-                    graphics,
-                    font,
-                    x + 2,
-                    TAB_Y,
-                    tabWidth - 4,
-                    Component.translatable(labels[index]),
-                    selected);
+            MythicMinerSpriteRenderer.button(graphics, x, MythicMinerInfoLayout.BUTTON_Y, selected);
+            Component label = Component.translatable(labels[index]);
+            String text = font.plainSubstrByWidth(label.getString(), 30);
+            graphics.drawString(font, text, x + 16 - font.width(text) / 2, 19, INK, false);
         }
-    }
-
-    private void drawFluidModule(GuiGraphics graphics) {
-        MythicMinerGeometry.Rect panel = geometry.fluidPanel();
-        int x = panel.x();
-        int y = panel.y();
-        int width = panel.width();
-        int height = panel.height();
-        MythicMinerTheme.panel(graphics, x, y, width, height, CYAN_DARK);
-        Component fluidTitle =
-                Component.translatable("screen.dimension_tech.mythic_miner.fluid_input");
-        graphics.drawCenteredString(
-                font,
-                font.plainSubstrByWidth(fluidTitle.getString(), Math.max(1, width - 4)),
-                x + width / 2,
-                y + 7,
-                MUTED);
-
-        int tankX = x + (width - MythicMinerLayout.FLUID_TANK_WIDTH) / 2;
-        int tankY = y + MythicMinerLayout.FLUID_TANK_OFFSET_Y;
-        int tankH = MythicMinerLayout.FLUID_TANK_HEIGHT;
-        graphics.fill(tankX - 2, tankY - 2, tankX + 20, tankY + tankH + 2, RULE);
-        graphics.fill(tankX, tankY, tankX + 18, tankY + tankH, SLOT_FACE);
-        graphics.fill(tankX, tankY, tankX + 18, tankY + 1, MythicMinerTheme.SLOT_HIGHLIGHT);
-        graphics.fill(tankX, tankY + tankH - 1, tankX + 18, tankY + tankH, RULE);
-        int capacity = Math.max(1, menu.getFluidCapacity());
-        int amount = Math.max(0, Math.min(capacity, menu.getFluidAmount()));
-        int filled = tankH * amount / capacity;
-        net.minecraft.world.level.material.Fluid displayedFluid =
-                menu.hasFluid() ? menu.getFluid() : menu.getRequiredFluid();
-        int color =
-                displayedFluid == null || displayedFluid == Fluids.EMPTY
-                        ? MythicMinerTheme.FLUID
-                        : IClientFluidTypeExtensions.of(displayedFluid).getTintColor();
-        if (!menu.hasFluid()) color = (color & 0x00FFFFFF) | 0x66000000;
-        graphics.fill(tankX + 2, tankY + tankH - 2 - filled, tankX + 16, tankY + tankH - 2, color);
-        graphics.fill(
-                tankX + 2,
-                tankY + tankH - 2 - filled,
-                tankX + 16,
-                tankY + tankH - 1 - filled,
-                MythicMinerTheme.SLOT_HIGHLIGHT);
-        graphics.drawCenteredString(
-                font,
-                Component.literal(amount + "/" + capacity + " mB"),
-                x + width / 2,
-                y + height - 14,
-                TEXT);
-        int controlsY = y + MythicMinerLayout.FLUID_CONTROLS_OFFSET_Y;
-        drawFluidButton(graphics, x + 5, controlsY, 16, "F", CYAN);
-        drawFluidButton(
-                graphics,
-                x + 27,
-                controlsY,
-                16,
-                "A",
-                menu.isAutoExtractFluidEnabled() ? CYAN : RULE);
-    }
-
-    private void drawFluidButton(
-            GuiGraphics graphics, int x, int y, int size, String label, int accent) {
-        MythicMinerTheme.button(
-                graphics, font, x, y, size, size, Component.literal(label), false, true, accent);
-    }
-
-    private boolean mouseClickedFluidControls(double x, double y) {
-        if (!menu.hasFluidInput()) return false;
-        MythicMinerGeometry.Rect panel = geometry.fluidPanel();
-        int panelX = panel.x();
-        int buttonY = panel.y() + MythicMinerLayout.FLUID_CONTROLS_OFFSET_Y;
-        if (inside(x, y, panelX + 5, buttonY, 16, 16)) {
-            Minecraft.getInstance()
-                    .setScreen(new OutputFaceScreen(this, menu, OutputFaceScreen.Mode.FLUID));
-            return true;
-        }
-        if (inside(x, y, panelX + 27, buttonY, 16, 16)) {
-            Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 26);
-            return true;
-        }
-        return false;
-    }
-
-    private void renderFluidTooltip(
-            GuiGraphics graphics, int logicalX, int logicalY, int screenX, int screenY) {
-        if (!menu.hasFluidInput()) return;
-        MythicMinerGeometry.Rect panel = geometry.fluidPanel();
-        int localX = logicalX - leftPos;
-        int localY = logicalY - topPos;
-        if (!panel.contains(localX, localY)) return;
-        int buttonY = panel.y() + MythicMinerLayout.FLUID_CONTROLS_OFFSET_Y;
-        net.minecraft.world.level.material.Fluid displayedFluid =
-                menu.hasFluid() ? menu.getFluid() : menu.getRequiredFluid();
-        Component fluidName =
-                displayedFluid != null && displayedFluid != Fluids.EMPTY
-                        ? Component.translatable(displayedFluid.getFluidType().getDescriptionId())
-                        : Component.translatable("screen.dimension_tech.mythic_miner.fluid_empty");
-        if (inside(localX, localY, panel.x() + 5, buttonY, 16, 16)) {
-            graphics.renderTooltip(
-                    font,
-                    Component.translatable("screen.dimension_tech.mythic_miner.fluid_faces"),
-                    screenX,
-                    screenY);
-            return;
-        }
-        if (inside(localX, localY, panel.x() + 27, buttonY, 16, 16)) {
-            graphics.renderTooltip(
-                    font,
-                    Component.translatable(
-                            menu.isAutoExtractFluidEnabled()
-                                    ? "screen.dimension_tech.mythic_miner.auto_extract_enabled"
-                                    : "screen.dimension_tech.mythic_miner.auto_extract_disabled"),
-                    screenX,
-                    screenY);
-            return;
-        }
-        graphics.renderTooltip(
-                font,
-                List.of(
-                        Component.translatable("screen.dimension_tech.mythic_miner.fluid_input"),
-                        fluidName,
-                        Component.translatable(
-                                "screen.dimension_tech.mythic_miner.fluid_amount",
-                                menu.getFluidAmount(),
-                                menu.getFluidCapacity()),
-                        Component.translatable(
-                                "screen.dimension_tech.mythic_miner.fluid_required",
-                                BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB),
-                        Component.translatable(
-                                "screen.dimension_tech.mythic_miner.fluid_required_type"),
-                        Component.translatable(
-                                menu.getFluidAmount()
-                                                >= BaseMinerBlockEntity.FLUID_PER_WORK_CYCLE_MB
-                                        ? "screen.dimension_tech.mythic_miner.fluid_status"
-                                        : "screen.dimension_tech.mythic_miner.fluid_insufficient")),
-                Optional.empty(),
-                screenX,
-                screenY);
     }
 
     private void clearEffectiveAnalysis() {
         uiState.clearAnalysis();
-        expectedItemRows = List.of();
+        analysisRows = List.of();
         disabledExpectedItems = Set.of();
     }
 
@@ -701,7 +977,7 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
                         .reversed()
                         .thenComparing(
                                 row -> BuiltInRegistries.ITEM.getKey(row.item()).toString()));
-        expectedItemRows = List.copyOf(refreshed);
+        analysisRows = List.copyOf(refreshed);
         disabledExpectedItems = Set.copyOf(disabledItems);
         uiState.analysis =
                 new com.suntide_20210418.dimensiontech.block.entity.MythicMinerAnalysisSnapshot(
@@ -725,89 +1001,40 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     }
 
     private void drawEnergyRail(GuiGraphics graphics) {
-        int x = ENERGY_X;
-        int y = ENERGY_TOP;
-        int energy = menu.getEnergyStored();
-        int capacity = Math.max(1, menu.getEnergyCapacity());
-        int filled = fillPixels(energy, capacity, ENERGY_HEIGHT);
-        int stripeX = x + 2;
-        int stripeY = y + 2;
-        int stripeWidth = 10;
-        int stripeHeight = ENERGY_HEIGHT - 4;
-        int filledHeight = Math.min(stripeHeight, filled * stripeHeight / ENERGY_HEIGHT);
-
-        // Match AE2's striped vertical meter: draw the grey base first, then the purple fill.
-        graphics.fill(x - 1, y - 1, x + stripeWidth + 3, y + ENERGY_HEIGHT + 1, RULE);
-        graphics.fill(x, y, x + stripeWidth + 2, y + ENERGY_HEIGHT, MythicMinerTheme.ENERGY_BORDER);
-        for (int row = 0; row < stripeHeight; row++) {
-            boolean brightRow = (row & 1) == 0;
-            int rowY = stripeY + row;
-            graphics.fill(stripeX, rowY, stripeX + 1, rowY + 1, MythicMinerTheme.ENERGY_BORDER);
-            graphics.fill(
-                    stripeX + 1,
-                    rowY,
-                    stripeX + stripeWidth - 1,
-                    rowY + 1,
-                    brightRow
-                            ? MythicMinerTheme.ENERGY_BASE_LIGHT
-                            : MythicMinerTheme.ENERGY_BASE_DARK);
-            graphics.fill(
-                    stripeX + stripeWidth - 1,
-                    rowY,
-                    stripeX + stripeWidth,
-                    rowY + 1,
-                    MythicMinerTheme.ENERGY_BORDER);
+        int filled = fillPixels(menu.getEnergyStored(), Math.max(1, menu.getEnergyCapacity()), 121);
+        if (filled > 0) {
+            graphics.blit(GUI_TEXTURE, 7, 155 - filled, 0, 245, 120 - filled, 5, filled, 256, 256);
         }
-        for (int row = Math.max(0, stripeHeight - filledHeight); row < stripeHeight; row++) {
-            boolean brightRow = (row & 1) == 0;
-            int rowY = stripeY + row;
-            graphics.fill(
-                    stripeX + 1,
-                    rowY,
-                    stripeX + stripeWidth - 1,
-                    rowY + 1,
-                    brightRow
-                            ? MythicMinerTheme.ENERGY_FILL_LIGHT
-                            : MythicMinerTheme.ENERGY_FILL_DARK);
-            graphics.fill(
-                    stripeX + 2,
-                    rowY,
-                    stripeX + 3,
-                    rowY + 1,
-                    brightRow
-                            ? MythicMinerTheme.ENERGY_FILL_BRIGHT
-                            : MythicMinerTheme.ENERGY_FILL_MID);
-            graphics.fill(
-                    stripeX + 4,
-                    rowY,
-                    stripeX + 5,
-                    rowY + 1,
-                    brightRow
-                            ? MythicMinerTheme.ENERGY_FILL_HOT
-                            : MythicMinerTheme.ENERGY_FILL_MID);
-            graphics.fill(
-                    stripeX + 6,
-                    rowY,
-                    stripeX + 7,
-                    rowY + 1,
-                    brightRow
-                            ? MythicMinerTheme.ENERGY_FILL_LIGHT
-                            : MythicMinerTheme.ENERGY_FILL_DARK);
-        }
-        drawEnergyIcon(graphics, x + 3, y + ENERGY_HEIGHT + 6);
-    }
-
-    /** Small pixel lightning mark used in place of a text-only energy label. */
-    private void drawEnergyIcon(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x + 3, y, x + 6, y + 3, CYAN);
-        graphics.fill(x + 2, y + 3, x + 5, y + 6, CYAN);
-        graphics.fill(x + 1, y + 6, x + 4, y + 9, CYAN);
-        graphics.fill(x + 4, y + 3, x + 7, y + 5, CYAN);
-        graphics.fill(x + 3, y + 6, x + 6, y + 8, CYAN);
     }
 
     static String formatDecimal(int hundredths) {
         return String.format(java.util.Locale.ROOT, "%.2f", hundredths / 100.0D);
+    }
+
+    /** Compaction for energy figures, which routinely run into six and seven digits. */
+    static String formatCompact(int value) {
+        if (value >= 1_000_000_000) {
+            return String.format(java.util.Locale.ROOT, "%.2fB", value / 1_000_000_000.0D);
+        }
+        if (value >= 1_000_000) {
+            return String.format(java.util.Locale.ROOT, "%.2fM", value / 1_000_000.0D);
+        }
+        if (value >= 1_000) {
+            return String.format(java.util.Locale.ROOT, "%.2fK", value / 1_000.0D);
+        }
+        return Integer.toString(value);
+    }
+
+    /** A percentage held as hundredths, with trailing zeros stripped: 20 -> "20", 25 -> "0.25". */
+    static String formatPercent(int hundredths) {
+        return java.math.BigDecimal.valueOf(hundredths, 2)
+                .stripTrailingZeros()
+                .toPlainString();
+    }
+
+    /** A configured percentage, already in whole percent: 20.0 -> "20", 12.5 -> "12.5". */
+    static String formatConfigPercent(double value) {
+        return java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
     static String formatRatio(double value) {

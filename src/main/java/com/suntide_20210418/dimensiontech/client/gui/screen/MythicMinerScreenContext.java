@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 import net.minecraft.client.gui.Font;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
 
 /** Shared surface exposed to the three page renderers. */
 interface MythicMinerScreenContext {
@@ -20,8 +19,6 @@ interface MythicMinerScreenContext {
     int topPos();
 
     float uiScale();
-
-    void openOutputFaceScreen();
 
     int playerInventoryY();
 
@@ -73,7 +70,26 @@ interface MythicMinerScreenContext {
 
     double effectiveStructureValue();
 
-    void resetExpectedHover();
+    /**
+     * Marker cell under the pointer, or {@code -1}. The work lane and the info page's thread selector
+     * occupy the same grid, so one value serves both.
+     */
+    int hoveredMarkerSlot();
 
-    void setExpectedHover(ItemStack stack, boolean disabled);
+    /**
+     * True once the asynchronous analysis for the selected slot has arrived.
+     *
+     * <p>Pages must not read a missing analysis as zero: zero is a legitimate value, and showing it
+     * before the result lands would report a wrong number with full confidence.
+     */
+    boolean markerAnalysisReady();
+
+    /**
+     * Forwards a click to the vanilla slot protocol.
+     *
+     * <p>The lane is drawn by the pages, and the menu deliberately parks its slots off-screen, so the
+     * pages own the hit-testing and hand the result back here — which is what keeps pickup, shift-move
+     * and drag behaving exactly as they do in any other container.
+     */
+    void clickContainerSlot(int index, int mouseButton);
 }

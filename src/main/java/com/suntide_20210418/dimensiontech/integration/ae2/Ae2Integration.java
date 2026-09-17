@@ -80,4 +80,26 @@ public final class Ae2Integration {
                 new FluidStack(fluid, Math.toIntExact(Math.min(Integer.MAX_VALUE, extracted))),
                 IFluidHandler.FluidAction.EXECUTE);
     }
+
+    /** Inserts into the ME network storage service and returns the unaccepted remainder. */
+    public static FluidStack insertFluidIntoInterfaceNetwork(
+            BlockEntity blockEntity, FluidStack stack) {
+        if (stack.isEmpty()
+                || !(blockEntity instanceof InterfaceBlockEntity interfaceBlockEntity)
+                || !interfaceBlockEntity.getMainNode().isOnline()) {
+            return stack;
+        }
+        var grid = interfaceBlockEntity.getMainNode().getGrid();
+        if (grid == null) return stack;
+        AEFluidKey key = AEFluidKey.of(stack.getFluid());
+        long inserted =
+                grid.getStorageService()
+                        .getInventory()
+                        .insert(key, stack.getAmount(), Actionable.MODULATE, ACTION_SOURCE);
+        if (inserted <= 0) return stack;
+        if (inserted >= stack.getAmount()) return FluidStack.EMPTY;
+        FluidStack remainder = stack.copy();
+        remainder.shrink(Math.toIntExact(inserted));
+        return remainder;
+    }
 }

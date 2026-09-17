@@ -29,14 +29,14 @@ final class StructureDataIntegratorPage {
             int mouseY,
             int accent,
             String titleKey) {
-        MythicMinerTheme.panel(
+        MythicMinerTheme.subPanel(
                 g,
                 StructureDataOperatorScreen.LEFT_X,
                 48,
                 StructureDataOperatorScreen.LEFT_W,
                 186,
                 accent);
-        MythicMinerTheme.panel(
+        MythicMinerTheme.subPanel(
                 g,
                 StructureDataOperatorScreen.RIGHT_X,
                 48,
@@ -47,17 +47,17 @@ final class StructureDataIntegratorPage {
                 s.getMinecraft().font,
                 Component.translatable(titleKey),
                 52,
-                55,
-                MythicMinerTheme.TEXT,
+                53,
+                MythicMinerTheme.INK,
                 false);
         g.drawString(
                 s.getMinecraft().font,
                 Component.translatable("screen.dimension_tech.structure_operator.catalogue_marker"),
                 52,
-                68,
-                MythicMinerTheme.MUTED,
+                66,
+                MythicMinerTheme.DIM,
                 false);
-        g.fill(42, 82, 122, 98, MythicMinerTheme.PANEL);
+        MythicMinerTheme.well(g, 42, 82, 80, 16);
         g.drawString(s.getMinecraft().font, Component.literal("/"), 48, 86, accent, false);
         button(
                 s,
@@ -153,7 +153,7 @@ final class StructureDataIntegratorPage {
     private static void drawCatalogue(
             StructureDataOperatorScreen s, GuiGraphics g, int mouseX, int mouseY, int accent) {
         int x = StructureDataOperatorScreen.LEFT_X;
-        g.fill(x, LIST_Y, x + StructureDataOperatorScreen.LEFT_W, 230, MythicMinerTheme.INSET);
+        MythicMinerTheme.well(g, x, LIST_Y, StructureDataOperatorScreen.LEFT_W, 126);
         List<StructureDataOperatorScreen.CatalogueRow> rows = s.catalogueRows();
         if (rows.isEmpty()) {
             g.drawCenteredString(
@@ -161,7 +161,7 @@ final class StructureDataIntegratorPage {
                     Component.translatable("screen.dimension_tech.structure_operator.empty"),
                     x + 68,
                     160,
-                    MythicMinerTheme.MUTED);
+                    MythicMinerTheme.TEXT);
             return;
         }
         for (int row = 0; row < 9 && s.listScroll() + row < rows.size(); row++) {
@@ -172,43 +172,43 @@ final class StructureDataIntegratorPage {
             boolean hovered =
                     StructureDataOperatorScreen.inside(
                             mouseX, mouseY, x, y, StructureDataOperatorScreen.LEFT_W, ROW_H);
-            if (selected || hovered)
-                g.fill(
-                        x + 1,
-                        y,
-                        x + StructureDataOperatorScreen.LEFT_W - 1,
-                        y + ROW_H - 1,
-                        selected ? 0xFF536779 : MythicMinerTheme.PANEL);
+            Component rowLabel;
             if (rowData.isDimension()) {
-                g.fill(x + 1, y, x + 3, y + ROW_H - 1, accent);
                 String label =
                         (expanded(s, rowData.dimension()) ? "v " : "> ")
                                 + Component.translatable(
                                                 "screen.dimension_tech.structure_operator.dimension",
                                                 TranslateHelper.dimensionName(rowData.dimension()))
                                         .getString();
-                g.drawString(
-                        s.getMinecraft().font,
-                        s.getMinecraft().font.plainSubstrByWidth(label, 126),
-                        x + 7,
-                        y + 3,
-                        MythicMinerTheme.TEXT,
-                        false);
+                rowLabel = Component.literal(label);
             } else {
                 String label =
                         Component.translatable(
                                         "screen.dimension_tech.structure_operator.structure",
                                         TranslateHelper.structureName(rowData.entry().structure()))
                                 .getString();
-                g.drawString(
-                        s.getMinecraft().font,
-                        s.getMinecraft().font.plainSubstrByWidth(label, 112),
-                        x + 20,
-                        y + 3,
-                        selected ? MythicMinerTheme.TEXT : MythicMinerTheme.MUTED,
-                        false);
+                rowLabel = Component.literal("  " + label);
             }
+            MythicMinerTheme.listRow(
+                    g,
+                    s.getMinecraft().font,
+                    x,
+                    y,
+                    StructureDataOperatorScreen.LEFT_W,
+                    Component.literal(
+                            s.getMinecraft().font.plainSubstrByWidth(rowLabel.getString(), 126)),
+                    selected,
+                    hovered,
+                    selected ? MythicMinerTheme.SELECT : accent);
         }
+        MythicMinerTheme.scrollbar(
+                g,
+                x + StructureDataOperatorScreen.LEFT_W - 4,
+                LIST_Y,
+                126,
+                rows.size() * ROW_H,
+                9 * ROW_H,
+                s.listScroll() * ROW_H);
     }
 
     private static boolean expanded(StructureDataOperatorScreen s, ResourceLocation dimension) {
@@ -225,7 +225,7 @@ final class StructureDataIntegratorPage {
                     Component.translatable("screen.dimension_tech.structure_operator.select_entry"),
                     x + 72,
                     136,
-                    MythicMinerTheme.MUTED);
+                    MythicMinerTheme.DIM);
             return;
         }
         g.drawString(
@@ -234,7 +234,7 @@ final class StructureDataIntegratorPage {
                         "screen.dimension_tech.structure_operator.catalogue_analysis"),
                 x + 8,
                 55,
-                MythicMinerTheme.TEXT,
+                MythicMinerTheme.INK,
                 false);
         String dimension =
                 Component.translatable(
@@ -258,7 +258,7 @@ final class StructureDataIntegratorPage {
                 s.getMinecraft().font.plainSubstrByWidth(structure, 128),
                 x + 8,
                 80,
-                MythicMinerTheme.MUTED,
+                MythicMinerTheme.DIM,
                 false);
         if (marker.isEmpty()) {
             Component progress =
@@ -270,7 +270,7 @@ final class StructureDataIntegratorPage {
                             : Component.translatable(
                                     "screen.dimension_tech.structure_operator.loading");
             g.drawCenteredString(
-                    s.getMinecraft().font, progress, x + 72, 130, MythicMinerTheme.MUTED);
+                    s.getMinecraft().font, progress, x + 72, 130, MythicMinerTheme.DIM);
             return;
         }
         StructMarkerItem.filterDiagnostic(marker)
@@ -281,7 +281,7 @@ final class StructureDataIntegratorPage {
                                         Component.literal(message),
                                         x + 8,
                                         96,
-                                        0xFFFF5555,
+                                        MythicMinerTheme.ERROR,
                                         false));
         if (s.totalAnalysisSamples() > 0
                 && StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.APPROXIMATE) {
@@ -292,7 +292,7 @@ final class StructureDataIntegratorPage {
                             s.totalAnalysisSamples()),
                     x + 8,
                     128,
-                    MythicMinerTheme.MUTED,
+                    MythicMinerTheme.DIM,
                     false);
         }
         metric(
@@ -313,7 +313,7 @@ final class StructureDataIntegratorPage {
                 "screen.dimension_tech.struct_marker.structure_value",
                 StructMarkerItem.getStructureValue(marker),
                 MythicMinerTheme.AMBER);
-        g.fill(x + 8, 138, x + 136, 230, MythicMinerTheme.INSET);
+        MythicMinerTheme.well(g, x + 8, 138, 128, 92);
         List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(marker);
         for (int row = 0; row < 5 && s.detailScroll() + row < rows.size(); row++) {
             int y = 144 + row * 16;
@@ -329,7 +329,7 @@ final class StructureDataIntegratorPage {
                     s.getMinecraft().font.plainSubstrByWidth(name, 78),
                     x + 31,
                     y + 1,
-                    MythicMinerTheme.TEXT,
+                    MythicMinerTheme.INK,
                     false);
             g.drawString(
                     s.getMinecraft().font,
@@ -340,6 +340,14 @@ final class StructureDataIntegratorPage {
                     accent,
                     false);
         }
+        MythicMinerTheme.scrollbar(
+                g,
+                x + StructureDataOperatorScreen.RIGHT_W - 4,
+                138,
+                92,
+                rows.size() * 16,
+                5 * 16,
+                s.detailScroll() * 16);
     }
 
     private static void metric(
@@ -351,8 +359,7 @@ final class StructureDataIntegratorPage {
             String key,
             double value,
             int accent) {
-        g.fill(x, y, x + width, y + 34, MythicMinerTheme.PANEL);
-        g.fill(x, y, x + 2, y + 34, accent);
+        MythicMinerTheme.metricCard(g, x, y, width, 34, accent);
         g.drawString(
                 s.getMinecraft().font,
                 s.getMinecraft()
@@ -360,14 +367,14 @@ final class StructureDataIntegratorPage {
                         .plainSubstrByWidth(Component.translatable(key).getString(), width - 10),
                 x + 6,
                 y + 5,
-                MythicMinerTheme.MUTED,
+                MythicMinerTheme.DIM,
                 false);
         g.drawString(
                 s.getMinecraft().font,
                 String.format(java.util.Locale.ROOT, "%.2f", value),
                 x + 6,
                 y + 18,
-                MythicMinerTheme.TEXT,
+                MythicMinerTheme.INK,
                 false);
     }
 
