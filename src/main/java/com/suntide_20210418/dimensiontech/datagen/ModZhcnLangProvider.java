@@ -30,9 +30,57 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("container.dimension_tech.structure_data_operator", "结构数据操作仪");
         add("block.dimension_tech.mythic_crucible", "神话坩埚");
         add("container.dimension_tech.mythic_crucible", "神话坩埚");
+        add("screen.dimension_tech.mythic_crucible.title", "神话坩埚");
+        add("screen.dimension_tech.mythic_crucible.inventory_label", "物品栏");
         add("screen.dimension_tech.mythic_crucible.status.idle", "空闲");
         add("screen.dimension_tech.mythic_crucible.status.running", "运行中");
         add("screen.dimension_tech.mythic_crucible.status.ready", "等待提交");
+        add("screen.dimension_tech.mythic_crucible.status_line.current", "状态：%s  %s");
+        add("screen.dimension_tech.mythic_crucible.status_line.progress_value", "%s/%s tick");
+        add("screen.dimension_tech.mythic_crucible.status_line.refining_value", "耗时%s tick");
+        add("screen.dimension_tech.mythic_crucible.status_line.sequence", "配方步骤：");
+        add("screen.dimension_tech.mythic_crucible.status_line.progress", "状态进度：%s/%s tick");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.refining_progress",
+                "状态进度：当前耗时 %s tick");
+        add("screen.dimension_tech.mythic_crucible.status_line.needs", "需要：%s");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.changes",
+                "变化：%s产出 %s消耗，耗时-%s/+%s tick，额外递归%s");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous", "上一步骤状态：%s");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous.reward", "%s：回卷奖励（%s）");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous.normal", "%s：正常回卷");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous.penalty", "%s：惩罚（%s）");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.branch",
+                "耗时减少%s tick");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.recurse",
+                "消耗减少%s%%");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.converge",
+                "产出增加%s%%");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.stabilize",
+                "未结算奖励翻倍");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.phase_idle",
+                "相位空转，耗时增加%s tick");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.branch",
+                "分支冲突，耗时增加%s tick");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.recurse",
+                "递归溢出，消耗增加%s%%");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.converge",
+                "提前收敛，产出减少%s%%/层");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.stabilize",
+                "提前稳定，额外碎片+%s");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous.none", "无");
+        add("screen.dimension_tech.mythic_crucible.status_line.no_recipe", "暂无配方");
+        add("screen.dimension_tech.mythic_crucible.status_line.no_requirement", "无");
         add("screen.dimension_tech.mythic_crucible.stage.branch", "分支");
         add("screen.dimension_tech.mythic_crucible.stage.recurse", "递归");
         add("screen.dimension_tech.mythic_crucible.stage.converge", "收敛");
@@ -46,6 +94,111 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_crucible.operation", "操作槽");
         add("screen.dimension_tech.mythic_crucible.reward", "奖励窗口 %s-%s");
         add("screen.dimension_tech.mythic_crucible.inventory", "玩家背包");
+        add("screen.dimension_tech.mythic_crucible.readout.idle", "尚无进行中的仪式");
+        add("screen.dimension_tech.mythic_crucible.readout.waiting", "等待正确的操作物品");
+        add("screen.dimension_tech.mythic_crucible.event.rewarded", "奖励触发：%s");
+        add("screen.dimension_tech.mythic_crucible.event.correct", "操作正确（未在奖励窗口内）");
+        add("screen.dimension_tech.mythic_crucible.event.phase_idle", "错误操作或超时：%s");
+        add("screen.dimension_tech.mythic_crucible.event.branch_conflict", "分支冲突：%s");
+        add("screen.dimension_tech.mythic_crucible.event.early_converge", "提前收敛：%s");
+        add("screen.dimension_tech.mythic_crucible.event.recursion_overflow", "递归溢出：%s");
+        add("screen.dimension_tech.mythic_crucible.event.stabilize_failure", "提前提交稳定：%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.time.reward", "时间 −%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.time.penalty", "时间 +%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.fluid.reward", "流体 −%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.fluid.penalty", "流体 +%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.output.reward", "产出 +%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.output.penalty", "产出 −%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.fragments", "碎片 +%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.time.mixed", "时间 −%s/+%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.fluid.mixed", "流体 −%s%%/+%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.output.mixed", "产出 +%s%%/−%s%%");
+        add("screen.dimension_tech.mythic_crucible.result", "预计结算：%s tick · %s mB → %s mB");
+        add("screen.dimension_tech.mythic_crucible.refining", "炼制中 %s/%s tick");
+        add("screen.dimension_tech.mythic_crucible.refined", "炼制完成 %s tick");
+        add("screen.dimension_tech.mythic_crucible.refining_phase", "所有操作已完成，正在炼制");
+        add("screen.dimension_tech.mythic_crucible.status.refining", "炼制中");
+        add("screen.dimension_tech.mythic_crucible.control.fluid_faces", "六面流体配置");
+        add("screen.dimension_tech.mythic_crucible.face_config", "流体面配置");
+        add("screen.dimension_tech.mythic_crucible.control.input_lock", "锁定输入流体");
+        add("screen.dimension_tech.mythic_crucible.control.auto_pull", "自动拉取");
+        add("screen.dimension_tech.mythic_crucible.control.auto_push", "自动弹出");
+        add("screen.dimension_tech.mythic_crucible.control.me_network", "ME 网络");
+        add("screen.dimension_tech.mythic_crucible.control.enabled", "已启用");
+        add("screen.dimension_tech.mythic_crucible.control.disabled", "已禁用");
+        add("screen.dimension_tech.mythic_crucible.fluid_lock.locked", "输入流体：已锁定");
+        add("screen.dimension_tech.mythic_crucible.fluid_lock.unlocked", "输入流体：未锁定");
+        add("screen.dimension_tech.mythic_crucible.fluid_lock.click_to_toggle", "点击输入槽切换锁定");
+        add("screen.dimension_tech.mythic_crucible.fluid_clear_hint", "Shift+左键：清空该槽");
+        add("screen.dimension_tech.mythic_crucible.fluid_faces", "坩埚流体面");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_cycle", "点击：无 → 输入 → 输出 → 输入/输出");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.disabled", "无");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.input", "输入");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.output", "输出");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.input_output", "输入/输出");
+        add("screen.dimension_tech.mythic_crucible.face.up", "上面");
+        add("screen.dimension_tech.mythic_crucible.face.down", "下面");
+        add("screen.dimension_tech.mythic_crucible.face.north", "北面");
+        add("screen.dimension_tech.mythic_crucible.face.south", "南面");
+        add("screen.dimension_tech.mythic_crucible.face.west", "西面");
+        add("screen.dimension_tech.mythic_crucible.face.east", "东面");
+        add("screen.dimension_tech.mythic_crucible.tooltip.input", "输入流体");
+        add("screen.dimension_tech.mythic_crucible.tooltip.output", "输出流体");
+        add("screen.dimension_tech.mythic_crucible.tooltip.empty", "空");
+        add("screen.dimension_tech.mythic_crucible.tooltip.fluid", "流体：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.amount", "当前：%s / %s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.required", "需要：%s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.required_count", "需要数量：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.expected", "预计：%s × %s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.free", "剩余空间：%s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.fragment", "碎片要求");
+        add("screen.dimension_tech.mythic_crucible.tooltip.requirement", "配方要求：%s");
+        add(
+                "screen.dimension_tech.mythic_crucible.tooltip.fragment_custom_detail",
+                "具体物品由当前配方规则决定");
+        add("screen.dimension_tech.mythic_crucible.tooltip.operation", "操作要求");
+        add("screen.dimension_tech.mythic_crucible.tooltip.operation_needs", "需要操作：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.step", "当前步骤：%s/%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.state", "仪式状态：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.current", "当前物品：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.current_count", "当前数量：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.needs", "需要：%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.custom", "自定义匹配物品");
+        add("screen.dimension_tech.mythic_crucible.tooltip.custom_detail", "当前步骤只接受配方规则匹配的物品");
+        add("screen.dimension_tech.mythic_crucible.tooltip.more", "还有 %s 种可用物品");
+        add("screen.dimension_tech.mythic_crucible.tooltip.timeout", "超时：%s tick");
+        add("screen.dimension_tech.mythic_crucible.tooltip.empty_item", "空");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.no_recipe", "无匹配配方");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.available", "满足");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.insufficient", "数量不足");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.mismatch", "类型不匹配");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.output_space", "输出空间不足");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status_line", "状态：%s");
+        add("jei.dimension_tech.mythic_crucible.title", "神话坩埚");
+        add("jei.dimension_tech.mythic_crucible.io", "输入 %s mB → 输出 %s mB");
+        add("jei.dimension_tech.mythic_crucible.branch", "分支 %s · 目标递归 %s 层");
+        add("jei.dimension_tech.mythic_crucible.branch.alternate", "每次提交后 A/B 分支交替");
+        add("jei.dimension_tech.mythic_crucible.sequence", "仪式状态序列");
+        add("jei.dimension_tech.mythic_crucible.row", "%s · %s");
+        add("jei.dimension_tech.mythic_crucible.row.unknown", "未指定");
+        add("jei.dimension_tech.mythic_crucible.more", "还有 %s 个状态未显示");
+        add("jei.dimension_tech.mythic_crucible.step", "第 %s 步：%s");
+        add("jei.dimension_tech.mythic_crucible.step.requires", "需要：%s（每步消耗 1 个）");
+        add("jei.dimension_tech.mythic_crucible.step.requires.unknown", "需要：未指定的操作物品");
+        add("jei.dimension_tech.mythic_crucible.step.timeout", "超过 %s tick 未结算：时间 +%s tick");
+        add("jei.dimension_tech.mythic_crucible.reward.window", "奖励窗口：第 %s-%s tick 内结算");
+        add("jei.dimension_tech.mythic_crucible.reward.branch", "奖励：结算时间 -%s tick");
+        add("jei.dimension_tech.mythic_crucible.reward.recurse", "奖励：流体消耗 -%s%%，并获得 1 次额外递归推进");
+        add("jei.dimension_tech.mythic_crucible.reward.converge", "奖励：产出 +%s%%");
+        add("jei.dimension_tech.mythic_crucible.reward.stabilize", "奖励：本次未结算的奖励翻倍");
+        add("jei.dimension_tech.mythic_crucible.penalty.stabilize", "惩罚：提前提交稳定，碎片额外 +%s（最多 ×%s）");
+        add("jei.dimension_tech.mythic_crucible.penalty.converge", "惩罚：未达目标层数就收敛，产出 -%s%%/层");
+        add("jei.dimension_tech.mythic_crucible.penalty.recurse", "惩罚：超出目标层数提交递归，流体 +%s%%");
+        add("jei.dimension_tech.mythic_crucible.penalty.branch", "惩罚：提交另一分支的操作，时间 +%s tick");
+        add("jei.dimension_tech.mythic_crucible.range.time", "结算时间：%s-%s tick");
+        add("jei.dimension_tech.mythic_crucible.range.fluid", "流体消耗：%s-%s mB");
+        add("jei.dimension_tech.mythic_crucible.range.output", "产出：%s-%s mB");
+        add("jei.dimension_tech.mythic_crucible.range.fragments", "碎片：%s 个（上限 %s 个）");
         add("screen.dimension_tech.structure_operator.copy", "↓复制↓");
         add("screen.dimension_tech.structure_operator.clear", "清除");
         add("screen.dimension_tech.structure_operator.refresh", "已探索结构");
@@ -90,6 +243,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.structure", "结构：%s");
         add("screen.dimension_tech.structure_operator.select_entry", "选择一个有战利品的结构");
         add("screen.dimension_tech.structure_operator.loading", "正在读取分析数据");
+        add("screen.dimension_tech.structure_operator.virtual_progress", "虚拟采样：%s/%s");
+        add("screen.dimension_tech.structure_operator.virtual_approximate", "近似结果（样本 %s）");
         add(TranslateHelper.block("tier_1_mythic_miner"), "第1神话叠壳虚空结构资源采掘器");
         add(TranslateHelper.container("tier_1_mythic_miner"), "第1神话叠壳虚空结构资源采掘器");
         for (int tier = 2; tier <= 5; tier++) {
@@ -132,9 +287,14 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.overview.total_parallel", "总并行");
         add("screen.dimension_tech.mythic_miner.overview.equivalent_acceleration", "本周期等效加速");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "装备分解");
+        add("screen.dimension_tech.mythic_miner.equipment_dismantling_on", "装备分解：开");
+        add("screen.dimension_tech.mythic_miner.equipment_dismantling_off", "装备分解：关");
         add("screen.dimension_tech.mythic_miner.enabled", "已开启");
         add("screen.dimension_tech.mythic_miner.disabled", "已关闭");
+        add("screen.dimension_tech.mythic_miner.structure.complete", "结构完整");
         add("screen.dimension_tech.mythic_miner.structure_incomplete", "结构不完整");
+        add("screen.dimension_tech.mythic_miner.status.ready", "就绪");
+        add("screen.dimension_tech.mythic_miner.status.waiting_structure", "等待结构");
         add("message.dimension_tech.mythic_miner.projection_on", "已显示多方块结构投影");
         add("message.dimension_tech.mythic_miner.projection_off", "已隐藏多方块结构投影");
         add("tooltip.dimension_tech.mythic_miner.base_parallel", "基础并行：%s");
@@ -245,6 +405,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
                 "screen.dimension_tech.mythic_miner.waiting_for_natural_window",
                 "等待自然 tick 窗口（400 tick）");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "升级方块");
+        add("screen.dimension_tech.mythic_miner.attribute.composition", "属性构成");
+        add("screen.dimension_tech.mythic_miner.attribute.no_upgrades", "未安装升级");
         add("screen.dimension_tech.mythic_miner.attribute.installed", "当前安装的升级");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.mythic_miner.attribute.total_short", "总计 %s");
@@ -261,17 +423,23 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.output.me_network", "ME 网络");
         add("screen.dimension_tech.mythic_miner.output.item_handler", "物品容器");
         add("screen.dimension_tech.mythic_miner.output.none", "未连接");
+        add("screen.dimension_tech.mythic_miner.output.blocked", "输出堵塞：%s 件无法弹出");
         add("screen.dimension_tech.mythic_miner.inventory", "玩家背包");
         add("screen.dimension_tech.mythic_miner.output_face", "输出面");
         add("screen.dimension_tech.mythic_miner.output_mode", "输出状态");
         add("screen.dimension_tech.mythic_miner.redstone", "红石控制");
         add("screen.dimension_tech.mythic_miner.redstone_mode", "红石：%s");
+        add("screen.dimension_tech.mythic_miner.redstone_control_on", "红石控制：开");
+        add("screen.dimension_tech.mythic_miner.redstone_control_off", "红石控制：关");
         add("screen.dimension_tech.mythic_miner.redstone.always", "总是工作");
         add("screen.dimension_tech.mythic_miner.redstone.signal", "有信号时工作");
         add("screen.dimension_tech.mythic_miner.redstone.no_signal", "无信号时工作");
         add("screen.dimension_tech.mythic_miner.redstone.never", "从不工作");
+        add("screen.dimension_tech.mythic_miner.work.base_parallel", "基础并行");
+        add("screen.dimension_tech.mythic_miner.marker.no_plan", "尚无工作计划：结构分析未完成或失败");
         add("screen.dimension_tech.mythic_miner.marker_progress", "进度：%s / %s tick");
-        add("screen.dimension_tech.mythic_miner.marker_info.select", "点击进度条选择标记器");
+        add("screen.dimension_tech.mythic_miner.marker_info.select", "点击上方槽位选择标记器");
+        add("screen.dimension_tech.mythic_miner.marker_info.unconfigured", "未配置结构标记器");
         add("screen.dimension_tech.mythic_miner.marker_info.structure", "槽位 %s：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.dimension", "维度：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.position", "坐标：%s, %s, %s");
@@ -312,6 +480,12 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.face.west", "西");
         add("screen.dimension_tech.mythic_miner.face.up", "上");
         add("screen.dimension_tech.mythic_miner.face.down", "下");
+        add("screen.dimension_tech.mythic_miner.face.status.fluid_input", "拥有流体输入");
+        add("screen.dimension_tech.mythic_miner.face.status.auto_output", "自动输出");
+        add("screen.dimension_tech.mythic_miner.face.status.both", "流体输入/自动输出");
+        add("screen.dimension_tech.mythic_miner.face.status.disabled", "禁用");
+        add("screen.dimension_tech.mythic_miner.output.ae_mode", "AE模式");
+        add("screen.dimension_tech.mythic_miner.output.auto_pull_fluid", "自动拉取流体");
         add(TranslateHelper.message("struct_marker.saved"), "已保存 %s 的坐标 %s, %s, %s；找到结构：%s 个");
         add(TranslateHelper.tooltip("struct_marker.dimension"), "维度：%s");
         add(TranslateHelper.tooltip("struct_marker.dimension_value"), "维度价值：%s");

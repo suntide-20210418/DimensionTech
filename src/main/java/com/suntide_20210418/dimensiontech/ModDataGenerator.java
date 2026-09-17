@@ -16,6 +16,10 @@ import net.minecraftforge.fml.common.Mod;
 public final class ModDataGenerator {
     @SubscribeEvent
     public static void gatherData(GatherDataEvent event) {
+        // This event is only fired while data generation is running, which makes it the right place
+        // to make the JVM terminate once the providers are done. See DatagenExitWatchdog.
+        DatagenExitWatchdog.install();
+
         DataGenerator generator = event.getGenerator();
         PackOutput packOutput = generator.getPackOutput();
         ExistingFileHelper existingFileHelper = event.getExistingFileHelper();

@@ -14,7 +14,27 @@ version = mod_version
 def vanillaLootRuntime = providers.gradleProperty('vanillaLootRuntime')
         .map { it.toBoolean() }
         .getOrElse(false)
-def optionalModConfiguration = vanillaLootRuntime ? 'compileOnly' : 'implementation'
+// Data generation must run with only the project and Forge on the runtime
+// classpath. Optional mods can pollute the generated output, and at least one of
+// them (KubeJS) owns a non-daemon thread that keeps the data-generation JVM
+// alive after the providers finish. Keep them available for client/game-test
+// runs.
+//
+// This switch only covers Gradle-launched runs: an IDE "runData" run
+// configuration is of type Application, so it starts the module classpath
+// directly and always sees the optional mods. DatagenExitWatchdog covers that
+// case from inside the process.
+def dataGenerationRun = gradle.startParameter.taskNames.any {
+    it == 'runData'
+            || it.endsWith(':runData')
+            || it == 'prepareRunData'
+            || it.endsWith(':prepareRunData')
+            || it == 'prepareRunDataCompile'
+            || it.endsWith(':prepareRunDataCompile')
+}
+def optionalModConfiguration = (vanillaLootRuntime || dataGenerationRun)
+        ? 'compileOnly'
+        : 'implementation'
 
 base {
     archivesName = mod_id

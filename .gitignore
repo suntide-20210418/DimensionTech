@@ -25,3 +25,9 @@ logs
 
 # Files from Forge MDK
 forge*changelog.txt
+
+# Agent workspace data (project memory); never part of the shipped sources
+.workbuddy/
+
+# Design notes are working documents, not shipped sources
+docs/

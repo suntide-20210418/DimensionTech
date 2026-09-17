@@ -33,9 +33,63 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("block.dimension_tech.mythic_crucible", "Mythic Crucible");
         add("container.dimension_tech.mythic_crucible", "Mythic Crucible");
+        add("screen.dimension_tech.mythic_crucible.title", "Mythic Crucible");
+        add("screen.dimension_tech.mythic_crucible.inventory_label", "Inventory");
         add("screen.dimension_tech.mythic_crucible.status.idle", "Idle");
         add("screen.dimension_tech.mythic_crucible.status.running", "Running");
         add("screen.dimension_tech.mythic_crucible.status.ready", "Ready to commit");
+        add("screen.dimension_tech.mythic_crucible.status_line.current", "Status: %s  %s");
+        add("screen.dimension_tech.mythic_crucible.status_line.progress_value", "%s/%s ticks");
+        add("screen.dimension_tech.mythic_crucible.status_line.refining_value", "elapsed %s ticks");
+        add("screen.dimension_tech.mythic_crucible.status_line.sequence", "Recipe steps: ");
+        add("screen.dimension_tech.mythic_crucible.status_line.progress", "Progress: %s/%s ticks");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.refining_progress",
+                "Progress: elapsed %s ticks");
+        add("screen.dimension_tech.mythic_crucible.status_line.needs", "Needs: %s");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.changes",
+                "Changes: %s output %s consumption, time -%s/+%s ticks, extra recursion %s");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous", "Previous step: %s");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward",
+                "%s: rollback reward (%s)");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.normal",
+                "%s: normal rollback");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty",
+                "%s: penalty (%s)");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.branch",
+                "time -%s ticks");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.recurse",
+                "consumption -%s%%");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.converge",
+                "output +%s%%");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.reward.stabilize",
+                "unsettled rewards doubled");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.phase_idle",
+                "phase idle, time +%s ticks");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.branch",
+                "branch conflict, time +%s ticks");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.recurse",
+                "recursion overflow, consumption +%s%%");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.converge",
+                "early converge, output -%s%%/depth");
+        add(
+                "screen.dimension_tech.mythic_crucible.status_line.previous.penalty.stabilize",
+                "early stabilize, extra fragments +%s");
+        add("screen.dimension_tech.mythic_crucible.status_line.previous.none", "None");
+        add("screen.dimension_tech.mythic_crucible.status_line.no_recipe", "No recipe");
+        add("screen.dimension_tech.mythic_crucible.status_line.no_requirement", "None");
         add("screen.dimension_tech.mythic_crucible.stage.branch", "Branch");
         add("screen.dimension_tech.mythic_crucible.stage.recurse", "Recurse");
         add("screen.dimension_tech.mythic_crucible.stage.converge", "Converge");
@@ -51,6 +105,149 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_crucible.operation", "Operation");
         add("screen.dimension_tech.mythic_crucible.reward", "Reward window %s-%s");
         add("screen.dimension_tech.mythic_crucible.inventory", "Player inventory");
+        add("screen.dimension_tech.mythic_crucible.readout.idle", "No ritual in progress");
+        add(
+                "screen.dimension_tech.mythic_crucible.readout.waiting",
+                "Waiting for the right operation");
+        add("screen.dimension_tech.mythic_crucible.event.rewarded", "Reward: %s");
+        add(
+                "screen.dimension_tech.mythic_crucible.event.correct",
+                "Correct, outside reward window");
+        add(
+                "screen.dimension_tech.mythic_crucible.event.phase_idle",
+                "Wrong operation or timeout: %s");
+        add("screen.dimension_tech.mythic_crucible.event.branch_conflict", "Branch conflict: %s");
+        add("screen.dimension_tech.mythic_crucible.event.early_converge", "Early converge: %s");
+        add(
+                "screen.dimension_tech.mythic_crucible.event.recursion_overflow",
+                "Recursion overflow: %s");
+        add("screen.dimension_tech.mythic_crucible.event.stabilize_failure", "Early stabilize: %s");
+        add("screen.dimension_tech.mythic_crucible.modifier.time.reward", "Time -%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.time.penalty", "Time +%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.fluid.reward", "Fluid -%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.fluid.penalty", "Fluid +%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.output.reward", "Output +%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.output.penalty", "Output -%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.fragments", "Fragments +%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.time.mixed", "Time -%s/+%s");
+        add("screen.dimension_tech.mythic_crucible.modifier.fluid.mixed", "Fluid -%s%%/+%s%%");
+        add("screen.dimension_tech.mythic_crucible.modifier.output.mixed", "Output +%s%%/-%s%%");
+        add("screen.dimension_tech.mythic_crucible.result", "Projected: %s ticks, %s mB -> %s mB");
+        add("screen.dimension_tech.mythic_crucible.refining", "Refining %s/%s ticks");
+        add("screen.dimension_tech.mythic_crucible.refined", "Refined in %s ticks");
+        add(
+                "screen.dimension_tech.mythic_crucible.refining_phase",
+                "All operations complete; refining");
+        add("screen.dimension_tech.mythic_crucible.status.refining", "Refining");
+        add(
+                "screen.dimension_tech.mythic_crucible.control.fluid_faces",
+                "Fluid face configuration");
+        add("screen.dimension_tech.mythic_crucible.face_config", "Fluid faces");
+        add("screen.dimension_tech.mythic_crucible.control.input_lock", "Lock input fluid");
+        add("screen.dimension_tech.mythic_crucible.control.auto_pull", "Auto pull");
+        add("screen.dimension_tech.mythic_crucible.control.auto_push", "Auto push");
+        add("screen.dimension_tech.mythic_crucible.control.me_network", "ME network");
+        add("screen.dimension_tech.mythic_crucible.control.enabled", "Enabled");
+        add("screen.dimension_tech.mythic_crucible.control.disabled", "Disabled");
+        add("screen.dimension_tech.mythic_crucible.fluid_lock.locked", "Input fluid: locked");
+        add("screen.dimension_tech.mythic_crucible.fluid_lock.unlocked", "Input fluid: unlocked");
+        add(
+                "screen.dimension_tech.mythic_crucible.fluid_lock.click_to_toggle",
+                "Click the input tank to toggle");
+        add("screen.dimension_tech.mythic_crucible.fluid_clear_hint", "Shift+left-click: empty");
+        add("screen.dimension_tech.mythic_crucible.fluid_faces", "Crucible fluid faces");
+        add(
+                "screen.dimension_tech.mythic_crucible.fluid_face_cycle",
+                "Click: none -> input -> output -> input/output");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.disabled", "None");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.input", "Input");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.output", "Output");
+        add("screen.dimension_tech.mythic_crucible.fluid_face_mode.input_output", "Input/output");
+        add("screen.dimension_tech.mythic_crucible.face.up", "Up");
+        add("screen.dimension_tech.mythic_crucible.face.down", "Down");
+        add("screen.dimension_tech.mythic_crucible.face.north", "North");
+        add("screen.dimension_tech.mythic_crucible.face.south", "South");
+        add("screen.dimension_tech.mythic_crucible.face.west", "West");
+        add("screen.dimension_tech.mythic_crucible.face.east", "East");
+        add("screen.dimension_tech.mythic_crucible.tooltip.input", "Input fluid");
+        add("screen.dimension_tech.mythic_crucible.tooltip.output", "Output fluid");
+        add("screen.dimension_tech.mythic_crucible.tooltip.empty", "Empty");
+        add("screen.dimension_tech.mythic_crucible.tooltip.fluid", "Fluid: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.amount", "Current: %s / %s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.required", "Required: %s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.required_count", "Required count: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.expected", "Expected: %s x %s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.free", "Free space: %s mB");
+        add("screen.dimension_tech.mythic_crucible.tooltip.fragment", "Fragment requirement");
+        add("screen.dimension_tech.mythic_crucible.tooltip.requirement", "Recipe requirement: %s");
+        add(
+                "screen.dimension_tech.mythic_crucible.tooltip.fragment_custom_detail",
+                "The concrete item is determined by the current recipe rule");
+        add("screen.dimension_tech.mythic_crucible.tooltip.operation", "Operation requirement");
+        add(
+                "screen.dimension_tech.mythic_crucible.tooltip.operation_needs",
+                "Required operation: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.step", "Current step: %s/%s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.state", "Ritual state: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.current", "Current item: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.current_count", "Current count: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.needs", "Required: %s");
+        add("screen.dimension_tech.mythic_crucible.tooltip.custom", "Custom item matcher");
+        add(
+                "screen.dimension_tech.mythic_crucible.tooltip.custom_detail",
+                "This step accepts items matching the recipe rule");
+        add("screen.dimension_tech.mythic_crucible.tooltip.more", "%s more available items");
+        add("screen.dimension_tech.mythic_crucible.tooltip.timeout", "Timeout: %s ticks");
+        add("screen.dimension_tech.mythic_crucible.tooltip.empty_item", "Empty");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.no_recipe", "No matching recipe");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.available", "Ready");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.insufficient", "Insufficient");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status.mismatch", "Type mismatch");
+        add(
+                "screen.dimension_tech.mythic_crucible.tooltip.status.output_space",
+                "Output space insufficient");
+        add("screen.dimension_tech.mythic_crucible.tooltip.status_line", "Status: %s");
+        add("jei.dimension_tech.mythic_crucible.title", "Mythic Crucible");
+        add("jei.dimension_tech.mythic_crucible.io", "In %s mB -> Out %s mB");
+        add("jei.dimension_tech.mythic_crucible.branch", "Branch %s - recursion %s");
+        add("jei.dimension_tech.mythic_crucible.branch.alternate", "A/B alternates each commit");
+        add("jei.dimension_tech.mythic_crucible.sequence", "Ritual sequence");
+        add("jei.dimension_tech.mythic_crucible.row", "%s - %s");
+        add("jei.dimension_tech.mythic_crucible.row.unknown", "unspecified");
+        add("jei.dimension_tech.mythic_crucible.more", "%s more states hidden");
+        add("jei.dimension_tech.mythic_crucible.step", "Step %s: %s");
+        add("jei.dimension_tech.mythic_crucible.step.requires", "Requires: %s (1 per settle)");
+        add(
+                "jei.dimension_tech.mythic_crucible.step.requires.unknown",
+                "Requires: unspecified operation");
+        add(
+                "jei.dimension_tech.mythic_crucible.step.timeout",
+                "Unsettled past %s ticks: time +%s ticks");
+        add("jei.dimension_tech.mythic_crucible.reward.window", "Reward window: tick %s-%s");
+        add("jei.dimension_tech.mythic_crucible.reward.branch", "Reward: time -%s ticks");
+        add(
+                "jei.dimension_tech.mythic_crucible.reward.recurse",
+                "Reward: fluid -%s%%, plus one extra recursion advance");
+        add("jei.dimension_tech.mythic_crucible.reward.converge", "Reward: output +%s%%");
+        add(
+                "jei.dimension_tech.mythic_crucible.reward.stabilize",
+                "Reward: doubles this cycle's unsettled rewards");
+        add(
+                "jei.dimension_tech.mythic_crucible.penalty.stabilize",
+                "Penalty: early stabilize, +%s extra fragments (up to x%s)");
+        add(
+                "jei.dimension_tech.mythic_crucible.penalty.converge",
+                "Penalty: converge below target depth, output -%s%% per level");
+        add(
+                "jei.dimension_tech.mythic_crucible.penalty.recurse",
+                "Penalty: recurse past target depth, fluid +%s%%");
+        add(
+                "jei.dimension_tech.mythic_crucible.penalty.branch",
+                "Penalty: other branch's operation, time +%s ticks");
+        add("jei.dimension_tech.mythic_crucible.range.time", "Settle time: %s-%s ticks");
+        add("jei.dimension_tech.mythic_crucible.range.fluid", "Fluid cost: %s-%s mB");
+        add("jei.dimension_tech.mythic_crucible.range.output", "Output: %s-%s mB");
+        add("jei.dimension_tech.mythic_crucible.range.fragments", "Fragments: %s (at most %s)");
         add("container.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("screen.dimension_tech.structure_operator.copy", "↓Copy↓");
         add("screen.dimension_tech.structure_operator.clear", "Clear");
@@ -104,6 +301,10 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "screen.dimension_tech.structure_operator.select_entry",
                 "Select a structure with loot");
         add("screen.dimension_tech.structure_operator.loading", "Loading analysis data");
+        add("screen.dimension_tech.structure_operator.virtual_progress", "Virtual sampling: %s/%s");
+        add(
+                "screen.dimension_tech.structure_operator.virtual_approximate",
+                "Approximate result (%s samples)");
         add(
                 TranslateHelper.block("tier_1_mythic_miner"),
                 "Tier 1 Mythic Shell Chikens Void Structre Resource Miner");
@@ -156,9 +357,18 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "screen.dimension_tech.mythic_miner.overview.equivalent_acceleration",
                 "Cycle equivalent acceleration");
         add("screen.dimension_tech.mythic_miner.equipment_dismantling", "Equipment Dismantling");
+        add(
+                "screen.dimension_tech.mythic_miner.equipment_dismantling_on",
+                "Equipment Dismantling: On");
+        add(
+                "screen.dimension_tech.mythic_miner.equipment_dismantling_off",
+                "Equipment Dismantling: Off");
         add("screen.dimension_tech.mythic_miner.enabled", "Enabled");
         add("screen.dimension_tech.mythic_miner.disabled", "Disabled");
+        add("screen.dimension_tech.mythic_miner.structure.complete", "Structure complete");
         add("screen.dimension_tech.mythic_miner.structure_incomplete", "Structure incomplete");
+        add("screen.dimension_tech.mythic_miner.status.ready", "Ready");
+        add("screen.dimension_tech.mythic_miner.status.waiting_structure", "Waiting");
         add("message.dimension_tech.mythic_miner.projection_on", "Multiblock projection shown");
         add("message.dimension_tech.mythic_miner.projection_off", "Multiblock projection hidden");
         add("tooltip.dimension_tech.mythic_miner.base_parallel", "Base parallel: %s");
@@ -295,6 +505,8 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "screen.dimension_tech.mythic_miner.waiting_for_natural_window",
                 "Waiting for natural tick window (400 ticks)");
         add("screen.dimension_tech.mythic_miner.attribute.upgrades", "Upgrade Blocks");
+        add("screen.dimension_tech.mythic_miner.attribute.composition", "Attribute makeup");
+        add("screen.dimension_tech.mythic_miner.attribute.no_upgrades", "No upgrades installed");
         add("screen.dimension_tech.mythic_miner.attribute.installed", "Installed upgrades");
         add("screen.dimension_tech.mythic_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.mythic_miner.attribute.total_short", "Total %s");
@@ -321,19 +533,27 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.output.me_network", "ME Network");
         add("screen.dimension_tech.mythic_miner.output.item_handler", "Item Container");
         add("screen.dimension_tech.mythic_miner.output.none", "Unlinked");
+        add("screen.dimension_tech.mythic_miner.output.blocked", "Output blocked: %s pending");
         add("screen.dimension_tech.mythic_miner.inventory", "Player Inventory");
         add("screen.dimension_tech.mythic_miner.output_face", "Output Face");
         add("screen.dimension_tech.mythic_miner.output_mode", "Output State");
         add("screen.dimension_tech.mythic_miner.redstone", "Redstone");
         add("screen.dimension_tech.mythic_miner.redstone_mode", "Redstone: %s");
+        add("screen.dimension_tech.mythic_miner.redstone_control_on", "Redstone control: On");
+        add("screen.dimension_tech.mythic_miner.redstone_control_off", "Redstone control: Off");
         add("screen.dimension_tech.mythic_miner.redstone.always", "Always on");
         add("screen.dimension_tech.mythic_miner.redstone.signal", "With signal");
         add("screen.dimension_tech.mythic_miner.redstone.no_signal", "Without signal");
         add("screen.dimension_tech.mythic_miner.redstone.never", "Never");
+        add("screen.dimension_tech.mythic_miner.work.base_parallel", "Base parallel");
+        add(
+                "screen.dimension_tech.mythic_miner.marker.no_plan",
+                "No processing plan: structure analysis pending or failed");
         add("screen.dimension_tech.mythic_miner.marker_progress", "Progress: %s / %s tick");
         add(
                 "screen.dimension_tech.mythic_miner.marker_info.select",
-                "Click a progress bar to select a marker");
+                "Click a slot above to select a marker");
+        add("screen.dimension_tech.mythic_miner.marker_info.unconfigured", "No structure marker");
         add("screen.dimension_tech.mythic_miner.marker_info.structure", "Slot %s: %s");
         add("screen.dimension_tech.mythic_miner.marker_info.dimension", "Dimension: %s");
         add("screen.dimension_tech.mythic_miner.marker_info.position", "Position: %s, %s, %s");
@@ -392,6 +612,12 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.face.west", "West");
         add("screen.dimension_tech.mythic_miner.face.up", "Up");
         add("screen.dimension_tech.mythic_miner.face.down", "Down");
+        add("screen.dimension_tech.mythic_miner.face.status.fluid_input", "Fluid input");
+        add("screen.dimension_tech.mythic_miner.face.status.auto_output", "Auto output");
+        add("screen.dimension_tech.mythic_miner.face.status.both", "Fluid input/auto output");
+        add("screen.dimension_tech.mythic_miner.face.status.disabled", "Disabled");
+        add("screen.dimension_tech.mythic_miner.output.ae_mode", "AE mode");
+        add("screen.dimension_tech.mythic_miner.output.auto_pull_fluid", "Auto-pull fluid");
         add(
                 TranslateHelper.message("struct_marker.saved"),
                 "Saved %s at %s, %s, %s; structures found: %s");

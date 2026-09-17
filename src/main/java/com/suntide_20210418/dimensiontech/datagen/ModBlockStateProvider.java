@@ -58,9 +58,13 @@ public class ModBlockStateProvider extends BlockStateProvider {
         registerUpgradeTiers(ModBlocks.UPGRADE_ENERGY_TIERS);
         registerUpgradeTiers(ModBlocks.UPGRADE_EFFICIENCY_TIERS);
         registerUpgradeTiers(ModBlocks.UPGRADE_AGGREGATE_TIERS);
-        for (var focus : ModBlocks.DIMENSION_FOCUS) {
+        for (int tier = 0; tier < ModBlocks.DIMENSION_FOCUS.length; tier++) {
+            var focus = ModBlocks.DIMENSION_FOCUS[tier];
             ModelFile focusModel =
-                    models().cubeAll(focus.getId().getPath(), mcLoc("block/amethyst_block"));
+                    tier == 0
+                            ? models().getExistingFile(modLoc("block/dimension_focus_tier_1"))
+                            : models().cubeAll(
+                                            focus.getId().getPath(), mcLoc("block/amethyst_block"));
             simpleBlockWithItem(focus.get(), focusModel);
         }
     }
