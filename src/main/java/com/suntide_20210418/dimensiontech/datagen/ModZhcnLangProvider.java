@@ -449,6 +449,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.marker_info.loading", "正在计算机器有效期望...");
         add("screen.dimension_tech.mythic_miner.marker_info.no_items", "无可用物品期望");
         add("screen.dimension_tech.mythic_miner.slot.enable", "启用当前槽位");
+        add("screen.dimension_tech.mythic_miner.slot.enable_right", "右键启用该线程");
+        add("screen.dimension_tech.mythic_miner.slot.disable_right", "右键停用该线程");
         add("screen.dimension_tech.mythic_miner.slot.disable", "停用当前槽位");
         add("screen.dimension_tech.mythic_miner.marker_info.parallel", "总并行：%s  [%s]");
         add("screen.dimension_tech.mythic_miner.marker_info.parallel.expand", "点击展开");

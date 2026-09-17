@@ -26,6 +26,8 @@ import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 
+import javax.annotation.Nullable;
+
 /** Converts generated equipment into the materials used to make it. */
 public final class EquipmentDismantler {
     private EquipmentDismantler() {}
@@ -42,7 +44,7 @@ public final class EquipmentDismantler {
     }
 
     public static Map<ResourceLocation, Double> dismantleExpectations(
-            ServerLevel level, Map<ResourceLocation, Double> expectations) {
+            @Nullable ServerLevel level, Map<ResourceLocation, Double> expectations) {
         Map<ResourceLocation, Double> dismantled = new LinkedHashMap<>();
         for (Map.Entry<ResourceLocation, Double> entry : expectations.entrySet()) {
             double expectedCount = entry.getValue();

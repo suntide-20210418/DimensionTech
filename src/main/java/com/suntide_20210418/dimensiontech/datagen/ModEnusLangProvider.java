@@ -572,6 +572,8 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "screen.dimension_tech.mythic_miner.marker_info.no_items",
                 "No item expectations available");
         add("screen.dimension_tech.mythic_miner.slot.enable", "Enable selected slot");
+        add("screen.dimension_tech.mythic_miner.slot.enable_right", "Right-click to enable this thread");
+        add("screen.dimension_tech.mythic_miner.slot.disable_right", "Right-click to disable this thread");
         add("screen.dimension_tech.mythic_miner.slot.disable", "Disable selected slot");
         add("screen.dimension_tech.mythic_miner.marker_info.parallel", "Total parallel: %s  [%s]");
         add("screen.dimension_tech.mythic_miner.marker_info.parallel.expand", "Click to expand");

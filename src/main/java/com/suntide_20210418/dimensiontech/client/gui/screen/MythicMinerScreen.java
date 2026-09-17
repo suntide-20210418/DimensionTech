@@ -5,8 +5,10 @@ import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
+import com.suntide_20210418.dimensiontech.mythicminer.output.EquipmentDismantler;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -248,7 +250,49 @@ public final class MythicMinerScreen extends AbstractContainerScreen<MythicMiner
     public List<ExpectedItemRow> expectedItemRows() {
         Map<ResourceLocation, ExactProbability> stored =
                 StructMarkerItem.getExpectedItemCounts(selectedMarkerStack());
-        return stored.isEmpty() ? analysisRows : rowsFromCounts(stored);
+        List<ExpectedItemRow> raw = stored.isEmpty() ? analysisRows : rowsFromCounts(stored);
+        if (!menu.isEquipmentDismantlingEnabled()) {
+            return raw;
+        }
+        // With equipment dismantling on, equipment must never appear as its own entry. Every
+        // equipment item is broken down into the materials that craft it, and those materials are
+        // summed with any other source of the same item so the page shows one unified resource
+        // total. Re-dismantling is a no-op for items that are already materials, so this is safe
+        // whether the rows came from the persisted marker item or from the already-dismantled
+        // analysis packet.
+        return dismantledRows(raw);
+    }
+
+    /**
+     * Breaks down every equipment row into the materials that craft it and merges those materials with
+     * any other source of the same item, so the result is a single unified resource total with no
+     * equipment left standing.
+     *
+     * <p>The marker item persists raw loot (including equipment) independent of the miner's dismantling
+     * toggle, so the breakdown has to happen here, on the client. {@link
+     * EquipmentDismantler#dismantle} is passed a {@code null} level: the primary-material path it uses
+     * for the common armour and tool cases needs no recipe manager, and only the rare recipe-lookup
+     * fallback is skipped — leaving such an item intact is acceptable rather than guessing at it.
+     */
+    private static List<ExpectedItemRow> dismantledRows(List<ExpectedItemRow> rows) {
+        Map<ResourceLocation, Double> expectations = new LinkedHashMap<>();
+        for (ExpectedItemRow row : rows) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(row.item());
+            if (id != null) expectations.put(id, row.expected());
+        }
+        Map<ResourceLocation, Double> dismantled =
+                EquipmentDismantler.dismantleExpectations(null, expectations);
+        List<ExpectedItemRow> result = new ArrayList<>(dismantled.size());
+        dismantled.forEach(
+                (id, value) ->
+                        BuiltInRegistries.ITEM
+                                .getOptional(id)
+                                .ifPresent(item -> result.add(new ExpectedItemRow(item, value))));
+        result.sort(
+                Comparator.comparingDouble(ExpectedItemRow::expected)
+                        .reversed()
+                        .thenComparing(row -> BuiltInRegistries.ITEM.getKey(row.item()).toString()));
+        return List.copyOf(result);
     }
 
     @Override

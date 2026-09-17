@@ -30,6 +30,23 @@ final class MythicMinerTooltips {
     /** Slot contents, where the marker points, and what a click will do. */
     static void markerSlot(
             MythicMinerScreenContext c, GuiGraphics g, int slot, int screenX, int screenY) {
+        markerSlot(c, g, slot, screenX, screenY, false);
+    }
+
+    /**
+     * Slot contents, where the marker points, and what a click will do.
+     *
+     * <p>{@code rightClickToggle} is true on the work page, where right-click is the gesture that
+     * flips a thread's enabled flag; the info-page selector reuses the same grid but only selects, so
+     * it keeps the plain enable/disable state without the misleading right-click instruction.
+     */
+    static void markerSlot(
+            MythicMinerScreenContext c,
+            GuiGraphics g,
+            int slot,
+            int screenX,
+            int screenY,
+            boolean rightClickToggle) {
         MythicMinerMenu menu = c.menu();
         ItemStack stack = menu.slots.get(slot).getItem();
         Optional<StructMarkerItem.MarkerInfo> info = StructMarkerItem.getMarkerInfo(stack);
@@ -66,7 +83,15 @@ final class MythicMinerTooltips {
             }
         }
 
-        lines.add(toggleHint(menu.isMarkerSlotEnabled(slot)));
+        lines.add(
+                Component.translatable(
+                        rightClickToggle
+                                ? (menu.isMarkerSlotEnabled(slot)
+                                        ? "screen.dimension_tech.mythic_miner.slot.disable_right"
+                                        : "screen.dimension_tech.mythic_miner.slot.enable_right")
+                                : (menu.isMarkerSlotEnabled(slot)
+                                        ? "screen.dimension_tech.mythic_miner.slot.disable"
+                                        : "screen.dimension_tech.mythic_miner.slot.enable")));
         g.renderTooltip(c.font(), lines, Optional.empty(), screenX, screenY);
     }
 

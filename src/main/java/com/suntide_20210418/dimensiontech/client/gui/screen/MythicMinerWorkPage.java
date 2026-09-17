@@ -356,7 +356,7 @@ final class MythicMinerWorkPage {
         int count = c.menu().getContainerSlotCount();
         int slot = MythicMinerInfoLayout.markerSlotAt(x, y, count);
         if (slot >= 0) {
-            MythicMinerTooltips.markerSlot(c, g, slot, screenX, screenY);
+            MythicMinerTooltips.markerSlot(c, g, slot, screenX, screenY, true);
             return;
         }
         int strip = MythicMinerInfoLayout.markerProgressAt(x, y, count);
