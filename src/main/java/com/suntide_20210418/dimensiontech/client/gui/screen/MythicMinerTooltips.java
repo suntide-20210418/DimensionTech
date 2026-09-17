@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
@@ -48,19 +47,10 @@ final class MythicMinerTooltips {
                         "screen.dimension_tech.mythic_miner.marker_info.structure", slot + 1, name));
 
         info.ifPresent(
-                markerInfo -> {
-                    lines.add(
-                            Component.translatable(
-                                    "screen.dimension_tech.mythic_miner.marker_info.dimension",
-                                    TranslateHelper.dimensionName(markerInfo.dimension())));
-                    BlockPos pos = markerInfo.position();
-                    lines.add(
-                            Component.translatable(
-                                    "screen.dimension_tech.mythic_miner.marker_info.position",
-                                    pos.getX(),
-                                    pos.getY(),
-                                    pos.getZ()));
-                });
+                markerInfo -> lines.add(
+                        Component.translatable(
+                                "screen.dimension_tech.mythic_miner.marker_info.dimension",
+                                TranslateHelper.dimensionName(markerInfo.dimension()))));
 
         // A configured, enabled slot with no plan is the "looks ready but never advances" state:
         // the analysis either has not landed yet or keeps failing, and nothing else says so. Stated

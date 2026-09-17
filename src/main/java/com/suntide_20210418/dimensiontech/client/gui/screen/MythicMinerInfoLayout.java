@@ -47,6 +47,13 @@ final class MythicMinerInfoLayout {
     /** The 16x16 item icon sits this far inside the same cell. */
     static final int MARKER_ICON_INSET = 2;
 
+    /**
+     * The 3px state lamp in a cell's top-right corner. The two insets are unequal because the lamp
+     * hangs off the cell's own bevel rather than off the centre, so they are stated rather than
+     * derived.
+     */
+    static final int MARKER_LAMP_SIZE = 3, MARKER_LAMP_RIGHT_INSET = 2, MARKER_LAMP_TOP_INSET = 1;
+
     // --- progress strip ----------------------------------------------------
     /** Flush under the cell: the gap is required to be zero, so this is derived, not typed. */
     static final int MARKER_PROGRESS_Y = MARKER_Y + MARKER_SIZE;
@@ -55,6 +62,9 @@ final class MythicMinerInfoLayout {
 
     /** A 16px strip centred under a 20px cell. */
     static final int MARKER_PROGRESS_INSET = (MARKER_SIZE - MARKER_PROGRESS_W) / 2;
+
+    /** Width of the amber tick that marks a slot throttled by the natural observation window. */
+    static final int MARKER_PROGRESS_END_MARK_W = 2;
 
     // --- work page: two-column meter grid ----------------------------------
     static final int WORK_METER_ROW_1_Y = 65, WORK_METER_ROW_H = 15, WORK_METER_ROWS = 4;
@@ -65,6 +75,14 @@ final class MythicMinerInfoLayout {
     static final int WORK_METER_RAIL_W = 2;
 
     static final int WORK_CHIP_Y = 136, WORK_CHIP_W = 64, WORK_CHIP_H = 12, WORK_CHIP_GAP = 4;
+
+    /**
+     * The one-line pointer telling the player how thread toggling works.
+     *
+     * <p>It lives in the only gap the grid leaves: the last meter row ends at 125 and the status
+     * chips start at 136, so the hint owns 126..134. Any other placement would overlap something.
+     */
+    static final int WORK_HINT_Y = 126, WORK_HINT_H = 8;
 
     // --- info page: one flat scrolling viewport -----------------------------
     static final int INFO_LIST_X = 36, INFO_LIST_Y = 62, INFO_LIST_W = 190, INFO_LIST_H = 94;

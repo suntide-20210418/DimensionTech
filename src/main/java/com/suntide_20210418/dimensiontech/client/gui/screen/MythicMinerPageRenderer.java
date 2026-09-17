@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
+import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -57,11 +58,12 @@ final class MythicMinerPageRenderer {
             double x,
             double y,
             int button) {
-        if (button != 0) return false;
         return switch (page) {
-            case WORK -> workClicked(c, x, y);
-            case INFO -> infoClicked(c, x, y);
-            case ATTRIBUTES -> attributesClicked(c, x, y);
+            case WORK -> workClicked(c, x, y, button);
+            // Both scrolling pages swallow every primary click inside their viewport; anything else
+            // is left to the screen, which already answers true for those pages anyway.
+            case INFO -> button == 0 && infoClicked(c, x, y);
+            case ATTRIBUTES -> button == 0 && attributesClicked(c, x, y);
         };
     }
 
@@ -98,30 +100,43 @@ final class MythicMinerPageRenderer {
         };
     }
 
-    private static boolean workClicked(MythicMinerScreenContext c, double x, double y) {
+    /**
+     * Left-click keeps the item gesture, right-click owns thread toggling.
+     *
+     * <p>The two are deliberately kept apart by button rather than by target: the strip under each
+     * cell used to be the toggle, which shared its precise 4px band with nothing else and could not
+     * be hovered without also covering the cell above it.
+     */
+    private static boolean workClicked(
+            MythicMinerScreenContext c, double x, double y, int button) {
+        if (button == 1) return toggleMarkerSlot(c, x, y);
+        if (button != 0) return false;
+        int slot = MythicMinerInfoLayout.markerSlotAt(x, y, c.menu().getContainerSlotCount());
+        if (slot < 0) return false;
+        // Selecting and handling the item in one gesture: the player does not need two conventions
+        // for "look at this thread" and "put a marker here".
+        c.selectMarkerSlot(slot);
+        c.clickContainerSlot(slot, 0);
+        return true;
+    }
+
+    /**
+     * Flips a thread's enabled flag, but only where the lane can draw the answer back.
+     *
+     * <p>An empty slot refuses rather than forwarding: the server would flip a flag nothing renders,
+     * so the player would see a click that did nothing at all. Everything else falls through to
+     * vanilla so right-click stays a working inventory gesture — including on a slot holding some
+     * other item, which the menu still lets through.
+     */
+    private static boolean toggleMarkerSlot(MythicMinerScreenContext c, double x, double y) {
         int count = c.menu().getContainerSlotCount();
         int slot = MythicMinerInfoLayout.markerSlotAt(x, y, count);
-        if (slot >= 0) {
-            // Selecting and handling the item in one gesture: the player does not need two conventions
-            // for "look at this thread" and "put a marker here".
-            c.selectMarkerSlot(slot);
-            c.clickContainerSlot(slot, 0);
-            return true;
+        if (slot < 0) return false;
+        if (StructMarkerItem.getMarkerInfo(c.menu().slots.get(slot).getItem()).isEmpty()) {
+            return false;
         }
-
-        int barY = MythicMinerInfoLayout.MARKER_PROGRESS_Y;
-        if (y >= barY && y < barY + MythicMinerInfoLayout.MARKER_PROGRESS_H) {
-            for (int index = 0; index < count; index++) {
-                int barX =
-                        MythicMinerInfoLayout.laneX(index, count)
-                                + MythicMinerInfoLayout.MARKER_PROGRESS_INSET;
-                if (x >= barX && x < barX + MythicMinerInfoLayout.MARKER_PROGRESS_W) {
-                    ModNetwork.toggleMythicMinerSlot(c.menu().containerId, index);
-                    return true;
-                }
-            }
-        }
-        return false;
+        ModNetwork.toggleMythicMinerSlot(c.menu().containerId, slot);
+        return true;
     }
 
     private static boolean infoClicked(MythicMinerScreenContext c, double x, double y) {

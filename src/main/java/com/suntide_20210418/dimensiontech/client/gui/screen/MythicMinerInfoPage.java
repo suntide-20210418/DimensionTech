@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -29,12 +28,24 @@ final class MythicMinerInfoPage {
     /** Height of the thread summary line that opens the viewport. */
     private static final int SUMMARY_H = 12;
 
-    /** A tick line plus the bar under it. */
-    private static final int TICK_BLOCK_H = 19;
+    /** Rows the marker section carries: dimension, then the two analysis values. */
+    private static final int MARKER_SECTION_ROWS = 3;
 
-    private static final int STRIP_H = 6;
+    /** Breathing room between a progress strip and whatever follows it. */
+    private static final int STRIP_GAP = 2;
+
+    /**
+     * A strip plus its gap. The sprite owns its own height, so only the rhythm is typed here.
+     */
+    private static final int STRIP_H = MythicMinerSpriteRenderer.PROGRESS_H + STRIP_GAP;
+
+    /** A tick line plus the strip under it. */
+    private static final int TICK_BLOCK_H = MythicMinerInfoLayout.ROW_H_DATA + STRIP_H;
+
     private static final int DETAIL_H = 11;
-    private static final int DETAIL_ROWS = 3;
+
+    /** One labelled detail row: its own text box plus a pixel of separation. */
+    private static final int DETAIL_ROW_STRIDE = DETAIL_H + 1;
 
     private MythicMinerInfoPage() {}
 
@@ -200,10 +211,9 @@ final class MythicMinerInfoPage {
                     y,
                     MythicMinerTheme.DIM,
                     false);
-            return y + MythicMinerInfoLayout.ROW_H_DATA * 4;
+            return y + MythicMinerInfoLayout.ROW_H_DATA * MARKER_SECTION_ROWS;
         }
 
-        BlockPos pos = info.position();
         g.drawString(
                 font,
                 clip(
@@ -215,22 +225,6 @@ final class MythicMinerInfoPage {
                 x,
                 y,
                 MythicMinerTheme.INK,
-                false);
-        y += MythicMinerInfoLayout.ROW_H_DATA;
-
-        g.drawString(
-                font,
-                clip(
-                        font,
-                        Component.translatable(
-                                "screen.dimension_tech.mythic_miner.marker_info.position",
-                                pos.getX(),
-                                pos.getY(),
-                                pos.getZ()),
-                        width),
-                x,
-                y,
-                MythicMinerTheme.DIM,
                 false);
         y += MythicMinerInfoLayout.ROW_H_DATA;
 
@@ -316,7 +310,7 @@ final class MythicMinerInfoPage {
                 MythicMinerTheme.INK,
                 false);
         y += MythicMinerInfoLayout.ROW_H_DATA;
-        progressBar(g, x, y, width, marker.naturalTicks(), cycle, MythicMinerTheme.FLUIX);
+        progressStrip(g, x, y, width, marker.naturalTicks(), cycle);
         y += STRIP_H;
 
         if (accelerated) {
@@ -335,14 +329,7 @@ final class MythicMinerInfoPage {
                     MythicMinerTheme.SUCCESS,
                     false);
             y += MythicMinerInfoLayout.ROW_H_DATA;
-            progressBar(
-                    g,
-                    x,
-                    y,
-                    width,
-                    c.menu().getMarkerActualProgress(slot),
-                    cycle,
-                    MythicMinerTheme.SUCCESS);
+            progressStrip(g, x, y, width, c.menu().getMarkerActualProgress(slot), cycle);
             y += STRIP_H;
         }
 
@@ -366,8 +353,13 @@ final class MythicMinerInfoPage {
     }
 
     /**
-     * The stacked bar answers "why did parallel go up" at a glance; the labelled rows underneath say
-     * by how much. A flat list of three numbers would leave the player to do the arithmetic.
+     * One line of text, then the labelled rows that explain it.
+     *
+     * <p>The previous stacked bar encoded the same three addends as lengths. Length is the wrong
+     * encoding here: the segments were proportional to a total the player cannot otherwise see, so
+     * the bar could only be read by measuring it against something. Stating the thread's parallel
+     * against the machine's answers "how much of this machine is this thread" directly, and the
+     * rows underneath still carry the breakdown.
      */
     private static int drawParallelBreakdown(
             MythicMinerScreenContext c,
@@ -383,19 +375,21 @@ final class MythicMinerInfoPage {
         double external = c.menu().getMarkerExternalAccelerationParallelHundredths(slot) / 100.0D;
         long total = t.markers().get(slot).parallel();
 
-        if (total > 0) {
-            int offset = 0;
-            offset = stackSegment(g, x, y, width, offset, base, total, MythicMinerTheme.FLUIX);
-            offset =
-                    stackSegment(
-                            g, x, y, width, offset, efficiency, total, MythicMinerTheme.AMBER);
-            // The last segment absorbs the rounding remainder so the bar ends exactly on its edge.
-            int remaining = Math.max(0, width - offset);
-            if (remaining > 0) {
-                g.fill(x + offset, y, x + offset + remaining, y + STRIP_H, MythicMinerTheme.SUCCESS);
-            }
-        }
-        y += STRIP_H + 2;
+        Font font = c.font();
+        g.drawString(
+                font,
+                clip(
+                        font,
+                        Component.translatable(
+                                "screen.dimension_tech.mythic_miner.marker_info.parallel_status",
+                                total,
+                                t.totalParallel()),
+                        width),
+                x,
+                y,
+                MythicMinerTheme.INK,
+                false);
+        y += MythicMinerInfoLayout.ROW_H_DATA;
 
         y =
                 detailRow(
@@ -441,22 +435,6 @@ final class MythicMinerInfoPage {
                 MythicMinerTheme.MUTED);
     }
 
-    private static int stackSegment(
-            GuiGraphics g,
-            int x,
-            int y,
-            int barWidth,
-            int offset,
-            long value,
-            long total,
-            int color) {
-        if (value <= 0 || total <= 0) return offset;
-        int segment = (int) Math.min(barWidth - offset, value * barWidth / total);
-        if (segment <= 0) return offset;
-        g.fill(x + offset, y, x + offset + segment, y + STRIP_H, color);
-        return offset + segment;
-    }
-
     private static int detailRow(
             MythicMinerScreenContext c,
             GuiGraphics g,
@@ -475,7 +453,7 @@ final class MythicMinerInfoPage {
                 y,
                 color == MythicMinerTheme.MUTED ? MythicMinerTheme.DIM : MythicMinerTheme.INK,
                 false);
-        return y + DETAIL_H + 1;
+        return y + DETAIL_ROW_STRIDE;
     }
 
     private static int drawProductSection(
@@ -552,13 +530,36 @@ final class MythicMinerInfoPage {
         return y + MythicMinerInfoLayout.SECTION_HEADER_H;
     }
 
-    /** A plain two-tone bar; the spritesheet strip is reserved for the 16px lane cells. */
-    private static void progressBar(
-            GuiGraphics g, int x, int y, int width, long value, long total, int color) {
-        g.fill(x, y, x + width, y + 4, MythicMinerTheme.PROGRESS_TRACK);
+    /**
+     * A full-width progress strip assembled from the two spritesheet halves rather than from fills:
+     * the drained track stitched out to {@code width}, then the energised cover clipped over it from
+     * the left to whatever fraction {@code value / total} comes to.
+     *
+     * <p>The old two-tone version took a colour, which let the held/actual pair be told apart by
+     * hue. The sheet owns the colours now, so the two strips are distinguished by the labels above
+     * them instead — see {@link #drawWorkSection}.
+     */
+    private static void progressStrip(
+            GuiGraphics g, int x, int y, int width, long value, long total) {
+        MythicMinerSpriteRenderer.stitchTo(
+                g,
+                MythicMinerSpriteRenderer.PROGRESS_TRACK_FRAGMENT,
+                x,
+                y,
+                MythicMinerSpriteRenderer.StitchDirection.HORIZONTAL,
+                width,
+                false);
         if (total <= 0 || value <= 0) return;
         int filled = (int) Math.min(width, Math.min(value, total) * width / total);
-        if (filled > 0) g.fill(x, y, x + filled, y + 4, color);
+        if (filled <= 0) return;
+        MythicMinerSpriteRenderer.stitchTo(
+                g,
+                MythicMinerSpriteRenderer.PROGRESS_FILL_FRAGMENT,
+                x,
+                y,
+                MythicMinerSpriteRenderer.StitchDirection.HORIZONTAL,
+                filled,
+                true);
     }
 
     private static Component clip(Font font, Component text, int width) {
@@ -571,7 +572,9 @@ final class MythicMinerInfoPage {
      */
     static int contentHeight(MythicMinerScreenContext c, MythicMinerTelemetrySnapshot t, int slot) {
         int height = SUMMARY_H;
-        height += MythicMinerInfoLayout.SECTION_HEADER_H + 4 * MythicMinerInfoLayout.ROW_H_DATA;
+        height +=
+                MythicMinerInfoLayout.SECTION_HEADER_H
+                        + MARKER_SECTION_ROWS * MythicMinerInfoLayout.ROW_H_DATA;
         height += MythicMinerInfoLayout.SECTION_HEADER_H + workSectionHeight(t, slot);
         height +=
                 MythicMinerInfoLayout.SECTION_HEADER_H
@@ -582,12 +585,20 @@ final class MythicMinerInfoPage {
         return height;
     }
 
+    /**
+     * Exactly what {@link #drawWorkSection} advances {@code y} by — no padding term, because these
+     * two numbers feed {@link #productRowAt}'s hit test as well as the scroll range, and either use
+     * breaks by the pad in pixels it thinks the drawing has.
+     */
     private static int workSectionHeight(MythicMinerTelemetrySnapshot t, int slot) {
         MythicMinerTelemetrySnapshot.Marker marker = t.markers().get(slot);
-        int height = TICK_BLOCK_H;
-        if (marker.actualTicks() != marker.naturalTicks()) height += TICK_BLOCK_H;
-        // Stacked bar, then three labelled rows, plus the previous-cycle reference.
-        height += STRIP_H + 2 + DETAIL_ROWS * (DETAIL_H + 1) + 2;
+        boolean accelerated = marker.actualTicks() != marker.naturalTicks();
+        int height = accelerated ? 2 * TICK_BLOCK_H : TICK_BLOCK_H;
+        // One headline line, then a row per contribution. The external row only appears under
+        // external acceleration, so it has to be counted here too: leaving it out is what made the
+        // old height ten pixels short, which clipped the scroll range and shifted every product row.
+        height += MythicMinerInfoLayout.ROW_H_DATA;
+        height += (accelerated ? 4 : 3) * DETAIL_ROW_STRIDE;
         if (marker.waitingForNaturalWindow()) height += MythicMinerInfoLayout.ROW_H_DATA;
         return height;
     }
@@ -622,7 +633,7 @@ final class MythicMinerInfoPage {
                 - c.markerInfoScroll()
                 + SUMMARY_H
                 + MythicMinerInfoLayout.SECTION_HEADER_H
-                + 4 * MythicMinerInfoLayout.ROW_H_DATA
+                + MARKER_SECTION_ROWS * MythicMinerInfoLayout.ROW_H_DATA
                 + MythicMinerInfoLayout.SECTION_HEADER_H
                 + workSectionHeight(c.menu().telemetrySnapshot(), slot)
                 + MythicMinerInfoLayout.SECTION_HEADER_H;

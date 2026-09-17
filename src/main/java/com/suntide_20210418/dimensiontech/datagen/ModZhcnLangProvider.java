@@ -392,7 +392,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.section.marker", "标记器属性");
         add("screen.dimension_tech.mythic_miner.info.section.work", "工作状况");
         add("screen.dimension_tech.mythic_miner.info.section.products", "产物信息和操作");
-        add("screen.dimension_tech.mythic_miner.marker_progress_toggle", "点击%s");
+        add("screen.dimension_tech.mythic_miner.hint.slot_toggle", "右键槽位以启用或停用该线程");
         add("screen.dimension_tech.mythic_miner.expected_item.enable", "点击启用产出");
         add("screen.dimension_tech.mythic_miner.expected_item.disable", "点击禁用产出");
         add("screen.dimension_tech.mythic_miner.natural_progress", "自然tick：%s / %s");
@@ -442,7 +442,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.marker_info.unconfigured", "未配置结构标记器");
         add("screen.dimension_tech.mythic_miner.marker_info.structure", "槽位 %s：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.dimension", "维度：%s");
-        add("screen.dimension_tech.mythic_miner.marker_info.position", "坐标：%s, %s, %s");
+        add("screen.dimension_tech.mythic_miner.marker_info.parallel_status", "并行：%s / %s");
         add("screen.dimension_tech.mythic_miner.marker_info.dimension_value", "维度价值：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.structure_value", "结构价值：%s");
         add("screen.dimension_tech.mythic_miner.marker_info.expected_items", "物品期望");

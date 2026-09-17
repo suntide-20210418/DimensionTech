@@ -27,6 +27,7 @@ final class MythicMinerWorkPage {
         MythicMinerTelemetrySnapshot telemetry = context.menu().telemetrySnapshot();
         drawLane(context, g, telemetry);
         drawMeters(context, g, telemetry);
+        drawToggleHint(context, g);
         drawStatusChips(context, g, telemetry);
     }
 
@@ -101,7 +102,14 @@ final class MythicMinerWorkPage {
                         : marker.processingTime() <= 0 || marker.waitingForNaturalWindow()
                                 ? MythicMinerTheme.AMBER
                                 : MythicMinerTheme.FLUIX;
-        g.fill(x + 15, y + 1, x + 18, y + 4, color);
+        int lampRight = x + MythicMinerInfoLayout.MARKER_SIZE - MythicMinerInfoLayout.MARKER_LAMP_RIGHT_INSET;
+        int lampTop = y + MythicMinerInfoLayout.MARKER_LAMP_TOP_INSET;
+        g.fill(
+                lampRight - MythicMinerInfoLayout.MARKER_LAMP_SIZE,
+                lampTop,
+                lampRight,
+                lampTop + MythicMinerInfoLayout.MARKER_LAMP_SIZE,
+                color);
     }
 
     private static void drawProgressStrip(
@@ -125,7 +133,7 @@ final class MythicMinerWorkPage {
         MythicMinerTelemetrySnapshot.Marker marker = t.markers().get(slot);
         int filled =
                 MythicMinerProgressStrip.pixels(marker.progress(), marker.processingTime(), width);
-        MythicMinerSpriteRenderer.progressStrip(g, barX, barY, enabled ? filled : 0);
+        MythicMinerSpriteRenderer.progressStrip(g, barX, barY, width, enabled ? filled : 0);
 
         if (!enabled) {
             g.fill(barX, barY, barX + width, barY + 1, MythicMinerTheme.ERROR);
@@ -133,7 +141,7 @@ final class MythicMinerWorkPage {
         } else if (marker.waitingForNaturalWindow()) {
             // The strip is colour-locked to its sprite, so a side mark carries the throttled state.
             g.fill(
-                    barX + width - 2,
+                    barX + width - MythicMinerInfoLayout.MARKER_PROGRESS_END_MARK_W,
                     barY,
                     barX + width,
                     barY + height,
@@ -238,6 +246,26 @@ final class MythicMinerWorkPage {
                         Math.max(1, width - 10 - valueWidth));
         g.drawString(font, label, x + 6, y + 4, MythicMinerTheme.INK, false);
         g.drawString(font, value, x + width - valueWidth, y + 4, accent, false);
+    }
+
+    /**
+     * Tells the player how thread toggling works, drawn rather than hover-only.
+     *
+     * <p>Toggling used to live on the progress strip, so nothing on screen ever said so; after it
+     * moved to the right mouse button the gesture is invisible without this line. Hover help alone
+     * would only speak to players who already guessed there was something to hover.
+     */
+    private static void drawToggleHint(MythicMinerScreenContext c, GuiGraphics g) {
+        Font font = c.font();
+        Component hint =
+                Component.translatable("screen.dimension_tech.mythic_miner.hint.slot_toggle");
+        g.drawString(
+                font,
+                font.plainSubstrByWidth(hint.getString(), MythicMinerInfoLayout.CONTENT_W),
+                MythicMinerInfoLayout.CONTENT_X,
+                MythicMinerInfoLayout.WORK_HINT_Y,
+                MythicMinerTheme.DIM,
+                false);
     }
 
     // --- status chips ------------------------------------------------------

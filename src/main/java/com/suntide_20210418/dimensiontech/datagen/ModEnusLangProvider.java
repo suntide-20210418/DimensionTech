@@ -488,7 +488,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.info.section.marker", "Marker properties");
         add("screen.dimension_tech.mythic_miner.info.section.work", "Work status");
         add("screen.dimension_tech.mythic_miner.info.section.products", "Products and actions");
-        add("screen.dimension_tech.mythic_miner.marker_progress_toggle", "Click to %s");
+        add("screen.dimension_tech.mythic_miner.hint.slot_toggle",
+                "Right-click a slot to enable or disable that thread");
         add("screen.dimension_tech.mythic_miner.expected_item.enable", "Click to enable output");
         add("screen.dimension_tech.mythic_miner.expected_item.disable", "Click to disable output");
         add("screen.dimension_tech.mythic_miner.natural_progress", "Natural ticks: %s / %s");
@@ -556,7 +557,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.mythic_miner.marker_info.unconfigured", "No structure marker");
         add("screen.dimension_tech.mythic_miner.marker_info.structure", "Slot %s: %s");
         add("screen.dimension_tech.mythic_miner.marker_info.dimension", "Dimension: %s");
-        add("screen.dimension_tech.mythic_miner.marker_info.position", "Position: %s, %s, %s");
+        add("screen.dimension_tech.mythic_miner.marker_info.parallel_status", "Parallel: %s / %s");
         add(
                 "screen.dimension_tech.mythic_miner.marker_info.dimension_value",
                 "Dimension value: %s");
