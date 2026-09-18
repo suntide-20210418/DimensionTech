@@ -10,6 +10,7 @@ import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.gametest.EnchantmentMarkGameTests;
+import com.suntide_20210418.dimensiontech.gametest.EquipmentDismantleGameTests;
 import com.suntide_20210418.dimensiontech.gametest.LootExpectationGameTests;
 import com.suntide_20210418.dimensiontech.gametest.StructureReactorFluidContainerGameTests;
 import com.suntide_20210418.dimensiontech.gametest.StructureReactorGameTests;
@@ -75,6 +76,7 @@ public class DimensionTechMod {
     private static void registerGameTests(RegisterGameTestsEvent event) {
         event.register(LootExpectationGameTests.class);
         event.register(EnchantmentMarkGameTests.class);
+        event.register(EquipmentDismantleGameTests.class);
         event.register(StructureMinerTickContractGameTests.class);
         event.register(StructureReactorGameTests.class);
         event.register(StructureReactorTransactionGameTests.class);

@@ -44,7 +44,80 @@ public final class ExactEnchantmentSemantics1201 {
      */
     private static final int MARK_MARGINAL_WORK_BUDGET = 8_192;
 
+    /**
+     * Work budget shared by every enchantment transition of one table evaluation.
+     *
+     * <p>The per-call budget above only bounds one transition. A table hands the transition a few
+     * hundred input stacks (one call per stack), so the per-call budget alone still allowed the
+     * total to be multiplied by the stack count.
+     */
+    private static final int MARK_MARGINAL_TOTAL_WORK_BUDGET = 16_384;
+
     private ExactEnchantmentSemantics1201() {}
+
+    /**
+     * Caches shared across every input stack of one table evaluation.
+     *
+     * <p>A layer feeds the enchantment transition one input at a time, and a single table can hand
+     * it a few hundred stacks. Without a shared session each stack restarts the recursion from a
+     * cold cache, turning a table that should cost milliseconds into one that costs seconds. The
+     * cached values are pure functions of the available-enchantment list and level, so sharing them
+     * across stacks of one evaluation changes nothing about the result.
+     */
+    public static final class MarginalSession {
+        private final Map<AdjustedKey, Map<Integer, ExactProbability>> adjustedLevelsCache =
+                new HashMap<>();
+        private final MarginalComputer computer = new MarginalComputer(MARK_MARGINAL_STATE_BUDGET);
+        private int remainingWork = MARK_MARGINAL_TOTAL_WORK_BUDGET;
+
+        /*
+         * The base-level PMF is part of the key: two enchantment functions in one table may use
+         * different level providers, and the perturbed distribution depends on both the
+         * enchantability and those base levels.
+         */
+        private Map<Integer, ExactProbability> adjustedLevels(
+                FiniteDistribution<Integer> levels, int enchantability, int levelBudget) {
+            return adjustedLevelsCache.computeIfAbsent(
+                    new AdjustedKey(enchantability, levels.masses()),
+                    key ->
+                            ExactEnchantmentSemantics1201.adjustedLevels(
+                                    levels, enchantability, levelBudget));
+        }
+
+        /** Returns false once the shared budget is spent; callers then stop trying. */
+        private boolean spendWork() {
+            if (remainingWork <= 0) return false;
+            remainingWork--;
+            return true;
+        }
+
+        private record AdjustedKey(int enchantability, Map<Integer, ExactProbability> baseLevels) {
+            private AdjustedKey {
+                baseLevels = Map.copyOf(baseLevels);
+            }
+        }
+    }
+
+    /** Handle for {@link #openMarginalSession()}; close it around a whole table evaluation. */
+    public interface MarginalSessionScope extends AutoCloseable {
+        @Override
+        void close();
+    }
+
+    private static final ThreadLocal<MarginalSession> MARGINAL_SESSION = new ThreadLocal<>();
+
+    /**
+     * Opens a marginal session for the current thread. Every enchantment transition evaluated
+     * before the scope is closed shares one cache and one work budget.
+     */
+    public static MarginalSessionScope openMarginalSession() {
+        MarginalSession previous = MARGINAL_SESSION.get();
+        MARGINAL_SESSION.set(new MarginalSession());
+        return () -> {
+            if (previous == null) MARGINAL_SESSION.remove();
+            else MARGINAL_SESSION.set(previous);
+        };
+    }
 
     /**
      * Result of the terminal-only enchantment transition.
@@ -532,7 +605,8 @@ public final class ExactEnchantmentSemantics1201 {
          * on real tables: the recursion cost was multiplied by the input state count.
          */
         Map<MarginalPlanKey, ExactProbability> plans = new LinkedHashMap<>();
-        Map<Integer, Map<Integer, ExactProbability>> adjustedByEnchantability = new HashMap<>();
+        MarginalSession session = MARGINAL_SESSION.get();
+        if (session == null) session = new MarginalSession();
         int work = 0;
         try {
             for (Map.Entry<StackState, ExactProbability> input : inputs) {
@@ -541,11 +615,11 @@ public final class ExactEnchantmentSemantics1201 {
                 int enchantability = stack.getEnchantmentValue();
                 if (enchantability <= 0) continue;
                 Map<Integer, ExactProbability> adjustedLevels =
-                        adjustedByEnchantability.computeIfAbsent(
-                                enchantability,
-                                value -> adjustedLevels(levels, value, levelBudget));
+                        session.adjustedLevels(levels, enchantability, levelBudget);
                 for (Map.Entry<Integer, ExactProbability> adjusted : adjustedLevels.entrySet()) {
-                    if (++work > MARK_MARGINAL_WORK_BUDGET) return EnchantmentMarginal.EMPTY;
+                    if (++work > MARK_MARGINAL_WORK_BUDGET || !session.spendWork()) {
+                        return EnchantmentMarginal.EMPTY;
+                    }
                     List<EnchantmentInstance> available =
                             EnchantmentHelper.getAvailableEnchantmentResults(
                                     adjusted.getKey(), stack, treasure);
@@ -565,7 +639,7 @@ public final class ExactEnchantmentSemantics1201 {
             return EnchantmentMarginal.EMPTY;
         }
 
-        MarginalComputer computer = new MarginalComputer(budget);
+        MarginalComputer computer = session.computer;
         LinkedHashMap<EnchantmentKey, ExactProbability> result = new LinkedHashMap<>();
         try {
             for (Map.Entry<MarginalPlanKey, ExactProbability> plan : plans.entrySet()) {

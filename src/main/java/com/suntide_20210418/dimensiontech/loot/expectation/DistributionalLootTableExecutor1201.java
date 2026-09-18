@@ -40,8 +40,11 @@ public final class DistributionalLootTableExecutor1201 {
             ResourceLocation tableId,
             LootAnalysisContext context,
             int maxStates) {
-        LogicalResult logical = evaluateMarginalCalls(server, tableId, context, maxStates);
-        return idealProductionResult(logical);
+        try (ExactEnchantmentSemantics1201.MarginalSessionScope ignored =
+                ExactEnchantmentSemantics1201.openMarginalSession()) {
+            LogicalResult logical = evaluateMarginalCalls(server, tableId, context, maxStates);
+            return idealProductionResult(logical);
+        }
     }
 
     /** Evaluates a deeply immutable serialized source without touching Minecraft runtime state. */
@@ -50,8 +53,11 @@ public final class DistributionalLootTableExecutor1201 {
             ResourceLocation tableId,
             LootAnalysisContext context,
             int maxStates) {
-        LogicalResult logical = evaluateMarginalCalls(source, tableId, context, maxStates);
-        return idealProductionResult(logical);
+        try (ExactEnchantmentSemantics1201.MarginalSessionScope ignored =
+                ExactEnchantmentSemantics1201.openMarginalSession()) {
+            LogicalResult logical = evaluateMarginalCalls(source, tableId, context, maxStates);
+            return idealProductionResult(logical);
+        }
     }
 
     /** Alias that makes the declared ideal probability contract explicit at call sites. */

@@ -32,12 +32,28 @@ import javax.annotation.Nullable;
 public final class EquipmentDismantler {
     private EquipmentDismantler() {}
 
-    public static List<ItemStack> dismantle(ServerLevel level, ItemStack equipment) {
+    /**
+     * Breaks equipment into the materials that make it.
+     *
+     * @param level the level used to look up crafting recipes, or {@code null} for a caller without
+     *     a recipe manager (the client-side preview). A null level only disables the recipe-lookup
+     *     fallback; the primary-material path still runs and anything else is left intact.
+     */
+    public static List<ItemStack> dismantle(@Nullable ServerLevel level, ItemStack equipment) {
         Optional<ItemStack> primaryMaterial = primaryMaterialResult(equipment);
         if (primaryMaterial.isPresent()) {
             return List.of(primaryMaterial.get());
         }
         if (!isEquipmentOrWeapon(equipment)) {
+            return List.of(equipment);
+        }
+        /*
+         * A null level means the caller has no recipe manager - the client-side preview in
+         * StructureMinerScreen passes one. Only the primary-material path above is available there;
+         * falling through to the recipe lookup would dereference a null ServerLevel. Leaving such an
+         * item intact is the documented behaviour for that case.
+         */
+        if (level == null) {
             return List.of(equipment);
         }
         return craftingIngredients(level, equipment).orElseGet(() -> List.of(equipment));
