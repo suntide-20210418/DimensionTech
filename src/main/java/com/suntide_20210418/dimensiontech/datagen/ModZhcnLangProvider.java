@@ -81,10 +81,19 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.status_line.previous.none", "无");
         add("screen.dimension_tech.structure_reactor.status_line.no_recipe", "暂无配方");
         add("screen.dimension_tech.structure_reactor.status_line.no_requirement", "无");
+        add("screen.dimension_tech.structure_reactor.status_line.reward_window", "奖励窗口 %s-%s tick");
+        add("screen.dimension_tech.structure_reactor.status_line.reward_idle", "奖励窗口外");
         add("screen.dimension_tech.structure_reactor.stage.branch", "分支");
         add("screen.dimension_tech.structure_reactor.stage.recurse", "递归");
         add("screen.dimension_tech.structure_reactor.stage.converge", "收敛");
         add("screen.dimension_tech.structure_reactor.stage.stabilize", "稳定");
+        add("screen.dimension_tech.structure_reactor.detail.sequence", "配方步骤");
+        add("screen.dimension_tech.structure_reactor.detail.needs", "需求");
+        add("screen.dimension_tech.structure_reactor.detail.changes", "变化");
+        add("screen.dimension_tech.structure_reactor.detail.previous", "上一步骤");
+        add(
+                "screen.dimension_tech.structure_reactor.detail.fluid_required",
+                "输入流体 %s/%s mB（本步需 %s mB）");
         add("screen.dimension_tech.structure_reactor.input", "输入精华");
         add("screen.dimension_tech.structure_reactor.output", "输出精华");
         add("screen.dimension_tech.structure_reactor.ritual", "仪式流程");

@@ -90,10 +90,19 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.status_line.previous.none", "None");
         add("screen.dimension_tech.structure_reactor.status_line.no_recipe", "No recipe");
         add("screen.dimension_tech.structure_reactor.status_line.no_requirement", "None");
+        add("screen.dimension_tech.structure_reactor.status_line.reward_window", "Reward window %s-%s tick");
+        add("screen.dimension_tech.structure_reactor.status_line.reward_idle", "Outside reward window");
         add("screen.dimension_tech.structure_reactor.stage.branch", "Branch");
         add("screen.dimension_tech.structure_reactor.stage.recurse", "Recurse");
         add("screen.dimension_tech.structure_reactor.stage.converge", "Converge");
         add("screen.dimension_tech.structure_reactor.stage.stabilize", "Stabilize");
+        add("screen.dimension_tech.structure_reactor.detail.sequence", "Recipe steps");
+        add("screen.dimension_tech.structure_reactor.detail.needs", "Needs");
+        add("screen.dimension_tech.structure_reactor.detail.changes", "Changes");
+        add("screen.dimension_tech.structure_reactor.detail.previous", "Previous step");
+        add(
+                "screen.dimension_tech.structure_reactor.detail.fluid_required",
+                "Input fluid %s/%s mB (needs %s mB this step)");
         add("screen.dimension_tech.structure_reactor.input", "Input essence");
         add("screen.dimension_tech.structure_reactor.output", "Output essence");
         add("screen.dimension_tech.structure_reactor.ritual", "Ritual sequence");

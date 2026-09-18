@@ -32,15 +32,22 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     private static final int INVENTORY_LABEL_X = StructureReactorLayout.PLAYER_INVENTORY.x();
     private static final int INVENTORY_LABEL_Y = StructureReactorLayout.PLAYER_INVENTORY.y() - 10;
     private static final int LABEL_COLOR = 0xFF413F54;
+    private static final int INK = 0xFF000000;
+    private static final int SUCCESS = 0xFF2E6B3E;
+    private static final int ERROR = 0xFFA6442F;
+    private static final int REWARD_TEXT = 0xFF8A5A14;
+    private static final int SELECT = 0xFF77909F;
+    private static final int FLUIX = 0xFF2A6180;
     static final int SEQUENCE_PREVIOUS_COLOR = 0xFF777783;
     static final int SEQUENCE_CURRENT_COLOR = 0xFFB66CFF;
     static final int SEQUENCE_NEXT_COLOR = 0xFFFFFFFF;
     static final int PROGRESS_REWARD_COLOR = 0xFFFFA33A;
     static final int PROGRESS_TIMEOUT_COLOR = 0xFFFF4A4A;
-    private static final int STATUS_X = StructureReactorLayout.STATUS_DISPLAY.x() + 2;
-    private static final int STATUS_Y = StructureReactorLayout.STATUS_DISPLAY.y() + 2;
-    private static final int STATUS_WIDTH = StructureReactorLayout.STATUS_DISPLAY.width() - 4;
-    private static final int STATUS_LINE_HEIGHT = 9;
+    private static final int STATUS_AREA_X = StructureReactorLayout.STATUS_REWARD_AREA.x() + 2;
+    private static final int STATUS_AREA_Y = StructureReactorLayout.STATUS_REWARD_AREA.y() + 2;
+    private static final int STATUS_AREA_WIDTH = StructureReactorLayout.STATUS_REWARD_AREA.width() - 4;
+    private static final int DETAIL_LINE_HEIGHT = 11;
+    private static final int DETAIL_TEXT_INSET = 3;
     private static final String KEY_TITLE = "screen.dimension_tech.structure_reactor.title";
     private static final String KEY_INVENTORY_LABEL =
             "screen.dimension_tech.structure_reactor.inventory_label";
@@ -78,24 +85,29 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             "screen.dimension_tech.structure_reactor.tooltip.timeout";
     private static final String KEY_FLUID_CLEAR_HINT =
             "screen.dimension_tech.structure_reactor.fluid_clear_hint";
-    private static final String KEY_STATUS_CURRENT =
-            "screen.dimension_tech.structure_reactor.status_line.current";
-    private static final String KEY_STATUS_SEQUENCE =
-            "screen.dimension_tech.structure_reactor.status_line.sequence";
-    private static final String KEY_STATUS_PROGRESS =
-            "screen.dimension_tech.structure_reactor.status_line.progress";
-    private static final String KEY_STATUS_REFINING_PROGRESS =
-            "screen.dimension_tech.structure_reactor.status_line.refining_progress";
-    private static final String KEY_STATUS_NEEDS =
-            "screen.dimension_tech.structure_reactor.status_line.needs";
     private static final String KEY_STATUS_PREVIOUS =
             "screen.dimension_tech.structure_reactor.status_line.previous";
-    private static final String KEY_STATUS_NO_RECIPE =
-            "screen.dimension_tech.structure_reactor.status_line.no_recipe";
     private static final String KEY_STATUS_NO_REQUIREMENT =
             "screen.dimension_tech.structure_reactor.status_line.no_requirement";
-    private static final String KEY_STATUS_CHANGES =
-            "screen.dimension_tech.structure_reactor.status_line.changes";
+    private static final String KEY_REWARD_WINDOW =
+            "screen.dimension_tech.structure_reactor.status_line.reward_window";
+    private static final String KEY_REWARD_IDLE =
+            "screen.dimension_tech.structure_reactor.status_line.reward_idle";
+    private static final String KEY_DETAIL_SEQUENCE =
+            "screen.dimension_tech.structure_reactor.detail.sequence";
+    private static final String KEY_DETAIL_NEEDS =
+            "screen.dimension_tech.structure_reactor.detail.needs";
+    private static final String KEY_DETAIL_CHANGES =
+            "screen.dimension_tech.structure_reactor.detail.changes";
+    private static final String KEY_DETAIL_PREVIOUS =
+            "screen.dimension_tech.structure_reactor.detail.previous";
+    private static final String KEY_DETAIL_FLUID_REQUIRED =
+            "screen.dimension_tech.structure_reactor.detail.fluid_required";
+
+    private int detailScroll = 0;
+    private int detailContentHeight = 0;
+    private boolean draggingScrollbar = false;
+    private int scrollGrabY = 0;
 
     public StructureReactorScreen(StructureReactorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -246,98 +258,289 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 INVENTORY_LABEL_Y,
                 LABEL_COLOR,
                 false);
-        renderStatus(g);
+        renderStatusReward(g);
+        renderDetail(g);
     }
 
-    private void renderStatus(GuiGraphics g) {
+    /** Compact readout on the machine face: current status + progress, and the reward window. */
+    private void renderStatusReward(GuiGraphics g) {
         StructureReactorCycle.Status status = statusValue(menu.status());
-        drawFitted(
-                g,
-                Component.translatable(
-                        KEY_STATUS_CURRENT, statusText(status), progressValueText(status)),
-                STATUS_X,
-                STATUS_Y,
-                SEQUENCE_NEXT_COLOR);
-        renderSequence(g, status);
-        drawFitted(
-                g,
-                Component.translatable(KEY_STATUS_NEEDS, operationRequirement()),
-                STATUS_X,
-                STATUS_Y + STATUS_LINE_HEIGHT * 2,
-                SEQUENCE_NEXT_COLOR);
-        drawFitted(
-                g,
-                recipeChangesText(),
-                STATUS_X,
-                STATUS_Y + STATUS_LINE_HEIGHT * 3,
-                SEQUENCE_NEXT_COLOR);
-        drawFitted(
-                g,
-                previousStatusText(),
-                STATUS_X,
-                STATUS_Y + STATUS_LINE_HEIGHT * 4,
-                SEQUENCE_NEXT_COLOR);
-    }
-
-    private void renderSequence(GuiGraphics g, StructureReactorCycle.Status status) {
-        List<ColoredText> parts = new ArrayList<>();
-        int length = Math.max(0, Math.min(menu.sequenceLength(), 32));
-        int currentIndex = status == StructureReactorCycle.Status.RUNNING ? menu.stateIndex() : -1;
-        for (int index = 0; index < length; index++) {
-            StateId state = menu.sequenceState(index);
-            if (state == null) continue;
-            if (index > 0)
-                parts.add(new ColoredText(Component.literal(" → "), SEQUENCE_NEXT_COLOR));
-            parts.add(
-                    new ColoredText(
-                            stageText(state),
-                            sequenceColor(index, currentIndex, status.ordinal())));
-        }
-        if (length == 0)
-            parts.add(
-                    new ColoredText(
-                            Component.translatable(KEY_STATUS_NO_RECIPE), SEQUENCE_NEXT_COLOR));
-        drawFittedSequence(g, parts, STATUS_X, STATUS_Y + STATUS_LINE_HEIGHT);
-    }
-
-    private Component progressText(StructureReactorCycle.Status status) {
+        int current;
+        int maximum;
         if (status == StructureReactorCycle.Status.REFINING) {
-            return Component.translatable(
-                    KEY_STATUS_REFINING_PROGRESS, Math.max(0, menu.refiningTicks()));
+            current = Math.max(0, menu.refiningTicks());
+            maximum = Math.max(1, menu.resultTimeTicks());
+        } else if (status == StructureReactorCycle.Status.RUNNING) {
+            current = clampTicks(menu.stateTicks());
+            maximum = TICKS;
+        } else if (status == StructureReactorCycle.Status.READY_TO_COMMIT) {
+            current = TICKS;
+            maximum = TICKS;
+        } else {
+            current = 0;
+            maximum = 0;
         }
-        int ticks =
+        String line =
+                statusText(status).getString()
+                        + " "
+                        + current
+                        + (maximum > 0 ? "/" + maximum : "");
+        g.drawString(font, Component.literal(line), STATUS_AREA_X, STATUS_AREA_Y, INK, false);
+
+        boolean inWindow =
                 status == StructureReactorCycle.Status.RUNNING
-                        ? clampTicks(menu.stateTicks())
-                        : status == StructureReactorCycle.Status.READY_TO_COMMIT ? TICKS : 0;
-        return Component.translatable(KEY_STATUS_PROGRESS, ticks, TICKS);
+                        && menu.stateTicks() >= StructureReactorCycle.REWARD_START_TICK
+                        && menu.stateTicks() <= StructureReactorCycle.REWARD_END_TICK;
+        Component reward =
+                inWindow
+                        ? Component.translatable(
+                                KEY_REWARD_WINDOW,
+                                StructureReactorCycle.REWARD_START_TICK,
+                                StructureReactorCycle.REWARD_END_TICK)
+                        : Component.translatable(KEY_REWARD_IDLE);
+        g.drawString(
+                font,
+                reward,
+                STATUS_AREA_X,
+                STATUS_AREA_Y + 13,
+                inWindow ? REWARD_TEXT : INK,
+                false);
     }
 
-    private Component progressValueText(StructureReactorCycle.Status status) {
-        if (status == StructureReactorCycle.Status.REFINING)
-            return Component.translatable(
-                    "screen.dimension_tech.structure_reactor.status_line.refining_value",
-                    Math.max(0, menu.refiningTicks()));
-        int ticks =
-                status == StructureReactorCycle.Status.RUNNING
-                        ? clampTicks(menu.stateTicks())
-                        : status == StructureReactorCycle.Status.READY_TO_COMMIT ? TICKS : 0;
-        return Component.translatable(
-                "screen.dimension_tech.structure_reactor.status_line.progress_value", ticks, TICKS);
+    /** Scrollable detail panel: sequence, step needs, recipe changes and last settlement. */
+    private void renderDetail(GuiGraphics g) {
+        List<DetailLine> lines = buildDetailLines();
+        detailContentHeight = lines.size() * DETAIL_LINE_HEIGHT;
+        clampDetailScroll();
+        int vx = leftPos + StructureReactorLayout.VIEWPORT.x();
+        int vy = topPos + StructureReactorLayout.VIEWPORT.y();
+        int vw = StructureReactorLayout.VIEWPORT.width();
+        int vh = StructureReactorLayout.VIEWPORT.height();
+        g.enableScissor(vx, vy, vx + vw, vy + vh);
+        int baseY = vy + DETAIL_TEXT_INSET;
+        int x = vx + DETAIL_TEXT_INSET;
+        for (int i = 0; i < lines.size(); i++) {
+            int y = baseY + i * DETAIL_LINE_HEIGHT - detailScroll;
+            if (y + DETAIL_LINE_HEIGHT < vy || y > vy + vh) continue;
+            DetailLine line = lines.get(i);
+            if (line.highlight()) {
+                g.fill(vx, y - 1, vw, DETAIL_LINE_HEIGHT, SELECT);
+            }
+            g.drawString(font, line.text(), x, y, line.color(), false);
+        }
+        g.disableScissor();
+        drawDetailScrollbar(g);
     }
 
-    private Component recipeChangesText() {
+    private List<DetailLine> buildDetailLines() {
+        List<DetailLine> lines = new ArrayList<>();
+        lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_SEQUENCE)));
+        StructureReactorCycle.Status status = statusValue(menu.status());
+        int currentIndex = status == StructureReactorCycle.Status.RUNNING ? menu.stateIndex() : -1;
+        int length = Math.max(0, Math.min(menu.sequenceLength(), 32));
+        for (int i = 0; i < length; i++) {
+            StateId state = menu.sequenceState(i);
+            if (state == null) continue;
+            boolean current = i == currentIndex;
+            Component text = Component.literal(current ? "▶ " : "· ").append(stageText(state));
+            int color = current ? INK : (i < currentIndex ? SEQUENCE_PREVIOUS_COLOR : INK);
+            lines.add(new DetailLine(text, color, current));
+        }
+
+        lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_NEEDS)));
+        ReactorTooltipSnapshot snapshot = menu.tooltipSnapshot();
+        if (snapshot.operationCandidates().isEmpty()) {
+            lines.add(new DetailLine(Component.translatable(KEY_STATUS_NO_REQUIREMENT), INK, false));
+        } else {
+            for (ItemStack candidate : snapshot.operationCandidates())
+                lines.add(
+                        new DetailLine(
+                                Component.literal("· " + candidate.getHoverName().getString()),
+                                INK,
+                                false));
+            int total = snapshot.operationCandidateTotal();
+            if (total > snapshot.operationCandidates().size())
+                lines.add(
+                        new DetailLine(
+                                Component.literal(
+                                        "还有 " + (total - snapshot.operationCandidates().size()) + " 种"),
+                                INK,
+                                false));
+        }
+        lines.add(
+                new DetailLine(
+                        Component.translatable(
+                                KEY_DETAIL_FLUID_REQUIRED,
+                                Math.max(0, menu.inputAmount()),
+                                menu.inputCapacity(),
+                                snapshot.inputRequiredAmount()),
+                        FLUIX,
+                        false));
+
+        lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_CHANGES)));
         int outputChange = menu.outputBonusBp() - menu.outputPenaltyBp();
         int consumptionChange = menu.fluidReductionBp() - menu.fluidPenaltyBp();
-        return Component.translatable(
-                KEY_STATUS_CHANGES,
-                signedPercent(outputChange),
-                signedPercent(-consumptionChange),
-                Math.max(0, menu.timeReduction()),
-                Math.max(0, menu.timePenalty()),
-                Math.max(0, menu.extraFragments()));
+        lines.add(
+                new DetailLine(
+                        Component.literal("产出 " + signedPercent(outputChange)),
+                        outputChange >= 0 ? SUCCESS : ERROR,
+                        false));
+        lines.add(
+                new DetailLine(
+                        Component.literal("流体 " + signedPercent(-consumptionChange)),
+                        consumptionChange >= 0 ? SUCCESS : ERROR,
+                        false));
+        lines.add(
+                new DetailLine(
+                        Component.literal("耗时 -" + Math.max(0, menu.timeReduction()) + "t"),
+                        INK,
+                        false));
+        lines.add(
+                new DetailLine(
+                        Component.literal("碎片 +" + Math.max(0, menu.extraFragments())),
+                        INK,
+                        false));
+
+        lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_PREVIOUS)));
+        lines.add(new DetailLine(previousStatusText(), INK, false));
+        return lines;
     }
 
-    static String signedPercent(int basisPoints) {
+    private void drawDetailScrollbar(GuiGraphics g) {
+        int vx = leftPos + StructureReactorLayout.VIEWPORT.x();
+        int vy = topPos + StructureReactorLayout.VIEWPORT.y();
+        int vw = StructureReactorLayout.VIEWPORT.width();
+        int vh = StructureReactorLayout.VIEWPORT.height();
+        int trackX = vx + vw - 2;
+        g.fill(trackX, vy, 3, vh, 0x40000000);
+        int maxScroll = Math.max(0, detailContentHeight - vh);
+        if (maxScroll <= 0) return;
+        int thumbH = Math.max(8, vh * vh / Math.max(1, detailContentHeight));
+        int thumbY = vy + (vh - thumbH) * detailScroll / maxScroll;
+        g.fill(trackX, thumbY, 3, thumbH, 0xFF888888);
+    }
+
+    private void clampDetailScroll() {
+        int maxScroll =
+                Math.max(0, detailContentHeight - StructureReactorLayout.VIEWPORT.height());
+        if (detailScroll < 0) detailScroll = 0;
+        if (detailScroll > maxScroll) detailScroll = maxScroll;
+    }
+
+    private boolean isOverDetail(double mouseX, double mouseY) {
+        int lx = (int) mouseX - leftPos;
+        int ly = (int) mouseY - topPos;
+        GuiRect vp = StructureReactorLayout.VIEWPORT;
+        return lx >= vp.x() - 4
+                && lx <= vp.x() + vp.width() + 2
+                && ly >= vp.y()
+                && ly <= vp.y() + vp.height();
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (isOverDetail(mouseX, mouseY)) {
+            detailScroll -= (int) Math.signum(delta) * DETAIL_LINE_HEIGHT;
+            clampDetailScroll();
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            int lx = (int) mouseX - leftPos;
+            int ly = (int) mouseY - topPos;
+            GuiRect vp = StructureReactorLayout.VIEWPORT;
+            if (lx >= vp.x() + vp.width() - 4
+                    && lx <= vp.x() + vp.width() + 2
+                    && ly >= vp.y()
+                    && ly <= vp.y() + vp.height()) {
+                draggingScrollbar = true;
+                int maxScroll = Math.max(0, detailContentHeight - vp.height());
+                if (maxScroll > 0) {
+                    int vh = vp.height();
+                    int thumbH = Math.max(8, vh * vh / Math.max(1, detailContentHeight));
+                    int thumbTop =
+                            topPos + vp.y() + (vh - thumbH) * detailScroll / maxScroll;
+                    scrollGrabY = (int) mouseY - thumbTop;
+                } else {
+                    scrollGrabY = 0;
+                }
+                return true;
+            }
+            boolean clearing = hasShiftDown();
+            if (StructureReactorLayout.INPUT_TANK.contains(lx, ly)) {
+                pressButton(
+                        clearing
+                                ? StructureReactorBlockEntity.BUTTON_CLEAR_INPUT_TANK
+                                : StructureReactorBlockEntity.BUTTON_TOGGLE_INPUT_LOCK);
+                return true;
+            }
+            if (clearing && StructureReactorLayout.OUTPUT_TANK.contains(lx, ly)) {
+                pressButton(StructureReactorBlockEntity.BUTTON_CLEAR_OUTPUT_TANK);
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(
+            double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (draggingScrollbar) {
+            GuiRect vp = StructureReactorLayout.VIEWPORT;
+            int maxScroll = Math.max(0, detailContentHeight - vp.height());
+            if (maxScroll > 0) {
+                int vh = vp.height();
+                int thumbH = Math.max(8, vh * vh / Math.max(1, detailContentHeight));
+                int trackTop = topPos + vp.y();
+                int desiredThumbTop = (int) mouseY - scrollGrabY;
+                int rel = desiredThumbTop - trackTop;
+                detailScroll = rel * maxScroll / Math.max(1, vh - thumbH);
+                clampDetailScroll();
+            }
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        int maxScroll =
+                Math.max(0, detailContentHeight - StructureReactorLayout.VIEWPORT.height());
+        if (keyCode == 266) {
+            detailScroll = 0;
+            return true;
+        }
+        if (keyCode == 269) {
+            detailScroll = maxScroll;
+            return true;
+        }
+        if (keyCode == 268) {
+            detailScroll -= StructureReactorLayout.VIEWPORT.height();
+            clampDetailScroll();
+            return true;
+        }
+        if (keyCode == 267) {
+            detailScroll += StructureReactorLayout.VIEWPORT.height();
+            clampDetailScroll();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private static String signedPercent(int basisPoints) {
         long magnitude = Math.abs((long) basisPoints);
         long whole = magnitude / 100;
         int fraction = (int) (magnitude % 100);
@@ -349,21 +552,6 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             value += "." + fractionText;
         }
         return (basisPoints > 0 ? "+" : basisPoints < 0 ? "-" : "") + value + "%";
-    }
-
-    private Component operationRequirement() {
-        ReactorTooltipSnapshot snapshot = menu.tooltipSnapshot();
-        if (snapshot.operationCandidates().isEmpty())
-            return Component.translatable(KEY_STATUS_NO_REQUIREMENT);
-        StringJoiner names = new StringJoiner(", ");
-        for (ItemStack candidate : snapshot.operationCandidates())
-            names.add(candidate.getHoverName().getString());
-        if (snapshot.operationCandidateTotal() > snapshot.operationCandidates().size())
-            names.add(
-                    "+"
-                            + (snapshot.operationCandidateTotal()
-                                    - snapshot.operationCandidates().size()));
-        return Component.literal(names.toString());
     }
 
     private Component previousStatusText() {
@@ -506,40 +694,11 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 : StructureReactorCycle.Status.IDLE;
     }
 
-    private void drawFitted(GuiGraphics g, Component text, int x, int y, int color) {
-        drawFitted(g, text, x, y, STATUS_WIDTH, color);
-    }
-
-    private void drawFitted(GuiGraphics g, Component text, int x, int y, int maxWidth, int color) {
-        int textWidth = font.width(text);
-        if (textWidth <= maxWidth) {
-            g.drawString(font, text, x, y, color, false);
-            return;
+    private record DetailLine(Component text, int color, boolean highlight) {
+        static DetailLine header(Component text) {
+            return new DetailLine(text, INK, false);
         }
-        float scale = Math.min(1.0F, (float) maxWidth / Math.max(1, textWidth));
-        g.pose().pushPose();
-        g.pose().translate(x, y, 0);
-        g.pose().scale(scale, scale, 1.0F);
-        g.drawString(font, text, 0, 0, color, false);
-        g.pose().popPose();
     }
-
-    private void drawFittedSequence(GuiGraphics g, List<ColoredText> parts, int x, int y) {
-        int width = 0;
-        for (ColoredText part : parts) width += font.width(part.text());
-        float scale = Math.min(1.0F, (float) STATUS_WIDTH / Math.max(1, width));
-        g.pose().pushPose();
-        g.pose().translate(x, y, 0);
-        g.pose().scale(scale, scale, 1.0F);
-        int cursor = 0;
-        for (ColoredText part : parts) {
-            g.drawString(font, part.text(), cursor, 0, part.color(), false);
-            cursor += font.width(part.text());
-        }
-        g.pose().popPose();
-    }
-
-    private record ColoredText(Component text, int color) {}
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
@@ -557,27 +716,6 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
         } else if (hoveredSlot != null && hoveredSlot.hasItem()) {
             g.renderTooltip(font, hoveredSlot.getItem(), mouseX, mouseY);
         }
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
-            int x = (int) mouseX - leftPos;
-            int y = (int) mouseY - topPos;
-            boolean clearing = hasShiftDown();
-            if (StructureReactorLayout.INPUT_TANK.contains(x, y)) {
-                pressButton(
-                        clearing
-                                ? StructureReactorBlockEntity.BUTTON_CLEAR_INPUT_TANK
-                                : StructureReactorBlockEntity.BUTTON_TOGGLE_INPUT_LOCK);
-                return true;
-            }
-            if (clearing && StructureReactorLayout.OUTPUT_TANK.contains(x, y)) {
-                pressButton(StructureReactorBlockEntity.BUTTON_CLEAR_OUTPUT_TANK);
-                return true;
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void pressButton(int buttonId) {

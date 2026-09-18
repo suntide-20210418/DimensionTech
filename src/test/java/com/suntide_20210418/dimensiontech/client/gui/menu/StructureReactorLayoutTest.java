@@ -2,20 +2,21 @@ package com.suntide_20210418.dimensiontech.client.gui.menu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class StructureReactorLayoutTest {
     @Test
-    void itemSlotsAreSixteenPixelsWithTwoPixelGaps() {
+    void itemSlotsAreSixteenPixelsWithGaps() {
         assertEquals(16, StructureReactorLayout.ITEM_SLOT_SIZE);
         assertEquals(2, StructureReactorLayout.ITEM_SLOT_GAP);
         assertEquals(18, StructureReactorLayout.ITEM_SLOT_STRIDE);
         assertEquals(16, StructureReactorLayout.FRAGMENT_SLOT.width());
         assertEquals(16, StructureReactorLayout.FRAGMENT_SLOT.height());
         assertEquals(
-                2,
+                10,
                 StructureReactorLayout.OPERATION_SLOT.y()
                         - StructureReactorLayout.FRAGMENT_SLOT.bottom());
 
@@ -52,15 +53,16 @@ class StructureReactorLayoutTest {
 
     @Test
     void exposesRequestedDimensionsAndRegions() {
-        assertEquals(175, StructureReactorLayout.WIDTH);
+        assertEquals(292, StructureReactorLayout.WIDTH);
         assertEquals(165, StructureReactorLayout.HEIGHT);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(8, 17, 16, 50), StructureReactorLayout.INPUT_TANK);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(30, 17, 16, 16), StructureReactorLayout.FRAGMENT_SLOT);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(30, 35, 16, 16), StructureReactorLayout.OPERATION_SLOT);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(34, 54, 12, 11), StructureReactorLayout.PROGRESS_BAR);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(34, 54, 12, 11), StructureReactorLayout.RECIPE_DISPLAY);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(52, 18, 93, 47), StructureReactorLayout.STATUS_DISPLAY);
-        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(152, 17, 16, 50), StructureReactorLayout.OUTPUT_TANK);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(8, 12, 16, 50), StructureReactorLayout.INPUT_TANK);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(32, 16, 16, 16), StructureReactorLayout.FRAGMENT_SLOT);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(32, 42, 16, 16), StructureReactorLayout.OPERATION_SLOT);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(56, 18, 88, 5), StructureReactorLayout.PROGRESS_BAR);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(56, 18, 88, 5), StructureReactorLayout.RECIPE_DISPLAY);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(56, 27, 88, 29), StructureReactorLayout.STATUS_REWARD_AREA);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(182, 42, 100, 112), StructureReactorLayout.VIEWPORT);
+        assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(152, 12, 16, 50), StructureReactorLayout.OUTPUT_TANK);
         assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(7, 83, 162, 54), StructureReactorLayout.PLAYER_INVENTORY);
         assertEquals(new com.suntide_20210418.dimensiontech.client.gui.screen.GuiRect(7, 141, 162, 18), StructureReactorLayout.HOTBAR);
     }
@@ -85,10 +87,15 @@ class StructureReactorLayoutTest {
     @Test
     void regionsUseHalfOpenBounds() {
         assertEquals(24, StructureReactorLayout.INPUT_TANK.right());
-        assertEquals(67, StructureReactorLayout.INPUT_TANK.bottom());
+        assertEquals(62, StructureReactorLayout.INPUT_TANK.bottom());
         assertFalse(StructureReactorLayout.INPUT_TANK.contains(24, 17));
         assertEquals(StructureReactorLayout.PROGRESS_BAR, StructureReactorLayout.RECIPE_DISPLAY);
         assertFalse(StructureReactorLayout.OUTPUT_TANK.intersects(StructureReactorLayout.RECIPE_DISPLAY));
         assertFalse(StructureReactorLayout.PLAYER_INVENTORY.intersects(StructureReactorLayout.HOTBAR));
+        assertFalse(StructureReactorLayout.STATUS_REWARD_AREA.intersects(StructureReactorLayout.PROGRESS_BAR));
+        assertTrue(StructureReactorLayout.VIEWPORT.x() >= 0);
+        assertTrue(StructureReactorLayout.VIEWPORT.y() >= 0);
+        assertTrue(StructureReactorLayout.VIEWPORT.x() + StructureReactorLayout.VIEWPORT.width() <= StructureReactorLayout.WIDTH);
+        assertTrue(StructureReactorLayout.VIEWPORT.y() + StructureReactorLayout.VIEWPORT.height() <= StructureReactorLayout.HEIGHT);
     }
 }

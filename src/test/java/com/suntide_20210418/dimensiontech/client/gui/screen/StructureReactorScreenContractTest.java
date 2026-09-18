@@ -57,20 +57,25 @@ class StructureReactorScreenContractTest {
     }
 
     @Test
-    void statusDisplayUsesLocalizedRowsAndStateColors() throws Exception {
+    void statusAndDetailPanelsReadLocalizedKeysFromLayoutRegions() throws Exception {
         String source = Files.readString(SCREEN);
-        for (String key : new String[] {"KEY_STATUS_CURRENT", "KEY_STATUS_SEQUENCE",
-                "KEY_STATUS_PROGRESS", "KEY_STATUS_REFINING_PROGRESS", "KEY_STATUS_NEEDS",
-                "KEY_STATUS_PREVIOUS", "previousStatusText", "sequenceColor", "progressColor",
-                "STATUS_DISPLAY"}) {
-            assertTrue(source.contains(key), key);
+        // Reward window on the machine face is driven by the merged status-reward region.
+        for (String token : new String[] {"KEY_REWARD_WINDOW", "KEY_REWARD_IDLE",
+                "STATUS_REWARD_AREA", "renderStatusReward", "inWindow", "REWARD_TEXT"}) {
+            assertTrue(source.contains(token), token);
         }
-        // The two draw-call triples are asserted on a whitespace-collapsed view: the contract is
-        // about which tokens form one draw call, not about where the formatter puts line breaks.
-        String collapsed = source.replaceAll("\\s+", "");
-        assertTrue(collapsed.contains("STATUS_X,STATUS_Y,SEQUENCE_NEXT_COLOR"));
-        assertTrue(
-                collapsed.contains("STATUS_X,STATUS_Y+STATUS_LINE_HEIGHT*2,SEQUENCE_NEXT_COLOR"));
+        // The scrollable detail panel reads from the viewport region with a scissor clip and the
+        // new detail.* key family.
+        for (String token : new String[] {"KEY_DETAIL_SEQUENCE", "KEY_DETAIL_NEEDS",
+                "KEY_DETAIL_CHANGES", "KEY_DETAIL_PREVIOUS", "KEY_DETAIL_FLUID_REQUIRED",
+                "VIEWPORT", "renderDetail", "buildDetailLines", "enableScissor",
+                "disableScissor", "mouseScrolled", "mouseDragged", "keyPressed"}) {
+            assertTrue(source.contains(token), token);
+        }
+        // State coloring helpers survive the refactor.
+        for (String token : new String[] {"previousStatusText", "sequenceColor", "progressColor"}) {
+            assertTrue(source.contains(token), token);
+        }
     }
 
     @Test
