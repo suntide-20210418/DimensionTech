@@ -96,9 +96,19 @@ public final class DistributionalLootTableExecutor1201 {
         }
         return logical.fullStackMeasureAvailable()
                 ? new LootExpectationResult(
-                        AnalysisStatus.EXACT, logical.measure(), logical.diagnostics())
+                        AnalysisStatus.EXACT, logical.measure(), marginal(logical), logical.diagnostics())
                 : LootExpectationResult.exactTerminal(
-                        logical.terminalMeasure(), logical.diagnostics());
+                        logical.terminalMeasure(), marginal(logical), logical.diagnostics());
+    }
+
+    /**
+     * The enchantment mark side channel is only meaningful for an exact result; any other status
+     * already clears it inside {@link LootExpectationResult}.
+     */
+    private static EnchantmentMarginal marginal(LogicalResult logical) {
+        return logical.enchantmentMarginal() == null
+                ? EnchantmentMarginal.EMPTY
+                : logical.enchantmentMarginal();
     }
 
     public static LogicalResult evaluateLogicalCalls(
@@ -168,6 +178,7 @@ public final class DistributionalLootTableExecutor1201 {
                     TerminalStackMeasure.from(measure),
                     true,
                     hasRandomCalls,
+                    EnchantmentMarginal.EMPTY,
                     List.copyOf(diagnostics));
         } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
             diagnostics.add(
@@ -224,6 +235,7 @@ public final class DistributionalLootTableExecutor1201 {
                             evaluation.terminalMeasure(),
                             evaluation.fullStackMeasureAvailable(),
                             evaluation.hasRandomCalls(),
+                            evaluation.enchantmentMarginal(),
                             List.copyOf(diagnostics))
                     : LogicalResult.unsupported(List.copyOf(diagnostics));
         } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
@@ -268,6 +280,7 @@ public final class DistributionalLootTableExecutor1201 {
                             evaluation.terminalMeasure(),
                             evaluation.fullStackMeasureAvailable(),
                             evaluation.hasRandomCalls(),
+                            evaluation.enchantmentMarginal(),
                             List.copyOf(diagnostics))
                     : LogicalResult.unsupported(List.copyOf(diagnostics));
         } catch (RuntimeException exception) {
@@ -326,6 +339,7 @@ public final class DistributionalLootTableExecutor1201 {
             boolean hasRandomCalls = false;
             int maxOutputs = 0;
             int maxMapAllocations = 0;
+            EnchantmentMarginal marginal = EnchantmentMarginal.EMPTY;
             PredicateResolver predicates =
                     new PredicateResolver(
                             source,
@@ -410,6 +424,7 @@ public final class DistributionalLootTableExecutor1201 {
                     }
                 }
                 hasRandomCalls |= poolResult.hasRandomCalls();
+                marginal = marginal.plus(poolResult.enchantmentMarginal());
                 maxOutputs = cappedSum(maxOutputs, poolResult.maxOutputs());
                 maxMapAllocations = cappedSum(maxMapAllocations, poolResult.maxMapAllocations());
                 if (maxMapAllocations > 1) {
@@ -450,7 +465,8 @@ public final class DistributionalLootTableExecutor1201 {
                     fullStackMeasureAvailable,
                     hasRandomCalls,
                     maxOutputs,
-                    maxMapAllocations);
+                    maxMapAllocations,
+                    marginal);
         } finally {
             activeTables.remove(identity);
         }
@@ -487,6 +503,7 @@ public final class DistributionalLootTableExecutor1201 {
         boolean hasRandomCalls = false;
         int maxOutputs = 0;
         int maxMapAllocations = 0;
+        EnchantmentMarginal entryMarginal = EnchantmentMarginal.EMPTY;
         if (type.equals("minecraft:empty")) {
             // No output.
         } else if (type.equals("minecraft:item")) {
@@ -565,12 +582,14 @@ public final class DistributionalLootTableExecutor1201 {
                         terminalOutputs,
                         nested.hasRandomCalls(),
                         nested.maxOutputs(),
-                        nested.maxMapAllocations());
+                        nested.maxMapAllocations(),
+                        nested.enchantmentMarginal());
             }
             generated.addAll(nested.measure(), ExactProbability.ONE);
             hasRandomCalls = nested.hasRandomCalls();
             maxOutputs = nested.maxOutputs();
             maxMapAllocations = nested.maxMapAllocations();
+            entryMarginal = nested.enchantmentMarginal();
         } else {
             return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
                     pointer, "Unsupported emitted entry " + type);
@@ -578,7 +597,7 @@ public final class DistributionalLootTableExecutor1201 {
 
         if (generated.values().isEmpty()) {
             return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
-                    Map.of(), hasRandomCalls, maxOutputs, maxMapAllocations);
+                    Map.of(), hasRandomCalls, maxOutputs, maxMapAllocations, entryMarginal);
         }
         String invalidFunctions =
                 invalidFunctionListPointer(
@@ -669,6 +688,16 @@ public final class DistributionalLootTableExecutor1201 {
                                                 ExpectedOutput.terminal(key),
                                                 mass,
                                                 ExactProbability::add));
+                // The terminal transition keeps only (item, count, rarity), so the enchantment
+                // identity it discards has to be recovered here. The marginal recursion shares the
+                // (compatible set, level) state shape of the ordered-selection enumeration but
+                // stores one count vector per state, which is what lets this path stay compressed.
+                EnchantmentMarginal markMarginal =
+                        ExactEnchantmentSemantics1201.enchantmentMarginal(
+                                prefixLayer.measure().values().entrySet(),
+                                levels.distribution().marginal(),
+                                treasure,
+                                maxStates);
                 return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
                         terminalOutputs,
                         prefixLayer.hasRandomCalls()
@@ -676,7 +705,8 @@ public final class DistributionalLootTableExecutor1201 {
                                 || levels.distribution().masses().keySet().stream()
                                         .anyMatch(outcome -> !outcome.calls().isEmpty()),
                         1,
-                        prefixLayer.maxMapAllocations());
+                        prefixLayer.maxMapAllocations(),
+                        entryMarginal.plus(prefixLayer.enchantmentMarginal()).plus(markMarginal));
             }
         }
 
@@ -738,7 +768,14 @@ public final class DistributionalLootTableExecutor1201 {
                                 outputs.merge(
                                         ExpectedOutput.full(state), mass, ExactProbability::add));
         return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
-                outputs, hasRandomCalls, tableLayer.maxOutputs(), maxMapAllocations);
+                outputs,
+                hasRandomCalls,
+                tableLayer.maxOutputs(),
+                maxMapAllocations,
+                entryMarginal
+                        .plus(entryLayer.enchantmentMarginal())
+                        .plus(poolLayer.enchantmentMarginal())
+                        .plus(tableLayer.enchantmentMarginal()));
     }
 
     private static ExpectedLayerEvaluation applyExpectedLayer(
@@ -756,6 +793,7 @@ public final class DistributionalLootTableExecutor1201 {
         StackMeasure result = new StackMeasure();
         boolean hasRandomCalls = false;
         boolean mayAllocateMap = false;
+        EnchantmentMarginal marginal = EnchantmentMarginal.EMPTY;
         for (Map.Entry<StackState, ExactProbability> inputBranch : input.values().entrySet()) {
             DistributionalFunction1201.ExpectedEvaluation transformed =
                     DistributionalFunction1201.applyAllExpected(
@@ -772,6 +810,9 @@ public final class DistributionalLootTableExecutor1201 {
             }
             mayAllocateMap |= transformed.mayAllocateMap();
             hasRandomCalls |= transformed.hasRandomCalls();
+            marginal =
+                    marginal.plus(
+                            transformed.enchantmentMarginal().scale(inputBranch.getValue()));
             for (Map.Entry<StackState, ExactProbability> branch :
                     transformed.distribution().masses().entrySet()) {
                 result.add(branch.getKey(), inputBranch.getValue().multiply(branch.getValue()));
@@ -786,7 +827,11 @@ public final class DistributionalLootTableExecutor1201 {
             }
         }
         return ExpectedLayerEvaluation.exact(
-                result, hasRandomCalls, maxInputStacks, mayAllocateMap ? maxInputStacks : 0);
+                result,
+                hasRandomCalls,
+                maxInputStacks,
+                mayAllocateMap ? maxInputStacks : 0,
+                marginal);
     }
 
     private static int cappedSum(int left, int right) {
@@ -1460,6 +1505,7 @@ public final class DistributionalLootTableExecutor1201 {
             TerminalStackMeasure terminalMeasure,
             boolean fullStackMeasureAvailable,
             boolean hasRandomCalls,
+            EnchantmentMarginal enchantmentMarginal,
             List<Diagnostic> diagnostics) {
         public LogicalResult {
             diagnostics = List.copyOf(diagnostics);
@@ -1472,6 +1518,7 @@ public final class DistributionalLootTableExecutor1201 {
                     TerminalStackMeasure.empty(),
                     false,
                     false,
+                    EnchantmentMarginal.EMPTY,
                     diagnostics);
         }
     }
@@ -1550,6 +1597,7 @@ public final class DistributionalLootTableExecutor1201 {
             boolean hasRandomCalls,
             int maxOutputs,
             int maxMapAllocations,
+            EnchantmentMarginal enchantmentMarginal,
             String pointer,
             String message,
             EvaluationFailureKind failureKind) {
@@ -1560,6 +1608,24 @@ public final class DistributionalLootTableExecutor1201 {
                 boolean hasRandomCalls,
                 int maxOutputs,
                 int maxMapAllocations) {
+            return exact(
+                    measure,
+                    terminalMeasure,
+                    fullStackMeasureAvailable,
+                    hasRandomCalls,
+                    maxOutputs,
+                    maxMapAllocations,
+                    EnchantmentMarginal.EMPTY);
+        }
+
+        private static ExpectedTableEvaluation exact(
+                StackMeasure measure,
+                TerminalStackMeasure terminalMeasure,
+                boolean fullStackMeasureAvailable,
+                boolean hasRandomCalls,
+                int maxOutputs,
+                int maxMapAllocations,
+                EnchantmentMarginal enchantmentMarginal) {
             return new ExpectedTableEvaluation(
                     true,
                     measure,
@@ -1568,6 +1634,7 @@ public final class DistributionalLootTableExecutor1201 {
                     hasRandomCalls,
                     maxOutputs,
                     maxMapAllocations,
+                    enchantmentMarginal,
                     "",
                     "",
                     null);
@@ -1587,6 +1654,7 @@ public final class DistributionalLootTableExecutor1201 {
                     false,
                     0,
                     0,
+                    EnchantmentMarginal.EMPTY,
                     pointer,
                     message,
                     failureKind);
@@ -1603,6 +1671,7 @@ public final class DistributionalLootTableExecutor1201 {
             boolean hasRandomCalls,
             int maxOutputs,
             int maxMapAllocations,
+            EnchantmentMarginal enchantmentMarginal,
             String pointer,
             String message,
             EvaluationFailureKind failureKind) {
@@ -1611,8 +1680,30 @@ public final class DistributionalLootTableExecutor1201 {
                 boolean hasRandomCalls,
                 int maxOutputs,
                 int maxMapAllocations) {
+            return exact(
+                    measure,
+                    hasRandomCalls,
+                    maxOutputs,
+                    maxMapAllocations,
+                    EnchantmentMarginal.EMPTY);
+        }
+
+        private static ExpectedLayerEvaluation exact(
+                StackMeasure measure,
+                boolean hasRandomCalls,
+                int maxOutputs,
+                int maxMapAllocations,
+                EnchantmentMarginal enchantmentMarginal) {
             return new ExpectedLayerEvaluation(
-                    true, measure, hasRandomCalls, maxOutputs, maxMapAllocations, "", "", null);
+                    true,
+                    measure,
+                    hasRandomCalls,
+                    maxOutputs,
+                    maxMapAllocations,
+                    enchantmentMarginal,
+                    "",
+                    "",
+                    null);
         }
 
         private static ExpectedLayerEvaluation unsupported(String pointer, String message) {
@@ -1622,7 +1713,15 @@ public final class DistributionalLootTableExecutor1201 {
         private static ExpectedLayerEvaluation unsupported(
                 String pointer, String message, EvaluationFailureKind failureKind) {
             return new ExpectedLayerEvaluation(
-                    false, new StackMeasure(), false, 0, 0, pointer, message, failureKind);
+                    false,
+                    new StackMeasure(),
+                    false,
+                    0,
+                    0,
+                    EnchantmentMarginal.EMPTY,
+                    pointer,
+                    message,
+                    failureKind);
         }
 
         private static ExpectedLayerEvaluation randomSemantics(String pointer, String message) {

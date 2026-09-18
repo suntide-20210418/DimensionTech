@@ -14,9 +14,11 @@ public record MarkerAnalysis(
         double dimensionValue,
         double structureValue,
         double quantity,
-        Map<ResourceLocation, ExactProbability> expectedItems) {
+        Map<ResourceLocation, ExactProbability> expectedItems,
+        Map<EnchantmentKey, ExactProbability> expectedEnchantments) {
     public MarkerAnalysis {
         marker = marker.copy();
         expectedItems = Map.copyOf(expectedItems);
+        expectedEnchantments = Map.copyOf(expectedEnchantments);
     }
 }

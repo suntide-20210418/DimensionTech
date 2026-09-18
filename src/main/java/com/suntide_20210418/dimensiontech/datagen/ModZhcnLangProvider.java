@@ -255,15 +255,15 @@ public class ModZhcnLangProvider extends LanguageProvider {
                     "container.dimension_tech.tier_" + tier + "_structure_miner",
                     "第" + tier + "阶虚空结构资源采掘器");
         }
-        add("block.dimension_tech.tier_6_structure_miner", "第六阶虚空结构资源采掘器");
-        add("container.dimension_tech.tier_6_structure_miner", "第六阶虚空结构资源采掘器");
+        add("block.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
+        add("container.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("block.dimension_tech.structure_miner_casing", "采掘器外壳");
         add("block.dimension_tech.structure_miner_structure", "采掘器结构方块");
-        add("block.dimension_tech.structure_miner_upgrade_parallel", "一级并行升级方块");
-        add("block.dimension_tech.structure_miner_upgrade_luck", "一级幸运升级方块");
-        add("block.dimension_tech.structure_miner_upgrade_energy", "一级能量升级方块");
-        add("block.dimension_tech.structure_miner_upgrade_efficiency", "一级效率升级方块");
-        add("block.dimension_tech.structure_miner_upgrade_aggregate", "一级聚合升级方块");
+        add("block.dimension_tech.structure_miner_upgrade_parallel", "1级并行升级方块");
+        add("block.dimension_tech.structure_miner_upgrade_luck", "1级幸运升级方块");
+        add("block.dimension_tech.structure_miner_upgrade_energy", "1级能量升级方块");
+        add("block.dimension_tech.structure_miner_upgrade_efficiency", "1级效率升级方块");
+        add("block.dimension_tech.structure_miner_upgrade_aggregate", "1级聚合升级方块");
         for (int tier = 2; tier <= 6; tier++) {
             add(
                     "block.dimension_tech.structure_miner_upgrade_parallel_tier_" + tier,
@@ -314,7 +314,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.material.focus", "%s 级维度聚焦方块 x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
-                "任意升级方块或采掘器外壳 x%s");
+                "任意升级方块或采掘器结构方块 x%s");
         add("tooltip.dimension_tech.structure_miner.upgrade.efficiency", "效率提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.energy_capacity", "储能提升：+%s%%");
         add(
@@ -509,6 +509,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "结构：无");
         add(TranslateHelper.tooltip("enchantment_mark.enchantment"), "附魔：%s");
         add(TranslateHelper.tooltip("enchantment_mark.unbound"), "未绑定附魔");
+        add(TranslateHelper.tooltip("enchantment_mark.level"), "印记等级：%s");
+        add(TranslateHelper.tooltip("enchantment_mark.split_hint"), "可拆为 %s 个 1 级印记");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "结构采掘器状态");
         add("jade.dimension_tech.status.idle", "空闲");
         add("jade.dimension_tech.status.running", "运行中");

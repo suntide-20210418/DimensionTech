@@ -9,6 +9,7 @@ import com.suntide_20210418.dimensiontech.block.entity.StructureMinerTierGameTes
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
+import com.suntide_20210418.dimensiontech.gametest.EnchantmentMarkGameTests;
 import com.suntide_20210418.dimensiontech.gametest.LootExpectationGameTests;
 import com.suntide_20210418.dimensiontech.gametest.StructureReactorFluidContainerGameTests;
 import com.suntide_20210418.dimensiontech.gametest.StructureReactorGameTests;
@@ -16,12 +17,14 @@ import com.suntide_20210418.dimensiontech.gametest.StructureReactorTankControlGa
 import com.suntide_20210418.dimensiontech.gametest.StructureReactorTransactionGameTests;
 import com.suntide_20210418.dimensiontech.gametest.StructureMinerJadeGameTests;
 import com.suntide_20210418.dimensiontech.gametest.StructureMinerTickContractGameTests;
+import com.suntide_20210418.dimensiontech.item.EnchantmentMarkAnvilHandler;
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
 import com.suntide_20210418.dimensiontech.structureminer.output.StructureMinerLootMergeGameTests;
 import com.suntide_20210418.dimensiontech.structureminer.output.StructureMinerOutputRouterGameTests;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
+import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculatorGameTests;
 import com.suntide_20210418.dimensiontech.structure.analysis.VirtualStructureSamplerGameTests;
 import net.minecraftforge.common.MinecraftForge;
@@ -50,6 +53,7 @@ public class DimensionTechMod {
         ModItems.register(modEventBus);
         ModBlockEntities.register(modEventBus);
         ModCreativeModeTabs.register(modEventBus);
+        ModRecipes.register(modEventBus);
 
         // 注册事件监听器
         MinecraftForge.EVENT_BUS.register(this);
@@ -64,11 +68,13 @@ public class DimensionTechMod {
                 () -> {
                     StructureReactorRecipes.resetDefaults();
                     ModNetwork.register();
+                    MinecraftForge.EVENT_BUS.register(EnchantmentMarkAnvilHandler.class);
                 });
     }
 
     private static void registerGameTests(RegisterGameTestsEvent event) {
         event.register(LootExpectationGameTests.class);
+        event.register(EnchantmentMarkGameTests.class);
         event.register(StructureMinerTickContractGameTests.class);
         event.register(StructureReactorGameTests.class);
         event.register(StructureReactorTransactionGameTests.class);

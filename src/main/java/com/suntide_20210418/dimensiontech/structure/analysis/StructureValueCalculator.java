@@ -162,6 +162,7 @@ public final class StructureValueCalculator {
         List<Diagnostic> diagnostics = new ArrayList<>(discovery.diagnostics());
         StackMeasure measure = new StackMeasure();
         TerminalStackMeasure terminal = TerminalStackMeasure.empty();
+        EnchantmentMarginal marginal = EnchantmentMarginal.EMPTY;
         boolean full = true;
         AnalysisStatus status = discovery.status();
         LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck);
@@ -179,12 +180,13 @@ public final class StructureValueCalculator {
                         diagnostics);
             }
             terminal = terminal.plus(result.terminalMeasure().scale(root.getValue()));
+            marginal = marginal.plus(result.enchantmentMarginal().scale(root.getValue()));
             if (full && result.fullStackMeasureAvailable())
                 measure.addAll(result.measure(), root.getValue());
             if (!result.fullStackMeasureAvailable()) full = false;
         }
         return freezeExpectation(
-                status, full ? measure : new StackMeasure(), terminal, full, diagnostics);
+                status, full ? measure : new StackMeasure(), terminal, full, marginal, diagnostics);
     }
 
     private record SampleBatch(
@@ -331,6 +333,17 @@ public final class StructureValueCalculator {
             TerminalStackMeasure terminal,
             boolean fullAvailable,
             List<Diagnostic> diagnostics) {
+        return freezeExpectation(
+                status, full, terminal, fullAvailable, EnchantmentMarginal.EMPTY, diagnostics);
+    }
+
+    private static LootExpectationSnapshot freezeExpectation(
+            AnalysisStatus status,
+            StackMeasure full,
+            TerminalStackMeasure terminal,
+            boolean fullAvailable,
+            EnchantmentMarginal enchantmentMarginal,
+            List<Diagnostic> diagnostics) {
         Map<StructureValueSnapshot.TerminalItem, ExactProbability> occurrences =
                 new LinkedHashMap<>();
         terminal.values()
@@ -363,6 +376,7 @@ public final class StructureValueCalculator {
                 new StructureValueSnapshot.Expectation(occurrences),
                 stacks,
                 fullAvailable,
+                enchantmentMarginal,
                 diagnostics);
     }
 
@@ -448,6 +462,7 @@ public final class StructureValueCalculator {
                 full,
                 TerminalStackMeasure.of(terminal),
                 input.fullStackMeasureAvailable(),
+                input.enchantmentMarginal(),
                 diagnostics);
     }
 
@@ -793,7 +808,32 @@ public final class StructureValueCalculator {
             StackMeasure measure,
             TerminalStackMeasure terminalMeasure,
             boolean fullStackMeasureAvailable,
+            EnchantmentMarginal enchantmentMarginal,
             List<Diagnostic> diagnostics) {
+        /**
+         * Overload for callers that have no enchantment mark channel. Every {@code new
+         * StructureValue(...)} site in this class is such a caller today; only {@link
+         * #restoreValue} carries a real marginal.
+         */
+        public StructureValue(
+                AnalysisStatus status,
+                double dimensionValue,
+                double structureValue,
+                StackMeasure measure,
+                TerminalStackMeasure terminalMeasure,
+                boolean fullStackMeasureAvailable,
+                List<Diagnostic> diagnostics) {
+            this(
+                    status,
+                    dimensionValue,
+                    structureValue,
+                    measure,
+                    terminalMeasure,
+                    fullStackMeasureAvailable,
+                    EnchantmentMarginal.EMPTY,
+                    diagnostics);
+        }
+
         /** Compatibility overload for callers compiled against the pre-extraction API. */
         @Deprecated
         public StructureValue(
@@ -803,7 +843,7 @@ public final class StructureValueCalculator {
                 float ignoredLuck,
                 StackMeasure measure,
                 List<Diagnostic> diagnostics) {
-            this(status, dimensionValue, structureValue, measure, diagnostics);
+            this(status, dimensionValue, structureValue, measure, EnchantmentMarginal.EMPTY, diagnostics);
         }
 
         /** Compatibility overload for callers compiled against the pre-extraction API. */
@@ -824,6 +864,7 @@ public final class StructureValueCalculator {
                     measure,
                     terminalMeasure,
                     fullStackMeasureAvailable,
+                    EnchantmentMarginal.EMPTY,
                     diagnostics);
         }
 
@@ -838,10 +879,27 @@ public final class StructureValueCalculator {
                     dimensionValue,
                     structureValue,
                     measure,
+                    EnchantmentMarginal.EMPTY,
+                    diagnostics);
+        }
+
+        public StructureValue(
+                AnalysisStatus status,
+                double dimensionValue,
+                double structureValue,
+                StackMeasure measure,
+                EnchantmentMarginal enchantmentMarginal,
+                List<Diagnostic> diagnostics) {
+            this(
+                    status,
+                    dimensionValue,
+                    structureValue,
+                    measure,
                     status == AnalysisStatus.EXACT
                             ? TerminalStackMeasure.from(measure)
                             : TerminalStackMeasure.empty(),
                     status == AnalysisStatus.EXACT,
+                    enchantmentMarginal,
                     diagnostics);
         }
 
@@ -849,6 +907,7 @@ public final class StructureValueCalculator {
             status = Objects.requireNonNull(status, "status");
             measure = Objects.requireNonNull(measure, "measure");
             terminalMeasure = Objects.requireNonNull(terminalMeasure, "terminalMeasure");
+            enchantmentMarginal = Objects.requireNonNull(enchantmentMarginal, "enchantmentMarginal");
             diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
             if (!Double.isFinite(dimensionValue) || dimensionValue < 0.0D) {
                 throw new IllegalArgumentException(
@@ -859,6 +918,7 @@ public final class StructureValueCalculator {
                 measure = new StackMeasure();
                 terminalMeasure = TerminalStackMeasure.empty();
                 fullStackMeasureAvailable = false;
+                enchantmentMarginal = EnchantmentMarginal.EMPTY;
             } else {
                 if (!Double.isFinite(structureValue) || structureValue < 0.0D) {
                     throw new IllegalArgumentException(

@@ -392,7 +392,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.material.focus", "Tier %s Dimension Focus x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
-                "Any Upgrade Block or Miner Casing x%s");
+                "Any Upgrade Block or Miner Structure Block x%s");
         add("tooltip.dimension_tech.structure_miner.upgrade.efficiency", "Efficiency: +%s%%");
         add(
                 "tooltip.dimension_tech.structure_miner.upgrade.energy_capacity",
@@ -646,6 +646,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
         add(TranslateHelper.tooltip("enchantment_mark.enchantment"), "Enchantment: %s");
         add(TranslateHelper.tooltip("enchantment_mark.unbound"), "Unbound");
+        add(TranslateHelper.tooltip("enchantment_mark.level"), "Mark level: %s");
+        add(TranslateHelper.tooltip("enchantment_mark.split_hint"), "Splits into %s level 1 marks");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "Structure Miner Status");
         add("jade.dimension_tech.status.idle", "Idle");
         add("jade.dimension_tech.status.running", "Running");

@@ -1,7 +1,12 @@
 package com.suntide_20210418.dimensiontech.datagen;
 
 import com.suntide_20210418.dimensiontech.item.ModItems;
+import com.suntide_20210418.dimensiontech.recipe.EnchantmentMarkRecipe;
+import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
+import com.google.gson.JsonObject;
+import java.util.Locale;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
@@ -11,6 +16,8 @@ import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraftforge.common.crafting.conditions.IConditionBuilder;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.NotNull;
@@ -40,6 +47,51 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
         focusBlocks(writer);
         machines(writer);
         upgradeBlocks(writer);
+        enchantmentMarks(writer);
+    }
+
+    /**
+     * Two NBT-driven recipes rather than a few hundred static ones. The mark economy depends on the
+     * mark's enchantment and level, and it has to keep working for enchantments added by other
+     * mods, so the match has to happen at runtime.
+     */
+    private void enchantmentMarks(Consumer<FinishedRecipe> writer) {
+        markRecipe(writer, "enchantment_mark_split", EnchantmentMarkRecipe.Mode.SPLIT);
+        markRecipe(writer, "enchantment_mark_combine", EnchantmentMarkRecipe.Mode.COMBINE);
+    }
+
+    private void markRecipe(
+            Consumer<FinishedRecipe> writer, String name, EnchantmentMarkRecipe.Mode mode) {
+        ResourceLocation id = ModRecipes.id(name);
+        writer.accept(
+                new FinishedRecipe() {
+                    @Override
+                    public void serializeRecipeData(JsonObject json) {
+                        json.addProperty("mode", mode.name().toLowerCase(java.util.Locale.ROOT));
+                    }
+
+                    @Override
+                    public ResourceLocation getId() {
+                        return id;
+                    }
+
+                    @Override
+                    public RecipeSerializer<?> getType() {
+                        return ModRecipes.ENCHANTMENT_MARK.get();
+                    }
+
+                    @Override
+                    @Nullable
+                    public JsonObject serializeAdvancement() {
+                        return null;
+                    }
+
+                    @Override
+                    @Nullable
+                    public ResourceLocation getAdvancementId() {
+                        return null;
+                    }
+                });
     }
 
     /** Tools that depend on no machine product, so the loop can be entered at all. */
@@ -51,7 +103,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .define('I', Items.IRON_INGOT)
                 .define('Q', Items.QUARTZ)
                 .define('A', Items.AMETHYST_SHARD)
-                .define('G', Items.GLASS)
+                .define('G', Items.GLASS_PANE)
                 .define('R', Items.REDSTONE)
                 .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
                 .save(writer);
@@ -73,16 +125,14 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
 
         // Reads every structure in the game, which skips exploration outright, so it is late.
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_INTERPRETER.get())
-                .pattern("FQF")
-                .pattern("SCD")
-                .pattern("TET")
+                .pattern("FNF")
+                .pattern("SCS")
+                .pattern("TNT")
                 .define('F', ModItems.DIMENSION_FRAGMENTS[4].get())
-                .define('Q', Items.QUARTZ)
-                .define('S', ModItems.STRUCTURE_MINER_CASING.get())
+                .define('N', Items.NETHERITE_INGOT)
+                .define('S', Items.NETHER_STAR)
                 .define('C', ModItems.DATA_INTEGRATOR.get())
-                .define('D', Items.DIAMOND)
                 .define('T', ModItems.MINING_TOKENS[4].get())
-                .define('E', Items.ENDER_PEARL)
                 .unlockedBy("has_mining_token_tier_5", has(ModItems.MINING_TOKENS[4].get()))
                 .save(writer);
     }
@@ -101,13 +151,14 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
 
     /** Mass-produced frame parts; one machine eats 44 casings, so the yield is deliberately high. */
     private void frameParts(Consumer<FinishedRecipe> writer) {
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MINER_CASING.get(), 8)
-                .pattern("IGI")
-                .pattern("S S")
-                .pattern("IGI")
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MINER_CASING.get())
+                .pattern("INI")
+                .pattern("RDR")
+                .pattern("INI")
                 .define('I', Items.IRON_INGOT)
-                .define('G', Items.GLASS)
-                .define('S', Items.STONE_BRICKS)
+                .define('R', Items.REDSTONE)
+                .define('N', Items.QUARTZ)
+                .define('D', Items.DIAMOND)
                 .unlockedBy("has_iron_ingot", has(Items.IRON_INGOT))
                 .save(writer);
 
@@ -129,11 +180,12 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
      * exactly the ten focus blocks the next stage asks for.
      */
     private void focusBlocks(Consumer<FinishedRecipe> writer) {
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.DIMENSION_FOCUS[0].get(), 4)
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.DIMENSION_FOCUS[0].get())
                 .pattern("IRI")
-                .pattern(" G ")
+                .pattern("AGA")
                 .pattern("IRI")
                 .define('I', Items.IRON_INGOT)
+                .define('A', Items.AMETHYST_SHARD)
                 .define('R', Items.REDSTONE)
                 .define('G', Items.GLASS)
                 .unlockedBy("has_redstone", has(Items.REDSTONE))
@@ -149,11 +201,12 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
         for (int tier = 2; tier <= 6; tier++) {
             ItemLike previousFocus = ModItems.DIMENSION_FOCUS[tier - 2].get();
             ShapedRecipeBuilder.shaped(
-                            RecipeCategory.MISC, ModItems.DIMENSION_FOCUS[tier - 1].get(), 4)
-                    .pattern("NMN")
-                    .pattern(" G ")
-                    .pattern("NMN")
+                            RecipeCategory.MISC, ModItems.DIMENSION_FOCUS[tier - 1].get())
+                    .pattern("GMG")
+                    .pattern("ANA")
+                    .pattern("GMG")
                     .define('N', previousFocus)
+                    .define('A', Items.AMETHYST_SHARD)
                     .define('M', markers[tier - 2])
                     .define('G', Items.GLASS)
                     .unlockedBy(
@@ -192,15 +245,14 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
         // The first miner is the exploration gate: until a miner exists the core only comes from
         // chest loot, which hands one over within twenty chests at the latest.
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.TIER_1_STRUCTURE_MINER.get())
-                .pattern("INI")
-                .pattern("QCQ")
-                .pattern("SRS")
+                .pattern("IDI")
+                .pattern("ECE")
+                .pattern("SDS")
                 .define('I', Items.IRON_INGOT)
-                .define('N', ModItems.STRUCTURE_MINER_STRUCTURE.get())
-                .define('Q', Items.QUARTZ)
+                .define('E', Items.ENDER_PEARL)
                 .define('C', ModItems.DIMENSION_DECONSTRUCTION_CORE.get())
                 .define('S', ModItems.STRUCTURE_MINER_CASING.get())
-                .define('R', Items.REDSTONE)
+                .define('D', Items.DIAMOND)
                 .unlockedBy(
                         "has_dimension_deconstruction_core",
                         has(ModItems.DIMENSION_DECONSTRUCTION_CORE.get()))
@@ -233,10 +285,10 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
             for (int tier = 1; tier <= 6; tier++) {
                 ItemLike token = ModItems.MINING_TOKENS[tier - 1].get();
                 ShapedRecipeBuilder.shaped(
-                                RecipeCategory.MISC, specializedUpgrade(type, tier).get(), 4)
-                        .pattern("SCS")
+                                RecipeCategory.MISC, specializedUpgrade(type, tier).get())
+                        .pattern("CTC")
                         .pattern("FSF")
-                        .pattern("T T")
+                        .pattern("CTC")
                         .define('S', ModItems.STRUCTURE_MINER_CASING.get())
                         .define('C', signatureMaterial(type))
                         .define('F', ModItems.DIMENSION_FRAGMENTS[tier - 1].get())
@@ -252,15 +304,16 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
             // P parallel, L luck, E efficiency, D energy: one of each specialisation turns into two
             // aggregates, which is a real trade against simply slotting four specialisations.
             ShapedRecipeBuilder.shaped(
-                            RecipeCategory.MISC, ModItems.UPGRADE_AGGREGATE_TIERS[tier - 1].get(), 2)
-                    .pattern("PLE")
-                    .pattern("FDF")
-                    .pattern("T T")
+                            RecipeCategory.MISC, ModItems.UPGRADE_AGGREGATE_TIERS[tier - 1].get())
+                    .pattern("PTE")
+                    .pattern("FCF")
+                    .pattern("LTD")
                     .define('P', specializedUpgrade("parallel", tier).get())
                     .define('L', specializedUpgrade("luck", tier).get())
                     .define('E', specializedUpgrade("efficiency", tier).get())
                     .define('D', specializedUpgrade("energy", tier).get())
                     .define('F', fragment)
+                    .define('C', ModItems.DIMENSION_DECONSTRUCTION_CORE.get())
                     .define('T', token)
                     .unlockedBy("has_mining_token_tier_" + tier, has(token))
                     .save(writer);

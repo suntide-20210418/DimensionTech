@@ -14,14 +14,36 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /** Exact finite branching of EnchantmentHelper.enchantItem for Minecraft 1.20.1. */
 public final class ExactEnchantmentSemantics1201 {
+    /**
+     * The enchantment mark side channel gets its own budget, deliberately far smaller than the one
+     * the valuation layer uses. Marks are a bonus output, not a valuation input: when the marginal
+     * cannot be computed cheaply the correct answer is "no marks", never "spend a second of the
+     * server thread and maybe block a tick". Reusing the caller's budget here is what let the
+     * recursion explode on real loot tables.
+     */
+    private static final int MARK_MARGINAL_STATE_BUDGET = 8_192;
+
+    /** Distinct perturbed levels kept per enchantability while aggregating mark plans. */
+    private static final int MARK_MARGINAL_LEVEL_BUDGET = 256;
+
+    /**
+     * Cap on {@code EnchantmentHelper.getAvailableEnchantmentResults} calls. Aggregation costs one
+     * call per (input stack, adjusted level) pair, and a set_damage fan-out can make that pair count
+     * large even when the distinct plans are few. The recursion itself is bounded separately; this
+     * bounds the work needed to discover those plans.
+     */
+    private static final int MARK_MARGINAL_WORK_BUDGET = 8_192;
+
     private ExactEnchantmentSemantics1201() {}
 
     /**
@@ -475,6 +497,99 @@ public final class ExactEnchantmentSemantics1201 {
     }
 
     /**
+     * Expected selection counts per {@link EnchantmentKey} for a set of expected-occurrence inputs.
+     *
+     * <p>This is the side channel the terminal transition throws away. It shares the state shape of
+     * {@link SelectionComputer#tail} - (compatible set, level) - but stores one count vector per
+     * state instead of materializing every ordered suffix. That is the whole point: the terminal
+     * path exists precisely because ordered suffix enumeration explodes, while the first moment of
+     * "how many times is E selected at level L" does not need the ordering.
+     *
+     * <p>The recursion mirrors {@code EnchantmentHelper.enchantItem}: the first candidate is taken
+     * unconditionally, and every further candidate is gated by the {@code nextInt(50) < level + 1}
+     * continuation test evaluated at the level of the choice that preceded it.
+     *
+     * <p>Failure is not propagated. A state-space overflow or an unregistered enchantment degrades
+     * to {@link EnchantmentMarginal#EMPTY} so that a table which is otherwise {@link
+     * AnalysisStatus#EXACT} keeps that status and simply yields no enchantment marks.
+     */
+    public static EnchantmentMarginal enchantmentMarginal(
+            Set<Map.Entry<StackState, ExactProbability>> inputs,
+            FiniteDistribution<Integer> levels,
+            boolean treasure,
+            int maxStates) {
+        Objects.requireNonNull(inputs, "inputs");
+        Objects.requireNonNull(levels, "levels");
+        if (maxStates <= 0) return EnchantmentMarginal.EMPTY;
+        int budget = Math.min(maxStates, MARK_MARGINAL_STATE_BUDGET);
+        int levelBudget = Math.min(maxStates, MARK_MARGINAL_LEVEL_BUDGET);
+
+        /*
+         * Aggregate first, recurse second. Hundreds of input stacks (the usual set_damage fallout)
+         * almost always share one available-enchantment list per adjusted level, so folding them by
+         * (available list, adjusted level) makes the recursion run once per distinct plan instead of
+         * once per input stack. Skipping this is what made the side channel block the server thread
+         * on real tables: the recursion cost was multiplied by the input state count.
+         */
+        Map<MarginalPlanKey, ExactProbability> plans = new LinkedHashMap<>();
+        Map<Integer, Map<Integer, ExactProbability>> adjustedByEnchantability = new HashMap<>();
+        int work = 0;
+        try {
+            for (Map.Entry<StackState, ExactProbability> input : inputs) {
+                if (input.getValue().isZero()) continue;
+                ItemStack stack = input.getKey().stack();
+                int enchantability = stack.getEnchantmentValue();
+                if (enchantability <= 0) continue;
+                Map<Integer, ExactProbability> adjustedLevels =
+                        adjustedByEnchantability.computeIfAbsent(
+                                enchantability,
+                                value -> adjustedLevels(levels, value, levelBudget));
+                for (Map.Entry<Integer, ExactProbability> adjusted : adjustedLevels.entrySet()) {
+                    if (++work > MARK_MARGINAL_WORK_BUDGET) return EnchantmentMarginal.EMPTY;
+                    List<EnchantmentInstance> available =
+                            EnchantmentHelper.getAvailableEnchantmentResults(
+                                    adjusted.getKey(), stack, treasure);
+                    if (available.isEmpty()) continue;
+                    ExactProbability mass = input.getValue().multiply(adjusted.getValue());
+                    plans.merge(
+                            new MarginalPlanKey(
+                                    available.stream().map(SelectedEnchantment::of).toList(),
+                                    adjusted.getKey()),
+                            mass,
+                            ExactProbability::add);
+                    if (plans.size() > budget) return EnchantmentMarginal.EMPTY;
+                }
+            }
+        } catch (ExactRandomSemantics1201.StateSpaceLimitException
+                | IllegalArgumentException exception) {
+            return EnchantmentMarginal.EMPTY;
+        }
+
+        MarginalComputer computer = new MarginalComputer(budget);
+        LinkedHashMap<EnchantmentKey, ExactProbability> result = new LinkedHashMap<>();
+        try {
+            for (Map.Entry<MarginalPlanKey, ExactProbability> plan : plans.entrySet()) {
+                computer.accumulate(
+                        plan.getKey().available(), plan.getKey().level(), plan.getValue(), result);
+                if (result.size() > budget) return EnchantmentMarginal.EMPTY;
+            }
+        } catch (ExactRandomSemantics1201.StateSpaceLimitException
+                | IllegalArgumentException exception) {
+            return EnchantmentMarginal.EMPTY;
+        }
+        return EnchantmentMarginal.of(result);
+    }
+
+    private static EnchantmentKey keyOf(SelectedEnchantment value) {
+        ResourceLocation id = ForgeRegistries.ENCHANTMENTS.getKey(value.enchantment());
+        if (id == null) {
+            throw new IllegalArgumentException(
+                    "Unregistered enchantment cannot be materialized as a mark");
+        }
+        return new EnchantmentKey(id, value.level());
+    }
+
+    /**
      * For a non-book stack without an existing Enchantments tag, enchantItem only appends the
      * ordered selected list and preserves every pre-existing serialized field. Therefore distinct
      * base states and distinct serialized selection lists form a provably injective Cartesian
@@ -659,6 +774,86 @@ public final class ExactEnchantmentSemantics1201 {
                 return computed;
             } finally {
                 activeTails.remove(key);
+            }
+        }
+    }
+
+    /**
+     * Memoized first-moment computer for {@link #enchantmentMarginal}.
+     *
+     * <p>The recursion is the same reachable-state graph as {@link SelectionComputer#tail}: one
+     * state per (compatible set, level) pair. Unlike {@code tail}, a state's payload is a single
+     * count vector rather than the full distribution of ordered suffixes, so the marginal survives
+     * state counts that would make ordered enumeration impossible.
+     */
+    private static final class MarginalComputer {
+        private final int maxStates;
+        private final Map<MarginalCacheKey, Map<EnchantmentKey, ExactProbability>> cache =
+                new HashMap<>();
+        private final Set<MarginalCacheKey> active = new HashSet<>();
+
+        private MarginalComputer(int maxStates) {
+            this.maxStates = maxStates;
+        }
+
+        private void accumulate(
+                List<SelectedEnchantment> available,
+                int level,
+                ExactProbability mass,
+                Map<EnchantmentKey, ExactProbability> sink) {
+            if (mass.isZero()) return;
+            marginalFor(available, level)
+                    .forEach(
+                            (key, value) ->
+                                    sink.merge(key, value.multiply(mass), ExactProbability::add));
+        }
+
+        private Map<EnchantmentKey, ExactProbability> marginalFor(
+                List<SelectedEnchantment> available, int level) {
+            if (available.isEmpty()) return Map.of();
+            MarginalCacheKey key = new MarginalCacheKey(available, level);
+            Map<EnchantmentKey, ExactProbability> cached = cache.get(key);
+            if (cached != null) return cached;
+            if (cache.size() >= maxStates) {
+                // The reachable (compatible set, level) graph is larger than the mark channel is
+                // allowed to explore. Give up on marks rather than on the tick.
+                throw new ExactRandomSemantics1201.StateSpaceLimitException(
+                        cache.size() + 1, maxStates);
+            }
+            if (!active.add(key)) {
+                throw new IllegalArgumentException(
+                        "Unbounded enchantment marginal caused by a compatible cycle");
+            }
+            try {
+                LinkedHashMap<EnchantmentKey, ExactProbability> result = new LinkedHashMap<>();
+                int successfulValues = Math.max(0, Math.min(50, level + 1));
+                ExactProbability continues = ExactProbability.of(successfulValues, 50);
+                for (WeightedSelectedChoice choice : weightedSelectedChoices(available)) {
+                    SelectedEnchantment value = choice.value();
+                    // EnchantmentHelper.enchantItem takes the first candidate unconditionally.
+                    result.merge(keyOf(value), choice.mass(), ExactProbability::add);
+                    if (continues.isZero()) continue;
+                    List<SelectedEnchantment> compatible = compatibleWith(available, value);
+                    if (compatible.isEmpty()) continue;
+                    ExactProbability factor = choice.mass().multiply(continues);
+                    marginalFor(compatible, level / 2)
+                            .forEach(
+                                    (key2, mass) ->
+                                            result.merge(
+                                                    key2,
+                                                    mass.multiply(factor),
+                                                    ExactProbability::add));
+                    if (result.size() > maxStates) {
+                        throw new ExactRandomSemantics1201.StateSpaceLimitException(
+                                result.size(), maxStates);
+                    }
+                }
+                Map<EnchantmentKey, ExactProbability> computed =
+                        Collections.unmodifiableMap(result);
+                cache.put(key, computed);
+                return computed;
+            } finally {
+                active.remove(key);
             }
         }
     }
@@ -854,6 +1049,18 @@ public final class ExactEnchantmentSemantics1201 {
 
     private record SerializedEnchantment(
             net.minecraft.world.item.enchantment.Enchantment enchantment, byte level) {}
+
+    private record MarginalPlanKey(List<SelectedEnchantment> available, int level) {
+        private MarginalPlanKey {
+            available = List.copyOf(available);
+        }
+    }
+
+    private record MarginalCacheKey(List<SelectedEnchantment> available, int level) {
+        private MarginalCacheKey {
+            available = List.copyOf(available);
+        }
+    }
 
     private record TailKey(List<SelectedEnchantment> available, int level) {
         private TailKey {

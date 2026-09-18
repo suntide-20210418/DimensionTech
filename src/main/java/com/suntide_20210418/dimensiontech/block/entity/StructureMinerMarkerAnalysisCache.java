@@ -6,6 +6,7 @@ import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.EnchantmentMarginal;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
 import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
@@ -343,7 +344,8 @@ final class StructureMinerMarkerAnalysisCache {
                                 .filter(Double::isFinite)
                                 .filter(count -> count > 0.0D)
                                 .sum(),
-                        expectedItems);
+                        expectedItems,
+                        analysis.enchantmentMarginal());
         List<CachedMarkerLoot> updated = new ArrayList<>(cachedLoot);
         updated.removeIf(value -> value.slot() == slot);
         updated.add(entry);
@@ -358,5 +360,6 @@ final class StructureMinerMarkerAnalysisCache {
             double dimensionValue,
             double structureValue,
             double quantity,
-            Map<ResourceLocation, ExactProbability> expectedItems) {}
+            Map<ResourceLocation, ExactProbability> expectedItems,
+            EnchantmentMarginal enchantmentMarginal) {}
 }

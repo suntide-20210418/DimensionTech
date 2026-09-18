@@ -47,6 +47,7 @@ class ConcreteProductionPolicy1201Test {
                 TerminalStackMeasure.empty(),
                 true,
                 hasRandomCalls,
+                EnchantmentMarginal.EMPTY,
                 List.of());
     }
 }

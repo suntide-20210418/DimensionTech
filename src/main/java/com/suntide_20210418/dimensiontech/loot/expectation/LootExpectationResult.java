@@ -8,21 +8,32 @@ public record LootExpectationResult(
         StackMeasure measure,
         TerminalStackMeasure terminalMeasure,
         boolean fullStackMeasureAvailable,
+        EnchantmentMarginal enchantmentMarginal,
         List<Diagnostic> diagnostics) {
     public LootExpectationResult {
         status = Objects.requireNonNull(status, "status");
         measure = Objects.requireNonNull(measure, "measure");
         terminalMeasure = Objects.requireNonNull(terminalMeasure, "terminalMeasure");
+        enchantmentMarginal = Objects.requireNonNull(enchantmentMarginal, "enchantmentMarginal");
         diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
         if (status != AnalysisStatus.EXACT) {
             measure = new StackMeasure();
             terminalMeasure = TerminalStackMeasure.empty();
             fullStackMeasureAvailable = false;
+            enchantmentMarginal = EnchantmentMarginal.EMPTY;
         }
     }
 
     public LootExpectationResult(
             AnalysisStatus status, StackMeasure measure, List<Diagnostic> diagnostics) {
+        this(status, measure, EnchantmentMarginal.EMPTY, diagnostics);
+    }
+
+    public LootExpectationResult(
+            AnalysisStatus status,
+            StackMeasure measure,
+            EnchantmentMarginal enchantmentMarginal,
+            List<Diagnostic> diagnostics) {
         this(
                 status,
                 measure,
@@ -30,13 +41,26 @@ public record LootExpectationResult(
                         ? TerminalStackMeasure.from(measure)
                         : TerminalStackMeasure.empty(),
                 status == AnalysisStatus.EXACT,
+                enchantmentMarginal,
                 diagnostics);
     }
 
     public static LootExpectationResult exactTerminal(
             TerminalStackMeasure terminalMeasure, List<Diagnostic> diagnostics) {
+        return exactTerminal(terminalMeasure, EnchantmentMarginal.EMPTY, diagnostics);
+    }
+
+    public static LootExpectationResult exactTerminal(
+            TerminalStackMeasure terminalMeasure,
+            EnchantmentMarginal enchantmentMarginal,
+            List<Diagnostic> diagnostics) {
         return new LootExpectationResult(
-                AnalysisStatus.EXACT, new StackMeasure(), terminalMeasure, false, diagnostics);
+                AnalysisStatus.EXACT,
+                new StackMeasure(),
+                terminalMeasure,
+                false,
+                enchantmentMarginal,
+                diagnostics);
     }
 
     public StackMeasure requireFullStackMeasure() {

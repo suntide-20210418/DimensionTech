@@ -137,6 +137,7 @@ final class MinerAnalysisController {
                 value.dimensionValue(),
                 value.structureValue(),
                 value.quantity(),
-                value.expectedItems());
+                value.expectedItems(),
+                value.enchantmentMarginal().values());
     }
 }

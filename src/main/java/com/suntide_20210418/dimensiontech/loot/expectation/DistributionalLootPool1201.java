@@ -334,6 +334,7 @@ public final class DistributionalLootPool1201 {
         LinkedHashMap<SelectedEntry, ExpectedSelectionEvaluation<T>> kernels =
                 new LinkedHashMap<>();
         LinkedHashMap<T, ExactProbability> oneRoll = new LinkedHashMap<>();
+        EnchantmentMarginal oneRollMarginal = EnchantmentMarginal.EMPTY;
         int maxOneRollOutputs = 0;
         int maxOneRollMapAllocations = 0;
         for (Map.Entry<SelectedEntry, ExactProbability> branch :
@@ -357,6 +358,9 @@ public final class DistributionalLootPool1201 {
             maxOneRollOutputs = Math.max(maxOneRollOutputs, generated.maxOutputs());
             maxOneRollMapAllocations =
                     Math.max(maxOneRollMapAllocations, generated.maxMapAllocations());
+            oneRollMarginal =
+                    oneRollMarginal.plus(
+                            generated.enchantmentMarginal().scale(branch.getValue()));
             for (Map.Entry<T, ExactProbability> output : generated.occurrences().entrySet()) {
                 oneRoll.merge(
                         output.getKey(),
@@ -380,7 +384,8 @@ public final class DistributionalLootPool1201 {
                 result,
                 hasRandomCalls,
                 cappedProduct(maxRollCount, maxOneRollOutputs),
-                cappedProduct(maxRollCount, maxOneRollMapAllocations));
+                cappedProduct(maxRollCount, maxOneRollMapAllocations),
+                oneRollMarginal.scale(scale));
     }
 
     private static int cappedProduct(int left, int right) {
@@ -921,6 +926,7 @@ public final class DistributionalLootPool1201 {
             boolean hasRandomCalls,
             int maxOutputs,
             int maxMapAllocations,
+            EnchantmentMarginal enchantmentMarginal,
             String pointer,
             String message,
             EvaluationFailureKind failureKind) {
@@ -938,12 +944,27 @@ public final class DistributionalLootPool1201 {
                 boolean hasRandomCalls,
                 int maxOutputs,
                 int maxMapAllocations) {
+            return exact(
+                    occurrences,
+                    hasRandomCalls,
+                    maxOutputs,
+                    maxMapAllocations,
+                    EnchantmentMarginal.EMPTY);
+        }
+
+        public static <T> ExpectedSelectionEvaluation<T> exact(
+                Map<T, ExactProbability> occurrences,
+                boolean hasRandomCalls,
+                int maxOutputs,
+                int maxMapAllocations,
+                EnchantmentMarginal enchantmentMarginal) {
             return new ExpectedSelectionEvaluation<>(
                     true,
                     occurrences,
                     hasRandomCalls,
                     Math.min(2, Math.max(0, maxOutputs)),
                     Math.min(2, Math.max(0, maxMapAllocations)),
+                    enchantmentMarginal,
                     "",
                     "",
                     null);
@@ -957,7 +978,15 @@ public final class DistributionalLootPool1201 {
         public static <T> ExpectedSelectionEvaluation<T> unsupported(
                 String pointer, String message, EvaluationFailureKind failureKind) {
             return new ExpectedSelectionEvaluation<>(
-                    false, Map.of(), false, 0, 0, pointer, message, failureKind);
+                    false,
+                    Map.of(),
+                    false,
+                    0,
+                    0,
+                    EnchantmentMarginal.EMPTY,
+                    pointer,
+                    message,
+                    failureKind);
         }
 
         public static <T> ExpectedSelectionEvaluation<T> randomSemantics(
@@ -972,6 +1001,7 @@ public final class DistributionalLootPool1201 {
             boolean hasRandomCalls,
             int maxOutputs,
             int maxMapAllocations,
+            EnchantmentMarginal enchantmentMarginal,
             String pointer,
             String message,
             EvaluationFailureKind failureKind) {
@@ -984,12 +1014,27 @@ public final class DistributionalLootPool1201 {
                 boolean hasRandomCalls,
                 int maxOutputs,
                 int maxMapAllocations) {
+            return exact(
+                    occurrences,
+                    hasRandomCalls,
+                    maxOutputs,
+                    maxMapAllocations,
+                    EnchantmentMarginal.EMPTY);
+        }
+
+        private static <T> ExpectedExecutionEvaluation<T> exact(
+                Map<T, ExactProbability> occurrences,
+                boolean hasRandomCalls,
+                int maxOutputs,
+                int maxMapAllocations,
+                EnchantmentMarginal enchantmentMarginal) {
             return new ExpectedExecutionEvaluation<>(
                     true,
                     occurrences,
                     hasRandomCalls,
                     Math.min(2, Math.max(0, maxOutputs)),
                     Math.min(2, Math.max(0, maxMapAllocations)),
+                    enchantmentMarginal,
                     "",
                     "",
                     null);
@@ -1003,7 +1048,15 @@ public final class DistributionalLootPool1201 {
         private static <T> ExpectedExecutionEvaluation<T> unsupported(
                 String pointer, String message, EvaluationFailureKind failureKind) {
             return new ExpectedExecutionEvaluation<>(
-                    false, Map.of(), false, 0, 0, pointer, message, failureKind);
+                    false,
+                    Map.of(),
+                    false,
+                    0,
+                    0,
+                    EnchantmentMarginal.EMPTY,
+                    pointer,
+                    message,
+                    failureKind);
         }
 
         private static <T> ExpectedExecutionEvaluation<T> randomSemantics(

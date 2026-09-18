@@ -219,6 +219,7 @@ public final class DistributionalFunction1201 {
         }
         FiniteDistribution<StackState> current = FiniteDistribution.singleton(input);
         boolean hasRandomCalls = false;
+        EnchantmentMarginal enchantmentMarginal = EnchantmentMarginal.EMPTY;
         JsonArray array = functions.getAsJsonArray();
         for (int index = 0; index < array.size(); index++) {
             String pointer = functionsPointer + "/" + index;
@@ -288,6 +289,17 @@ public final class DistributionalFunction1201 {
                         hasRandomCalls(levels.distribution())
                                 || current.masses().keySet().stream()
                                         .anyMatch(state -> state.stack().getEnchantmentValue() > 0);
+                // The enchantment mark side channel. `current` is conditional on the function's
+                // conditions, so the marginal is scaled by the passing mass exactly like the
+                // enchanted stack distribution below.
+                enchantmentMarginal =
+                        enchantmentMarginal.plus(
+                                ExactEnchantmentSemantics1201.enchantmentMarginal(
+                                                current.masses().entrySet(),
+                                                levels.distribution().marginal(),
+                                                treasure,
+                                                maxStates)
+                                        .scale(passMass));
                 LinkedHashMap<StackState, ExactProbability> next = new LinkedHashMap<>();
                 if (!failMass.isZero()) {
                     current.masses()
@@ -358,7 +370,7 @@ public final class DistributionalFunction1201 {
                 input.stack().is(Items.MAP)
                         && current.masses().keySet().stream()
                                 .anyMatch(state -> state.stack().is(Items.FILLED_MAP));
-        return ExpectedEvaluation.exact(current, hasRandomCalls, allocatesMap);
+        return ExpectedEvaluation.exact(current, hasRandomCalls, allocatesMap, enchantmentMarginal);
     }
 
     private static ExpectedKernel applyOneExpected(
@@ -1045,6 +1057,7 @@ public final class DistributionalFunction1201 {
             FiniteDistribution<StackState> distribution,
             boolean hasRandomCalls,
             boolean mayAllocateMap,
+            EnchantmentMarginal enchantmentMarginal,
             String pointer,
             String message,
             EvaluationFailureKind failureKind) {
@@ -1052,8 +1065,23 @@ public final class DistributionalFunction1201 {
                 FiniteDistribution<StackState> distribution,
                 boolean hasRandomCalls,
                 boolean mayAllocateMap) {
+            return exact(distribution, hasRandomCalls, mayAllocateMap, EnchantmentMarginal.EMPTY);
+        }
+
+        public static ExpectedEvaluation exact(
+                FiniteDistribution<StackState> distribution,
+                boolean hasRandomCalls,
+                boolean mayAllocateMap,
+                EnchantmentMarginal enchantmentMarginal) {
             return new ExpectedEvaluation(
-                    true, distribution, hasRandomCalls, mayAllocateMap, "", "", null);
+                    true,
+                    distribution,
+                    hasRandomCalls,
+                    mayAllocateMap,
+                    enchantmentMarginal,
+                    "",
+                    "",
+                    null);
         }
 
         public static ExpectedEvaluation unsupported(String pointer, String message) {
@@ -1062,7 +1090,15 @@ public final class DistributionalFunction1201 {
 
         public static ExpectedEvaluation unsupported(
                 String pointer, String message, EvaluationFailureKind failureKind) {
-            return new ExpectedEvaluation(false, null, false, false, pointer, message, failureKind);
+            return new ExpectedEvaluation(
+                    false,
+                    null,
+                    false,
+                    false,
+                    EnchantmentMarginal.EMPTY,
+                    pointer,
+                    message,
+                    failureKind);
         }
 
         public static ExpectedEvaluation randomSemantics(String pointer, String message) {
