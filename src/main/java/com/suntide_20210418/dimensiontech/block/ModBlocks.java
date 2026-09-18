@@ -75,8 +75,6 @@ public final class ModBlocks {
                                     BlockBehaviour.Properties.of().strength(3.0F)));
     public static final RegistryObject<Block> UPGRADE_PARALLEL =
             upgrade("parallel", StructureMinerUpgradeBlock.Type.PARALLEL, 1);
-    public static final RegistryObject<Block> UPGRADE_NONE =
-            upgrade("none", StructureMinerUpgradeBlock.Type.NONE, 1);
     public static final RegistryObject<Block> UPGRADE_LUCK =
             upgrade("luck", StructureMinerUpgradeBlock.Type.LUCK, 1);
     public static final RegistryObject<Block> UPGRADE_ENERGY =

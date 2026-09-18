@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "IRI",
+    " G ",
+    "IRI"
+  ],
+  "result": {
+    "count": 4,
+    "item": "dimension_tech:dimension_focus_tier_1"
+  },
+  "show_notification": true
+}

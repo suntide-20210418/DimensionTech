@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "minecraft:stone_bricks"
+    }
+  },
+  "pattern": [
+    "IGI",
+    "S S",
+    "IGI"
+  ],
+  "result": {
+    "count": 8,
+    "item": "dimension_tech:structure_miner_casing"
+  },
+  "show_notification": true
+}

@@ -87,8 +87,6 @@ public final class ModItems {
             blockItem("structure_miner_structure", ModBlocks.STRUCTURE_MINER_STRUCTURE);
     public static final RegistryObject<Item> UPGRADE_PARALLEL =
             blockItem("structure_miner_upgrade_parallel", ModBlocks.UPGRADE_PARALLEL);
-    public static final RegistryObject<Item> UPGRADE_NONE =
-            blockItem("structure_miner_upgrade_none", ModBlocks.UPGRADE_NONE);
     public static final RegistryObject<Item> UPGRADE_LUCK =
             blockItem("structure_miner_upgrade_luck", ModBlocks.UPGRADE_LUCK);
     public static final RegistryObject<Item> UPGRADE_ENERGY =

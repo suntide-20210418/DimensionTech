@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "M": {
+      "item": "dimension_tech:dimension_deconstruction_core"
+    },
+    "N": {
+      "item": "dimension_tech:dimension_focus_tier_5"
+    }
+  },
+  "pattern": [
+    "NMN",
+    " G ",
+    "NMN"
+  ],
+  "result": {
+    "count": 4,
+    "item": "dimension_tech:dimension_focus_tier_6"
+  },
+  "show_notification": true
+}

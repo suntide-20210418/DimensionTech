@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "minecraft:glowstone_dust"
+    },
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_5"
+    },
+    "S": {
+      "item": "dimension_tech:structure_miner_casing"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_5"
+    }
+  },
+  "pattern": [
+    "SCS",
+    "FSF",
+    "T T"
+  ],
+  "result": {
+    "count": 4,
+    "item": "dimension_tech:structure_miner_upgrade_luck_tier_5"
+  },
+  "show_notification": true
+}

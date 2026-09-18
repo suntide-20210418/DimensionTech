@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": {
+      "item": "dimension_tech:structure_miner_upgrade_energy_tier_5"
+    },
+    "E": {
+      "item": "dimension_tech:structure_miner_upgrade_efficiency_tier_5"
+    },
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_5"
+    },
+    "L": {
+      "item": "dimension_tech:structure_miner_upgrade_luck_tier_5"
+    },
+    "P": {
+      "item": "dimension_tech:structure_miner_upgrade_parallel_tier_5"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_5"
+    }
+  },
+  "pattern": [
+    "PLE",
+    "FDF",
+    "T T"
+  ],
+  "result": {
+    "count": 2,
+    "item": "dimension_tech:structure_miner_upgrade_aggregate_tier_5"
+  },
+  "show_notification": true
+}

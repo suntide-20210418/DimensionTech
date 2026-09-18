@@ -345,7 +345,6 @@ public class ModEnusLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
                     "Tier " + tier + " Aggregate Upgrade");
         }
-        add("block.dimension_tech.structure_miner_upgrade_none", "No Upgrade Block");
         for (int tier = 1; tier <= 6; tier++)
             add("block.dimension_tech.dimension_focus_tier_" + tier, "Dimension Focus " + tier);
         add("screen.dimension_tech.structure_miner.place_structure", "Place Multiblock Structure");
@@ -371,6 +370,11 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.status.waiting_structure", "Waiting");
         add("message.dimension_tech.structure_miner.projection_on", "Multiblock projection shown");
         add("message.dimension_tech.structure_miner.projection_off", "Multiblock projection hidden");
+        add(
+                "message.dimension_tech.structure_miner.build_blocked",
+                "%s multiblock position(s) are obstructed");
+        add("message.dimension_tech.structure_miner.build_missing", "Not enough materials: %s");
+        add("message.dimension_tech.structure_miner.build_missing_entry", "%s x%s");
         add("tooltip.dimension_tech.structure_miner.base_parallel", "Base parallel: %s");
         add("tooltip.dimension_tech.structure_miner.efficiency", "Efficiency: %s");
         add("tooltip.dimension_tech.structure_miner.luck", "Luck: %s");
@@ -386,7 +390,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.material.casing", "Miner Casing x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "Miner Structure Block x%s");
         add("tooltip.dimension_tech.structure_miner.material.focus", "Tier %s Dimension Focus x%s");
-        add("tooltip.dimension_tech.structure_miner.material.upgrade", "Any Upgrade Block x%s");
+        add(
+                "tooltip.dimension_tech.structure_miner.material.upgrade",
+                "Any Upgrade Block or Miner Casing x%s");
         add("tooltip.dimension_tech.structure_miner.upgrade.efficiency", "Efficiency: +%s%%");
         add(
                 "tooltip.dimension_tech.structure_miner.upgrade.energy_capacity",

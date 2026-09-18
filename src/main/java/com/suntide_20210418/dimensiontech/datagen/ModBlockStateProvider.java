@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.datagen;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.block.ModBlocks;
+import java.util.Set;
 import net.minecraft.data.PackOutput;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.client.model.generators.BlockStateProvider;
@@ -10,6 +11,11 @@ import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.RegistryObject;
 
 public class ModBlockStateProvider extends BlockStateProvider {
+    /**
+     * Focus indices whose models are authored by hand under {@code src/main/resources}. Generating a
+     * placeholder for these collides with the hand-written file and fails processResources.
+     */
+    private static final Set<Integer> HAND_WRITTEN_FOCUS = Set.of(0, 1);
 
     public ModBlockStateProvider(PackOutput output, ExistingFileHelper exFileHelper) {
         super(output, DimensionTechMod.MOD_ID, exFileHelper);
@@ -40,7 +46,6 @@ public class ModBlockStateProvider extends BlockStateProvider {
                 new Block[] {
                     ModBlocks.STRUCTURE_MINER_CASING.get(),
                     ModBlocks.STRUCTURE_MINER_STRUCTURE.get(),
-                    ModBlocks.UPGRADE_NONE.get(),
                     ModBlocks.UPGRADE_PARALLEL.get(),
                     ModBlocks.UPGRADE_LUCK.get(),
                     ModBlocks.UPGRADE_ENERGY.get(),
@@ -61,8 +66,8 @@ public class ModBlockStateProvider extends BlockStateProvider {
         for (int tier = 0; tier < ModBlocks.DIMENSION_FOCUS.length; tier++) {
             var focus = ModBlocks.DIMENSION_FOCUS[tier];
             ModelFile focusModel =
-                    tier == 0
-                            ? models().getExistingFile(modLoc("block/dimension_focus_tier_1"))
+                    HAND_WRITTEN_FOCUS.contains(tier)
+                            ? models().getExistingFile(modLoc(focus.getId().getPath()))
                             : models().cubeAll(
                                             focus.getId().getPath(), mcLoc("block/amethyst_block"));
             simpleBlockWithItem(focus.get(), focusModel);

@@ -66,7 +66,6 @@ public final class ModCreativeModeTabs {
                                                 output.accept(ModItems.STRUCTURE_MINER_CASING.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_MINER_STRUCTURE.get());
-                                                output.accept(ModItems.UPGRADE_NONE.get());
                                                 for (RegistryObject<Item> upgrade :
                                                         ModItems.UPGRADE_EFFICIENCY_TIERS)
                                                     output.accept(upgrade.get());

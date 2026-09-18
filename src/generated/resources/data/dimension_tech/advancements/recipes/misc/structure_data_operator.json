@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_structure_miner_casing": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "dimension_tech:structure_miner_casing"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "dimension_tech:structure_data_operator"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_structure_miner_casing",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "dimension_tech:structure_data_operator"
+    ]
+  },
+  "sends_telemetry_event": false
+}

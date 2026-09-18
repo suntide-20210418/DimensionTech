@@ -277,7 +277,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
                     tier + "级聚合升级方块");
         }
-        add("block.dimension_tech.structure_miner_upgrade_none", "无升级方块");
         for (int tier = 1; tier <= 6; tier++)
             add("block.dimension_tech.dimension_focus_tier_" + tier, "维度聚焦方块 " + tier);
         add("screen.dimension_tech.structure_miner.place_structure", "一键搭建");
@@ -297,6 +296,11 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.status.waiting_structure", "等待结构");
         add("message.dimension_tech.structure_miner.projection_on", "已显示多方块结构投影");
         add("message.dimension_tech.structure_miner.projection_off", "已隐藏多方块结构投影");
+        add(
+                "message.dimension_tech.structure_miner.build_blocked",
+                "搭建位置被 %s 个方块阻挡，请先清理");
+        add("message.dimension_tech.structure_miner.build_missing", "材料不足：%s");
+        add("message.dimension_tech.structure_miner.build_missing_entry", "%s x%s");
         add("tooltip.dimension_tech.structure_miner.base_parallel", "基础并行：%s");
         add("tooltip.dimension_tech.structure_miner.efficiency", "效率：%s");
         add("tooltip.dimension_tech.structure_miner.luck", "幸运：%s");
@@ -308,7 +312,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.material.casing", "采掘器外壳 x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "采掘器结构方块 x%s");
         add("tooltip.dimension_tech.structure_miner.material.focus", "%s 级维度聚焦方块 x%s");
-        add("tooltip.dimension_tech.structure_miner.material.upgrade", "任意升级方块 x%s");
+        add(
+                "tooltip.dimension_tech.structure_miner.material.upgrade",
+                "任意升级方块或采掘器外壳 x%s");
         add("tooltip.dimension_tech.structure_miner.upgrade.efficiency", "效率提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.energy_capacity", "储能提升：+%s%%");
         add(
