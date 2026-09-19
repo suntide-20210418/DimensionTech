@@ -18,7 +18,6 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(TranslateHelper.keyCategory("main"), "Dimension Tech");
         add(TranslateHelper.key("switch"), "Switch card mode");
         add(TranslateHelper.item("structure_marker"), "Structure Marker");
-        add(TranslateHelper.item("enchantment_mark"), "Enchantment Mark");
         add(TranslateHelper.item("dimension_deconstruction_core"), "Dimension Deconstruction Core");
         for (int tier = 1; tier <= 6; tier++) {
             add(
@@ -50,19 +49,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_reactor.status_line.changes",
                 "Changes: %s output %s consumption, time -%s/+%s ticks, extra recursion %s");
-        add("screen.dimension_tech.structure_reactor.status_line.previous", "Previous step: %s");
-        add(
-                "screen.dimension_tech.structure_reactor.status_line.previous.reward",
-                "%s: rollback reward (%s)");
-        add(
-                "screen.dimension_tech.structure_reactor.status_line.previous.normal",
-                "%s: normal rollback");
-        add(
-                "screen.dimension_tech.structure_reactor.status_line.previous.penalty",
-                "%s: penalty (%s)");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.reward.branch",
-                "time -%s ticks");
+                "time -%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.reward.recurse",
                 "consumption -%s%%");
@@ -74,19 +63,19 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "unsettled rewards doubled");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.phase_idle",
-                "phase idle, time +%s ticks");
+                "Phase idle: time +%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.branch",
-                "branch conflict, time +%s ticks");
+                "Branch conflict: time +%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.recurse",
-                "recursion overflow, consumption +%s%%");
+                "Recursion overflow: consumption +%s%%");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.converge",
-                "early converge, output -%s%%/depth");
+                "Early converge: output -%s%%/depth");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.stabilize",
-                "early stabilize, extra fragments +%s");
+                "Stabilize failure: extra fragments +%s");
         add("screen.dimension_tech.structure_reactor.status_line.previous.none", "None");
         add("screen.dimension_tech.structure_reactor.status_line.no_recipe", "No recipe");
         add("screen.dimension_tech.structure_reactor.status_line.no_requirement", "None");
@@ -96,10 +85,31 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.stage.recurse", "Recurse");
         add("screen.dimension_tech.structure_reactor.stage.converge", "Converge");
         add("screen.dimension_tech.structure_reactor.stage.stabilize", "Stabilize");
+        add("screen.dimension_tech.structure_reactor.step_outcome.rewarded", "Triggered reward");
+        add("screen.dimension_tech.structure_reactor.step_outcome.normal", "Normal");
+        add("screen.dimension_tech.structure_reactor.step_outcome.phase_idle", "Phase idle");
+        add("screen.dimension_tech.structure_reactor.step_outcome.early_converge", "Early converge");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.recursion_overflow",
+                "Recursion overflow");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.branch_conflict",
+                "Branch conflict");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.stabilize_failure",
+                "Stabilize failure");
         add("screen.dimension_tech.structure_reactor.detail.sequence", "Recipe steps");
         add("screen.dimension_tech.structure_reactor.detail.needs", "Needs");
         add("screen.dimension_tech.structure_reactor.detail.changes", "Changes");
         add("screen.dimension_tech.structure_reactor.detail.previous", "Previous step");
+        add("screen.dimension_tech.structure_reactor.detail.metric.output", "Output");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fluid", "Fluid");
+        add("screen.dimension_tech.structure_reactor.detail.metric.time", "Time");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fragment", "Fragments");
+        add("screen.dimension_tech.structure_reactor.detail.metric.time_value", "-%s t");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fragment_value", "+%s");
+        add("screen.dimension_tech.structure_reactor.detail.remaining", "%s more");
+        add("screen.dimension_tech.structure_reactor.previous_step.reward_suffix", " reward: ");
         add(
                 "screen.dimension_tech.structure_reactor.detail.fluid_required",
                 "Input fluid %s/%s mB (needs %s mB this step)");
@@ -156,6 +166,13 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.control.auto_pull", "Auto pull");
         add("screen.dimension_tech.structure_reactor.control.auto_push", "Auto push");
         add("screen.dimension_tech.structure_reactor.control.me_network", "ME network");
+        add("screen.dimension_tech.structure_reactor.output_face", "Output Face Config");
+        add(
+                "screen.dimension_tech.structure_reactor.redstone_control_on",
+                "Redstone control: on");
+        add(
+                "screen.dimension_tech.structure_reactor.redstone_control_off",
+                "Redstone control: off");
         add("screen.dimension_tech.structure_reactor.control.enabled", "Enabled");
         add("screen.dimension_tech.structure_reactor.control.disabled", "Disabled");
         add("screen.dimension_tech.structure_reactor.fluid_lock.locked", "Input fluid: locked");
@@ -653,10 +670,6 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "Legacy value hidden; mark the structure again");
         add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
-        add(TranslateHelper.tooltip("enchantment_mark.enchantment"), "Enchantment: %s");
-        add(TranslateHelper.tooltip("enchantment_mark.unbound"), "Unbound");
-        add(TranslateHelper.tooltip("enchantment_mark.level"), "Mark level: %s");
-        add(TranslateHelper.tooltip("enchantment_mark.split_hint"), "Splits into %s level 1 marks");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "Structure Miner Status");
         add("jade.dimension_tech.status.idle", "Idle");
         add("jade.dimension_tech.status.running", "Running");

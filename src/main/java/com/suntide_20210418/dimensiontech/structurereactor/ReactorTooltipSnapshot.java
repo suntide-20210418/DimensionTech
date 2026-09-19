@@ -20,6 +20,7 @@ public record ReactorTooltipSnapshot(
         int outputExpectedAmount,
         Fluid expectedInputFluid,
         Fluid expectedOutputFluid,
+        List<StructureReactorCycle.Resolution> stateOutcomes,
         int revision) {
     public static final int MAX_CANDIDATES = 6;
     public static final int MAX_CANDIDATE_TOTAL = 4096;
@@ -36,11 +37,28 @@ public record ReactorTooltipSnapshot(
         outputExpectedAmount = Math.max(0, outputExpectedAmount);
         expectedInputFluid = expectedInputFluid == null ? Fluids.EMPTY : expectedInputFluid;
         expectedOutputFluid = expectedOutputFluid == null ? Fluids.EMPTY : expectedOutputFluid;
+        stateOutcomes =
+                stateOutcomes == null
+                        ? List.of()
+                        : List.copyOf(stateOutcomes);
     }
 
     public static ReactorTooltipSnapshot empty() {
         return new ReactorTooltipSnapshot(
-                List.of(), 0, 0, List.of(), 0, false, 0, 0, 0, 0, Fluids.EMPTY, Fluids.EMPTY, -1);
+                List.of(),
+                0,
+                0,
+                List.of(),
+                0,
+                false,
+                0,
+                0,
+                0,
+                0,
+                Fluids.EMPTY,
+                Fluids.EMPTY,
+                List.of(),
+                -1);
     }
 
     /** Compares displayed data while deliberately ignoring the transport revision. */
@@ -56,6 +74,7 @@ public record ReactorTooltipSnapshot(
                 && outputExpectedAmount == other.outputExpectedAmount
                 && expectedInputFluid == other.expectedInputFluid
                 && expectedOutputFluid == other.expectedOutputFluid
+                && stateOutcomes.equals(other.stateOutcomes)
                 && sameStacks(fragmentCandidates, other.fragmentCandidates)
                 && sameStacks(operationCandidates, other.operationCandidates);
     }
@@ -74,6 +93,7 @@ public record ReactorTooltipSnapshot(
                 outputExpectedAmount,
                 expectedInputFluid,
                 expectedOutputFluid,
+                stateOutcomes,
                 value);
     }
 

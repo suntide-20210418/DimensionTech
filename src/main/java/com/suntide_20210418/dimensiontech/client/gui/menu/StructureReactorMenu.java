@@ -22,7 +22,8 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
 
-public final class StructureReactorMenu extends AbstractContainerMenu {
+public final class StructureReactorMenu extends AbstractContainerMenu
+        implements OutputFaceConfigMenu {
     private final StructureReactorBlockEntity reactor;
     private final ContainerData data;
     private final Player viewer;
@@ -89,6 +90,14 @@ public final class StructureReactorMenu extends AbstractContainerMenu {
 
     public int stateIndex() {
         return data.get(StructureReactorBlockEntity.DATA_STATE_INDEX);
+    }
+
+    /** Settlement outcome of the sequence step at {@code index}, or NONE if not settled yet. */
+    public StructureReactorCycle.Resolution stateOutcome(int index) {
+        var outcomes = tooltipSnapshot.stateOutcomes();
+        return index >= 0 && index < outcomes.size()
+                ? outcomes.get(index)
+                : StructureReactorCycle.Resolution.NONE;
     }
 
     public int inputAmount() {
@@ -235,6 +244,10 @@ public final class StructureReactorMenu extends AbstractContainerMenu {
         return data.get(StructureReactorBlockEntity.DATA_ME_NETWORK) != 0;
     }
 
+    public boolean isRedstoneControlEnabled() {
+        return data.get(StructureReactorBlockEntity.DATA_REDSTONE) != 0;
+    }
+
     public boolean inputFluidLocked() {
         return data.get(StructureReactorBlockEntity.DATA_INPUT_FLUID_LOCKED) != 0;
     }
@@ -296,12 +309,82 @@ public final class StructureReactorMenu extends AbstractContainerMenu {
             if (!player.level().isClientSide) reactor.clearOutputTank();
             return true;
         }
+        if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_REDSTONE_CONTROL) {
+            if (!player.level().isClientSide) reactor.toggleRedstoneControl();
+            return true;
+        }
         int face = id - StructureReactorBlockEntity.BUTTON_CYCLE_FLUID_FACE_BASE;
         if (face >= 0 && face < Direction.values().length) {
             if (!player.level().isClientSide) reactor.cycleFluidFace(Direction.values()[face]);
             return true;
         }
         return false;
+    }
+
+    // --- OutputFaceConfigMenu -------------------------------------------------
+
+    @Override
+    public int containerId() {
+        return containerId;
+    }
+
+    /** True when the side is set to push output fluid (OUTPUT or INPUT_OUTPUT). */
+    @Override
+    public boolean isOutputFaceEnabled(Direction d) {
+        StructureReactorBlockEntity.FluidFaceMode mode = fluidFaceMode(d);
+        return mode == StructureReactorBlockEntity.FluidFaceMode.OUTPUT
+                || mode == StructureReactorBlockEntity.FluidFaceMode.INPUT_OUTPUT;
+    }
+
+    /** True when the side is set to receive input fluid (INPUT or INPUT_OUTPUT). */
+    @Override
+    public boolean isInputFaceEnabled(Direction d) {
+        StructureReactorBlockEntity.FluidFaceMode mode = fluidFaceMode(d);
+        return mode == StructureReactorBlockEntity.FluidFaceMode.INPUT
+                || mode == StructureReactorBlockEntity.FluidFaceMode.INPUT_OUTPUT;
+    }
+
+    @Override
+    public boolean isModernModeEnabled() {
+        return meNetwork();
+    }
+
+    @Override
+    public boolean isAutoExtractEnabled() {
+        return autoPullFluid();
+    }
+
+    @Override
+    public void cycleOutputFace(Direction d) {
+        net.minecraft.client.Minecraft.getInstance()
+                .gameMode
+                .handleInventoryButtonClick(
+                        containerId, StructureReactorBlockEntity.BUTTON_CYCLE_FLUID_FACE_BASE + d.ordinal());
+    }
+
+    @Override
+    public void cycleModernMode() {
+        net.minecraft.client.Minecraft.getInstance()
+                .gameMode
+                .handleInventoryButtonClick(containerId, StructureReactorBlockEntity.BUTTON_TOGGLE_ME_NETWORK);
+    }
+
+    @Override
+    public void cycleAutoExtract() {
+        net.minecraft.client.Minecraft.getInstance()
+                .gameMode
+                .handleInventoryButtonClick(containerId, StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PULL);
+    }
+
+    @Override
+    public BlockPos getBlockPos() {
+        return reactor.getBlockPos();
+    }
+
+    /** The reactor's fluid faces are world-oriented, so there is no logical-to-world remap. */
+    @Override
+    public Direction toWorldDirection(Direction d) {
+        return d;
     }
 
     @Override

@@ -750,6 +750,10 @@ public final class ModNetwork {
             buffer.writeVarInt(snapshot.operationStepCount());
             buffer.writeVarInt(snapshot.inputRequiredAmount());
             buffer.writeVarInt(snapshot.outputExpectedAmount());
+            List<com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle.Resolution>
+                    outcomes = snapshot.stateOutcomes();
+            buffer.writeVarInt(outcomes.size());
+            for (var outcome : outcomes) buffer.writeVarInt(outcome.ordinal());
             buffer.writeVarInt(fluidId(snapshot.expectedInputFluid()));
             buffer.writeVarInt(fluidId(snapshot.expectedOutputFluid()));
         }
@@ -767,6 +771,21 @@ public final class ModNetwork {
             int operationStepCount = buffer.readVarInt();
             int inputRequiredAmount = buffer.readVarInt();
             int outputExpectedAmount = buffer.readVarInt();
+            var outcomes = new ArrayList<
+                    com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle
+                            .Resolution>();
+            int outcomeCount = buffer.readVarInt();
+            var resolutionValues =
+                    com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle
+                            .Resolution.values();
+            for (int index = 0; index < outcomeCount; index++) {
+                int ordinal = buffer.readVarInt();
+                outcomes.add(
+                        ordinal >= 0 && ordinal < resolutionValues.length
+                                ? resolutionValues[ordinal]
+                                : com.suntide_20210418.dimensiontech.structurereactor
+                                        .StructureReactorCycle.Resolution.NONE);
+            }
             Fluid expectedInputFluid = fluid(buffer.readVarInt());
             Fluid expectedOutputFluid = fluid(buffer.readVarInt());
             return new StructureReactorTooltipPacket(
@@ -784,6 +803,7 @@ public final class ModNetwork {
                             outputExpectedAmount,
                             expectedInputFluid,
                             expectedOutputFluid,
+                            outcomes,
                             revision));
         }
 

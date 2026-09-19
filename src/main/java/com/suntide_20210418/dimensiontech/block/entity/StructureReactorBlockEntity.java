@@ -102,14 +102,16 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     public static final int DATA_ME_NETWORK = 27;
     public static final int DATA_FLUID_FACE_MODES = 28;
     public static final int DATA_INPUT_FLUID_LOCKED = 29;
+    public static final int DATA_REDSTONE = 30;
 
-    public static final int DATA_SLOT_COUNT = 30;
+    public static final int DATA_SLOT_COUNT = 31;
     public static final int BUTTON_TOGGLE_AUTO_PULL = 30;
     public static final int BUTTON_TOGGLE_AUTO_PUSH = 31;
     public static final int BUTTON_TOGGLE_ME_NETWORK = 32;
     public static final int BUTTON_TOGGLE_INPUT_LOCK = 33;
     public static final int BUTTON_CLEAR_INPUT_TANK = 34;
     public static final int BUTTON_CLEAR_OUTPUT_TANK = 35;
+    public static final int BUTTON_TOGGLE_REDSTONE_CONTROL = 36;
 
     /** Everything from here up is a fluid-face cycle id, so screen buttons must stay below it. */
     public static final int BUTTON_CYCLE_FLUID_FACE_BASE = 40;
@@ -120,6 +122,12 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                 @Override
                 public boolean isItemValid(int slot, ItemStack stack) {
                     return slot == FRAGMENT_SLOT || slot == OPERATION_SLOT;
+                }
+
+                @Override
+                public int getSlotLimit(int slot) {
+                    // The operation slot holds exactly one submitted item at a time.
+                    return slot == OPERATION_SLOT ? 1 : super.getSlotLimit(slot);
                 }
 
                 @Override
@@ -137,6 +145,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     private boolean autoPullFluid;
     private boolean autoPushFluid;
     private boolean meNetwork;
+    private boolean redstoneControl;
 
     /** Client-side mirror of the container data channel; the server always reads live state. */
     private final int[] syncedData = new int[DATA_SLOT_COUNT];
@@ -243,6 +252,16 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     public boolean isMeNetworkEnabled() {
         return meNetwork;
+    }
+
+    /** True when the reactor only runs while it receives a redstone signal. */
+    public boolean isRedstoneControlEnabled() {
+        return redstoneControl;
+    }
+
+    public void toggleRedstoneControl() {
+        redstoneControl = !redstoneControl;
+        setChanged();
     }
 
     public boolean isInputFluidLocked() {
@@ -425,6 +444,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     public static void serverTick(
             Level level, BlockPos pos, BlockState blockState, StructureReactorBlockEntity be) {
+        // With redstone control on, the reactor stays inert until a strong redstone signal arrives.
+        if (be.redstoneControl && level.getBestNeighborSignal(pos) == 0) return;
         if (level instanceof ServerLevel serverLevel) {
             if (be.autoPullFluid) be.pullFluids(serverLevel);
             if (be.autoPushFluid) be.pushFluid(serverLevel);
@@ -620,6 +641,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                 outputExpected,
                 recipe.input(),
                 recipe.output(),
+                cycle.stateOutcomes(),
                 -1);
     }
 
@@ -703,6 +725,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
             case DATA_ME_NETWORK -> meNetwork ? 1 : 0;
             case DATA_FLUID_FACE_MODES -> getFluidFaceModesPacked();
             case DATA_INPUT_FLUID_LOCKED -> inputFluidLocked ? 1 : 0;
+            case DATA_REDSTONE -> redstoneControl ? 1 : 0;
             default -> 0;
         };
     }
@@ -763,6 +786,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         tag.putBoolean("AutoPullFluid", autoPullFluid);
         tag.putBoolean("AutoPushFluid", autoPushFluid);
         tag.putBoolean("MeNetwork", meNetwork);
+        tag.putBoolean("RedstoneControl", redstoneControl);
         tag.putBoolean("InputFluidLocked", inputFluidLocked);
         tag.putInt(
                 "LockedInputFluid",
@@ -794,6 +818,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         autoPullFluid = tag.getBoolean("AutoPullFluid");
         autoPushFluid = tag.getBoolean("AutoPushFluid");
         meNetwork = tag.getBoolean("MeNetwork");
+        redstoneControl = tag.getBoolean("RedstoneControl");
         inputFluidLocked = tag.getBoolean("InputFluidLocked");
         Fluid savedLockedFluid = BuiltInRegistries.FLUID.byId(tag.getInt("LockedInputFluid"));
         lockedInputFluid =

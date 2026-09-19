@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.structurereactor;
 
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -61,6 +62,8 @@ public final class StructureReactorCycle<S> {
     private int carriedExtraRecursion;
     private boolean carriedRecursionAlreadySettled = true;
     private int extraFragmentCost;
+    /** Outcome recorded for each settled sequence step; {@code NONE} until a step settles. */
+    private final List<Resolution> stateOutcomes = new ArrayList<>();
     private Status status = Status.IDLE;
 
     /** Starts a cycle that keeps the branch persisted on this state machine. */
@@ -82,6 +85,7 @@ public final class StructureReactorCycle<S> {
         }
         this.recipe = recipe;
         stateIndex = stateTicks = currentDepth = 0;
+        stateOutcomes.clear();
         elapsedTicks = 0;
         timeReduction =
                 timePenalty =
@@ -108,18 +112,21 @@ public final class StructureReactorCycle<S> {
     /** Resolves exactly one supplied operation stack. Empty stacks are intentionally ignored. */
     public Resolution resolve(S stack, boolean inputEmpty) {
         if (status != Status.RUNNING || inputEmpty) return Resolution.NONE;
+        int actionIndex = stateIndex;
         if (stateTicks >= STATE_TIMEOUT_TICKS) {
             timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
             stateTicks = 0;
+            recordOutcome(actionIndex, Resolution.PHASE_IDLE);
             return Resolution.PHASE_IDLE;
         }
         StateStep<S> expected = currentStep();
         StateId expectedState = expected.state();
         StateId submitted = stateFor(stack);
-        if (submitted == expectedState && expected.operation().test(stack)) return correct();
+        if (submitted == expectedState && expected.operation().test(stack)) return correct(actionIndex);
         if (submitted == null) {
             timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
             stateTicks = 0;
+            recordOutcome(actionIndex, Resolution.PHASE_IDLE);
             return Resolution.PHASE_IDLE;
         }
         int targetDepth = recipe.targetDepth(branch);
@@ -135,6 +142,7 @@ public final class StructureReactorCycle<S> {
                                         recipe.fragmentCount() * MAX_EXTRA_FRAGMENT_MULTIPLIER,
                                         extraFragmentCost + STABILIZE_FAILURE_EXTRA_FRAGMENTS);
                         stateTicks = 0;
+                        recordOutcome(actionIndex, Resolution.STABILIZE_FAILURE);
                         return Resolution.STABILIZE_FAILURE;
                     }
                 }
@@ -150,6 +158,7 @@ public final class StructureReactorCycle<S> {
                     }
                     stateTicks = 0;
                     settleStep();
+                    recordOutcome(actionIndex, Resolution.EARLY_CONVERGE);
                     return Resolution.EARLY_CONVERGE;
                 }
             }
@@ -158,6 +167,7 @@ public final class StructureReactorCycle<S> {
                     fluidPenaltyBp += RECURSION_OVERFLOW_FLUID_PENALTY_BP;
                     currentDepth = Math.max(0, targetDepth - 1);
                     stateTicks = 0;
+                    recordOutcome(actionIndex, Resolution.RECURSION_OVERFLOW);
                     return Resolution.RECURSION_OVERFLOW;
                 }
             }
@@ -167,14 +177,16 @@ public final class StructureReactorCycle<S> {
             timePenalty += BRANCH_CONFLICT_TIME_PENALTY_TICKS;
             stateIndex = branchIndex();
             stateTicks = 0;
+            recordOutcome(actionIndex, Resolution.BRANCH_CONFLICT);
             return Resolution.BRANCH_CONFLICT;
         }
         timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
         stateTicks = 0;
+        recordOutcome(actionIndex, Resolution.PHASE_IDLE);
         return Resolution.PHASE_IDLE;
     }
 
-    private Resolution correct() {
+    private Resolution correct(int actionIndex) {
         boolean rewarded = stateTicks >= REWARD_START_TICK && stateTicks <= REWARD_END_TICK;
         StateId id = currentStep().state();
         if (rewarded) {
@@ -188,6 +200,8 @@ public final class StructureReactorCycle<S> {
                 case STABILIZE -> settleStabilizeReward();
             }
         }
+        recordOutcome(
+                actionIndex, rewarded ? Resolution.CORRECT_REWARDED : Resolution.CORRECT);
         if (id == StateId.RECURSE) currentDepth++;
         stateIndex++;
         stateTicks = 0;
@@ -370,6 +384,24 @@ public final class StructureReactorCycle<S> {
 
     public int stateIndex() {
         return stateIndex;
+    }
+
+    /** Outcome of the settled step at {@code index}, or {@link Resolution#NONE} if not settled. */
+    public Resolution stateOutcome(int index) {
+        return index >= 0 && index < stateOutcomes.size()
+                ? stateOutcomes.get(index)
+                : Resolution.NONE;
+    }
+
+    /** Per-step settlement outcomes, index-aligned with the running sequence (server side). */
+    public List<Resolution> stateOutcomes() {
+        return List.copyOf(stateOutcomes);
+    }
+
+    private void recordOutcome(int index, Resolution resolution) {
+        if (resolution == Resolution.NONE) return;
+        while (stateOutcomes.size() <= index) stateOutcomes.add(Resolution.NONE);
+        stateOutcomes.set(index, resolution);
     }
 
     public StateId currentState() {

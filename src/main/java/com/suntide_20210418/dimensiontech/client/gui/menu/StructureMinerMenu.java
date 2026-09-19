@@ -26,7 +26,8 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
-public class StructureMinerMenu extends AbstractContainerMenu {
+public class StructureMinerMenu extends AbstractContainerMenu
+        implements OutputFaceConfigMenu {
     public static final int BASE_PLAYER_INVENTORY_Y = 258;
     public static final int MENU_WIDTH = 320;
     public static final int FLUID_MENU_WIDTH = 376;
@@ -424,6 +425,57 @@ public class StructureMinerMenu extends AbstractContainerMenu {
         net.minecraft.client.Minecraft.getInstance()
                 .gameMode
                 .handleInventoryButtonClick(containerId, 1);
+    }
+
+    // --- OutputFaceConfigMenu -------------------------------------------------
+
+    @Override
+    public int containerId() {
+        return containerId;
+    }
+
+    @Override
+    public boolean isInputFaceEnabled(net.minecraft.core.Direction d) {
+        return getFluidFaceMode(d) == BaseMinerBlockEntity.FluidFaceMode.INPUT;
+    }
+
+    @Override
+    public boolean isModernModeEnabled() {
+        return getOutputState() == BaseMinerBlockEntity.OutputState.ME_NETWORK;
+    }
+
+    @Override
+    public boolean isAutoExtractEnabled() {
+        return isAutoExtractFluidEnabled();
+    }
+
+    @Override
+    public void cycleOutputFace(net.minecraft.core.Direction d) {
+        net.minecraft.client.Minecraft.getInstance()
+                .gameMode
+                .handleInventoryButtonClick(containerId, 10 + d.ordinal());
+    }
+
+    @Override
+    public void cycleModernMode() {
+        toggleAeOutputMode();
+    }
+
+    @Override
+    public void cycleAutoExtract() {
+        net.minecraft.client.Minecraft.getInstance()
+                .gameMode
+                .handleInventoryButtonClick(containerId, 26);
+    }
+
+    @Override
+    public BlockPos getBlockPos() {
+        return blockEntity.getBlockPos();
+    }
+
+    @Override
+    public net.minecraft.core.Direction toWorldDirection(net.minecraft.core.Direction d) {
+        return blockEntity.toWorldDirection(d);
     }
 
     public BaseMinerBlockEntity getBlockEntity() {

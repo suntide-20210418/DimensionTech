@@ -27,7 +27,7 @@ public final class StructureReactorLayout {
     public static final GuiRect STATUS_REWARD_AREA = new GuiRect(56, 27, 88, 29);
     public static final GuiRect OUTPUT_TANK = new GuiRect(152, 12, 16, 50);
     /** Scrollable detail panel: sequence, needs, recipe changes and last settlement. */
-    public static final GuiRect VIEWPORT = new GuiRect(182, 42, 100, 112);
+    public static final GuiRect VIEWPORT = new GuiRect(177, 11, 108, 146);
     public static final GuiRect PLAYER_INVENTORY = new GuiRect(7, 83, 162, 54);
     public static final GuiRect HOTBAR = new GuiRect(7, 141, 162, 18);
 

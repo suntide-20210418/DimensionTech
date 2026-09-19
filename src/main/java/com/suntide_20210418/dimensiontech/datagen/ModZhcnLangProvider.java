@@ -18,7 +18,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.keyCategory("main"), "维度科技");
         add(TranslateHelper.key("switch"), "切换卡片模式");
         add(TranslateHelper.item("structure_marker"), "结构标记器");
-        add(TranslateHelper.item("enchantment_mark"), "附魔印记");
         add(TranslateHelper.item("dimension_deconstruction_core"), "维度解构核心");
         for (int tier = 1; tier <= 6; tier++) {
             add(TranslateHelper.item("dimension_fragment_tier_" + tier), tier + "级维度碎片");
@@ -47,13 +46,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_reactor.status_line.changes",
                 "变化：%s产出 %s消耗，耗时-%s/+%s tick，额外递归%s");
-        add("screen.dimension_tech.structure_reactor.status_line.previous", "上一步骤状态：%s");
-        add("screen.dimension_tech.structure_reactor.status_line.previous.reward", "%s：回卷奖励（%s）");
-        add("screen.dimension_tech.structure_reactor.status_line.previous.normal", "%s：正常回卷");
-        add("screen.dimension_tech.structure_reactor.status_line.previous.penalty", "%s：惩罚（%s）");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.reward.branch",
-                "耗时减少%s tick");
+                "耗时减少%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.reward.recurse",
                 "消耗减少%s%%");
@@ -65,19 +60,19 @@ public class ModZhcnLangProvider extends LanguageProvider {
                 "未结算奖励翻倍");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.phase_idle",
-                "相位空转，耗时增加%s tick");
+                "相位空转：耗时增加%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.branch",
-                "分支冲突，耗时增加%s tick");
+                "分支冲突：耗时增加%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.recurse",
-                "递归溢出，消耗增加%s%%");
+                "递归溢出：消耗增加%s%%");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.converge",
-                "提前收敛，产出减少%s%%/层");
+                "提前收敛：产出减少%s%%/层");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.penalty.stabilize",
-                "提前稳定，额外碎片+%s");
+                "稳定失败：额外碎片+%s");
         add("screen.dimension_tech.structure_reactor.status_line.previous.none", "无");
         add("screen.dimension_tech.structure_reactor.status_line.no_recipe", "暂无配方");
         add("screen.dimension_tech.structure_reactor.status_line.no_requirement", "无");
@@ -87,10 +82,25 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.stage.recurse", "递归");
         add("screen.dimension_tech.structure_reactor.stage.converge", "收敛");
         add("screen.dimension_tech.structure_reactor.stage.stabilize", "稳定");
+        add("screen.dimension_tech.structure_reactor.step_outcome.rewarded", "触发奖励");
+        add("screen.dimension_tech.structure_reactor.step_outcome.normal", "正常");
+        add("screen.dimension_tech.structure_reactor.step_outcome.phase_idle", "相位空转");
+        add("screen.dimension_tech.structure_reactor.step_outcome.early_converge", "提前收敛");
+        add("screen.dimension_tech.structure_reactor.step_outcome.recursion_overflow", "递归溢出");
+        add("screen.dimension_tech.structure_reactor.step_outcome.branch_conflict", "分支冲突");
+        add("screen.dimension_tech.structure_reactor.step_outcome.stabilize_failure", "稳定失败");
         add("screen.dimension_tech.structure_reactor.detail.sequence", "配方步骤");
         add("screen.dimension_tech.structure_reactor.detail.needs", "需求");
         add("screen.dimension_tech.structure_reactor.detail.changes", "变化");
         add("screen.dimension_tech.structure_reactor.detail.previous", "上一步骤");
+        add("screen.dimension_tech.structure_reactor.detail.metric.output", "产出");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fluid", "流体");
+        add("screen.dimension_tech.structure_reactor.detail.metric.time", "耗时");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fragment", "碎片");
+        add("screen.dimension_tech.structure_reactor.detail.metric.time_value", "-%s t");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fragment_value", "+%s");
+        add("screen.dimension_tech.structure_reactor.detail.remaining", "还有 %s 种");
+        add("screen.dimension_tech.structure_reactor.previous_step.reward_suffix", "奖励：");
         add(
                 "screen.dimension_tech.structure_reactor.detail.fluid_required",
                 "输入流体 %s/%s mB（本步需 %s mB）");
@@ -133,6 +143,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.control.auto_pull", "自动拉取");
         add("screen.dimension_tech.structure_reactor.control.auto_push", "自动弹出");
         add("screen.dimension_tech.structure_reactor.control.me_network", "ME 网络");
+        add("screen.dimension_tech.structure_reactor.output_face", "输出面配置");
+        add("screen.dimension_tech.structure_reactor.redstone_control_on", "红石控制：开");
+        add("screen.dimension_tech.structure_reactor.redstone_control_off", "红石控制：关");
         add("screen.dimension_tech.structure_reactor.control.enabled", "已启用");
         add("screen.dimension_tech.structure_reactor.control.disabled", "已禁用");
         add("screen.dimension_tech.structure_reactor.fluid_lock.locked", "输入流体：已锁定");
@@ -516,10 +529,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.legacy"), "旧版价值已隐藏，请重新标记结构");
         add(TranslateHelper.tooltip("struct_marker.structure"), "结构：%s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "结构：无");
-        add(TranslateHelper.tooltip("enchantment_mark.enchantment"), "附魔：%s");
-        add(TranslateHelper.tooltip("enchantment_mark.unbound"), "未绑定附魔");
-        add(TranslateHelper.tooltip("enchantment_mark.level"), "印记等级：%s");
-        add(TranslateHelper.tooltip("enchantment_mark.split_hint"), "可拆为 %s 个 1 级印记");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "结构采掘器状态");
         add("jade.dimension_tech.status.idle", "空闲");
         add("jade.dimension_tech.status.running", "运行中");

@@ -19,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -37,7 +38,6 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     private static final int ERROR = 0xFFA6442F;
     private static final int REWARD_TEXT = 0xFF8A5A14;
     private static final int SELECT = 0xFF77909F;
-    private static final int FLUIX = 0xFF2A6180;
     static final int SEQUENCE_PREVIOUS_COLOR = 0xFF777783;
     static final int SEQUENCE_CURRENT_COLOR = 0xFFB66CFF;
     static final int SEQUENCE_NEXT_COLOR = 0xFFFFFFFF;
@@ -46,8 +46,13 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     private static final int STATUS_AREA_X = StructureReactorLayout.STATUS_REWARD_AREA.x() + 2;
     private static final int STATUS_AREA_Y = StructureReactorLayout.STATUS_REWARD_AREA.y() + 2;
     private static final int STATUS_AREA_WIDTH = StructureReactorLayout.STATUS_REWARD_AREA.width() - 4;
-    private static final int DETAIL_LINE_HEIGHT = 11;
+    /** Right edge for the right-aligned tick counter, so digit growth does not jitter the line. */
+    private static final int STATUS_TICK_RIGHT = StructureReactorLayout.STATUS_REWARD_AREA.right() - 2;
+    private static final int STATUS_LINE_STEP = 13;
+    private static final int DETAIL_LINE_HEIGHT = 12;
     private static final int DETAIL_TEXT_INSET = 3;
+    /** Section titles in the detail viewport; a step up from body text. */
+    private static final int DETAIL_HEADER_COLOR = 0xFF2E5A88;
     private static final String KEY_TITLE = "screen.dimension_tech.structure_reactor.title";
     private static final String KEY_INVENTORY_LABEL =
             "screen.dimension_tech.structure_reactor.inventory_label";
@@ -85,8 +90,6 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             "screen.dimension_tech.structure_reactor.tooltip.timeout";
     private static final String KEY_FLUID_CLEAR_HINT =
             "screen.dimension_tech.structure_reactor.fluid_clear_hint";
-    private static final String KEY_STATUS_PREVIOUS =
-            "screen.dimension_tech.structure_reactor.status_line.previous";
     private static final String KEY_STATUS_NO_REQUIREMENT =
             "screen.dimension_tech.structure_reactor.status_line.no_requirement";
     private static final String KEY_REWARD_WINDOW =
@@ -101,8 +104,38 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             "screen.dimension_tech.structure_reactor.detail.changes";
     private static final String KEY_DETAIL_PREVIOUS =
             "screen.dimension_tech.structure_reactor.detail.previous";
-    private static final String KEY_DETAIL_FLUID_REQUIRED =
-            "screen.dimension_tech.structure_reactor.detail.fluid_required";
+    private static final String KEY_DETAIL_METRIC_OUTPUT =
+            "screen.dimension_tech.structure_reactor.detail.metric.output";
+    private static final String KEY_DETAIL_METRIC_FLUID =
+            "screen.dimension_tech.structure_reactor.detail.metric.fluid";
+    private static final String KEY_DETAIL_METRIC_TIME =
+            "screen.dimension_tech.structure_reactor.detail.metric.time";
+    private static final String KEY_DETAIL_METRIC_FRAGMENT =
+            "screen.dimension_tech.structure_reactor.detail.metric.fragment";
+    private static final String KEY_DETAIL_METRIC_TIME_VALUE =
+            "screen.dimension_tech.structure_reactor.detail.metric.time_value";
+    private static final String KEY_DETAIL_METRIC_FRAGMENT_VALUE =
+            "screen.dimension_tech.structure_reactor.detail.metric.fragment_value";
+    private static final String KEY_DETAIL_REMAINING =
+            "screen.dimension_tech.structure_reactor.detail.remaining";
+    private static final String KEY_PREV_STEP_REWARD_SUFFIX =
+            "screen.dimension_tech.structure_reactor.previous_step.reward_suffix";
+
+    /** Left control rail, top to bottom: output-face config, redstone control. Mirror of the miner. */
+    private static final int GUIDE_BUTTON_X = -21;
+    private static final int GUIDE_BUTTON_Y = 0;
+    private static final int GUIDE_BUTTON_STRIDE = 20;
+    private static final int GUIDE_ICON_INSET = 2;
+    /** The redstone torch is drawn this many pixels above the ordinary icon slots. */
+    private static final int GUIDE_REDSTONE_ICON_RISE = 2;
+    /** Item icons sit on a raised GUI Z, so the off marker must clear that layer to land on top. */
+    private static final double GUIDE_ICON_MARKER_Z = 200.0D;
+    private static final String KEY_BUTTON_OUTPUT_FACE =
+            "screen.dimension_tech.structure_reactor.output_face";
+    private static final String KEY_BUTTON_REDSTONE_ON =
+            "screen.dimension_tech.structure_reactor.redstone_control_on";
+    private static final String KEY_BUTTON_REDSTONE_OFF =
+            "screen.dimension_tech.structure_reactor.redstone_control_off";
 
     private int detailScroll = 0;
     private int detailContentHeight = 0;
@@ -144,6 +177,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 menu.outputAmount(),
                 menu.outputCapacity());
         drawProgressOverlay(g);
+        drawExternalButtons(g, mouseX, mouseY);
     }
 
     private void drawFluid(GuiGraphics g, GuiRect tank, Fluid fluid, int amount, int capacity) {
@@ -226,7 +260,8 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             value = 0;
             maximum = 1;
         }
-        int covered = progressPixels(value, maximum, StructureReactorLayout.PROGRESS_BAR.height());
+        int covered =
+                progressPixels(value, maximum, StructureReactorLayout.PROGRESS_BAR.width());
         if (covered <= 0) return;
         GuiRect bar = StructureReactorLayout.PROGRESS_BAR;
         g.blit(
@@ -236,10 +271,68 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 0,
                 StructureReactorLayout.PROGRESS_OVERLAY_U,
                 StructureReactorLayout.PROGRESS_OVERLAY_V,
-                StructureReactorLayout.PROGRESS_OVERLAY_WIDTH,
                 covered,
+                StructureReactorLayout.PROGRESS_OVERLAY_HEIGHT,
                 StructureReactorLayout.TEXTURE_WIDTH,
                 StructureReactorLayout.TEXTURE_HEIGHT);
+    }
+
+    /** Draws the two-machine left rail: output-face config on top, redstone control below. */
+    private void drawExternalButtons(GuiGraphics g, int mouseX, int mouseY) {
+        // renderBg runs with the pose at the window origin (no translate), so the rail is drawn at
+        // absolute screen coords - unlike the miner, which translates the pose itself.
+        int x = leftPos + GUIDE_BUTTON_X;
+        int outY = topPos + GUIDE_BUTTON_Y;
+        boolean hoverOut = inside(mouseX, mouseY, x, outY, 20, 20);
+        StructureMinerSpriteRenderer.smallButton(g, x, outY, hoverOut);
+        StructureMinerSpriteRenderer.externalIcon(
+                g, x + GUIDE_ICON_INSET, outY + GUIDE_ICON_INSET, 32, 16);
+
+        int redY = topPos + GUIDE_BUTTON_Y + GUIDE_BUTTON_STRIDE;
+        boolean hoverRed = inside(mouseX, mouseY, x, redY, 20, 20);
+        StructureMinerSpriteRenderer.smallButton(g, x, redY, hoverRed);
+        drawRedstoneControlIcon(g, x, redY);
+    }
+
+    /**
+     * The torch is the control's identity, so it is drawn in every mode; the mode only adds or
+     * removes the "off" marker stacked on top of it.
+     */
+    private void drawRedstoneControlIcon(GuiGraphics g, int buttonX, int buttonY) {
+        int iconX = buttonX + GUIDE_ICON_INSET;
+        int iconY = buttonY + GUIDE_ICON_INSET - GUIDE_REDSTONE_ICON_RISE;
+        g.renderItem(new ItemStack(Items.REDSTONE_TORCH), iconX, iconY);
+        if (menu.isRedstoneControlEnabled()) return;
+        g.pose().pushPose();
+        g.pose().translate(0.0D, 0.0D, GUIDE_ICON_MARKER_Z);
+        StructureMinerSpriteRenderer.externalIcon(
+                g,
+                iconX,
+                iconY,
+                StructureMinerSpriteRenderer.REDSTONE_OFF_U,
+                StructureMinerSpriteRenderer.REDSTONE_OFF_V);
+        g.pose().popPose();
+    }
+
+    /** The control rail button under a panel-local point, or -1. */
+    private int externalButtonAt(double x, double y) {
+        int index = (int) ((y - GUIDE_BUTTON_Y) / GUIDE_BUTTON_STRIDE);
+        if (index >= 0
+                && index < 2
+                && inside(
+                        x,
+                        y,
+                        GUIDE_BUTTON_X,
+                        GUIDE_BUTTON_Y + index * GUIDE_BUTTON_STRIDE,
+                        20,
+                        20)) {
+            return index;
+        }
+        return -1;
+    }
+
+    private static boolean inside(double mouseX, double mouseY, int x, int y, int w, int h) {
+        return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
     }
 
     @Override
@@ -280,12 +373,19 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             current = 0;
             maximum = 0;
         }
-        String line =
-                statusText(status).getString()
-                        + " "
-                        + current
-                        + (maximum > 0 ? "/" + maximum : "");
-        g.drawString(font, Component.literal(line), STATUS_AREA_X, STATUS_AREA_Y, INK, false);
+        String statusString = statusText(status).getString();
+        String ticks = maximum > 0 ? current + "/" + maximum : Integer.toString(current);
+        // Status pinned to the left edge, tick counter right-aligned on the same baseline so the
+        // number growing from 9 to 100 does not shove the whole line around.
+        g.drawString(
+                font, Component.literal(statusString), STATUS_AREA_X, STATUS_AREA_Y, INK, false);
+        g.drawString(
+                font,
+                Component.literal(ticks),
+                STATUS_TICK_RIGHT - font.width(ticks),
+                STATUS_AREA_Y,
+                INK,
+                false);
 
         boolean inWindow =
                 status == StructureReactorCycle.Status.RUNNING
@@ -302,7 +402,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 font,
                 reward,
                 STATUS_AREA_X,
-                STATUS_AREA_Y + 13,
+                STATUS_AREA_Y + STATUS_LINE_STEP,
                 inWindow ? REWARD_TEXT : INK,
                 false);
     }
@@ -312,11 +412,13 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
         List<DetailLine> lines = buildDetailLines();
         detailContentHeight = lines.size() * DETAIL_LINE_HEIGHT;
         clampDetailScroll();
-        int vx = leftPos + StructureReactorLayout.VIEWPORT.x();
-        int vy = topPos + StructureReactorLayout.VIEWPORT.y();
+        // renderLabels runs under a translate(leftPos, topPos): drawing must use panel-local
+        // coords, while the scissor needs absolute screen coords (it ignores the pose).
+        int vx = StructureReactorLayout.VIEWPORT.x();
+        int vy = StructureReactorLayout.VIEWPORT.y();
         int vw = StructureReactorLayout.VIEWPORT.width();
         int vh = StructureReactorLayout.VIEWPORT.height();
-        g.enableScissor(vx, vy, vx + vw, vy + vh);
+        g.enableScissor(leftPos + vx, topPos + vy, leftPos + vx + vw, topPos + vy + vh);
         int baseY = vy + DETAIL_TEXT_INSET;
         int x = vx + DETAIL_TEXT_INSET;
         for (int i = 0; i < lines.size(); i++) {
@@ -324,9 +426,18 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             if (y + DETAIL_LINE_HEIGHT < vy || y > vy + vh) continue;
             DetailLine line = lines.get(i);
             if (line.highlight()) {
-                g.fill(vx, y - 1, vw, DETAIL_LINE_HEIGHT, SELECT);
+                g.fill(vx + 1, y, vx + vw - 1, y + DETAIL_LINE_HEIGHT - 1, SELECT);
             }
             g.drawString(font, line.text(), x, y, line.color(), false);
+            if (line.value() != null) {
+                g.drawString(
+                        font,
+                        line.value(),
+                        vx + vw - DETAIL_TEXT_INSET - font.width(line.value()),
+                        y,
+                        line.color(),
+                        false);
+            }
         }
         g.disableScissor();
         drawDetailScrollbar(g);
@@ -342,82 +453,128 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             StateId state = menu.sequenceState(i);
             if (state == null) continue;
             boolean current = i == currentIndex;
-            Component text = Component.literal(current ? "▶ " : "· ").append(stageText(state));
+            StructureReactorCycle.Resolution outcome = menu.stateOutcome(i);
             int color = current ? INK : (i < currentIndex ? SEQUENCE_PREVIOUS_COLOR : INK);
-            lines.add(new DetailLine(text, color, current));
+            // Step name plus the outcome it settled to (reward / normal / penalty), wrapped so a
+            // long annotation cannot run off the viewport edge.
+            Component text = Component.literal(current ? "▶ " : "· ").append(stageText(state));
+            if (outcome != null && outcome != StructureReactorCycle.Resolution.NONE) {
+                text = text
+                        .copy()
+                        .append(Component.literal("（").append(outcomeLabel(outcome)).append("）"));
+            }
+            for (String wrapped :
+                    wrapText(
+                            text.getString(),
+                            StructureReactorLayout.VIEWPORT.width() - 2 * DETAIL_TEXT_INSET))
+                lines.add(DetailLine.plain(Component.literal(wrapped), color, current));
         }
 
         lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_NEEDS)));
         ReactorTooltipSnapshot snapshot = menu.tooltipSnapshot();
         if (snapshot.operationCandidates().isEmpty()) {
-            lines.add(new DetailLine(Component.translatable(KEY_STATUS_NO_REQUIREMENT), INK, false));
+            lines.add(
+                    DetailLine.plain(
+                            Component.translatable(KEY_STATUS_NO_REQUIREMENT), INK, false));
         } else {
             for (ItemStack candidate : snapshot.operationCandidates())
                 lines.add(
-                        new DetailLine(
-                                Component.literal("· " + candidate.getHoverName().getString()),
+                        DetailLine.plain(
+                                Component.literal(
+                                        "· " + candidate.getHoverName().getString()),
                                 INK,
                                 false));
             int total = snapshot.operationCandidateTotal();
             if (total > snapshot.operationCandidates().size())
                 lines.add(
-                        new DetailLine(
-                                Component.literal(
-                                        "还有 " + (total - snapshot.operationCandidates().size()) + " 种"),
+                        DetailLine.plain(
+                                Component.translatable(
+                                        KEY_DETAIL_REMAINING,
+                                        total - snapshot.operationCandidates().size()),
                                 INK,
                                 false));
         }
-        lines.add(
-                new DetailLine(
-                        Component.translatable(
-                                KEY_DETAIL_FLUID_REQUIRED,
-                                Math.max(0, menu.inputAmount()),
-                                menu.inputCapacity(),
-                                snapshot.inputRequiredAmount()),
-                        FLUIX,
-                        false));
-
         lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_CHANGES)));
         int outputChange = menu.outputBonusBp() - menu.outputPenaltyBp();
         int consumptionChange = menu.fluidReductionBp() - menu.fluidPenaltyBp();
         lines.add(
-                new DetailLine(
-                        Component.literal("产出 " + signedPercent(outputChange)),
+                DetailLine.metric(
+                        Component.translatable(KEY_DETAIL_METRIC_OUTPUT),
                         outputChange >= 0 ? SUCCESS : ERROR,
-                        false));
+                        Component.literal(signedPercent(outputChange))));
         lines.add(
-                new DetailLine(
-                        Component.literal("流体 " + signedPercent(-consumptionChange)),
+                DetailLine.metric(
+                        Component.translatable(KEY_DETAIL_METRIC_FLUID),
                         consumptionChange >= 0 ? SUCCESS : ERROR,
-                        false));
+                        Component.literal(signedPercent(-consumptionChange))));
         lines.add(
-                new DetailLine(
-                        Component.literal("耗时 -" + Math.max(0, menu.timeReduction()) + "t"),
+                DetailLine.metric(
+                        Component.translatable(KEY_DETAIL_METRIC_TIME),
                         INK,
-                        false));
+                        Component.translatable(
+                                KEY_DETAIL_METRIC_TIME_VALUE,
+                                Math.max(0, menu.timeReduction()))));
         lines.add(
-                new DetailLine(
-                        Component.literal("碎片 +" + Math.max(0, menu.extraFragments())),
+                DetailLine.metric(
+                        Component.translatable(KEY_DETAIL_METRIC_FRAGMENT),
                         INK,
-                        false));
+                        Component.translatable(
+                                KEY_DETAIL_METRIC_FRAGMENT_VALUE,
+                                Math.max(0, menu.extraFragments()))));
 
         lines.add(DetailLine.header(Component.translatable(KEY_DETAIL_PREVIOUS)));
-        lines.add(new DetailLine(previousStatusText(), INK, false));
+        for (String wrapped :
+                wrapText(
+                        previousStatusText().getString(),
+                        StructureReactorLayout.VIEWPORT.width() - 2 * DETAIL_TEXT_INSET)) {
+            lines.add(DetailLine.plain(Component.literal(wrapped), INK, false));
+        }
+        return lines;
+    }
+
+    /**
+     * Splits a long string into lines that each fit {@code maxWidth}. CJK has no spaces, so it
+     * breaks at the last fitting character; when spaces are present it prefers a word boundary.
+     */
+    private List<String> wrapText(String text, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        String remaining = text.trim();
+        while (!remaining.isEmpty()) {
+            if (font.width(remaining) <= maxWidth) {
+                lines.add(remaining);
+                break;
+            }
+            int end = remaining.length();
+            while (end > 0 && font.width(remaining.substring(0, end)) > maxWidth) end--;
+            if (end <= 0) end = 1;
+            int space = remaining.lastIndexOf(' ', end - 1);
+            String part;
+            if (space > 0) {
+                part = remaining.substring(0, space);
+                remaining = remaining.substring(space + 1);
+            } else {
+                part = remaining.substring(0, end);
+                remaining = remaining.substring(end);
+            }
+            remaining = remaining.trim();
+            if (!part.isEmpty()) lines.add(part);
+        }
         return lines;
     }
 
     private void drawDetailScrollbar(GuiGraphics g) {
-        int vx = leftPos + StructureReactorLayout.VIEWPORT.x();
-        int vy = topPos + StructureReactorLayout.VIEWPORT.y();
+        int vx = StructureReactorLayout.VIEWPORT.x();
+        int vy = StructureReactorLayout.VIEWPORT.y();
         int vw = StructureReactorLayout.VIEWPORT.width();
         int vh = StructureReactorLayout.VIEWPORT.height();
         int trackX = vx + vw - 2;
-        g.fill(trackX, vy, 3, vh, 0x40000000);
+        // fill takes min/max corners; the widths-only form expanded the bar into the whole panel.
+        g.fill(trackX, vy, trackX + 3, vy + vh, 0x40000000);
         int maxScroll = Math.max(0, detailContentHeight - vh);
         if (maxScroll <= 0) return;
         int thumbH = Math.max(8, vh * vh / Math.max(1, detailContentHeight));
         int thumbY = vy + (vh - thumbH) * detailScroll / maxScroll;
-        g.fill(trackX, thumbY, 3, thumbH, 0xFF888888);
+        g.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, 0xFF888888);
     }
 
     private void clampDetailScroll() {
@@ -452,6 +609,15 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
         if (button == 0) {
             int lx = (int) mouseX - leftPos;
             int ly = (int) mouseY - topPos;
+            int guide = externalButtonAt(lx, ly);
+            if (guide == 0) {
+                Minecraft.getInstance().setScreen(new OutputFaceConfigScreen(this, menu));
+                return true;
+            }
+            if (guide == 1) {
+                pressButton(StructureReactorBlockEntity.BUTTON_TOGGLE_REDSTONE_CONTROL);
+                return true;
+            }
             GuiRect vp = StructureReactorLayout.VIEWPORT;
             if (lx >= vp.x() + vp.width() - 4
                     && lx <= vp.x() + vp.width() + 2
@@ -556,73 +722,59 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
 
     private Component previousStatusText() {
         StructureReactorCycle.Resolution resolution = menu.lastResolution();
+        StateId step = menu.eventState();
         if (resolution == null || resolution == StructureReactorCycle.Resolution.NONE)
             return Component.translatable(
-                    KEY_STATUS_PREVIOUS,
-                    Component.translatable(
-                            "screen.dimension_tech.structure_reactor.status_line.previous.none"));
-        Component step =
-                menu.eventState() == null
+                    "screen.dimension_tech.structure_reactor.status_line.previous.none");
+        return switch (resolution) {
+            case CORRECT_REWARDED -> {
+                // 分支奖励：耗时减少40
+                Component stepName =
+                        step == null
+                                ? Component.translatable(KEY_STATUS_NO_REQUIREMENT)
+                                : stageText(step);
+                yield Component.literal(stepName.getString())
+                        .append(Component.translatable(KEY_PREV_STEP_REWARD_SUFFIX))
+                        .append(rewardDetail(step));
+            }
+            case CORRECT -> {
+                // 回卷
+                yield step == null
                         ? Component.translatable(KEY_STATUS_NO_REQUIREMENT)
-                        : stageText(menu.eventState());
-        String detailKey =
-                switch (resolution) {
-                    case CORRECT_REWARDED -> "reward";
-                    case CORRECT -> "normal";
-                    case PHASE_IDLE,
-                            EARLY_CONVERGE,
-                            RECURSION_OVERFLOW,
-                            BRANCH_CONFLICT,
-                            STABILIZE_FAILURE ->
-                            "penalty";
-                    default -> "none";
-                };
-        Component detail =
-                switch (resolution) {
-                    case CORRECT_REWARDED -> rewardDetail(menu.eventState());
-                    case CORRECT ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.normal");
-                    case PHASE_IDLE ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.penalty.phase_idle",
-                                    penaltyTicks(
-                                            StructureReactorCycle.WRONG_STATE_TIME_PENALTY_TICKS));
-                    case BRANCH_CONFLICT ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.penalty.branch",
-                                    penaltyTicks(
-                                            StructureReactorCycle
-                                                    .BRANCH_CONFLICT_TIME_PENALTY_TICKS));
-                    case RECURSION_OVERFLOW ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.penalty.recurse",
-                                    StructureReactorCycle.RECURSION_OVERFLOW_FLUID_PENALTY_BP / 100);
-                    case EARLY_CONVERGE ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.penalty.converge",
-                                    StructureReactorCycle.EARLY_CONVERGE_OUTPUT_PENALTY_BP_PER_DEPTH
-                                            / 100);
-                    case STABILIZE_FAILURE ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.penalty.stabilize",
-                                    Math.max(0, menu.extraFragments()));
-                    default ->
-                            Component.translatable(
-                                    "screen.dimension_tech.structure_reactor.status_line.previous.none");
-                };
-        return Component.translatable(
-                KEY_STATUS_PREVIOUS,
-                Component.translatable(
-                        "screen.dimension_tech.structure_reactor.status_line.previous." + detailKey,
-                        step,
-                        detail));
+                        : stageText(step);
+            }
+            case PHASE_IDLE ->
+                    Component.translatable(
+                            "screen.dimension_tech.structure_reactor.status_line.previous.penalty.phase_idle",
+                            penaltyTicks(
+                                    StructureReactorCycle.WRONG_STATE_TIME_PENALTY_TICKS));
+            case BRANCH_CONFLICT ->
+                    Component.translatable(
+                            "screen.dimension_tech.structure_reactor.status_line.previous.penalty.branch",
+                            penaltyTicks(
+                                    StructureReactorCycle
+                                            .BRANCH_CONFLICT_TIME_PENALTY_TICKS));
+            case RECURSION_OVERFLOW ->
+                    Component.translatable(
+                            "screen.dimension_tech.structure_reactor.status_line.previous.penalty.recurse",
+                            StructureReactorCycle.RECURSION_OVERFLOW_FLUID_PENALTY_BP / 100);
+            case EARLY_CONVERGE ->
+                    Component.translatable(
+                            "screen.dimension_tech.structure_reactor.status_line.previous.penalty.converge",
+                            StructureReactorCycle.EARLY_CONVERGE_OUTPUT_PENALTY_BP_PER_DEPTH
+                                    / 100);
+            case STABILIZE_FAILURE ->
+                    Component.translatable(
+                            "screen.dimension_tech.structure_reactor.status_line.previous.penalty.stabilize",
+                            Math.max(0, menu.extraFragments()));
+            default ->
+                    Component.translatable(
+                            "screen.dimension_tech.structure_reactor.status_line.previous.none");
+        };
     }
 
     private Component rewardDetail(StateId state) {
-        if (state == null)
-            return Component.translatable(
-                    "screen.dimension_tech.structure_reactor.status_line.previous.reward");
+        if (state == null) return Component.empty();
         return switch (state) {
             case BRANCH ->
                     Component.translatable(
@@ -655,6 +807,24 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     private Component stageText(StateId state) {
         return Component.translatable(
                 "screen.dimension_tech.structure_reactor.stage." + state.name().toLowerCase());
+    }
+
+    /** Short human label for a step's settlement outcome, or empty for no settlement. */
+    private Component outcomeLabel(StructureReactorCycle.Resolution resolution) {
+        String key =
+                switch (resolution) {
+                    case CORRECT_REWARDED -> "rewarded";
+                    case CORRECT -> "normal";
+                    case PHASE_IDLE -> "phase_idle";
+                    case EARLY_CONVERGE -> "early_converge";
+                    case RECURSION_OVERFLOW -> "recursion_overflow";
+                    case BRANCH_CONFLICT -> "branch_conflict";
+                    case STABILIZE_FAILURE -> "stabilize_failure";
+                    default -> "";
+                };
+        return key.isEmpty()
+                ? Component.empty()
+                : Component.translatable("screen.dimension_tech.structure_reactor.step_outcome." + key);
     }
 
     private static String statusKey(StructureReactorCycle.Status status) {
@@ -694,9 +864,22 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 : StructureReactorCycle.Status.IDLE;
     }
 
-    private record DetailLine(Component text, int color, boolean highlight) {
+    /**
+     * One detail row: a left label, an optional right-aligned value on the same baseline, and a
+     * flag for the current-row highlight.
+     */
+    private record DetailLine(Component text, int color, boolean highlight, Component value) {
         static DetailLine header(Component text) {
-            return new DetailLine(text, INK, false);
+            return new DetailLine(text, DETAIL_HEADER_COLOR, false, null);
+        }
+
+        static DetailLine plain(Component text, int color, boolean highlight) {
+            return new DetailLine(text, color, highlight, null);
+        }
+
+        /** A row that reads "label <right-aligned value>", sharing one colour. */
+        static DetailLine metric(Component text, int color, Component value) {
+            return new DetailLine(text, color, false, value);
         }
     }
 
@@ -705,7 +888,19 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
         super.render(g, mouseX, mouseY, partialTick);
         int localX = mouseX - leftPos;
         int localY = mouseY - topPos;
-        if (StructureReactorLayout.INPUT_TANK.contains(localX, localY)) {
+        int guide = externalButtonAt(localX, localY);
+        if (guide == 0) {
+            g.renderTooltip(font, Component.translatable(KEY_BUTTON_OUTPUT_FACE), mouseX, mouseY);
+        } else if (guide == 1) {
+            g.renderTooltip(
+                    font,
+                    Component.translatable(
+                            menu.isRedstoneControlEnabled()
+                                    ? KEY_BUTTON_REDSTONE_ON
+                                    : KEY_BUTTON_REDSTONE_OFF),
+                    mouseX,
+                    mouseY);
+        } else if (StructureReactorLayout.INPUT_TANK.contains(localX, localY)) {
             renderFluidTooltip(g, true, mouseX, mouseY);
         } else if (StructureReactorLayout.OUTPUT_TANK.contains(localX, localY)) {
             renderFluidTooltip(g, false, mouseX, mouseY);

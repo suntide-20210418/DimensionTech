@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
-import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
-import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import java.util.List;
 import java.util.Optional;
+
+import com.suntide_20210418.dimensiontech.client.gui.menu.OutputFaceConfigMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -33,11 +33,11 @@ public final class OutputFaceConfigScreen extends Screen {
     private static final int CONTROL_BOTTOM_INSET = 8;
     private static final int CONTROL_GAP = -2;
     private final Screen parent;
-    private final StructureMinerMenu menu;
+    private final OutputFaceConfigMenu menu;
     private int left;
     private int top;
 
-    public OutputFaceConfigScreen(Screen parent, StructureMinerMenu menu) {
+    public OutputFaceConfigScreen(Screen parent, OutputFaceConfigMenu menu) {
         super(Component.translatable("screen.dimension_tech.structure_miner.output_face"));
         this.parent = parent;
         this.menu = menu;
@@ -84,9 +84,9 @@ public final class OutputFaceConfigScreen extends Screen {
                 controlX,
                 controlY(0),
                 48,
-                menu.getOutputState() == BaseMinerBlockEntity.OutputState.ME_NETWORK ? 32 : 16);
+                menu.isModernModeEnabled() ? 32 : 16);
         StructureMinerSpriteRenderer.externalIcon(
-                g, controlX, controlY(1), 48, menu.isAutoExtractFluidEnabled() ? 32 : 16);
+                g, controlX, controlY(1), 48, menu.isAutoExtractEnabled() ? 32 : 16);
         g.drawString(
                 font,
                 aeLabel,
@@ -110,17 +110,17 @@ public final class OutputFaceConfigScreen extends Screen {
         if (button == 0) {
             double x = mouseX - left, y = mouseY - top;
             if (inside(x, y, controlX(), controlY(0), CONTROL_SIZE, CONTROL_SIZE)) {
-                menu.toggleAeOutputMode();
+                menu.cycleModernMode();
                 return true;
             }
             if (inside(x, y, controlX(), controlY(1), CONTROL_SIZE, CONTROL_SIZE)) {
-                click(26);
+                menu.cycleAutoExtract();
                 return true;
             }
             for (int i = 0; i < DIRECTIONS.length; i++) {
                 int[] p = buttonPosition(i);
                 if (inside(x, y, p[0], p[1], BUTTON_SIZE, BUTTON_SIZE)) {
-                    click(10 + DIRECTIONS[i].ordinal());
+                    menu.cycleOutputFace(DIRECTIONS[i]);
                     return true;
                 }
             }
@@ -128,21 +128,17 @@ public final class OutputFaceConfigScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private void click(int id) {
-        minecraft.gameMode.handleInventoryButtonClick(menu.containerId, id);
-    }
-
     private boolean inside(double x, double y, int px, int py, int w, int h) {
         return x >= px && x < px + w && y >= py && y < py + h;
     }
 
     private ItemStack adjacentBlock(Direction d) {
-        Direction world = menu.getBlockEntity().toWorldDirection(d);
+        Direction world = menu.toWorldDirection(d);
         if (minecraft.level == null) return ItemStack.EMPTY;
         var block =
                 minecraft
                         .level
-                        .getBlockState(menu.getBlockEntity().getBlockPos().relative(world))
+                        .getBlockState(menu.getBlockPos().relative(world))
                         .getBlock();
         return block.defaultBlockState().isAir()
                         || block.asItem() == net.minecraft.world.item.Items.AIR
@@ -155,7 +151,7 @@ public final class OutputFaceConfigScreen extends Screen {
             int[] p = buttonPosition(i);
             if (!inside(x, y, p[0], p[1], BUTTON_SIZE, BUTTON_SIZE)) continue;
             Direction d = DIRECTIONS[i];
-            boolean fluid = menu.getFluidFaceMode(d) == BaseMinerBlockEntity.FluidFaceMode.INPUT;
+            boolean fluid = menu.isInputFaceEnabled(d);
             boolean output = menu.isOutputFaceEnabled(d);
             String status =
                     fluid && output
