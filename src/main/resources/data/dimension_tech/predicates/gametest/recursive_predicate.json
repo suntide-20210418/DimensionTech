@@ -1,0 +1,4 @@
+{
+  "condition": "minecraft:reference",
+  "name": "dimension_tech:gametest/recursive_predicate"
+}

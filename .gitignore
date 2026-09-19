@@ -16,10 +16,15 @@ out
 # gradle
 build
 .gradle
+src/generated/resources/.cache/
 
 # other
 eclipse
 run
+logs
 
 # Files from Forge MDK
 forge*changelog.txt
+
+# Agent workspace data (project memory); never part of the shipped sources
+.workbuddy/

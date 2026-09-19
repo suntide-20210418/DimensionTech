@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "dimension_tech:item/dimension_deconstruction_core"
+  }
+}

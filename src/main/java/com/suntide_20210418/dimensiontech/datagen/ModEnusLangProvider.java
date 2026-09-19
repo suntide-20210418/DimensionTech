@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.datagen;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.common.data.LanguageProvider;
-
 
 public class ModEnusLangProvider extends LanguageProvider {
 
@@ -13,6 +13,756 @@ public class ModEnusLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        addVanillaRegistryNames();
+        add(TranslateHelper.itemGroup("tab"), "Dimension Tech");
+        add(TranslateHelper.keyCategory("main"), "Dimension Tech");
+        add(TranslateHelper.key("switch"), "Switch card mode");
+        add(TranslateHelper.item("structure_marker"), "Structure Marker");
+        add(TranslateHelper.item("dimension_deconstruction_core"), "Dimension Deconstruction Core");
+        for (int tier = 1; tier <= 6; tier++) {
+            add(
+                    TranslateHelper.item("dimension_fragment_tier_" + tier),
+                    "Tier " + tier + " Dimension Fragment");
+            add(
+                    TranslateHelper.item("mining_token_tier_" + tier),
+                    "Tier " + tier + " Mining Token");
+        }
+        add(TranslateHelper.item("data_integrator"), "Data Integrator");
+        add(TranslateHelper.item("structure_interpreter"), "Structure Interpreter");
+        add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
+        add("block.dimension_tech.structure_reactor", "Structure Reactor");
+        add("container.dimension_tech.structure_reactor", "Structure Reactor");
+        add("screen.dimension_tech.structure_reactor.title", "Structure Reactor");
+        add("screen.dimension_tech.structure_reactor.inventory_label", "Inventory");
+        add("screen.dimension_tech.structure_reactor.status.idle", "Idle");
+        add("screen.dimension_tech.structure_reactor.status.running", "Running");
+        add("screen.dimension_tech.structure_reactor.status.ready", "Ready to commit");
+        add("screen.dimension_tech.structure_reactor.status_line.current", "Status: %s  %s");
+        add("screen.dimension_tech.structure_reactor.status_line.progress_value", "%s/%s ticks");
+        add("screen.dimension_tech.structure_reactor.status_line.refining_value", "elapsed %s ticks");
+        add("screen.dimension_tech.structure_reactor.status_line.sequence", "Recipe steps: ");
+        add("screen.dimension_tech.structure_reactor.status_line.progress", "Progress: %s/%s ticks");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.refining_progress",
+                "Progress: elapsed %s ticks");
+        add("screen.dimension_tech.structure_reactor.status_line.needs", "Needs: %s");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.changes",
+                "Changes: %s output %s consumption, time -%s/+%s ticks, extra recursion %s");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.reward.branch",
+                "time -%s");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.reward.recurse",
+                "consumption -%s%%");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.reward.converge",
+                "output +%s%%");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.reward.stabilize",
+                "unsettled rewards doubled");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.penalty.phase_idle",
+                "Phase idle: time +%s");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.penalty.branch",
+                "Branch conflict: time +%s");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.penalty.recurse",
+                "Recursion overflow: consumption +%s%%");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.penalty.converge",
+                "Early converge: output -%s%%/depth");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.previous.penalty.stabilize",
+                "Stabilize failure: extra fragments +%s");
+        add("screen.dimension_tech.structure_reactor.status_line.previous.none", "None");
+        add("screen.dimension_tech.structure_reactor.status_line.no_recipe", "No recipe");
+        add("screen.dimension_tech.structure_reactor.status_line.no_requirement", "None");
+        add("screen.dimension_tech.structure_reactor.status_line.reward_window", "Reward window %s-%s tick");
+        add("screen.dimension_tech.structure_reactor.status_line.reward_idle", "Outside reward window");
+        add("screen.dimension_tech.structure_reactor.stage.branch", "Branch");
+        add("screen.dimension_tech.structure_reactor.stage.recurse", "Recurse");
+        add("screen.dimension_tech.structure_reactor.stage.converge", "Converge");
+        add("screen.dimension_tech.structure_reactor.stage.stabilize", "Stabilize");
+        add("screen.dimension_tech.structure_reactor.step_outcome.rewarded", "Triggered reward");
+        add("screen.dimension_tech.structure_reactor.step_outcome.normal", "Normal");
+        add("screen.dimension_tech.structure_reactor.step_outcome.phase_idle", "Phase idle");
+        add("screen.dimension_tech.structure_reactor.step_outcome.early_converge", "Early converge");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.recursion_overflow",
+                "Recursion overflow");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.branch_conflict",
+                "Branch conflict");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.stabilize_failure",
+                "Stabilize failure");
+        add("screen.dimension_tech.structure_reactor.detail.sequence", "Recipe steps");
+        add("screen.dimension_tech.structure_reactor.detail.needs", "Needs");
+        add("screen.dimension_tech.structure_reactor.detail.changes", "Changes");
+        add("screen.dimension_tech.structure_reactor.detail.previous", "Previous step");
+        add("screen.dimension_tech.structure_reactor.detail.metric.output", "Output");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fluid", "Fluid");
+        add("screen.dimension_tech.structure_reactor.detail.metric.time", "Time");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fragment", "Fragments");
+        add("screen.dimension_tech.structure_reactor.detail.metric.time_value", "-%s t");
+        add("screen.dimension_tech.structure_reactor.detail.metric.fragment_value", "+%s");
+        add("screen.dimension_tech.structure_reactor.detail.remaining", "%s more");
+        add("screen.dimension_tech.structure_reactor.previous_step.reward_suffix", " reward: ");
+        add(
+                "screen.dimension_tech.structure_reactor.detail.fluid_required",
+                "Input fluid %s/%s mB (needs %s mB this step)");
+        add("screen.dimension_tech.structure_reactor.input", "Input essence");
+        add("screen.dimension_tech.structure_reactor.output", "Output essence");
+        add("screen.dimension_tech.structure_reactor.ritual", "Ritual sequence");
+        add("screen.dimension_tech.structure_reactor.current", "Current: %s %s/%s ticks");
+        add(
+                "screen.dimension_tech.structure_reactor.waiting",
+                "Waiting for input essence / fragments");
+        add("screen.dimension_tech.structure_reactor.fragments", "Fragments");
+        add("screen.dimension_tech.structure_reactor.operation", "Operation");
+        add("screen.dimension_tech.structure_reactor.reward", "Reward window %s-%s");
+        add("screen.dimension_tech.structure_reactor.inventory", "Player inventory");
+        add("screen.dimension_tech.structure_reactor.readout.idle", "No ritual in progress");
+        add(
+                "screen.dimension_tech.structure_reactor.readout.waiting",
+                "Waiting for the right operation");
+        add("screen.dimension_tech.structure_reactor.event.rewarded", "Reward: %s");
+        add(
+                "screen.dimension_tech.structure_reactor.event.correct",
+                "Correct, outside reward window");
+        add(
+                "screen.dimension_tech.structure_reactor.event.phase_idle",
+                "Wrong operation or timeout: %s");
+        add("screen.dimension_tech.structure_reactor.event.branch_conflict", "Branch conflict: %s");
+        add("screen.dimension_tech.structure_reactor.event.early_converge", "Early converge: %s");
+        add(
+                "screen.dimension_tech.structure_reactor.event.recursion_overflow",
+                "Recursion overflow: %s");
+        add("screen.dimension_tech.structure_reactor.event.stabilize_failure", "Early stabilize: %s");
+        add("screen.dimension_tech.structure_reactor.modifier.time.reward", "Time -%s");
+        add("screen.dimension_tech.structure_reactor.modifier.time.penalty", "Time +%s");
+        add("screen.dimension_tech.structure_reactor.modifier.fluid.reward", "Fluid -%s%%");
+        add("screen.dimension_tech.structure_reactor.modifier.fluid.penalty", "Fluid +%s%%");
+        add("screen.dimension_tech.structure_reactor.modifier.output.reward", "Output +%s%%");
+        add("screen.dimension_tech.structure_reactor.modifier.output.penalty", "Output -%s%%");
+        add("screen.dimension_tech.structure_reactor.modifier.fragments", "Fragments +%s");
+        add("screen.dimension_tech.structure_reactor.modifier.time.mixed", "Time -%s/+%s");
+        add("screen.dimension_tech.structure_reactor.modifier.fluid.mixed", "Fluid -%s%%/+%s%%");
+        add("screen.dimension_tech.structure_reactor.modifier.output.mixed", "Output +%s%%/-%s%%");
+        add("screen.dimension_tech.structure_reactor.result", "Projected: %s ticks, %s mB -> %s mB");
+        add("screen.dimension_tech.structure_reactor.refining", "Refining %s/%s ticks");
+        add("screen.dimension_tech.structure_reactor.refined", "Refined in %s ticks");
+        add(
+                "screen.dimension_tech.structure_reactor.refining_phase",
+                "All operations complete; refining");
+        add("screen.dimension_tech.structure_reactor.status.refining", "Refining");
+        add(
+                "screen.dimension_tech.structure_reactor.control.fluid_faces",
+                "Fluid face configuration");
+        add("screen.dimension_tech.structure_reactor.face_config", "Fluid faces");
+        add("screen.dimension_tech.structure_reactor.control.input_lock", "Lock input fluid");
+        add("screen.dimension_tech.structure_reactor.control.auto_pull", "Auto pull");
+        add("screen.dimension_tech.structure_reactor.control.auto_push", "Auto push");
+        add("screen.dimension_tech.structure_reactor.control.me_network", "ME network");
+        add("screen.dimension_tech.structure_reactor.output_face", "Output Face Config");
+        add(
+                "screen.dimension_tech.structure_reactor.redstone_control_on",
+                "Redstone control: on");
+        add(
+                "screen.dimension_tech.structure_reactor.redstone_control_off",
+                "Redstone control: off");
+        add("screen.dimension_tech.structure_reactor.control.enabled", "Enabled");
+        add("screen.dimension_tech.structure_reactor.control.disabled", "Disabled");
+        add("screen.dimension_tech.structure_reactor.fluid_lock.locked", "Input fluid: locked");
+        add("screen.dimension_tech.structure_reactor.fluid_lock.unlocked", "Input fluid: unlocked");
+        add(
+                "screen.dimension_tech.structure_reactor.fluid_lock.click_to_toggle",
+                "Click the input tank to toggle");
+        add("screen.dimension_tech.structure_reactor.fluid_clear_hint", "Shift+left-click: empty");
+        add("screen.dimension_tech.structure_reactor.fluid_faces", "Reactor fluid faces");
+        add(
+                "screen.dimension_tech.structure_reactor.fluid_face_cycle",
+                "Click: none -> input -> output -> input/output");
+        add("screen.dimension_tech.structure_reactor.fluid_face_mode.disabled", "None");
+        add("screen.dimension_tech.structure_reactor.fluid_face_mode.input", "Input");
+        add("screen.dimension_tech.structure_reactor.fluid_face_mode.output", "Output");
+        add("screen.dimension_tech.structure_reactor.fluid_face_mode.input_output", "Input/output");
+        add("screen.dimension_tech.structure_reactor.face.up", "Up");
+        add("screen.dimension_tech.structure_reactor.face.down", "Down");
+        add("screen.dimension_tech.structure_reactor.face.north", "North");
+        add("screen.dimension_tech.structure_reactor.face.south", "South");
+        add("screen.dimension_tech.structure_reactor.face.west", "West");
+        add("screen.dimension_tech.structure_reactor.face.east", "East");
+        add("screen.dimension_tech.structure_reactor.tooltip.input", "Input fluid");
+        add("screen.dimension_tech.structure_reactor.tooltip.output", "Output fluid");
+        add("screen.dimension_tech.structure_reactor.tooltip.empty", "Empty");
+        add("screen.dimension_tech.structure_reactor.tooltip.fluid", "Fluid: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.amount", "Current: %s / %s mB");
+        add("screen.dimension_tech.structure_reactor.tooltip.required", "Required: %s mB");
+        add("screen.dimension_tech.structure_reactor.tooltip.required_count", "Required count: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.expected", "Expected: %s x %s mB");
+        add("screen.dimension_tech.structure_reactor.tooltip.free", "Free space: %s mB");
+        add("screen.dimension_tech.structure_reactor.tooltip.fragment", "Fragment requirement");
+        add("screen.dimension_tech.structure_reactor.tooltip.requirement", "Recipe requirement: %s");
+        add(
+                "screen.dimension_tech.structure_reactor.tooltip.fragment_custom_detail",
+                "The concrete item is determined by the current recipe rule");
+        add("screen.dimension_tech.structure_reactor.tooltip.operation", "Operation requirement");
+        add(
+                "screen.dimension_tech.structure_reactor.tooltip.operation_needs",
+                "Required operation: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.step", "Current step: %s/%s");
+        add("screen.dimension_tech.structure_reactor.tooltip.state", "Ritual state: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.current", "Current item: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.current_count", "Current count: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.needs", "Required: %s");
+        add("screen.dimension_tech.structure_reactor.tooltip.custom", "Custom item matcher");
+        add(
+                "screen.dimension_tech.structure_reactor.tooltip.custom_detail",
+                "This step accepts items matching the recipe rule");
+        add("screen.dimension_tech.structure_reactor.tooltip.more", "%s more available items");
+        add("screen.dimension_tech.structure_reactor.tooltip.timeout", "Timeout: %s ticks");
+        add("screen.dimension_tech.structure_reactor.tooltip.empty_item", "Empty");
+        add("screen.dimension_tech.structure_reactor.tooltip.status.no_recipe", "No matching recipe");
+        add("screen.dimension_tech.structure_reactor.tooltip.status.available", "Ready");
+        add("screen.dimension_tech.structure_reactor.tooltip.status.insufficient", "Insufficient");
+        add("screen.dimension_tech.structure_reactor.tooltip.status.mismatch", "Type mismatch");
+        add(
+                "screen.dimension_tech.structure_reactor.tooltip.status.output_space",
+                "Output space insufficient");
+        add("screen.dimension_tech.structure_reactor.tooltip.status_line", "Status: %s");
+        add("jei.dimension_tech.structure_reactor.title", "Structure Reactor");
+        add("jei.dimension_tech.structure_reactor.io", "In %s mB -> Out %s mB");
+        add("jei.dimension_tech.structure_reactor.branch", "Branch %s - recursion %s");
+        add("jei.dimension_tech.structure_reactor.branch.alternate", "A/B alternates each commit");
+        add("jei.dimension_tech.structure_reactor.sequence", "Ritual sequence");
+        add("jei.dimension_tech.structure_reactor.row", "%s - %s");
+        add("jei.dimension_tech.structure_reactor.row.unknown", "unspecified");
+        add("jei.dimension_tech.structure_reactor.more", "%s more states hidden");
+        add("jei.dimension_tech.structure_reactor.step", "Step %s: %s");
+        add("jei.dimension_tech.structure_reactor.step.requires", "Requires: %s (1 per settle)");
+        add(
+                "jei.dimension_tech.structure_reactor.step.requires.unknown",
+                "Requires: unspecified operation");
+        add(
+                "jei.dimension_tech.structure_reactor.step.timeout",
+                "Unsettled past %s ticks: time +%s ticks");
+        add("jei.dimension_tech.structure_reactor.reward.window", "Reward window: tick %s-%s");
+        add("jei.dimension_tech.structure_reactor.reward.branch", "Reward: time -%s ticks");
+        add(
+                "jei.dimension_tech.structure_reactor.reward.recurse",
+                "Reward: fluid -%s%%, plus one extra recursion advance");
+        add("jei.dimension_tech.structure_reactor.reward.converge", "Reward: output +%s%%");
+        add(
+                "jei.dimension_tech.structure_reactor.reward.stabilize",
+                "Reward: doubles this cycle's unsettled rewards");
+        add(
+                "jei.dimension_tech.structure_reactor.penalty.stabilize",
+                "Penalty: early stabilize, +%s extra fragments (up to x%s)");
+        add(
+                "jei.dimension_tech.structure_reactor.penalty.converge",
+                "Penalty: converge below target depth, output -%s%% per level");
+        add(
+                "jei.dimension_tech.structure_reactor.penalty.recurse",
+                "Penalty: recurse past target depth, fluid +%s%%");
+        add(
+                "jei.dimension_tech.structure_reactor.penalty.branch",
+                "Penalty: other branch's operation, time +%s ticks");
+        add("jei.dimension_tech.structure_reactor.range.time", "Settle time: %s-%s ticks");
+        add("jei.dimension_tech.structure_reactor.range.fluid", "Fluid cost: %s-%s mB");
+        add("jei.dimension_tech.structure_reactor.range.output", "Output: %s-%s mB");
+        add("jei.dimension_tech.structure_reactor.range.fragments", "Fragments: %s (at most %s)");
+        add("container.dimension_tech.structure_data_operator", "Structure Data Operator");
+        add("screen.dimension_tech.structure_operator.copy", "↓Copy↓");
+        add("screen.dimension_tech.structure_operator.clear", "Clear");
+        add("screen.dimension_tech.structure_operator.refresh", "Explored Structures");
+        add("screen.dimension_tech.structure_operator.all", "All Structures");
+        add("screen.dimension_tech.structure_operator.slots", "Target / Destination / Plugins");
+        add("screen.dimension_tech.structure_operator.tab.operation", "Operate");
+        add("screen.dimension_tech.structure_operator.tab.integrator", "Integrator");
+        add("screen.dimension_tech.structure_operator.tab.interpreter", "Interpreter");
+        add("screen.dimension_tech.structure_operator.target", "Target Marker");
+        add("screen.dimension_tech.structure_operator.destination", "Destination Marker");
+        add("screen.dimension_tech.structure_operator.source_status", "Source data");
+        add("screen.dimension_tech.structure_operator.destination_status", "Write target");
+        add("screen.dimension_tech.structure_operator.integrator", "Data Integrator");
+        add("screen.dimension_tech.structure_operator.interpreter", "Structure Interpreter");
+        add("screen.dimension_tech.structure_operator.inventory", "Player Inventory");
+        add("screen.dimension_tech.structure_operator.page.integrator", "Data Integrator");
+        add("screen.dimension_tech.structure_operator.page.interpreter", "Structure Interpreter");
+        add(
+                "screen.dimension_tech.structure_operator.source.explored",
+                "Source: Explored structures (%s)");
+        add(
+                "screen.dimension_tech.structure_operator.source.all",
+                "Source: All game structures (%s)");
+        add("screen.dimension_tech.structure_operator.search", "Search structure ID");
+        add("screen.dimension_tech.structure_operator.write", "Write");
+        add("screen.dimension_tech.structure_operator.refresh_short", "Refresh");
+        add("screen.dimension_tech.structure_operator.write_short", "Write");
+        add("screen.dimension_tech.structure_operator.operands", "Destination markers: %s");
+        add("screen.dimension_tech.structure_operator.empty", "No structures available");
+        add("screen.dimension_tech.structure_operator.empty_marker", "Not installed");
+        add("screen.dimension_tech.structure_operator.no_data", "No structure data");
+        add("screen.dimension_tech.structure_operator.confirm.copy", "Confirm structure copy");
+        add("screen.dimension_tech.structure_operator.confirm.write", "Confirm structure write");
+        add("screen.dimension_tech.structure_operator.preview.source", "Source: %s");
+        add("screen.dimension_tech.structure_operator.preview.target", "Target: %s");
+        add(
+                "screen.dimension_tech.structure_operator.preview.overwrite",
+                "Existing data will be overwritten");
+        add("screen.dimension_tech.structure_operator.preview.empty", "Target is currently empty");
+        add("screen.dimension_tech.structure_operator.cancel", "Cancel");
+        add("screen.dimension_tech.structure_operator.confirm", "Confirm");
+        add("screen.dimension_tech.structure_operator.status.copied", "Structure data copied");
+        add("screen.dimension_tech.structure_operator.status.written", "Structure data written");
+        add("screen.dimension_tech.structure_operator.status.cleared", "Structure data cleared");
+        add("screen.dimension_tech.structure_operator.catalogue_marker", "Catalogue marker");
+        add("screen.dimension_tech.structure_operator.catalogue_analysis", "Catalogue analysis");
+        add("screen.dimension_tech.structure_operator.dimension", "Dimension: %s");
+        add("screen.dimension_tech.structure_operator.structure", "Structure: %s");
+        add(
+                "screen.dimension_tech.structure_operator.select_entry",
+                "Select a structure with loot");
+        add("screen.dimension_tech.structure_operator.loading", "Loading analysis data");
+        add("screen.dimension_tech.structure_operator.virtual_progress", "Virtual sampling: %s/%s");
+        add(
+                "screen.dimension_tech.structure_operator.virtual_approximate",
+                "Approximate result (%s samples)");
+        add(
+                TranslateHelper.block("tier_1_structure_miner"),
+                "Tier 1 Void Structure Resource Miner");
+        add(
+                TranslateHelper.container("tier_1_structure_miner"),
+                "Tier 1 Void Structure Resource Miner");
+        for (int tier = 2; tier <= 5; tier++) {
+            add(
+                    "block.dimension_tech.tier_" + tier + "_structure_miner",
+                    "Tier " + tier + " Void Structure Resource Miner");
+            add(
+                    "container.dimension_tech.tier_" + tier + "_structure_miner",
+                    "Tier " + tier + " Void Structure Resource Miner");
+        }
+        add("block.dimension_tech.tier_6_structure_miner", "Tier 6 Void Structure Resource Miner");
+        add("container.dimension_tech.tier_6_structure_miner", "Tier 6 Void Structure Resource Miner");
+        add("block.dimension_tech.structure_miner_casing", "Miner Casing");
+        add("block.dimension_tech.structure_miner_structure", "Miner Structure Block");
+        add("block.dimension_tech.structure_miner_upgrade_parallel", "Tier 1 Parallel Upgrade");
+        add("block.dimension_tech.structure_miner_upgrade_luck", "Tier 1 Luck Upgrade");
+        add("block.dimension_tech.structure_miner_upgrade_energy", "Tier 1 Energy Upgrade");
+        add("block.dimension_tech.structure_miner_upgrade_efficiency", "Tier 1 Efficiency Upgrade");
+        add("block.dimension_tech.structure_miner_upgrade_aggregate", "Tier 1 Aggregate Upgrade");
+        for (int tier = 2; tier <= 6; tier++) {
+            add(
+                    "block.dimension_tech.structure_miner_upgrade_parallel_tier_" + tier,
+                    "Tier " + tier + " Parallel Upgrade");
+            add(
+                    "block.dimension_tech.structure_miner_upgrade_luck_tier_" + tier,
+                    "Tier " + tier + " Luck Upgrade");
+            add(
+                    "block.dimension_tech.structure_miner_upgrade_energy_tier_" + tier,
+                    "Tier " + tier + " Energy Upgrade");
+            add(
+                    "block.dimension_tech.structure_miner_upgrade_efficiency_tier_" + tier,
+                    "Tier " + tier + " Efficiency Upgrade");
+            add(
+                    "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
+                    "Tier " + tier + " Aggregate Upgrade");
+        }
+        for (int tier = 1; tier <= 6; tier++)
+            add("block.dimension_tech.dimension_focus_tier_" + tier, "Dimension Focus " + tier);
+        add("screen.dimension_tech.structure_miner.place_structure", "Place Multiblock Structure");
+        add("screen.dimension_tech.structure_miner.place_structure_short", "Build");
+        add("screen.dimension_tech.structure_miner.overview.working", "Working: %s / %s");
+        add("screen.dimension_tech.structure_miner.overview.active", "Active");
+        add("screen.dimension_tech.structure_miner.overview.total_parallel", "Total parallel");
+        add(
+                "screen.dimension_tech.structure_miner.overview.equivalent_acceleration",
+                "Cycle equivalent acceleration");
+        add("screen.dimension_tech.structure_miner.equipment_dismantling", "Equipment Dismantling");
+        add(
+                "screen.dimension_tech.structure_miner.equipment_dismantling_on",
+                "Equipment Dismantling: On");
+        add(
+                "screen.dimension_tech.structure_miner.equipment_dismantling_off",
+                "Equipment Dismantling: Off");
+        add("screen.dimension_tech.structure_miner.enabled", "Enabled");
+        add("screen.dimension_tech.structure_miner.disabled", "Disabled");
+        add("screen.dimension_tech.structure_miner.structure.complete", "Structure complete");
+        add("screen.dimension_tech.structure_miner.structure_incomplete", "Structure incomplete");
+        add("screen.dimension_tech.structure_miner.status.ready", "Ready");
+        add("screen.dimension_tech.structure_miner.status.waiting_structure", "Waiting");
+        add("message.dimension_tech.structure_miner.projection_on", "Multiblock projection shown");
+        add("message.dimension_tech.structure_miner.projection_off", "Multiblock projection hidden");
+        add(
+                "message.dimension_tech.structure_miner.build_blocked",
+                "%s multiblock position(s) are obstructed");
+        add("message.dimension_tech.structure_miner.build_missing", "Not enough materials: %s");
+        add("message.dimension_tech.structure_miner.build_missing_entry", "%s x%s");
+        add("tooltip.dimension_tech.structure_miner.base_parallel", "Base parallel: %s");
+        add("tooltip.dimension_tech.structure_miner.efficiency", "Efficiency: %s");
+        add("tooltip.dimension_tech.structure_miner.luck", "Luck: %s");
+        add("tooltip.dimension_tech.structure_miner.energy_capacity", "Energy capacity: %s FE");
+        add(
+                "tooltip.dimension_tech.structure_miner.energy_consumption",
+                "Energy consumption: %s FE/t");
+        add("tooltip.dimension_tech.structure_miner.marker_slots", "Marker slots: %s");
+        add(
+                "tooltip.dimension_tech.structure_miner.hold_shift",
+                "Hold Shift for multiblock materials");
+        add("tooltip.dimension_tech.structure_miner.materials", "Multiblock Materials");
+        add("tooltip.dimension_tech.structure_miner.material.casing", "Miner Casing x%s");
+        add("tooltip.dimension_tech.structure_miner.material.structure", "Miner Structure Block x%s");
+        add("tooltip.dimension_tech.structure_miner.material.focus", "Tier %s Dimension Focus x%s");
+        add(
+                "tooltip.dimension_tech.structure_miner.material.upgrade",
+                "Any Upgrade Block or Miner Structure Block x%s");
+        add("tooltip.dimension_tech.structure_miner.upgrade.efficiency", "Efficiency: +%s%%");
+        add(
+                "tooltip.dimension_tech.structure_miner.upgrade.energy_capacity",
+                "Energy capacity: +%s%%");
+        add(
+                "tooltip.dimension_tech.structure_miner.upgrade.energy_consumption.multiplicative",
+                "Energy consumption (multiplicative): -%s%%");
+        add(
+                "tooltip.dimension_tech.structure_miner.upgrade.energy_consumption.additive",
+                "Energy consumption (additive): -%s%%");
+        add("tooltip.dimension_tech.structure_miner.upgrade.parallel", "Parallel: +%s%%");
+        add("tooltip.dimension_tech.structure_miner.upgrade.luck", "Luck: +%s%%");
+        add("tooltip.dimension_tech.structure_miner.upgrade.none", "No attribute bonuses");
+        add("screen.dimension_tech.struct_marker.title", "Structure Marker Analysis");
+        add("screen.dimension_tech.struct_marker.subtitle", "Loot expectations and value overview");
+        add("screen.dimension_tech.struct_marker.dimension", "Dimension: %s");
+        add("screen.dimension_tech.struct_marker.structure", "Structure: %s");
+        add("screen.dimension_tech.struct_marker.dimension_value", "Dimension Value");
+        add("screen.dimension_tech.struct_marker.structure_value", "Structure Value");
+        add("screen.dimension_tech.struct_marker.structures", "Indexed structures: %s");
+        add("screen.dimension_tech.struct_marker.item", "Item");
+        add("screen.dimension_tech.struct_marker.expected", "Expected");
+        add("screen.dimension_tech.struct_marker.multiplier_header", "Multiplier");
+        add("screen.dimension_tech.struct_marker.multiplier", "Multiplier: %s");
+        add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
+        add("screen.dimension_tech.struct_marker.select", "Select Structure");
+        add("screen.dimension_tech.struct_marker.clear", "Clear Structure");
+        add(
+                "screen.dimension_tech.struct_marker.select_prompt",
+                "Multiple structures found here; select one");
+        add("screen.dimension_tech.struct_marker.selection.selected", "Structure selected");
+        add("screen.dimension_tech.struct_marker.selection.empty", "No structure selected");
+        add(
+                "message.dimension_tech.struct_marker.no_structure_here",
+                "No structure exists at this position");
+        add(
+                "message.dimension_tech.struct_marker.selection_invalid",
+                "Structure choices changed; select again");
+        add("screen.dimension_tech.structure_miner.control", "Mining Console");
+        add("screen.dimension_tech.structure_miner.markers", "Structure Markers");
+        add("screen.dimension_tech.structure_miner.slots", "%s slots");
+        add("screen.dimension_tech.structure_miner.target", "Current Target");
+        add("screen.dimension_tech.structure_miner.dimension", "Dimension: %s");
+        add("screen.dimension_tech.structure_miner.energy_tooltip", "Energy Status");
+        add("screen.dimension_tech.structure_miner.energy_value", "Reserve: %s / %s FE");
+        add("screen.dimension_tech.structure_miner.energy_consumption", "Consumption: %s FE/t");
+        add("screen.dimension_tech.structure_miner.energy", "Energy Reserve");
+        add("screen.dimension_tech.structure_miner.fluid_input", "Fluid Input");
+        add("screen.dimension_tech.structure_miner.fluid_empty", "Empty");
+        add("screen.dimension_tech.structure_miner.fluid_amount", "%s / %s mB");
+        add("screen.dimension_tech.structure_miner.fluid_required", "Required: %s mB / cycle");
+        add("screen.dimension_tech.structure_miner.fluid_insufficient", "Fluid insufficient");
+        add("screen.dimension_tech.structure_miner.fluid_wrong_type", "Wrong fluid type");
+        add("screen.dimension_tech.structure_miner.fluid_blocked", "Fluid input blocked");
+        add("screen.dimension_tech.structure_miner.fluid_status", "Status: normal");
+        add("screen.dimension_tech.structure_miner.fluid_faces", "Fluid faces");
+        add("screen.dimension_tech.structure_miner.fluid_face_mode.disabled", "Fluid: disabled");
+        add("screen.dimension_tech.structure_miner.fluid_face_mode.input", "Fluid: input");
+        add("screen.dimension_tech.structure_miner.fluid_face_mode.output", "Fluid: output");
+        add(
+                "screen.dimension_tech.structure_miner.auto_extract_enabled",
+                "Automatic fluid extraction: enabled");
+        add(
+                "screen.dimension_tech.structure_miner.auto_extract_disabled",
+                "Automatic fluid extraction: disabled");
+        add("screen.dimension_tech.structure_miner.fluid_required_type", "Accepts only this essence");
+        add("fluid.dimension_tech.structure_essence", "Structure Essence");
+        add("fluid.dimension_tech.surging_structure_essence", "Surging Structure Essence");
+        add("fluid.dimension_tech.recursive_essence", "Recursive Essence");
+        add("fluid.dimension_tech.surging_recursive_essence", "Surging Recursive Essence");
+        add("fluid.dimension_tech.fractal_essence", "Fractal Essence");
+        add("item.dimension_tech.structure_essence_bucket", "Structure Essence Bucket");
+        add("item.dimension_tech.surging_structure_essence_bucket", "Surging Structure Essence Bucket");
+        add("item.dimension_tech.recursive_essence_bucket", "Recursive Essence Bucket");
+        add(
+                "item.dimension_tech.surging_recursive_essence_bucket",
+                "Surging Recursive Essence Bucket");
+        add("item.dimension_tech.fractal_essence_bucket", "Fractal Essence Bucket");
+        add("screen.dimension_tech.structure_miner.parallel", "Parallel Draws");
+        add("screen.dimension_tech.structure_miner.attribute.efficiency", "Efficiency");
+        add("screen.dimension_tech.structure_miner.attribute.capacity", "Capacity");
+        add("screen.dimension_tech.structure_miner.attribute.consumption", "Consumption");
+        add("screen.dimension_tech.structure_miner.attribute.parallel", "Parallel");
+        add("screen.dimension_tech.structure_miner.attribute.luck", "Luck");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.external_acceleration",
+                "External acceleration");
+        add("screen.dimension_tech.structure_miner.tab.work", "Work");
+        add("screen.dimension_tech.structure_miner.tab.info", "Info");
+        add("screen.dimension_tech.structure_miner.tab.attributes", "Attributes");
+        add("screen.dimension_tech.structure_miner.info.slots", "Marker slots");
+        add("screen.dimension_tech.structure_miner.info.structure", "Structure / cycle: %s tick");
+        add("screen.dimension_tech.structure_miner.info.natural", "Natural ticks: %s");
+        add("screen.dimension_tech.structure_miner.info.actual", "Actual ticks: %s");
+        add(
+                "screen.dimension_tech.structure_miner.info.external",
+                "Current cycle external acceleration: %sx");
+        add("screen.dimension_tech.structure_miner.info.total_parallel", "Total parallel: %s");
+        add("screen.dimension_tech.structure_miner.info.section.marker", "Marker properties");
+        add("screen.dimension_tech.structure_miner.info.section.work", "Work status");
+        add("screen.dimension_tech.structure_miner.info.section.products", "Products and actions");
+        add("screen.dimension_tech.structure_miner.hint.slot_toggle",
+                "Right-click a slot to enable or disable that thread");
+        add("screen.dimension_tech.structure_miner.expected_item.enable", "Click to enable output");
+        add("screen.dimension_tech.structure_miner.expected_item.disable", "Click to disable output");
+        add("screen.dimension_tech.structure_miner.natural_progress", "Natural ticks: %s / %s");
+        add("screen.dimension_tech.structure_miner.actual_progress", "Actual ticks: %s / %s (x%s)");
+        add(
+                "screen.dimension_tech.structure_miner.parallel.expand_hint",
+                "Click to expand parallel details");
+        add(
+                "screen.dimension_tech.structure_miner.parallel.collapse_hint",
+                "Click to collapse parallel details");
+        add("screen.dimension_tech.structure_miner.overview", "Machine overview");
+        add("screen.dimension_tech.structure_miner.overview.progress", "%s / %s tick");
+        add(
+                "screen.dimension_tech.structure_miner.waiting_for_natural_window",
+                "Waiting for natural tick window (400 ticks)");
+        add("screen.dimension_tech.structure_miner.attribute.upgrades", "Upgrade Blocks");
+        add("screen.dimension_tech.structure_miner.attribute.composition", "Attribute makeup");
+        add("screen.dimension_tech.structure_miner.attribute.no_upgrades", "No upgrades installed");
+        add("screen.dimension_tech.structure_miner.attribute.installed", "Installed upgrades");
+        add("screen.dimension_tech.structure_miner.attribute.upgrade_count", "×%s");
+        add("screen.dimension_tech.structure_miner.attribute.total_short", "Total %s");
+        add("screen.dimension_tech.structure_miner.attribute.summary_counts", "Focus %s | Combo %s");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.efficiency_value",
+                "Effective efficiency: %s");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.capacity_value",
+                "Effective capacity: %s FE");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.consumption_value",
+                "Effective consumption: %s FE/t");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.parallel_value",
+                "Effective parallel: %s");
+        add("screen.dimension_tech.structure_miner.attribute.luck_value", "Effective luck: %s");
+        add("screen.dimension_tech.structure_miner.attribute.bonus", "Final bonus: +%s%%");
+        add("screen.dimension_tech.structure_miner.attribute.reduction", "Final reduction: %s%%");
+        add("screen.dimension_tech.structure_miner.attribute.total_count", "Total upgrade blocks: %s");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.upgrade_breakdown",
+                "Focused upgrades: %s, aggregate upgrades: %s");
+        add("screen.dimension_tech.structure_miner.output.me_network", "ME Network");
+        add("screen.dimension_tech.structure_miner.output.item_handler", "Item Container");
+        add("screen.dimension_tech.structure_miner.output.none", "Unlinked");
+        add("screen.dimension_tech.structure_miner.output.blocked", "Output blocked: %s pending");
+        add("screen.dimension_tech.structure_miner.inventory", "Player Inventory");
+        add("screen.dimension_tech.structure_miner.output_face", "Output Face");
+        add("screen.dimension_tech.structure_miner.output_mode", "Output State");
+        add("screen.dimension_tech.structure_miner.redstone", "Redstone");
+        add("screen.dimension_tech.structure_miner.redstone_mode", "Redstone: %s");
+        add("screen.dimension_tech.structure_miner.redstone_control_on", "Redstone control: On");
+        add("screen.dimension_tech.structure_miner.redstone_control_off", "Redstone control: Off");
+        add("screen.dimension_tech.structure_miner.redstone.always", "Always on");
+        add("screen.dimension_tech.structure_miner.redstone.signal", "With signal");
+        add("screen.dimension_tech.structure_miner.redstone.no_signal", "Without signal");
+        add("screen.dimension_tech.structure_miner.redstone.never", "Never");
+        add("screen.dimension_tech.structure_miner.work.base_parallel", "Base parallel");
+        add(
+                "screen.dimension_tech.structure_miner.marker.no_plan",
+                "No processing plan: structure analysis pending or failed");
+        add("screen.dimension_tech.structure_miner.marker_progress", "Progress: %s / %s tick");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.select",
+                "Click a slot above to select a marker");
+        add("screen.dimension_tech.structure_miner.marker_info.unconfigured", "No structure marker");
+        add("screen.dimension_tech.structure_miner.marker_info.structure", "Slot %s: %s");
+        add("screen.dimension_tech.structure_miner.marker_info.dimension", "Dimension: %s");
+        add("screen.dimension_tech.structure_miner.marker_info.parallel_status", "Parallel: %s / %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.dimension_value",
+                "Dimension value: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.structure_value",
+                "Structure value: %s");
+        add("screen.dimension_tech.structure_miner.marker_info.expected_items", "Item expectations");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.loading",
+                "Calculating effective machine expectations...");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.no_items",
+                "No item expectations available");
+        add("screen.dimension_tech.structure_miner.slot.enable", "Enable selected slot");
+        add("screen.dimension_tech.structure_miner.slot.enable_right", "Right-click to enable this thread");
+        add("screen.dimension_tech.structure_miner.slot.disable_right", "Right-click to disable this thread");
+        add("screen.dimension_tech.structure_miner.slot.disable", "Disable selected slot");
+        add("screen.dimension_tech.structure_miner.marker_info.parallel", "Total parallel: %s  [%s]");
+        add("screen.dimension_tech.structure_miner.marker_info.parallel.expand", "Click to expand");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.parallel.collapse",
+                "Click to collapse");
+        add("screen.dimension_tech.structure_miner.marker_info.parallel.base", "Base parallel: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.parallel.efficiency",
+                "Efficiency parallel: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.parallel.external",
+                "External acceleration parallel: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.natural_ticks",
+                "Natural ticks in current window: %s");
+        add("screen.dimension_tech.structure_miner.marker_info.actual_ticks", "Actual ticks: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.actual_parallel",
+                "Live external acceleration parallel: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.previous_cycle_ticks",
+                "Previous cycle actual ticks: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.previous_cycle_parallel",
+                "Previous cycle external acceleration parallel: %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_parallel",
+                "Parallel: %s (%s base + %s efficiency bonus + %s external acceleration)");
+        add("screen.dimension_tech.structure_miner.face.selected", "Selected face: %s");
+        add("screen.dimension_tech.structure_miner.output_faces_enabled", "%s / 6 faces enabled");
+        add("screen.dimension_tech.structure_miner.face.tooltip", "Face: %s");
+        add("screen.dimension_tech.structure_miner.face.adjacent", "Adjacent machine: %s");
+        add("screen.dimension_tech.structure_miner.face.state", "Output: %s");
+        add("screen.dimension_tech.structure_miner.face.empty", "No block");
+        add("screen.dimension_tech.structure_miner.face.north", "Front");
+        add("screen.dimension_tech.structure_miner.face.south", "Back");
+        add("screen.dimension_tech.structure_miner.face.east", "East");
+        add("screen.dimension_tech.structure_miner.face.west", "West");
+        add("screen.dimension_tech.structure_miner.face.up", "Up");
+        add("screen.dimension_tech.structure_miner.face.down", "Down");
+        add("screen.dimension_tech.structure_miner.face.status.fluid_input", "Fluid input");
+        add("screen.dimension_tech.structure_miner.face.status.auto_output", "Auto output");
+        add("screen.dimension_tech.structure_miner.face.status.both", "Fluid input/auto output");
+        add("screen.dimension_tech.structure_miner.face.status.disabled", "Disabled");
+        add("screen.dimension_tech.structure_miner.output.ae_mode", "AE mode");
+        add("screen.dimension_tech.structure_miner.output.auto_pull_fluid", "Auto-pull fluid");
+        add(
+                TranslateHelper.message("struct_marker.saved"),
+                "Saved %s at %s, %s, %s; structures found: %s");
+        add(TranslateHelper.tooltip("struct_marker.dimension"), "Dimension: %s");
+        add(TranslateHelper.tooltip("struct_marker.dimension_value"), "Dimension value: %s");
+        add(TranslateHelper.tooltip("struct_marker.structure_value"), "Structure value: %s");
+        add(TranslateHelper.tooltip("struct_marker.analysis_status"), "Loot analysis: %s");
+        add("screen.dimension_tech.struct_marker.calculation_method", "Calculation method: %s");
+        add("screen.dimension_tech.struct_marker.analysis_status.exact", "Exact");
+        add("screen.dimension_tech.struct_marker.analysis_status.approximate", "Approximate");
+        add("screen.dimension_tech.struct_marker.analysis_status.unsupported", "Unsupported");
+        add("screen.dimension_tech.struct_marker.analysis_status.legacy", "Legacy");
+        add(
+                TranslateHelper.tooltip("struct_marker.legacy"),
+                "Legacy value hidden; mark the structure again");
+        add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
+        add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
+        add("config.jade.plugin_dimension_tech.structure_miner_status", "Structure Miner Status");
+        add("jade.dimension_tech.status.idle", "Idle");
+        add("jade.dimension_tech.status.running", "Running");
+        add("jade.dimension_tech.status.blocked", "Output blocked");
+        add("jade.dimension_tech.status", "Status: %s");
+        add("jade.dimension_tech.structure", "Structure: %s");
+        add("jade.dimension_tech.structure.none", "None");
+        add("jade.dimension_tech.structure.minecraft.village_plains", "Plains Village");
+        add("jade.dimension_tech.structure.minecraft.village_desert", "Desert Village");
+        add("jade.dimension_tech.structure.minecraft.village_savanna", "Savanna Village");
+        add("jade.dimension_tech.structure.minecraft.village_snowy", "Snowy Village");
+        add("jade.dimension_tech.structure.minecraft.village_taiga", "Taiga Village");
+        add("jade.dimension_tech.progress", "Progress: %s");
+        add("jade.dimension_tech.progress_value", "Progress: %s%%");
+        add("jade.dimension_tech.slot", "Slot %s: %s");
+        add("jade.dimension_tech.slot_progress", "Progress: %s");
+        add("jade.dimension_tech.slot_progress_value", "%s / %s tick");
+        add("jade.dimension_tech.slot_progress_percent", "%s%%");
+        add("jade.dimension_tech.slot_parallel", "Parallel: %s");
+        add("jade.dimension_tech.base_parameters", "Base parameters: %s");
+        add("jade.dimension_tech.parameters", "Miner");
+        add("jade.dimension_tech.efficiency", "Efficiency: %s");
+        add("jade.dimension_tech.capacity", "Energy capacity: %s");
+        add("jade.dimension_tech.base_consumption", "Base consumption: %s");
+        add("jade.dimension_tech.base_parallel", "Base parallel: %s");
+        add("jade.dimension_tech.luck", "Base luck: %s");
+        add("jade.dimension_tech.slot_usage", "Slots: %s/%s");
+        add("jade.dimension_tech.remaining", "Remaining: %s seconds");
+        add("jade.dimension_tech.parallel", "Parallel: %s");
+        add("jade.dimension_tech.external_parallel", "External acceleration parallel: %s");
+        add(
+                "jade.dimension_tech.external_equivalent_acceleration",
+                "Current cycle external acceleration: %sx");
+        add(
+                "jade.dimension_tech.waiting_for_natural_window",
+                "Waiting for natural tick window (400 ticks)");
+        add("jade.dimension_tech.actual_ticks", "Machine ticks in current window: %s");
+        add("jade.dimension_tech.previous_ticks", "Previous cycle machine ticks: %s");
+        add("jade.dimension_tech.previous_parallel", "Previous cycle external parallel: %s");
+        add("jade.dimension_tech.output", "Output: %s");
+        add("jade.dimension_tech.output.me_network", "ME network");
+        add("jade.dimension_tech.output.item_handler", "Inventory");
+        add("jade.dimension_tech.output.none", "No output");
+        add("jade.dimension_tech.pending", "Pending output: %s items");
+        add("jade.dimension_tech.reason", "Reason: %s");
+        add("jade.dimension_tech.reason.me_full", "ME network storage is full");
+        add("jade.dimension_tech.reason.inventory_full", "Inventory is full");
+        add("jade.dimension_tech.reason.no_target", "No output container");
+        add("jade.dimension_tech.energy", "Energy: %s");
+        add("jade.dimension_tech.consumption", "Consumption: %s");
+        add("jade.dimension_tech.energy_value", "%s/%s FE");
+        add("jade.dimension_tech.energy_consumption_value", "%s FE/t");
+        add("jade.dimension_tech.seconds", "%s");
+        add("jade.dimension_tech.items", "%s");
+    }
 
+    private void addVanillaRegistryNames() {
+        add("dimension_tech.dimension.minecraft.overworld", "Overworld");
+        add("dimension_tech.dimension.minecraft.the_nether", "Nether");
+        add("dimension_tech.dimension.minecraft.the_end", "The End");
+        add("dimension_tech.structure.minecraft.pillager_outpost", "Pillager Outpost");
+        add("dimension_tech.structure.minecraft.mineshaft", "Mineshaft");
+        add("dimension_tech.structure.minecraft.mineshaft_mesa", "Badlands Mineshaft");
+        add("dimension_tech.structure.minecraft.mansion", "Woodland Mansion");
+        add("dimension_tech.structure.minecraft.jungle_pyramid", "Jungle Temple");
+        add("dimension_tech.structure.minecraft.desert_pyramid", "Desert Temple");
+        add("dimension_tech.structure.minecraft.igloo", "Igloo");
+        add("dimension_tech.structure.minecraft.shipwreck", "Shipwreck");
+        add("dimension_tech.structure.minecraft.shipwreck_beached", "Beached Shipwreck");
+        add("dimension_tech.structure.minecraft.swamp_hut", "Swamp Hut");
+        add("dimension_tech.structure.minecraft.stronghold", "Stronghold");
+        add("dimension_tech.structure.minecraft.monument", "Ocean Monument");
+        add("dimension_tech.structure.minecraft.ocean_ruin_cold", "Cold Ocean Ruin");
+        add("dimension_tech.structure.minecraft.ocean_ruin_warm", "Warm Ocean Ruin");
+        add("dimension_tech.structure.minecraft.fortress", "Nether Fortress");
+        add("dimension_tech.structure.minecraft.nether_fossil", "Nether Fossil");
+        add("dimension_tech.structure.minecraft.end_city", "End City");
+        add("dimension_tech.structure.minecraft.buried_treasure", "Buried Treasure");
+        add("dimension_tech.structure.minecraft.bastion_remnant", "Bastion Remnant");
+        add("dimension_tech.structure.minecraft.village_plains", "Plains Village");
+        add("dimension_tech.structure.minecraft.village_desert", "Desert Village");
+        add("dimension_tech.structure.minecraft.village_savanna", "Savanna Village");
+        add("dimension_tech.structure.minecraft.village_snowy", "Snowy Village");
+        add("dimension_tech.structure.minecraft.village_taiga", "Taiga Village");
+        add("dimension_tech.structure.minecraft.ruined_portal", "Ruined Portal");
+        add("dimension_tech.structure.minecraft.ruined_portal_desert", "Desert Ruined Portal");
+        add("dimension_tech.structure.minecraft.ruined_portal_jungle", "Jungle Ruined Portal");
+        add("dimension_tech.structure.minecraft.ruined_portal_swamp", "Swamp Ruined Portal");
+        add("dimension_tech.structure.minecraft.ruined_portal_mountain", "Mountain Ruined Portal");
+        add("dimension_tech.structure.minecraft.ruined_portal_ocean", "Ocean Ruined Portal");
+        add("dimension_tech.structure.minecraft.ruined_portal_nether", "Nether Ruined Portal");
+        add("dimension_tech.structure.minecraft.ancient_city", "Ancient City");
+        add("dimension_tech.structure.minecraft.trail_ruins", "Trail Ruins");
+        add("dimension_tech.structure.minecraft.trial_chambers", "Trial Chambers");
     }
 }

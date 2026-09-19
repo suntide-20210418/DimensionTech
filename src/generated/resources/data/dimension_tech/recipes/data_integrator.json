@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "C": {
+      "item": "dimension_tech:structure_miner_casing"
+    },
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_2"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_2"
+    }
+  },
+  "pattern": [
+    "FQF",
+    "ACA",
+    "TRT"
+  ],
+  "result": {
+    "item": "dimension_tech:data_integrator"
+  },
+  "show_notification": true
+}

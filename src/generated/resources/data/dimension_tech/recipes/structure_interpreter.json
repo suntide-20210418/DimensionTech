@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "dimension_tech:data_integrator"
+    },
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_5"
+    },
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "S": {
+      "item": "minecraft:nether_star"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_5"
+    }
+  },
+  "pattern": [
+    "FNF",
+    "SCS",
+    "TNT"
+  ],
+  "result": {
+    "item": "dimension_tech:structure_interpreter"
+  },
+  "show_notification": true
+}

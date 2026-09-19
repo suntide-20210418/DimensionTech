@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "D": {
+      "item": "minecraft:glowstone_dust"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    },
+    "S": {
+      "item": "dimension_tech:structure_miner_casing"
+    }
+  },
+  "pattern": [
+    "OSO",
+    "ADA",
+    "OSO"
+  ],
+  "result": {
+    "item": "dimension_tech:structure_reactor"
+  },
+  "show_notification": true
+}

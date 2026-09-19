@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "O": {
+      "item": "minecraft:gold_ingot"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "S": {
+      "item": "dimension_tech:structure_miner_casing"
+    }
+  },
+  "pattern": [
+    "SGS",
+    "AIA",
+    "ORO"
+  ],
+  "result": {
+    "item": "dimension_tech:structure_data_operator"
+  },
+  "show_notification": true
+}

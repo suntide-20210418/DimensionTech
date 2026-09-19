@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "dimension_tech:dimension_focus_tier_6"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "dimension_tech:blocks/dimension_focus_tier_6"
+}
