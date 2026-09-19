@@ -1,8 +1,6 @@
 package com.suntide_20210418.dimensiontech.structureminer.output;
 
-import com.suntide_20210418.dimensiontech.item.EnchantmentMarkItem;
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import com.suntide_20210418.dimensiontech.loot.expectation.EnchantmentKey;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import java.util.ArrayList;
@@ -95,75 +93,8 @@ public final class ExpectationRewardGenerator {
             }
             addDimensionCoreReward(lootLevel, merged, cycle.parallel(), clampedTier, disabledItems);
             addTieredRewards(merged, cycle.parallel(), clampedTier);
-            addEnchantmentMarks(
-                    lootLevel,
-                    merged,
-                    cached.expectedEnchantments(),
-                    cycle.draws(),
-                    totalWeight(cached.expectedItems(), disabledItems),
-                    disabledItems);
         }
         return List.copyOf(merged);
-    }
-
-    /**
-     * Converts the enchantment marginal into marks.
-     *
-     * <p>The marginal counts expected selections per table execution, while {@link #draw} performs
-     * {@code draws} single-item samples. One table execution is expected to emit {@code total}
-     * items, so the equivalent number of executions behind {@code draws} samples is {@code draws /
-     * total}. That factor keeps marks on the same scale as the items next to them.
-     *
-     * <p>The resulting count is randomized by floor plus one Bernoulli trial on the fractional
-     * part, so the expected number of marks is preserved without emitting fractional items.
-     */
-    private static void addEnchantmentMarks(
-            ServerLevel level,
-            List<ItemStack> mergedLoot,
-            Map<EnchantmentKey, ExactProbability> expectedEnchantments,
-            int draws,
-            double totalWeight,
-            Set<ResourceLocation> disabledItems) {
-        if (expectedEnchantments.isEmpty()
-                || disabledItems.contains(ModItems.ENCHANTMENT_MARK_ID)
-                || draws <= 0
-                || !Double.isFinite(totalWeight)
-                || totalWeight <= 0.0D) {
-            return;
-        }
-        double executions = draws / totalWeight;
-        for (Map.Entry<EnchantmentKey, ExactProbability> entry : expectedEnchantments.entrySet()) {
-            double expected = entry.getValue().finiteDoubleValue() * executions;
-            int count = randomizedCount(expected, level.random);
-            if (count <= 0) continue;
-            mergeEquivalent(mergedLoot, EnchantmentMarkItem.create(entry.getKey(), count));
-        }
-    }
-
-    private static final int MAX_MARKS_PER_KEY = 4096;
-
-    /** floor plus a Bernoulli trial on the fraction; the expectation is preserved by construction. */
-    static int randomizedCount(double expected, net.minecraft.util.RandomSource random) {
-        if (!Double.isFinite(expected) || expected <= 0.0D) return 0;
-        if (expected >= MAX_MARKS_PER_KEY) return MAX_MARKS_PER_KEY;
-        int floor = (int) Math.floor(expected);
-        return floor + (random.nextDouble() < expected - floor ? 1 : 0);
-    }
-
-    /** Total weight of the drawable items, mirroring the filter applied by {@link #draw}. */
-    static double totalWeight(
-            Map<ResourceLocation, ExactProbability> expectedItems,
-            Set<ResourceLocation> disabledItems) {
-        double total = 0.0D;
-        for (Map.Entry<ResourceLocation, ExactProbability> entry : expectedItems.entrySet()) {
-            double weight = entry.getValue().finiteDoubleValue();
-            if (disabledItems.contains(entry.getKey())
-                    || !Double.isFinite(weight)
-                    || weight <= 0.0D) continue;
-            if (BuiltInRegistries.ITEM.getOptional(entry.getKey()).isEmpty()) continue;
-            total += weight;
-        }
-        return total;
     }
 
     public static void mergeEquivalent(List<ItemStack> mergedLoot, ItemStack stack) {

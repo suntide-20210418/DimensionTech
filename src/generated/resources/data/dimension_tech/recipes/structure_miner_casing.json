@@ -2,23 +2,25 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "G": {
-      "item": "minecraft:glass"
+    "D": {
+      "item": "minecraft:diamond"
     },
     "I": {
       "item": "minecraft:iron_ingot"
     },
-    "S": {
-      "item": "minecraft:stone_bricks"
+    "N": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "minecraft:redstone"
     }
   },
   "pattern": [
-    "IGI",
-    "S S",
-    "IGI"
+    "INI",
+    "RDR",
+    "INI"
   ],
   "result": {
-    "count": 8,
     "item": "dimension_tech:structure_miner_casing"
   },
   "show_notification": true

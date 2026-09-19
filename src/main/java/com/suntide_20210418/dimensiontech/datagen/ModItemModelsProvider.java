@@ -21,10 +21,6 @@ public class ModItemModelsProvider extends ItemModelProvider {
         withExistingParent(markerName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.itemModelTexture(markerName));
 
-        String enchantmentMarkName = ResourceLocationHelper.getPath(ModItems.ENCHANTMENT_MARK_ID);
-        withExistingParent(enchantmentMarkName, ResourceLocationHelper.vanilla("item/generated"))
-                .texture("layer0", ResourceLocationHelper.itemModelTexture(enchantmentMarkName));
-
         String coreName = ResourceLocationHelper.getPath(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
         withExistingParent(coreName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));

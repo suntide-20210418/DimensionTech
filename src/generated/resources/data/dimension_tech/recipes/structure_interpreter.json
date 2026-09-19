@@ -5,29 +5,23 @@
     "C": {
       "item": "dimension_tech:data_integrator"
     },
-    "D": {
-      "item": "minecraft:diamond"
-    },
-    "E": {
-      "item": "minecraft:ender_pearl"
-    },
     "F": {
       "item": "dimension_tech:dimension_fragment_tier_5"
     },
-    "Q": {
-      "item": "minecraft:quartz"
+    "N": {
+      "item": "minecraft:netherite_ingot"
     },
     "S": {
-      "item": "dimension_tech:structure_miner_casing"
+      "item": "minecraft:nether_star"
     },
     "T": {
       "item": "dimension_tech:mining_token_tier_5"
     }
   },
   "pattern": [
-    "FQF",
-    "SCD",
-    "TET"
+    "FNF",
+    "SCS",
+    "TNT"
   ],
   "result": {
     "item": "dimension_tech:structure_interpreter"

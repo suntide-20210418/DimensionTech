@@ -16,12 +16,11 @@
     }
   },
   "pattern": [
-    "SCS",
+    "CTC",
     "FSF",
-    "T T"
+    "CTC"
   ],
   "result": {
-    "count": 4,
     "item": "dimension_tech:structure_miner_upgrade_parallel_tier_5"
   },
   "show_notification": true

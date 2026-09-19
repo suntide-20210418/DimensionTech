@@ -158,7 +158,7 @@ public final class ExternalTickAcceleration {
     private static int extraParallelForRatio(long actualTicks, long naturalTicks) {
         if (actualTicks <= 0L || naturalTicks <= 0L) return 0;
         double extraParallel =
-                Math.sqrt(Math.max(0.0D, actualTicks / (double) naturalTicks - 1.0D));
+                Math.max(0.0D, actualTicks / (double) naturalTicks - 1.0D);
         return (int) Math.min(Integer.MAX_VALUE, Math.floor(extraParallel * 100.0D));
     }
 

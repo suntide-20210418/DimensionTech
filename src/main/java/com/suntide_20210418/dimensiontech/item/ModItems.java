@@ -18,8 +18,6 @@ import net.minecraftforge.registries.RegistryObject;
 public final class ModItems {
     public static final ResourceLocation STRUCTURE_MARKER_ID =
             ResourceLocationHelper.item("structure_marker");
-    public static final ResourceLocation ENCHANTMENT_MARK_ID =
-            ResourceLocationHelper.item("enchantment_mark");
     public static final ResourceLocation DIMENSION_DECONSTRUCTION_CORE_ID =
             ResourceLocationHelper.item("dimension_deconstruction_core");
 
@@ -30,11 +28,6 @@ public final class ModItems {
             ITEMS.register(
                     ResourceLocationHelper.getPath(STRUCTURE_MARKER_ID),
                     () -> new StructMarkerItem(new Item.Properties().stacksTo(1)));
-
-    public static final RegistryObject<Item> ENCHANTMENT_MARK =
-            ITEMS.register(
-                    ResourceLocationHelper.getPath(ENCHANTMENT_MARK_ID),
-                    () -> new EnchantmentMarkItem(new Item.Properties().stacksTo(64)));
 
     public static final RegistryObject<Item> DIMENSION_DECONSTRUCTION_CORE =
             ITEMS.register(

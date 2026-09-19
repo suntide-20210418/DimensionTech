@@ -1,12 +1,7 @@
 package com.suntide_20210418.dimensiontech.datagen;
 
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import com.suntide_20210418.dimensiontech.recipe.EnchantmentMarkRecipe;
-import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
-import com.google.gson.JsonObject;
-import java.util.Locale;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
@@ -16,8 +11,6 @@ import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraftforge.common.crafting.conditions.IConditionBuilder;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.NotNull;
@@ -47,51 +40,6 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
         focusBlocks(writer);
         machines(writer);
         upgradeBlocks(writer);
-        enchantmentMarks(writer);
-    }
-
-    /**
-     * Two NBT-driven recipes rather than a few hundred static ones. The mark economy depends on the
-     * mark's enchantment and level, and it has to keep working for enchantments added by other
-     * mods, so the match has to happen at runtime.
-     */
-    private void enchantmentMarks(Consumer<FinishedRecipe> writer) {
-        markRecipe(writer, "enchantment_mark_split", EnchantmentMarkRecipe.Mode.SPLIT);
-        markRecipe(writer, "enchantment_mark_combine", EnchantmentMarkRecipe.Mode.COMBINE);
-    }
-
-    private void markRecipe(
-            Consumer<FinishedRecipe> writer, String name, EnchantmentMarkRecipe.Mode mode) {
-        ResourceLocation id = ModRecipes.id(name);
-        writer.accept(
-                new FinishedRecipe() {
-                    @Override
-                    public void serializeRecipeData(JsonObject json) {
-                        json.addProperty("mode", mode.name().toLowerCase(java.util.Locale.ROOT));
-                    }
-
-                    @Override
-                    public ResourceLocation getId() {
-                        return id;
-                    }
-
-                    @Override
-                    public RecipeSerializer<?> getType() {
-                        return ModRecipes.ENCHANTMENT_MARK.get();
-                    }
-
-                    @Override
-                    @Nullable
-                    public JsonObject serializeAdvancement() {
-                        return null;
-                    }
-
-                    @Override
-                    @Nullable
-                    public ResourceLocation getAdvancementId() {
-                        return null;
-                    }
-                });
     }
 
     /** Tools that depend on no machine product, so the loop can be entered at all. */

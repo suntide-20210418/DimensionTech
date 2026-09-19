@@ -2,6 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "C": {
+      "item": "dimension_tech:dimension_deconstruction_core"
+    },
     "D": {
       "item": "dimension_tech:structure_miner_upgrade_energy"
     },
@@ -22,12 +25,11 @@
     }
   },
   "pattern": [
-    "PLE",
-    "FDF",
-    "T T"
+    "PTE",
+    "FCF",
+    "LTD"
   ],
   "result": {
-    "count": 2,
     "item": "dimension_tech:structure_miner_upgrade_aggregate"
   },
   "show_notification": true

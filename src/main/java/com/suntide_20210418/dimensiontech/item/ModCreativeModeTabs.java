@@ -31,7 +31,6 @@ public final class ModCreativeModeTabs {
                                     .displayItems(
                                             (parameters, output) -> {
                                                 output.accept(ModItems.STRUCTURE_MARKER.get());
-                                                output.accept(ModItems.ENCHANTMENT_MARK.get());
                                                 output.accept(
                                                         ModItems.DIMENSION_DECONSTRUCTION_CORE
                                                                 .get());

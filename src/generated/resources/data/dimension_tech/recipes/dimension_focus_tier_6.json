@@ -2,6 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
     "G": {
       "item": "minecraft:glass"
     },
@@ -13,12 +16,11 @@
     }
   },
   "pattern": [
-    "NMN",
-    " G ",
-    "NMN"
+    "GMG",
+    "ANA",
+    "GMG"
   ],
   "result": {
-    "count": 4,
     "item": "dimension_tech:dimension_focus_tier_6"
   },
   "show_notification": true

@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "dimension_tech:block/structure_reactor"
+      "model": "dimension_tech:block/strcture_reactor"
     }
   }
 }

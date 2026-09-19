@@ -167,7 +167,7 @@ public class StructureMinerMultiblock {
     /** Whether the given block state may occupy the upgrade slots of the multiblock. */
     public static boolean acceptsUpgradeSlot(BlockState state) {
         return state.getBlock() instanceof StructureMinerUpgradeBlock
-                || state.is(ModBlocks.STRUCTURE_MINER_CASING.get());
+                || state.is(ModBlocks.STRUCTURE_MINER_STRUCTURE.get());
     }
 
     public static boolean isComplete(ServerLevel level, BlockPos center, int tier) {

@@ -2,6 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
     "G": {
       "item": "minecraft:glass"
     },
@@ -14,11 +17,10 @@
   },
   "pattern": [
     "IRI",
-    " G ",
+    "AGA",
     "IRI"
   ],
   "result": {
-    "count": 4,
     "item": "dimension_tech:dimension_focus_tier_1"
   },
   "show_notification": true
