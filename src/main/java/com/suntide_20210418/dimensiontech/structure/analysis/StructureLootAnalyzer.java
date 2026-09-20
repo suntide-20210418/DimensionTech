@@ -37,20 +37,6 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 public final class StructureLootAnalyzer {
-    /**
-     * Blocks/block entities/entities in a structure template that can hold loot. A template that
-     * contains one of these but no baked {@code LootTable} root may still receive loot at placement,
-     * so it must not be declared loot-free; a template with neither is definitively empty.
-     */
-    private static final Set<ResourceLocation> STORAGE_CONTAINER_IDS =
-            Set.of(
-                    ResourceLocationHelper.loc("minecraft", "chest"),
-                    ResourceLocationHelper.loc("minecraft", "trapped_chest"),
-                    ResourceLocationHelper.loc("minecraft", "barrel"),
-                    ResourceLocationHelper.loc("minecraft", "dispenser"),
-                    ResourceLocationHelper.loc("minecraft", "dropper"),
-                    ResourceLocationHelper.loc("minecraft", "hopper"),
-                    ResourceLocationHelper.loc("minecraft", "chest_minecart"));
 
     private StructureLootAnalyzer() {}
 
@@ -120,16 +106,7 @@ public final class StructureLootAnalyzer {
 
     private static Set<ResourceLocation> findLootTables(
             MinecraftServer server, ResourceLocation structureId) {
-        return walkTemplates(server, structureId).lootTables();
-    }
 
-    /**
-     * Walks a structure's templates once, returning both the baked {@code LootTable} roots and
-     * whether any storage container was found at all. The container flag is what lets a root-free
-     * structure be distinguished as either "has containers but no baked table" (worth further
-     * analysis) or "contains nothing" (definitively loot-free).
-     */
-    private static TemplateWalk walkTemplates(MinecraftServer server, ResourceLocation structureId) {
         Set<ResourceLocation> templateIds = new HashSet<>();
         Set<ResourceLocation> visitedPools = new HashSet<>();
         findStructureTemplates(server.getResourceManager(), structureId, visitedPools, templateIds);
@@ -138,7 +115,6 @@ public final class StructureLootAnalyzer {
         }
         Set<ResourceLocation> lootTables = new HashSet<>();
         Set<ResourceLocation> scannedTemplates = new HashSet<>();
-        boolean[] hasStorageContainer = new boolean[1];
         while (scannedTemplates.size() < templateIds.size()) {
             ResourceLocation templateId =
                     sorted(templateIds).stream()
@@ -155,14 +131,13 @@ public final class StructureLootAnalyzer {
                     template.get().save(new CompoundTag()),
                     templateId,
                     lootTables,
-                    referencedPools,
-                    hasStorageContainer);
+                    referencedPools);
             for (ResourceLocation referencedPool : sorted(referencedPools)) {
                 collectTemplatePool(
                         server.getResourceManager(), referencedPool, visitedPools, templateIds);
             }
         }
-        return new TemplateWalk(lootTables, hasStorageContainer[0]);
+        return lootTables;
     }
 
     /**
@@ -174,23 +149,9 @@ public final class StructureLootAnalyzer {
             ResourceLocation structureId,
             AnalysisStatus status,
             List<Diagnostic> diagnostics) {
-        TemplateWalk walk = walkTemplates(level.getServer(), structureId);
-        Set<ResourceLocation> roots = walk.lootTables();
+        Set<ResourceLocation> roots = findLootTables(level.getServer(), structureId);
         if (roots.isEmpty()) {
             List<Diagnostic> result = new ArrayList<>(diagnostics);
-            if (!walk.hasStorageContainer()) {
-                result.add(
-                        new Diagnostic(
-                                "NO_LOOT_CONTAINERS",
-                                "This structure has no storage containers in its templates, so it"
-                                        + " has no obtainable loot."));
-                return new DiscoveryResult(
-                        AnalysisStatus.UNSUPPORTED,
-                        List.of(),
-                        result,
-                        ExactProbability.ONE,
-                        true);
-            }
             result.add(
                     new Diagnostic(
                             "DISCOVERY_SEMANTICS",
@@ -361,8 +322,7 @@ public final class StructureLootAnalyzer {
             Tag tag,
             ResourceLocation templateId,
             Set<ResourceLocation> lootTables,
-            Set<ResourceLocation> referencedPools,
-            boolean[] hasStorageContainer) {
+            Set<ResourceLocation> referencedPools) {
         if (tag instanceof CompoundTag compoundTag) {
             for (String key : compoundTag.getAllKeys()) {
                 Tag child = compoundTag.get(key);
@@ -373,7 +333,6 @@ public final class StructureLootAnalyzer {
                     ResourceLocation lootTable = ResourceLocation.tryParse(child.getAsString());
                     if (lootTable != null) {
                         lootTables.add(lootTable);
-                        hasStorageContainer[0] = true;
                     }
                 } else if ("pool".equals(key) && child.getId() == Tag.TAG_STRING) {
                     ResourceLocation poolId = ResourceLocation.tryParse(child.getAsString());
@@ -381,30 +340,13 @@ public final class StructureLootAnalyzer {
                             && !poolId.equals(ResourceLocationHelper.loc("minecraft", "empty"))) {
                         referencedPools.add(poolId);
                     }
-                    scanTemplateNbt(
-                            child, templateId, lootTables, referencedPools, hasStorageContainer);
-                } else if ((key.equals("Name") || key.equals("id"))
-                        && child.getId() == Tag.TAG_STRING) {
-                    // A template records a container's block state under "Name" and its block/entity
-                    // type under "id". Either can name a storage container even when no LootTable is
-                    // baked into the template yet.
-                    ResourceLocation candidate = ResourceLocation.tryParse(child.getAsString());
-                    if (candidate != null && STORAGE_CONTAINER_IDS.contains(candidate)) {
-                        hasStorageContainer[0] = true;
-                    }
-                    scanTemplateNbt(
-                            child, templateId, lootTables, referencedPools, hasStorageContainer);
                 } else {
-                    scanTemplateNbt(
-                            child, templateId, lootTables, referencedPools, hasStorageContainer);
+                    scanTemplateNbt(child, templateId, lootTables, referencedPools);
                 }
             }
         } else if (tag instanceof ListTag listTag) {
             listTag.forEach(
-                    child ->
-                            scanTemplateNbt(
-                                    child, templateId, lootTables, referencedPools,
-                                    hasStorageContainer));
+                    child -> scanTemplateNbt(child, templateId, lootTables, referencedPools));
         }
     }
 
@@ -591,8 +533,7 @@ public final class StructureLootAnalyzer {
             AnalysisStatus status,
             List<StructureLoot> structures,
             List<Diagnostic> diagnostics,
-            ExactProbability occurrenceScale,
-            boolean terminalNoLoot) {
+            ExactProbability occurrenceScale) {
         public DiscoveryResult {
             structures = List.copyOf(structures);
             diagnostics = List.copyOf(diagnostics);
@@ -602,18 +543,7 @@ public final class StructureLootAnalyzer {
                 AnalysisStatus status,
                 List<StructureLoot> structures,
                 List<Diagnostic> diagnostics) {
-            this(status, structures, diagnostics, ExactProbability.ONE, false);
-        }
-
-        public DiscoveryResult(
-                AnalysisStatus status,
-                List<StructureLoot> structures,
-                List<Diagnostic> diagnostics,
-                ExactProbability occurrenceScale) {
-            this(status, structures, diagnostics, occurrenceScale, false);
+            this(status, structures, diagnostics, ExactProbability.ONE);
         }
     }
-
-    /** Result of walking a structure's templates: its baked root tables plus a container-flip. */
-    private record TemplateWalk(Set<ResourceLocation> lootTables, boolean hasStorageContainer) {}
 }

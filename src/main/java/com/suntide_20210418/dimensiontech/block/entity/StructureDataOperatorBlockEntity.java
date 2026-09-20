@@ -4,8 +4,12 @@ import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorM
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.mojang.logging.LogUtils;
+
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureAnalysisService;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
@@ -38,8 +42,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+import org.slf4j.Logger;
 
 public final class StructureDataOperatorBlockEntity extends BlockEntity implements MenuProvider {
+    private static final Logger LOGGER = LogUtils.getLogger();
     public static final int TARGET = 0;
     public static final int OPERAND_START = 1;
 
@@ -222,6 +228,7 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
     private void requestCatalogueValue(ServerLevel level, ResourceLocation id) {
         CatalogueKey key = new CatalogueKey(level.dimension().location(), id);
         if (pendingCatalogueValues.containsKey(key)) return;
+        long requestStart = System.nanoTime();
         Object request = new Object();
         pendingCatalogueValues.put(key, request);
         String config = ModConfigs.STRUCTURE_VALUE.calculationFingerprint();
@@ -260,34 +267,71 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                                     ModConfigs.STRUCTURE_VALUE
                                                                             .calculationFingerprint()))
                                                         return;
-                                                    if (error == null
-                                                            && calculation != null
-                                                            && (calculation.value().status()
-                                                                            == AnalysisStatus.EXACT
-                                                                    || calculation.value().status()
-                                                                            == AnalysisStatus
-                                                                                    .APPROXIMATE
-                                                                    || calculation
-                                                                            .discovery()
-                                                                            .terminalNoLoot())) {
-                                                        ItemStack marker =
-                                                                new ItemStack(
-                                                                        ModItems.STRUCTURE_MARKER
-                                                                                .get());
-                                                        marker.getOrCreateTag()
-                                                                .put(
-                                                                        "StructureMarkerData",
-                                                                        StructMarkerItem
-                                                                                .createCatalogueMarkerData(
-                                                                                        level,
-                                                                                        id,
-                                                                                        calculation
-                                                                                                .discovery(),
-                                                                                        calculation
-                                                                                                .value()));
-                                                        analysedCatalogueEntries.put(key, marker);
-                                                        catalogueValueConfigs.put(key, config);
+                                                    // Every terminal outcome is archived, including a bare
+                                                    // failure, so the client always receives a
+                                                    // marker and stops polling instead of showing
+                                                    // "analysing" forever. On success the discovery
+                                                    // and value are reused; on failure a synthesized
+                                                    // UNSUPPORTED value carries the error diagnostic.
+                                                    long elapsedMillis =
+                                                            (System.nanoTime() - requestStart)
+                                                                    / 1_000_000L;
+                                                    LOGGER.warn(
+                                                            "[TEMP PROBE] requestCatalogueValue {} reached archive in {}ms error={} on {}",
+                                                            id,
+                                                            elapsedMillis,
+                                                            error != null,
+                                                            java.lang.Thread
+                                                                    .currentThread()
+                                                                    .getName());
+                                                    StructureLootAnalyzer.DiscoveryResult resultDiscovery;
+                                                    StructureValueCalculator.StructureValue resultValue;
+                                                    if (error == null && calculation != null) {
+                                                        resultDiscovery = calculation.discovery();
+                                                        resultValue = calculation.value();
+                                                    } else {
+                                                        List<Diagnostic> failure =
+                                                                error == null
+                                                                        ? List.of()
+                                                                        : List.of(
+                                                                                new Diagnostic(
+                                                                                        "ANALYSIS_FAILED",
+                                                                                        error
+                                                                                                .toString()));
+                                                        resultDiscovery =
+                                                                new StructureLootAnalyzer
+                                                                                .DiscoveryResult(
+                                                                        AnalysisStatus.UNSUPPORTED,
+                                                                        List.of(),
+                                                                        failure);
+                                                        resultValue =
+                                                                new StructureValueCalculator
+                                                                                .StructureValue(
+                                                                        AnalysisStatus.UNSUPPORTED,
+                                                                        ModConfigs.STRUCTURE_VALUE
+                                                                                .dimensionValue(
+                                                                                        level
+                                                                                                .dimension()
+                                                                                                .location()),
+                                                                        0.0D,
+                                                                        new StackMeasure(),
+                                                                        failure);
                                                     }
+                                                    ItemStack marker =
+                                                            new ItemStack(
+                                                                    ModItems.STRUCTURE_MARKER
+                                                                            .get());
+                                                    marker.getOrCreateTag()
+                                                            .put(
+                                                                    "StructureMarkerData",
+                                                                    StructMarkerItem
+                                                                            .createCatalogueMarkerData(
+                                                                                    level,
+                                                                                    id,
+                                                                                    resultDiscovery,
+                                                                                    resultValue));
+                                                    analysedCatalogueEntries.put(key, marker);
+                                                    catalogueValueConfigs.put(key, config);
                                                 }));
     }
 

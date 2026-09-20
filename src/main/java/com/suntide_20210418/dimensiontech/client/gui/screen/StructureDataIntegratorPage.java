@@ -217,19 +217,6 @@ final class StructureDataIntegratorPage {
                     StructureMinerTheme.DIM);
             return;
         }
-        // A terminal entry (e.g. a structure whose templates hold no container) carries a
-        // non-reading UNSUPPORTED marker: state it instead of drawing an empty item table.
-        if (StructMarkerItem.getAnalysisStatus(marker) != AnalysisStatus.EXACT
-                && StructMarkerItem.getAnalysisStatus(marker) != AnalysisStatus.APPROXIMATE) {
-            GuiText.centered(
-                    g,
-                    s.getMinecraft().font,
-                    Component.translatable("screen.dimension_tech.structure_operator.no_loot"),
-                    x + width / 2,
-                    tableHeaderY() + 20,
-                    StructureMinerTheme.DIM);
-            return;
-        }
 
         String itemLabel =
                 Component.translatable("screen.dimension_tech.struct_marker.item").getString();
@@ -293,6 +280,17 @@ final class StructureDataIntegratorPage {
                     y + 5,
                     StructureMinerTheme.DIM,
                     false);
+        }
+
+        if (rows.isEmpty()
+                && StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.UNSUPPORTED) {
+            GuiText.centered(
+                    g,
+                    s.getMinecraft().font,
+                    Component.translatable("screen.dimension_tech.structure_operator.no_loot"),
+                    x + width / 2,
+                    tableRowY(0) + StructureDataOperatorScreen.TABLE_ROW_H,
+                    StructureMinerTheme.DIM);
         }
 
         StructMarkerItem.filterDiagnostic(marker)

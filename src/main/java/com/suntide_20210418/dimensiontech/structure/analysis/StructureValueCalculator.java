@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.structure.analysis;
 
+import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.config.ModConfigs.ItemExpectationMethod;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
@@ -18,16 +19,50 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.Set;
 import java.util.function.ToDoubleFunction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.slf4j.Logger;
 
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
 public final class StructureValueCalculator {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final int EXPECTATION_ALGORITHM_VERSION = 1;
+
+    /**
+     * Items whose stacks are almost always NBT-heavy (maps, enchanted books, potions, stew).
+     * Measuring them requires live world/registry context that the frozen catalogue snapshot cannot
+     * provide, so they are filtered out of expectation results: skipping them keeps the table
+     * exactly analyzable instead of drifting into the expensive sampled fallback. Spawn eggs are
+     * deliberately kept.
+     */
+    private static final Set<ResourceLocation> NBT_HEAVY_ITEM_IDS =
+            Set.of(
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "filled_map"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "enchanted_book"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "suspicious_stew"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "potion"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "splash_potion"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "lingering_potion"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "tipped_arrow"));
+
+    private static boolean isNbtHeavy(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return id != null && NBT_HEAVY_ITEM_IDS.contains(id);
+    }
+
+    private static boolean isNotNbtHeavyState(StackState state) {
+        return !isNbtHeavy(state.stack());
+    }
+
+    private static boolean isNotNbtHeavyItem(Item item) {
+        return !isNbtHeavy(new ItemStack(item));
+    }
 
     private StructureValueCalculator() {}
 
@@ -100,9 +135,13 @@ public final class StructureValueCalculator {
                             expectationConfig,
                             samples);
         } else {
+            // Exact expectation runs on the worker thread (AnalysisTaskCache) so a heavy table
+            // cannot monopolize a server tick. The source is a frozen snapshot created on the
+            // server thread above, and the runtime-input check is hoisted here onto this thread
+            // rather than re-running inside the worker computation.
+            source.verifyRuntimeInputs();
             expectation =
-                    service.capture(
-                            server,
+                    service.computeSnapshot(
                             "loot-expectation",
                             contentFingerprint,
                             expectationConfig,
@@ -158,7 +197,8 @@ public final class StructureValueCalculator {
             net.minecraft.core.BlockPos position,
             float luck,
             DiscoveryResult discovery) {
-        source.verifyRuntimeInputs();
+        // Runtime-input verification is hoisted to the server thread in calculateAsync before this
+        // runs on a worker thread; re-checking here would read registries off the server thread.
         List<Diagnostic> diagnostics = new ArrayList<>(discovery.diagnostics());
         StackMeasure measure = new StackMeasure();
         TerminalStackMeasure terminal = TerminalStackMeasure.empty();
@@ -166,10 +206,23 @@ public final class StructureValueCalculator {
         boolean full = true;
         AnalysisStatus status = discovery.status();
         LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck);
+        long totalStart = System.nanoTime();
+        int rootCount = 0;
         for (var root : rootTableWeightsForValue(discovery).entrySet()) {
+            rootCount++;
+            long rootStart = System.nanoTime();
             var result =
                     DistributionalLootTableExecutor1201.evaluate(
                             source, root.getKey(), context, 1_000_000);
+            long rootMillis = (System.nanoTime() - rootStart) / 1_000_000L;
+            if (rootMillis > 20) {
+                LOGGER.warn(
+                        "[TEMP PROBE] exactExpectation root {} took {}ms status={} on {}",
+                        root.getKey(),
+                        rootMillis,
+                        result.status(),
+                        java.lang.Thread.currentThread().getName());
+            }
             diagnostics.addAll(result.diagnostics());
             if (result.status() != AnalysisStatus.EXACT) {
                 return freezeExpectation(
@@ -179,11 +232,25 @@ public final class StructureValueCalculator {
                         false,
                         diagnostics);
             }
-            terminal = terminal.plus(result.terminalMeasure().scale(root.getValue()));
+            terminal =
+                    terminal.plus(
+                            result.terminalMeasure()
+                                    .filter(StructureValueCalculator::isNotNbtHeavyItem)
+                                    .scale(root.getValue()));
             marginal = marginal.plus(result.enchantmentMarginal().scale(root.getValue()));
             if (full && result.fullStackMeasureAvailable())
-                measure.addAll(result.measure(), root.getValue());
+                measure.addAll(
+                        result.measure().filter(StructureValueCalculator::isNotNbtHeavyState),
+                        root.getValue());
             if (!result.fullStackMeasureAvailable()) full = false;
+        }
+        long totalMillis = (System.nanoTime() - totalStart) / 1_000_000L;
+        if (totalMillis > 20) {
+            LOGGER.warn(
+                    "[TEMP PROBE] exactExpectation TOTAL {}ms roots={} on {}",
+                    totalMillis,
+                    rootCount,
+                    java.lang.Thread.currentThread().getName());
         }
         return freezeExpectation(
                 status, full ? measure : new StackMeasure(), terminal, full, marginal, diagnostics);
@@ -247,11 +314,13 @@ public final class StructureValueCalculator {
                                         "Loot data changed before sampling");
                             Map<StructureValueSnapshot.TerminalItem, Long> counts =
                                     new LinkedHashMap<>();
+                            long drawStart = System.nanoTime();
                             for (StructureLoot structure : discovery.structures()) {
                                 for (var table : structure.occurrences().entrySet()) {
                                     for (int occurrence = 0;
                                             occurrence < table.getValue();
                                             occurrence++) {
+                                        long drawCallStart = System.nanoTime();
                                         for (ItemStack stack :
                                                 LootTableLottery.draw(
                                                         level,
@@ -261,7 +330,7 @@ public final class StructureValueCalculator {
                                                         null,
                                                         luck,
                                                         samples)) {
-                                            if (stack.isEmpty() || stack.getCount() <= 0) continue;
+                                            if (stack.isEmpty() || stack.getCount() <= 0 || isNbtHeavy(stack)) continue;
                                             String id =
                                                     net.minecraft.core.registries.BuiltInRegistries
                                                             .ITEM
@@ -277,8 +346,29 @@ public final class StructureValueCalculator {
                                             counts.merge(
                                                     item, (long) stack.getCount(), Math::addExact);
                                         }
+                                        long drawCallMillis =
+                                                (System.nanoTime() - drawCallStart) / 1_000_000L;
+                                        if (drawCallMillis > 50) {
+                                            LOGGER.warn(
+                                                    "[TEMP PROBE] sampling draw table {} occurrence {}/{} took {}ms (samples={}) on {}",
+                                                    table.getKey(),
+                                                    occurrence,
+                                                    table.getValue(),
+                                                    drawCallMillis,
+                                                    samples,
+                                                    java.lang.Thread.currentThread().getName());
+                                        }
                                     }
                                 }
+                            }
+                            long drawMillis = (System.nanoTime() - drawStart) / 1_000_000L;
+                            if (drawMillis > 20) {
+                                LOGGER.warn(
+                                        "[TEMP PROBE] sampling draw took {}ms roots={} samples={} on {}",
+                                        drawMillis,
+                                        roots.size(),
+                                        samples,
+                                        java.lang.Thread.currentThread().getName());
                             }
                             return new SampleBatch(
                                     counts,
@@ -546,8 +636,10 @@ public final class StructureValueCalculator {
                                                                 .BuiltInRegistries.ITEM
                                                                 .getKey(item);
                                                 return id == null
-                                                        || ModConfigs.STRUCTURE_VALUE.allowsItem(
-                                                                id);
+                                                        || (ModConfigs.STRUCTURE_VALUE.allowsItem(
+                                                                        id)
+                                                                && !isNbtHeavy(
+                                                                        new ItemStack(item)));
                                             })
                                     .scale(root.getValue()));
             if (fullStackMeasureAvailable && result.fullStackMeasureAvailable()) {
@@ -560,7 +652,8 @@ public final class StructureValueCalculator {
                                                             .ITEM
                                                             .getKey(state.stack().getItem());
                                             return id == null
-                                                    || ModConfigs.STRUCTURE_VALUE.allowsItem(id);
+                                                    || (ModConfigs.STRUCTURE_VALUE.allowsItem(id)
+                                                            && !isNbtHeavy(state.stack()));
                                         }),
                         root.getValue());
             } else if (!result.fullStackMeasureAvailable()) {

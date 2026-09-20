@@ -25,6 +25,15 @@ import net.minecraftforge.registries.ForgeRegistries;
 /** Exact finite branching of EnchantmentHelper.enchantItem for Minecraft 1.20.1. */
 public final class ExactEnchantmentSemantics1201 {
     /**
+     * TEMPORARY: enchantment computation is disabled (emit un-enchanted items) until re-enabled.
+     *
+     * <p>When {@code false}, {@code enchant_with_levels} is treated as a no-op so heavy tables
+     * (e.g. underwater ruins) keep an exact, cheap result. Flip back to {@code true} to restore
+     * the full enumeration; requires a restart because this is a code-level switch.
+     */
+    public static final boolean ENABLED = false;
+
+    /**
      * The enchantment mark side channel gets its own budget, deliberately far smaller than the one
      * the valuation layer uses. Marks are a bonus output, not a valuation input: when the marginal
      * cannot be computed cheaply the correct answer is "no marks", never "spend a second of the

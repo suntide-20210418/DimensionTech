@@ -270,24 +270,14 @@ public final class StructureAnalysisService {
                             if (closed) return;
                             if (error != null) {
                                 failDiscovery(key, error);
-                            } else if (result.status() == AnalysisStatus.EXACT
-                                    || result.terminalNoLoot()
-                                    || !mayUseVirtualAnalysis(structure)
-                                    || !dimensionAllowed
-                                    || !structureAllowed) {
+                            } else {
+                                /*
+                                 * Virtual structure generation is disabled: a structure that yields
+                                 * no template loot tables is reported as-is (UNSUPPORTED, no loot)
+                                 * instead of being handed to the detached-generation sampler.
+                                 */
                                 publishState(key, waiting.complete(0, result));
                                 future.complete(result);
-                            } else if (queue.size() >= 32) {
-                                failDiscovery(
-                                        key,
-                                        new java.util.concurrent.RejectedExecutionException(
-                                                "Virtual sampling queue is full"));
-                            } else {
-                                staticDiscoveries.put(key, result);
-                                observedTables.remove(key);
-                                failedSamples.remove(key);
-                                attemptedCandidates.remove(key);
-                                queue.addLast(key);
                             }
                         });
         return states.getOrDefault(key, State.missing());
@@ -364,11 +354,6 @@ public final class StructureAnalysisService {
         DiscoveryResult staticResult =
                 StructureLootAnalyzer.discoverTemplateForValue(
                         level, structure, AnalysisStatus.EXACT, List.of());
-        // A template with no storage container is definitively loot-free, regardless of namespace;
-        // skip every further path (fixed resolver, virtual sampling) and declare it terminal.
-        if (staticResult.terminalNoLoot()) {
-            return staticResult;
-        }
         // A successful template scan is the conventional, exact path. Only structures with no
         // statically discoverable root table need virtual generation; this keeps ordinary template
         // structures out of the expensive asynchronous sampler.

@@ -374,6 +374,7 @@
   "screen.dimension_tech.structure_operator.dimension": "维度",
   "screen.dimension_tech.structure_operator.empty": "没有可选结构",
   "screen.dimension_tech.structure_operator.loading": "正在解析…",
+  "screen.dimension_tech.structure_operator.no_loot": "该结构无战利品",
   "screen.dimension_tech.structure_operator.no_data": "未记录结构数据",
   "screen.dimension_tech.structure_operator.page.integrator": "已探索结构",
   "screen.dimension_tech.structure_operator.page.interpreter": "所有结构",

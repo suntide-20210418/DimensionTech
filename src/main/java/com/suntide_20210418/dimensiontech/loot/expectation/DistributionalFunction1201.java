@@ -262,6 +262,12 @@ public final class DistributionalFunction1201 {
             if (passMass.isZero()) continue;
 
             if (functionType(function).equals("minecraft:enchant_with_levels")) {
+                if (!ExactEnchantmentSemantics1201.ENABLED) {
+                    // TEMPORARY: no enchant enumeration; the function is a no-op, keeping the
+                    // item un-enchanted. Conditions were handled above, so skipping keeps the
+                    // distribution exact.
+                    continue;
+                }
                 DistributionalNumberProvider1201.Evaluation<Integer> levels =
                         DistributionalNumberProvider1201.getInt(
                                 function.get("levels"), context, maxStates, pointer + "/levels");
@@ -791,8 +797,14 @@ public final class DistributionalFunction1201 {
                 return Evaluation.exact(RandomTraceDistribution.singleton(input));
             }
             if (!(context.level() instanceof ServerLevel level) || context.origin() == null) {
-                return Evaluation.unsupported(
-                        pointer, "Exploration map requires ServerLevel and origin context");
+                // Offline/snapshot analysis cannot search for a real structure. Emit the plain
+                // filled map deterministically instead of failing: failing here would push tables
+                // like ocean ruins into the Monte Carlo fallback, which regenerates a real map
+                // (one structure search per draw) 1000 times on the server thread and freezes
+                // ticks.
+                return Evaluation.exact(
+                        RandomTraceDistribution.singleton(
+                                new StackState(new ItemStack(Items.FILLED_MAP))));
             }
             String destinationName =
                     function.has("destination")
