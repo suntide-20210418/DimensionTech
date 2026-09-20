@@ -274,63 +274,6 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.range.fluid", "Fluid cost: %s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.output", "Output: %s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.fragments", "Fragments: %s (at most %s)");
-        add("container.dimension_tech.structure_data_operator", "Structure Data Operator");
-        add("screen.dimension_tech.structure_operator.copy", "↓Copy↓");
-        add("screen.dimension_tech.structure_operator.clear", "Clear");
-        add("screen.dimension_tech.structure_operator.refresh", "Explored Structures");
-        add("screen.dimension_tech.structure_operator.all", "All Structures");
-        add("screen.dimension_tech.structure_operator.slots", "Target / Destination / Plugins");
-        add("screen.dimension_tech.structure_operator.tab.operation", "Operate");
-        add("screen.dimension_tech.structure_operator.tab.integrator", "Integrator");
-        add("screen.dimension_tech.structure_operator.tab.interpreter", "Interpreter");
-        add("screen.dimension_tech.structure_operator.target", "Target Marker");
-        add("screen.dimension_tech.structure_operator.destination", "Destination Marker");
-        add("screen.dimension_tech.structure_operator.source_status", "Source data");
-        add("screen.dimension_tech.structure_operator.destination_status", "Write target");
-        add("screen.dimension_tech.structure_operator.integrator", "Data Integrator");
-        add("screen.dimension_tech.structure_operator.interpreter", "Structure Interpreter");
-        add("screen.dimension_tech.structure_operator.inventory", "Player Inventory");
-        add("screen.dimension_tech.structure_operator.page.integrator", "Data Integrator");
-        add("screen.dimension_tech.structure_operator.page.interpreter", "Structure Interpreter");
-        add(
-                "screen.dimension_tech.structure_operator.source.explored",
-                "Source: Explored structures (%s)");
-        add(
-                "screen.dimension_tech.structure_operator.source.all",
-                "Source: All game structures (%s)");
-        add("screen.dimension_tech.structure_operator.search", "Search structure ID");
-        add("screen.dimension_tech.structure_operator.write", "Write");
-        add("screen.dimension_tech.structure_operator.refresh_short", "Refresh");
-        add("screen.dimension_tech.structure_operator.write_short", "Write");
-        add("screen.dimension_tech.structure_operator.operands", "Destination markers: %s");
-        add("screen.dimension_tech.structure_operator.empty", "No structures available");
-        add("screen.dimension_tech.structure_operator.empty_marker", "Not installed");
-        add("screen.dimension_tech.structure_operator.no_data", "No structure data");
-        add("screen.dimension_tech.structure_operator.confirm.copy", "Confirm structure copy");
-        add("screen.dimension_tech.structure_operator.confirm.write", "Confirm structure write");
-        add("screen.dimension_tech.structure_operator.preview.source", "Source: %s");
-        add("screen.dimension_tech.structure_operator.preview.target", "Target: %s");
-        add(
-                "screen.dimension_tech.structure_operator.preview.overwrite",
-                "Existing data will be overwritten");
-        add("screen.dimension_tech.structure_operator.preview.empty", "Target is currently empty");
-        add("screen.dimension_tech.structure_operator.cancel", "Cancel");
-        add("screen.dimension_tech.structure_operator.confirm", "Confirm");
-        add("screen.dimension_tech.structure_operator.status.copied", "Structure data copied");
-        add("screen.dimension_tech.structure_operator.status.written", "Structure data written");
-        add("screen.dimension_tech.structure_operator.status.cleared", "Structure data cleared");
-        add("screen.dimension_tech.structure_operator.catalogue_marker", "Catalogue marker");
-        add("screen.dimension_tech.structure_operator.catalogue_analysis", "Catalogue analysis");
-        add("screen.dimension_tech.structure_operator.dimension", "Dimension: %s");
-        add("screen.dimension_tech.structure_operator.structure", "Structure: %s");
-        add(
-                "screen.dimension_tech.structure_operator.select_entry",
-                "Select a structure with loot");
-        add("screen.dimension_tech.structure_operator.loading", "Loading analysis data");
-        add("screen.dimension_tech.structure_operator.virtual_progress", "Virtual sampling: %s/%s");
-        add(
-                "screen.dimension_tech.structure_operator.virtual_approximate",
-                "Approximate result (%s samples)");
         add(
                 TranslateHelper.block("tier_1_structure_miner"),
                 "Tier 1 Void Structure Resource Miner");
@@ -432,6 +375,40 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.upgrade.parallel", "Parallel: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.luck", "Luck: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.none", "No attribute bonuses");
+        add("screen.dimension_tech.structure_operator.title", "Structure Data Operator");
+        add("screen.dimension_tech.structure_operator.tab.operation", "Operate");
+        add("screen.dimension_tech.structure_operator.tab.integrator", "Explored");
+        add("screen.dimension_tech.structure_operator.tab.interpreter", "All");
+        add("screen.dimension_tech.structure_operator.section.write_slots", "Marker write slots");
+        add("screen.dimension_tech.structure_operator.section.inventory", "Inventory");
+        add("screen.dimension_tech.structure_operator.page.integrator", "Explored structures");
+        add("screen.dimension_tech.structure_operator.page.interpreter", "All structures");
+        add("screen.dimension_tech.structure_operator.search", "Search structures...");
+        add("screen.dimension_tech.structure_operator.copy", "Copy");
+        add("screen.dimension_tech.structure_operator.clear", "Clear");
+        add("screen.dimension_tech.structure_operator.refresh_short", "Redo");
+        add("screen.dimension_tech.structure_operator.write_short", "Write");
+        add("screen.dimension_tech.structure_operator.no_data", "No structure data recorded");
+        add("screen.dimension_tech.structure_operator.empty", "No structures available");
+        add("screen.dimension_tech.structure_operator.loading", "Analysing...");
+        add("screen.dimension_tech.structure_operator.no_loot", "This structure has no obtainable loot");
+        add("screen.dimension_tech.structure_operator.select_entry", "Select a structure on the left");
+        add("screen.dimension_tech.structure_operator.dimension", "Dimension");
+        add("screen.dimension_tech.structure_operator.structure", "Structure");
+        add("screen.dimension_tech.structure_operator.virtual_approximate", "Approximate analysis");
+        add("screen.dimension_tech.structure_operator.status.cleared", "Write slots cleared");
+        add("screen.dimension_tech.structure_operator.status.copied", "Copied to write slots");
+        add("screen.dimension_tech.structure_operator.status.written", "Written to read slot");
+        add("screen.dimension_tech.structure_operator.slot.target", "Place a Structure Marker");
+        add(
+                "screen.dimension_tech.structure_operator.slot.target.func",
+                "Reads the structure data it holds; copy it to the write slots on the Operation page");
+        add("screen.dimension_tech.structure_operator.slot.integrator", "Place a Data Integrator");
+        add("screen.dimension_tech.structure_operator.slot.integrator.func", "Unlocks the Explored Structures page");
+        add("screen.dimension_tech.structure_operator.slot.interpreter", "Place a Structure Interpreter");
+        add(
+                "screen.dimension_tech.structure_operator.slot.interpreter.func",
+                "Unlocks the All Structures page (requires the Data Integrator)");
         add("screen.dimension_tech.struct_marker.title", "Structure Marker Analysis");
         add("screen.dimension_tech.struct_marker.subtitle", "Loot expectations and value overview");
         add("screen.dimension_tech.struct_marker.dimension", "Dimension: %s");

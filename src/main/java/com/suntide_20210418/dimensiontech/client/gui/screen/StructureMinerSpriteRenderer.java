@@ -196,16 +196,48 @@ final class StructureMinerSpriteRenderer {
         return new Fragment(SPRITESHEET, TEXTURE_SIZE, TEXTURE_SIZE, u, v, PROGRESS_W, PROGRESS_H);
     }
 
-    static void button(GuiGraphics g, int x, int y, boolean pressed) {
+    /**
+     * The 32x16 action button, idle or lit.
+     *
+     * <p>The sheet draws only these two states, so a hovered control passes {@code lit} — the same
+     * pointer feedback the 20x20 controls give, which have a third sprite to spare for it.
+     */
+    static void button(GuiGraphics g, int x, int y, boolean lit) {
         g.blit(
                 SPRITESHEET,
                 x,
                 y,
                 0,
-                pressed ? PRESSED_U : BUTTON_U,
+                lit ? PRESSED_U : BUTTON_U,
                 BUTTON_V,
                 BUTTON_W,
                 BUTTON_H,
+                TEXTURE_SIZE,
+                TEXTURE_SIZE);
+    }
+
+    /** Spritesheet (0,144)-(47,159) and (48,144)-(95,159). */
+    static final int LONG_BUTTON_U = 0, LONG_BUTTON_V = 144, LONG_BUTTON_W = 48, LONG_BUTTON_H = 16;
+    static final int LONG_PRESSED_U = 48;
+
+    /**
+     * The 48x16 tab button, in the same two states as {@link #button}.
+     *
+     * <p>Decoded from the sheet, the idle sprite is a {@code #3F4054} outline over a {@code #9EAFAA}
+     * face with a {@code #B0C0BF} top row, and the lit sprite drops that row to a transparent pixel
+     * and lifts the face to {@code #B5E6C6} — byte for byte the relationship the 32x16 pair has,
+     * which is what lets the two sizes read as one family.
+     */
+    static void longButton(GuiGraphics g, int x, int y, boolean lit) {
+        g.blit(
+                SPRITESHEET,
+                x,
+                y,
+                0,
+                lit ? LONG_PRESSED_U : LONG_BUTTON_U,
+                LONG_BUTTON_V,
+                LONG_BUTTON_W,
+                LONG_BUTTON_H,
                 TEXTURE_SIZE,
                 TEXTURE_SIZE);
     }

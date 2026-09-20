@@ -440,7 +440,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         drawPage(graphics, logicalMouseX - leftPos, logicalMouseY - topPos);
         graphics.pose().popPose();
         if (!menu.telemetrySnapshot().structureComplete()) {
-            graphics.drawCenteredString(
+            GuiText.centered(
+                    graphics,
                     font,
                     Component.translatable(
                             "screen.dimension_tech.structure_miner.structure_incomplete"),
@@ -509,21 +510,24 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                     mouseY);
         }
         // Page-owned hovers go through the page router, so a tooltip can only ever describe something
-        // the page actually drew. Panel-local coordinates feed its hit tests; the raw GUI-scaled pair
-        // is handed over separately because renderTooltip draws in window space and ignores the pose.
-        StructureMinerPageRenderer.renderTooltip(
-                this,
-                uiState.page,
-                graphics,
-                logicalMouseX - leftPos,
-                logicalMouseY - topPos,
-                mouseX,
-                mouseY);
+        // the page actually drew. It is gated to the page canvas: below it, the player inventory owns
+        // the hover, and the inventory's own item tooltip must not be covered. Panel-local coordinates
+        // feed its hit tests; the raw GUI-scaled pair is handed over separately because renderTooltip
+        // draws in window space and ignores the pose.
+        if (insidePageCanvas(logicalMouseX - leftPos, logicalMouseY - topPos)) {
+            StructureMinerPageRenderer.renderTooltip(
+                    this,
+                    uiState.page,
+                    graphics,
+                    logicalMouseX - leftPos,
+                    logicalMouseY - topPos,
+                    mouseX,
+                    mouseY);
+        }
     }
 
     private void renderInventoryItemTooltip(
             GuiGraphics graphics, int logicalMouseX, int logicalMouseY, int screenX, int screenY) {
-        if (uiState.page != Page.WORK) return;
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (!slot.hasItem()
                     || !inside(
@@ -640,6 +644,21 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         return (int) Math.floor(coordinate / uiScale);
     }
 
+    /**
+     * True when a panel-local point sits inside the current page's canvas. The canvas stops above
+     * the player inventory, so click, drag and wheel handling bound to it never leak into the
+     * slots underneath the machine.
+     */
+    private boolean insidePageCanvas(double localX, double localY) {
+        return StructureMinerInfoLayout.inside(
+                localX,
+                localY,
+                StructureMinerInfoLayout.INFO_X,
+                StructureMinerInfoLayout.INFO_Y,
+                StructureMinerInfoLayout.INFO_W,
+                StructureMinerInfoLayout.INFO_H);
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         mouseX /= uiScale;
@@ -654,9 +673,6 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         // inside their canvas, so a scrollbar grab placed after them would never be reached.
         if (button == 0 && beginScrollbarDrag(localX, localY)) return true;
         if (StructureMinerPageRenderer.mouseClicked(this, uiState.page, localX, localY, button)) {
-            return true;
-        }
-        if (uiState.page != Page.WORK) {
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -714,7 +730,9 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
             uiState.draggingScrollbar = false;
             return true;
         }
-        if (uiState.page != Page.WORK) return true;
+        double localX = mouseX / uiScale - leftPos;
+        double localY = mouseY / uiScale - topPos;
+        if (uiState.page != Page.WORK && insidePageCanvas(localX, localY)) return true;
         return super.mouseReleased(mouseX / uiScale, mouseY / uiScale, button);
     }
 
@@ -742,23 +760,28 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         // Checked before the page guard below: that guard exists to stop drags reaching vanilla slot
         // handling, and it used to swallow scrollbar drags too, leaving the bar inert.
         if (updateScrollbarDrag(mouseY / uiScale - topPos)) return true;
-        if (uiState.page != Page.WORK) return true;
+        double localX = mouseX / uiScale - leftPos;
+        double localY = mouseY / uiScale - topPos;
+        if (uiState.page != Page.WORK && insidePageCanvas(localX, localY)) return true;
         return super.mouseDragged(
                 mouseX / uiScale, mouseY / uiScale, button, dragX / uiScale, dragY / uiScale);
     }
 
     /**
-     * Wheel handling for the whole panel.
+     * Wheel handling for the scrolling pages.
      *
-     * <p>The page is the only scrollable surface on the panel, so the wheel applies anywhere inside
-     * it rather than only over the viewport. A narrower target was the previous failure mode: the
-     * wheel reported success to the game while nothing on screen moved.
+     * <p>The wheel applies anywhere over the page canvas — the selector lane and the list alike —
+     * but never over the player inventory below the canvas, which is a separate surface. A narrower
+     * viewport-only target was the previous failure mode: the wheel reported success to the game
+     * while nothing on screen moved.
      */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         double localX = mouseX / uiScale - leftPos;
         double localY = mouseY / uiScale - topPos;
-        if (!inside(localX, localY, 0, 0, imageWidth, imageHeight)) return false;
+        // The work page has nothing to scroll; the scrolling pages scroll anywhere over their
+        // canvas but not over the player inventory below it, which is disjoint from the page.
+        if (uiState.page == Page.WORK || !insidePageCanvas(localX, localY)) return false;
         return StructureMinerPageRenderer.mouseScrolled(this, uiState.page, delta);
     }
 
@@ -902,8 +925,13 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 4, 4, INK, false);
         if (uiState.page == Page.WORK) {
-            graphics.drawCenteredString(
-                    font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, INK);
+            GuiText.centered(
+                    graphics,
+                    font,
+                    playerInventoryTitle,
+                    imageWidth / 2,
+                    inventoryLabelY,
+                    INK);
         }
     }
 
@@ -1073,17 +1101,6 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                         itemExpectations,
                         disabledItems);
         uiState.analysisSlot = slot;
-    }
-
-    static String formatAnalysisValue(double value) {
-        return String.format(java.util.Locale.ROOT, "%.3f", value);
-    }
-
-    static String formatExpectedValue(double value) {
-        if (value > 0.0D && value < 0.0001D) {
-            return String.format(java.util.Locale.ROOT, "%.2e", value);
-        }
-        return String.format(java.util.Locale.ROOT, "%.4f", value);
     }
 
     /**

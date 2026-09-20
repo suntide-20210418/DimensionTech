@@ -268,7 +268,7 @@ final class StructureMinerInfoPage {
         boolean ready = c.markerAnalysisReady();
         Component text =
                 ready
-                        ? Component.translatable(key, StructureMinerScreen.formatAnalysisValue(value))
+                        ? Component.translatable(key, ReadingFormat.reading(value))
                         : Component.translatable(
                                 "screen.dimension_tech.structure_miner.marker_info.loading");
         g.drawString(
@@ -321,7 +321,7 @@ final class StructureMinerInfoPage {
                             Component.translatable(
                                     "screen.dimension_tech.structure_miner.actual_progress",
                                     c.menu().getMarkerActualProgress(slot),
-                                    marker.processingTime(),
+                                    marker.realProcessingTime(),
                                     c.menu().getMarkerActualCycleCount(slot)),
                             width),
                     x,
@@ -329,7 +329,13 @@ final class StructureMinerInfoPage {
                     StructureMinerTheme.SUCCESS,
                     false);
             y += StructureMinerInfoLayout.ROW_H_DATA;
-            progressStrip(g, x, y, width, c.menu().getMarkerActualProgress(slot), cycle);
+            progressStrip(
+                    g,
+                    x,
+                    y,
+                    width,
+                    c.menu().getMarkerActualProgress(slot),
+                    marker.realProcessingTime());
             y += STRIP_H;
         }
 
@@ -487,7 +493,7 @@ final class StructureMinerInfoPage {
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(row.item());
             boolean disabled = itemId != null && c.disabledExpectedItems().contains(itemId);
             ItemStack stack = new ItemStack(row.item());
-            String expected = StructureMinerScreen.formatExpectedValue(row.expected());
+            String expected = ReadingFormat.reading(row.expected());
             int expectedWidth = font.width(expected);
 
             if (index % 2 != 0) {

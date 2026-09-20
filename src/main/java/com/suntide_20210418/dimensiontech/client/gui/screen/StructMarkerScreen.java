@@ -185,7 +185,7 @@ public final class StructMarkerScreen extends Screen {
         graphics.fill(x, y, x + width, y + 40, PANEL_RAISED);
         graphics.fill(x, y, x + 3, y + 40, accent);
         graphics.drawString(font, Component.translatable(key), x + 12, y + 7, MUTED, false);
-        String formatted = String.format(java.util.Locale.ROOT, "%.3f", value);
+        String formatted = ReadingFormat.reading(value);
         graphics.drawString(font, formatted, x + 12, y + 21, TEXT, false);
     }
 
@@ -198,7 +198,8 @@ public final class StructMarkerScreen extends Screen {
         graphics.fill(listX, listY, listX + listW, listY + 1, 0xFF303942);
         drawTableHeader(graphics, listX, listY - 25, listW);
         if (rows.isEmpty()) {
-            graphics.drawCenteredString(
+            GuiText.centered(
+                    graphics,
                     font,
                     Component.translatable("screen.dimension_tech.struct_marker.no_items"),
                     left + panelWidth / 2,
@@ -215,8 +216,7 @@ public final class StructMarkerScreen extends Screen {
             ItemStack stack = new ItemStack(row.item);
             graphics.renderItem(stack, listX + 8, y);
             graphics.drawString(font, stack.getHoverName(), listX + 34, y + 2, TEXT, false);
-            String amount =
-                    String.format(java.util.Locale.ROOT, "%.4f", row.expected.finiteDoubleValue());
+            String amount = ReadingFormat.reading(row.expected.finiteDoubleValue());
             graphics.drawString(font, amount, expectedColumnX(listX, listW), y + 2, CYAN, false);
             Rarity rarity = stack.getRarity();
             double multiplier = ModConfigs.STRUCTURE_VALUE.itemMultiplier(stack.getItem(), rarity);
@@ -280,8 +280,8 @@ public final class StructMarkerScreen extends Screen {
         graphics.fill(x, y, x + ACTION_WIDTH, y + ACTION_HEIGHT, PANEL_RAISED);
         graphics.fill(x, y, x + 2, y + ACTION_HEIGHT, accent);
         if (hovered) graphics.fill(x + 2, y, x + ACTION_WIDTH, y + ACTION_HEIGHT, 0x223FC2CE);
-        graphics.drawCenteredString(
-                font, label, x + ACTION_WIDTH / 2, y + 5, hovered ? TEXT : MUTED);
+        GuiText.centered(
+                graphics, font, label, x + ACTION_WIDTH / 2, y + 5, hovered ? TEXT : MUTED);
     }
 
     private void drawStructureChoices(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -293,7 +293,8 @@ public final class StructMarkerScreen extends Screen {
         int boxY = (height - boxHeight) / 2;
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, PANEL);
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + 2, CYAN);
-        graphics.drawCenteredString(
+        GuiText.centered(
+                graphics,
                 font,
                 Component.translatable("screen.dimension_tech.struct_marker.select_prompt"),
                 width / 2,

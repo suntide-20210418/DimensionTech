@@ -56,8 +56,8 @@ public final class StructureMinerBuildPlanGameTests {
         Map<Block, Integer> required = plan.required();
         if (!plan.isClear()
                 || required.size() != 1
-                || required.getOrDefault(ModBlocks.STRUCTURE_MINER_CASING.get(), 0) != 1) {
-            helper.fail("Removing one casing charged " + required + " with blocked " + plan.blocked());
+                || required.getOrDefault(ModBlocks.STRUCTURE_MINER_STRUCTURE.get(), 0) != 1) {
+            helper.fail("Removing one structure charge ran " + required + " with blocked " + plan.blocked());
             return;
         }
         helper.succeed();
@@ -89,7 +89,7 @@ public final class StructureMinerBuildPlanGameTests {
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty")
-    public static void bareMultiblockCostsFortyFourCasingsEightFocusAndOneStructure(
+    public static void bareMultiblockCostsThirtyTwoCasingsEightFocusAndThirteenStructures(
             GameTestHelper helper) {
         BaseMinerBlockEntity miner = placeMiner(helper);
         ServerLevel level = helper.getLevel();
@@ -103,9 +103,9 @@ public final class StructureMinerBuildPlanGameTests {
         Map<Block, Integer> required =
                 StructureMinerMultiblock.planMaterials(level, center, tier).required();
         if (required.size() != 3
-                || required.getOrDefault(ModBlocks.STRUCTURE_MINER_CASING.get(), 0) != 44
+                || required.getOrDefault(ModBlocks.STRUCTURE_MINER_CASING.get(), 0) != 32
                 || required.getOrDefault(ModBlocks.DIMENSION_FOCUS[0].get(), 0) != 8
-                || required.getOrDefault(ModBlocks.STRUCTURE_MINER_STRUCTURE.get(), 0) != 1) {
+                || required.getOrDefault(ModBlocks.STRUCTURE_MINER_STRUCTURE.get(), 0) != 13) {
             helper.fail("Unexpected material totals: " + required);
             return;
         }
@@ -119,6 +119,7 @@ public final class StructureMinerBuildPlanGameTests {
         BlockPos center = miner.getBlockPos();
         StructureMinerMultiblock.place(level, center, miner.getMinerTier());
         BlockPos upgradeSlot = center.offset(2, -1, 0);
+        level.setBlock(upgradeSlot, ModBlocks.STRUCTURE_MINER_CASING.get().defaultBlockState(), 3);
         BlockState state = level.getBlockState(upgradeSlot);
 
         if (!state.is(ModBlocks.STRUCTURE_MINER_CASING.get())

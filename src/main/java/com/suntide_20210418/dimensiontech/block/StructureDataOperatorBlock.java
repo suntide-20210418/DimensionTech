@@ -32,6 +32,17 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
     }
 
     @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+            Level level, BlockState state, BlockEntityType<T> type) {
+        return null;
+    }
+
+    /**
+     * Opens the console. The block entity is its own {@link net.minecraft.world.MenuProvider}, which
+     * is the same wiring the structure reactor uses — the menu type is registered on both sides, so
+     * the server can construct the container without touching anything client-only.
+     */
+    @Override
     public InteractionResult use(
             BlockState state,
             Level level,
@@ -40,15 +51,10 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
             InteractionHand hand,
             BlockHitResult hit) {
         if (!level.isClientSide
-                && player instanceof ServerPlayer server
-                && level.getBlockEntity(pos) instanceof StructureDataOperatorBlockEntity be)
-            NetworkHooks.openScreen(server, be, pos);
+                && player instanceof ServerPlayer serverPlayer
+                && level.getBlockEntity(pos) instanceof StructureDataOperatorBlockEntity operator) {
+            NetworkHooks.openScreen(serverPlayer, operator, pos);
+        }
         return InteractionResult.sidedSuccess(level.isClientSide);
-    }
-
-    @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-            Level level, BlockState state, BlockEntityType<T> type) {
-        return null;
     }
 }

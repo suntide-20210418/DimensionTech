@@ -21,6 +21,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -41,13 +42,28 @@ import net.minecraftforge.items.ItemStackHandler;
 public final class StructureDataOperatorBlockEntity extends BlockEntity implements MenuProvider {
     public static final int TARGET = 0;
     public static final int OPERAND_START = 1;
-    public static final int OPERAND_COUNT = 27;
+
+    /**
+     * 36 write slots, laid out 9x4 on the operator face.
+     *
+     * <p>The count lives here rather than in {@code StructureDataOperatorLayout} because a block
+     * entity is instantiated on both sides while the layout class is client-only — a dedicated
+     * server must never load it. The two must agree: {@code OPERAND_COLUMNS * OPERAND_ROWS} in the
+     * layout is 9 * 4 = 36.
+     */
+    public static final int OPERAND_COUNT = 36;
+
     public static final int INTEGRATOR = OPERAND_START + OPERAND_COUNT;
     public static final int INTERPRETER = INTEGRATOR + 1;
     public static final int INVENTORY_SIZE = INTERPRETER + 1;
 
     private final ItemStackHandler inventory =
             new ItemStackHandler(INVENTORY_SIZE) {
+                @Override
+                public void deserializeNBT(CompoundTag tag) {
+                    super.deserializeNBT(migrateInventory(tag));
+                }
+
                 @Override
                 public boolean isItemValid(int slot, ItemStack stack) {
                     if (slot == TARGET || isOperandSlot(slot))
@@ -79,16 +95,18 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         super(ModBlockEntities.STRUCTURE_DATA_OPERATOR.get(), pos, state);
     }
 
+    @Override
+    public AbstractContainerMenu createMenu(int id, Inventory player, Player owner) {
+        return new StructureDataOperatorMenu(id, player, this);
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("screen.dimension_tech.structure_operator.title");
+    }
+
     public IItemHandler inventory() {
         return inventory;
-    }
-
-    public boolean hasIntegrator() {
-        return !inventory.getStackInSlot(INTEGRATOR).isEmpty();
-    }
-
-    public boolean hasInterpreter() {
-        return !inventory.getStackInSlot(INTERPRETER).isEmpty();
     }
 
     public List<StructureCatalogueEntry> catalogue() {
@@ -124,9 +142,7 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                 if (structure.biomes().stream().noneMatch(possibleBiomes::contains)) continue;
                 entries.add(
                         new StructureCatalogueEntry(
-                                candidateLevel.dimension().location(),
-                                structureId,
-                                ItemStack.EMPTY));
+                                candidateLevel.dimension().location(), structureId));
             }
         }
         entries.sort(
@@ -250,7 +266,10 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                                             == AnalysisStatus.EXACT
                                                                     || calculation.value().status()
                                                                             == AnalysisStatus
-                                                                                    .APPROXIMATE)) {
+                                                                                    .APPROXIMATE
+                                                                    || calculation
+                                                                            .discovery()
+                                                                            .terminalNoLoot())) {
                                                         ItemStack marker =
                                                                 new ItemStack(
                                                                         ModItems.STRUCTURE_MARKER
@@ -270,20 +289,6 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                         catalogueValueConfigs.put(key, config);
                                                     }
                                                 }));
-    }
-
-    public StructureAnalysisService.State catalogueAnalysisState(
-            ResourceLocation dimension, ResourceLocation id) {
-        if (level == null || level.getServer() == null)
-            return StructureAnalysisService.State.missing();
-        ServerLevel candidateLevel =
-                level.getServer()
-                        .getLevel(
-                                net.minecraft.resources.ResourceKey.create(
-                                        Registries.DIMENSION, dimension));
-        return candidateLevel == null
-                ? StructureAnalysisService.State.missing()
-                : StructureAnalysisService.forServer(level.getServer()).state(candidateLevel, id);
     }
 
     public void refreshCatalogueAnalysis(ResourceLocation dimension, ResourceLocation id) {
@@ -330,14 +335,51 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         return slot >= OPERAND_START && slot < OPERAND_START + OPERAND_COUNT;
     }
 
-    @Override
-    public Component getDisplayName() {
-        return Component.translatable("block.dimension_tech.structure_data_operator");
+    /**
+     * Rewrites a saved inventory tag so it describes {@link #INVENTORY_SIZE} slots.
+     *
+     * <p>{@link ItemStackHandler#deserializeNBT} resizes itself to whatever {@code Size} the tag
+     * carries — the capacity is read from the save file, not from the constructor. A world saved
+     * while the write array held 27 markers therefore loads this handler with 30 slots, while the
+     * menu registers all 39; the first {@code AbstractContainerMenu.broadcastChanges} then reads
+     * slot 30 out of range and kills the server thread with
+     * {@code Slot 30 not in valid range - [0,30)}.
+     *
+     * <p>The handler's capacity belongs to the code, so the tag is normalised instead of the menu
+     * being made to tolerate it. Growing the write array also moves the two plugin slots — an older
+     * tag keeps them at {@code 28} and {@code 29}, which are write slots now — so those two entries
+     * are remapped to where the current layout expects them. The write slots themselves keep their
+     * indices, because the array only ever grew at its end.
+     *
+     * <p>Package-private rather than private so {@code StructureDataOperatorInventoryMigrationTest}
+     * can drive it directly; exercising it through a load would need a live block entity.
+     */
+    static CompoundTag migrateInventory(CompoundTag saved) {
+        CompoundTag tag = saved.copy();
+        int savedSize = tag.contains("Size", Tag.TAG_INT) ? tag.getInt("Size") : INVENTORY_SIZE;
+        if (savedSize == INVENTORY_SIZE) return tag;
+        /*
+         * A well-formed older tag holds at least the read slot, one write slot and both plugin
+         * slots. Anything smaller is not a layout this code ever wrote, and the arithmetic below
+         * would drag the read slot into a plugin slot, so such a tag is only clamped.
+         */
+        int smallestRecognisable = OPERAND_START + 3;
+        if (savedSize >= smallestRecognisable && savedSize < INVENTORY_SIZE) {
+            remapSlot(tag, savedSize - 2, INTEGRATOR);
+            remapSlot(tag, savedSize - 1, INTERPRETER);
+        }
+        tag.putInt("Size", INVENTORY_SIZE);
+        return tag;
     }
 
-    @Override
-    public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-        return new StructureDataOperatorMenu(id, inv, this);
+    /** Moves the entry sitting in {@code from} to {@code to}, if that slot holds anything. */
+    private static void remapSlot(CompoundTag inventoryTag, int from, int to) {
+        if (from == to) return;
+        ListTag items = inventoryTag.getList("Items", Tag.TAG_COMPOUND);
+        for (int index = 0; index < items.size(); index++) {
+            CompoundTag entry = items.getCompound(index);
+            if (entry.getInt("Slot") == from) entry.putInt("Slot", to);
+        }
     }
 
     @Override
@@ -352,16 +394,12 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         inventory.deserializeNBT(tag.getCompound("Inventory"));
     }
 
+    /**
+     * One catalogue row. Only the pair of ids crosses the wire — the analysed marker is kept in
+     * {@code analysedCatalogueEntries}, keyed the same way, and is looked up on demand.
+     */
     public record StructureCatalogueEntry(
-            ResourceLocation dimension, ResourceLocation structure, ItemStack analysisMarker) {
-        public StructureCatalogueEntry {
-            analysisMarker = analysisMarker.copy();
-        }
-
-        public ItemStack analysisMarker() {
-            return analysisMarker.copy();
-        }
-    }
+            ResourceLocation dimension, ResourceLocation structure) {}
 
     private record CatalogueKey(ResourceLocation dimension, ResourceLocation structure) {}
 }

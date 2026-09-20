@@ -545,12 +545,15 @@ public class StructureMinerMenu extends AbstractContainerMenu
         }
         if (plan.isSatisfied()) return;
 
-        Map<Block, Integer> shortfall = missingFromInventory(player, plan.required());
-        if (!shortfall.isEmpty()) {
-            player.displayClientMessage(shortfallMessage(shortfall), false);
-            return;
+        // Creative players place for free; only survival pays out of the inventory.
+        if (!player.getAbilities().instabuild) {
+            Map<Block, Integer> shortfall = missingFromInventory(player, plan.required());
+            if (!shortfall.isEmpty()) {
+                player.displayClientMessage(shortfallMessage(shortfall), false);
+                return;
+            }
+            consumeFromInventory(player, plan.required());
         }
-        consumeFromInventory(player, plan.required());
         StructureMinerMultiblock.place(level, blockEntity.getBlockPos(), tier);
     }
 
@@ -679,6 +682,16 @@ public class StructureMinerMenu extends AbstractContainerMenu
                 : combineSlotWords(slot, SLOT_PROCESSING_LOW, SLOT_PROCESSING_HIGH);
     }
 
+    /**
+     * The slot's raw cycle length in machine ticks, without the waiting-window substitution that
+     * {@link #getMarkerProcessingTime} applies. Only the natural-progress readout wants the
+     * substituted value (so it reads "natural / 400" while the window settles); the actual-tick
+     * progress bar needs the real period, which is always at least 400.
+     */
+    public int getMarkerRealProcessingTime(int slot) {
+        return combineSlotWords(slot, SLOT_PROCESSING_LOW, SLOT_PROCESSING_HIGH);
+    }
+
     public boolean isMarkerWaitingForNaturalWindow(int slot) {
         return getSlotTelemetryValue(slot, SLOT_WAITING_FOR_NATURAL_WINDOW) != 0;
     }
@@ -720,16 +733,21 @@ public class StructureMinerMenu extends AbstractContainerMenu
                 SLOT_ACTUAL_TICKS_3);
     }
 
-    /** Actual-tick progress for the current cycle, reset when the cycle/output completes. */
+    /**
+     * Actual-tick count within the current real period. Once actual ticks pass the period the count
+     * keeps running — it wraps and recounts (e.g. {@code 111/40000} at {@code x1}) rather than
+     * sitting at full.
+     */
     public long getMarkerActualProgress(int slot) {
         long actual = getMarkerCurrentExternalAccelerationMachineTicks(slot);
-        long cycle = Math.max(1L, getMarkerProcessingTime(slot));
+        long cycle = Math.max(1L, getMarkerRealProcessingTime(slot));
         return actual % cycle;
     }
 
+    /** Full periods the machine's actual ticks have covered, against the real period. */
     public long getMarkerActualCycleCount(int slot) {
         long actual = getMarkerCurrentExternalAccelerationMachineTicks(slot);
-        long cycle = Math.max(1L, getMarkerProcessingTime(slot));
+        long cycle = Math.max(1L, getMarkerRealProcessingTime(slot));
         return actual / cycle;
     }
 

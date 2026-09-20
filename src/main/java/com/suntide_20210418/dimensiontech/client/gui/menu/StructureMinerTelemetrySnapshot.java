@@ -31,6 +31,7 @@ public record StructureMinerTelemetrySnapshot(
     public record Marker(
             long progress,
             int processingTime,
+            int realProcessingTime,
             int parallel,
             boolean enabled,
             long naturalTicks,
@@ -55,6 +56,7 @@ public record StructureMinerTelemetrySnapshot(
                     new Marker(
                             menu.getMarkerProgress(slot),
                             menu.getMarkerProcessingTime(slot),
+                            menu.getMarkerRealProcessingTime(slot),
                             menu.getMarkerTotalParallel(slot),
                             menu.isMarkerSlotEnabled(slot),
                             menu.getMarkerCurrentNaturalTicks(slot),

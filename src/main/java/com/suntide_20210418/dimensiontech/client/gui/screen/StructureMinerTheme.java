@@ -96,11 +96,6 @@ final class StructureMinerTheme {
         GuiChrome.slotFace(g, x, y, selected, disabled);
     }
 
-    /** A value cell on a light face. */
-    static void metricCard(GuiGraphics g, int x, int y, int width, int height, int accent) {
-        GuiChrome.metricCard(g, x, y, width, height, accent);
-    }
-
     static void tab(
             GuiGraphics g, Font font, int x, int y, int width, Component label, boolean selected) {
         GuiChrome.tab(g, font, x, y, width, label, selected);
@@ -139,17 +134,19 @@ final class StructureMinerTheme {
         GuiChrome.sectionHeader(g, font, x, y, width, label, accent);
     }
 
+    /** A row of the structure tree, drawn on the machine canvas. See {@link GuiChrome#listRow}. */
     static void listRow(
             GuiGraphics g,
             Font font,
             int x,
             int y,
             int width,
+            int height,
             Component label,
             boolean selected,
             boolean hovered,
             int accent) {
-        GuiChrome.listRow(g, font, x, y, width, label, selected, hovered, accent);
+        GuiChrome.listRow(g, font, x, y, width, height, label, selected, hovered, accent);
     }
 
     static void scrollbar(

@@ -271,6 +271,7 @@ public final class StructureAnalysisService {
                             if (error != null) {
                                 failDiscovery(key, error);
                             } else if (result.status() == AnalysisStatus.EXACT
+                                    || result.terminalNoLoot()
                                     || !mayUseVirtualAnalysis(structure)
                                     || !dimensionAllowed
                                     || !structureAllowed) {
@@ -363,6 +364,11 @@ public final class StructureAnalysisService {
         DiscoveryResult staticResult =
                 StructureLootAnalyzer.discoverTemplateForValue(
                         level, structure, AnalysisStatus.EXACT, List.of());
+        // A template with no storage container is definitively loot-free, regardless of namespace;
+        // skip every further path (fixed resolver, virtual sampling) and declare it terminal.
+        if (staticResult.terminalNoLoot()) {
+            return staticResult;
+        }
         // A successful template scan is the conventional, exact path. Only structures with no
         // statically discoverable root table need virtual generation; this keeps ordinary template
         // structures out of the expensive asynchronous sampler.

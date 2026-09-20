@@ -51,9 +51,10 @@ public class StructureMinerMultiblock {
     private static final Set<String> STRUCTURE = Set.of("0,-1,0");
 
     /**
-     * The twelve non-frame, non-focus parts from the source definition. Each accepts either a miner
-     * upgrade block or a plain casing, so a fresh player can complete the multiblock out of the
-     * casing recipe alone without needing any tier-gated machine product.
+     * The twelve non-frame, non-focus parts from the source definition. Each accepts a miner
+     * upgrade block or the structure block, and the build button fills empty ones with the structure
+     * block, so a fresh player can complete the multiblock out of the shared structure recipe alone
+     * without needing any tier-gated machine product.
      */
     private static final Set<String> UPGRADE =
             Set.of(
@@ -107,7 +108,7 @@ public class StructureMinerMultiblock {
         addProjection(blocks, CASING, casing, ProjectionKind.CASING);
         addProjection(blocks, FOCUS, focus, ProjectionKind.FOCUS);
         addProjection(blocks, STRUCTURE, structure, ProjectionKind.STRUCTURE);
-        addProjection(blocks, UPGRADE, casing, ProjectionKind.UPGRADE);
+        addProjection(blocks, UPGRADE, structure, ProjectionKind.UPGRADE);
         return List.copyOf(blocks);
     }
 

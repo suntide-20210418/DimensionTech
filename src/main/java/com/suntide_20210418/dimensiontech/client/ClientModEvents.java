@@ -2,9 +2,9 @@ package com.suntide_20210418.dimensiontech.client;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
+import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureReactorScreen;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureMinerScreen;
-import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
@@ -29,12 +29,12 @@ public final class ClientModEvents {
         event.enqueueWork(
                 () ->
                         MenuScreens.register(
-                                ModMenu.STRUCTURE_DATA_OPERATOR.get(),
-                                StructureDataOperatorScreen::new));
+                                ModMenu.STRUCTURE_REACTOR.get(), StructureReactorScreen::new));
         event.enqueueWork(
                 () ->
                         MenuScreens.register(
-                                ModMenu.STRUCTURE_REACTOR.get(), StructureReactorScreen::new));
+                                ModMenu.STRUCTURE_DATA_OPERATOR.get(),
+                                StructureDataOperatorScreen::new));
     }
 
     @SubscribeEvent

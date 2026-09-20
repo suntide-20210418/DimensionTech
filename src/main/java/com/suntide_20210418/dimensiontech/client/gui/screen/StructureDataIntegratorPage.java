@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorLayout;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
@@ -7,6 +8,7 @@ import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -15,10 +17,25 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-/** Shared dimension catalogue and dossier viewport for both data-source plugins. */
+/**
+ * Shared dimension catalogue and dossier viewport for both data-source plugins.
+ *
+ * <p>Everything here is canvas-local: {@code StructureDataOperatorScreen#drawPage} has already
+ * clipped to the canvas and translated to its origin, so {@code (0,0)} is the canvas corner. The two
+ * columns are 150 and 181 pixels wide inside a 343-wide canvas — the catalogue is a master list, the
+ * dossier its detail pane.
+ */
 final class StructureDataIntegratorPage {
-    private static final int LIST_Y = 104;
-    private static final int ROW_H = 14;
+    private static final int PAD = 4;
+
+    /**
+     * First row of the scrolling list — below the title strip and the search field that filters it,
+     * so neither can end up drawn over a row.
+     */
+    private static final int LIST_Y = StructureDataOperatorScreen.LIST_Y;
+
+    private static final int ROW_H = StructureDataOperatorScreen.LIST_ROW_H;
+    private static final int TABLE_HEADER_H = 10;
 
     private StructureDataIntegratorPage() {}
 
@@ -27,97 +44,31 @@ final class StructureDataIntegratorPage {
             GuiGraphics g,
             int mouseX,
             int mouseY,
-            int accent,
-            String titleKey) {
-        StructureMinerTheme.subPanel(
-                g,
-                StructureDataOperatorScreen.LEFT_X,
-                48,
-                StructureDataOperatorScreen.LEFT_W,
-                186,
-                accent);
-        StructureMinerTheme.subPanel(
-                g,
-                StructureDataOperatorScreen.RIGHT_X,
-                48,
-                StructureDataOperatorScreen.RIGHT_W,
-                186,
-                StructureMinerTheme.AMBER);
-        g.drawString(
-                s.getMinecraft().font,
-                Component.translatable(titleKey),
-                52,
-                53,
-                StructureMinerTheme.INK,
-                false);
-        g.drawString(
-                s.getMinecraft().font,
-                Component.translatable("screen.dimension_tech.structure_operator.catalogue_marker"),
-                52,
-                66,
-                StructureMinerTheme.DIM,
-                false);
-        StructureMinerTheme.well(g, 42, 82, 80, 16);
-        g.drawString(s.getMinecraft().font, Component.literal("/"), 48, 86, accent, false);
-        button(
-                s,
-                g,
-                16,
-                82,
-                22,
-                16,
-                "screen.dimension_tech.structure_operator.refresh_short",
-                true,
-                accent,
-                mouseX,
-                mouseY);
-        button(
-                s,
-                g,
-                126,
-                82,
-                22,
-                16,
-                "screen.dimension_tech.structure_operator.write_short",
-                s.selected() != null && !s.detailMarker().isEmpty() && s.hasWriteMarker(),
-                accent,
-                mouseX,
-                mouseY);
+            int accent) {
+        int detailX = StructureDataOperatorScreen.DETAIL_X;
+        int canvasHeight = StructureDataOperatorLayout.CANVAS.height();
+        /* The page title used to sit here, above the search field. The tab already names the page,
+         * so the strip is gone and the search field takes the canvas top in its place. */
+        /* One hairline splits the master list from the detail pane; the canvas is already recessed,
+         * so the columns do not need panels of their own. */
+        g.fill(detailX - 4, PAD, detailX - 2, canvasHeight - PAD, StructureMinerTheme.HAIRLINE);
         drawCatalogue(s, g, mouseX, mouseY, accent);
         drawDetail(s, g, accent, mouseX, mouseY);
     }
 
     static boolean mouseClicked(StructureDataOperatorScreen s, int x, int y) {
-        if (StructureDataOperatorScreen.inside(x, y, 16, 82, 22, 16)) {
-            if (s.selected() == null) s.refreshPageData();
-            else s.refreshSelectedAnalysis();
-            return true;
+        int listX = StructureDataOperatorScreen.LIST_X;
+        int listW = StructureDataOperatorScreen.LIST_W;
+        int listH = StructureDataOperatorLayout.CANVAS.height() - LIST_Y - PAD;
+        if (!StructureDataOperatorScreen.inside(x, y, listX, LIST_Y, listW, listH)) return false;
+        int index = s.listScroll() + (y - LIST_Y) / ROW_H;
+        List<StructureDataOperatorScreen.CatalogueRow> rows = s.catalogueRows();
+        if (index >= 0 && index < rows.size()) {
+            StructureDataOperatorScreen.CatalogueRow picked = rows.get(index);
+            if (picked.isDimension()) s.toggleDimension(picked.dimension());
+            else s.select(picked.entry());
         }
-        if (StructureDataOperatorScreen.inside(x, y, 126, 82, 22, 16)
-                && s.selected() != null
-                && !s.detailMarker().isEmpty()
-                && s.hasWriteMarker()) {
-            s.showWriteConfirmation();
-            return true;
-        }
-        if (StructureDataOperatorScreen.inside(
-                x,
-                y,
-                StructureDataOperatorScreen.LEFT_X,
-                LIST_Y,
-                StructureDataOperatorScreen.LEFT_W,
-                126)) {
-            int row = (y - LIST_Y) / ROW_H;
-            int index = s.listScroll() + row;
-            List<StructureDataOperatorScreen.CatalogueRow> rows = s.catalogueRows();
-            if (index >= 0 && index < rows.size()) {
-                StructureDataOperatorScreen.CatalogueRow selected = rows.get(index);
-                if (selected.isDimension()) s.toggleDimension(selected.dimension());
-                else s.select(selected.entry());
-            }
-            return true;
-        }
-        return false;
+        return true;
     }
 
     static void renderTooltip(
@@ -128,17 +79,17 @@ final class StructureDataIntegratorPage {
             int screenMouseX,
             int screenMouseY) {
         if (s.detailMarker().isEmpty()) return;
-        List<Map.Entry<ResourceLocation, ExactProbability>> rows =
-                expectedItemRows(s.detailMarker());
-        for (int row = 0; row < 5 && s.detailScroll() + row < rows.size(); row++) {
-            int y = 144 + row * 16;
+        List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(s.detailMarker());
+        int visible = StructureDataOperatorScreen.tableRows();
+        for (int row = 0; row < visible && s.detailScroll() + row < rows.size(); row++) {
+            int y = tableRowY(row);
             if (!StructureDataOperatorScreen.inside(
                     localMouseX,
                     localMouseY,
-                    StructureDataOperatorScreen.RIGHT_X + 8,
-                    y - 2,
-                    20,
-                    20)) continue;
+                    StructureDataOperatorScreen.DETAIL_X + 2,
+                    y,
+                    18,
+                    StructureDataOperatorScreen.TABLE_ROW_H)) continue;
             Item item =
                     BuiltInRegistries.ITEM
                             .getOptional(rows.get(s.detailScroll() + row).getKey())
@@ -150,232 +101,234 @@ final class StructureDataIntegratorPage {
         }
     }
 
+    // ------------------------------------------------------------------ list
+
     private static void drawCatalogue(
             StructureDataOperatorScreen s, GuiGraphics g, int mouseX, int mouseY, int accent) {
-        int x = StructureDataOperatorScreen.LEFT_X;
-        StructureMinerTheme.well(g, x, LIST_Y, StructureDataOperatorScreen.LEFT_W, 126);
+        int x = StructureDataOperatorScreen.LIST_X;
+        int width = StructureDataOperatorScreen.LIST_W;
+        int height = StructureDataOperatorLayout.CANVAS.height() - LIST_Y - PAD;
         List<StructureDataOperatorScreen.CatalogueRow> rows = s.catalogueRows();
         if (rows.isEmpty()) {
-            g.drawCenteredString(
+            GuiText.centered(
+                    g,
                     s.getMinecraft().font,
                     Component.translatable("screen.dimension_tech.structure_operator.empty"),
-                    x + 68,
-                    160,
-                    StructureMinerTheme.TEXT);
+                    x + width / 2,
+                    LIST_Y + height / 2 - 4,
+                    StructureMinerTheme.DIM);
             return;
         }
-        for (int row = 0; row < 9 && s.listScroll() + row < rows.size(); row++) {
+        int visible = StructureDataOperatorScreen.listRows();
+        for (int row = 0; row < visible && s.listScroll() + row < rows.size(); row++) {
             int index = s.listScroll() + row;
             int y = LIST_Y + row * ROW_H;
             StructureDataOperatorScreen.CatalogueRow rowData = rows.get(index);
             boolean selected = rowData.entry() != null && rowData.entry().equals(s.selected());
             boolean hovered =
-                    StructureDataOperatorScreen.inside(
-                            mouseX, mouseY, x, y, StructureDataOperatorScreen.LEFT_W, ROW_H);
-            Component rowLabel;
+                    StructureDataOperatorScreen.inside(mouseX, mouseY, x, y, width, ROW_H);
+            String label;
             if (rowData.isDimension()) {
-                String label =
-                        (expanded(s, rowData.dimension()) ? "v " : "> ")
-                                + Component.translatable(
-                                                "screen.dimension_tech.structure_operator.dimension",
-                                                TranslateHelper.dimensionName(rowData.dimension()))
-                                        .getString();
-                rowLabel = Component.literal(label);
+                label =
+                        (s.isDimensionExpanded(rowData.dimension()) ? "v " : "> ")
+                                + TranslateHelper.dimensionName(rowData.dimension()).getString();
             } else {
-                String label =
-                        Component.translatable(
-                                        "screen.dimension_tech.structure_operator.structure",
-                                        TranslateHelper.structureName(rowData.entry().structure()))
-                                .getString();
-                rowLabel = Component.literal("  " + label);
+                label = "  " + TranslateHelper.structureName(rowData.entry().structure()).getString();
             }
             StructureMinerTheme.listRow(
                     g,
                     s.getMinecraft().font,
                     x,
                     y,
-                    StructureDataOperatorScreen.LEFT_W,
+                    width - 4,
+                    ROW_H,
                     Component.literal(
-                            s.getMinecraft().font.plainSubstrByWidth(rowLabel.getString(), 126)),
+                            s.getMinecraft().font.plainSubstrByWidth(label, width - 12)),
                     selected,
                     hovered,
-                    selected ? StructureMinerTheme.SELECT : accent);
+                    accent);
         }
-        StructureMinerTheme.scrollbar(
-                g,
-                x + StructureDataOperatorScreen.LEFT_W - 4,
-                LIST_Y,
-                126,
-                rows.size() * ROW_H,
-                9 * ROW_H,
-                s.listScroll() * ROW_H);
+        if (rows.size() > visible) {
+            StructureMinerTheme.scrollbar(
+                    g,
+                    x + width - 3,
+                    LIST_Y,
+                    height,
+                    rows.size() * ROW_H,
+                    visible * ROW_H,
+                    s.listScroll() * ROW_H);
+        }
     }
 
-    private static boolean expanded(StructureDataOperatorScreen s, ResourceLocation dimension) {
-        return s.isDimensionExpanded(dimension);
+    // ---------------------------------------------------------------- detail
+
+    /** Y of the detail table's header, below the readings block. */
+    private static int tableHeaderY() {
+        return PAD + StructureDataOperatorReadings.height() + 2;
+    }
+
+    private static int tableRowY(int row) {
+        return tableHeaderY() + TABLE_HEADER_H + row * StructureDataOperatorScreen.TABLE_ROW_H;
+    }
+
+    /**
+     * Y of the detail table's first row.
+     *
+     * <p>The screen sizes its scroll window from this rather than from a fixed canvas inset, because
+     * the readings block above the table is what actually sets the offset.
+     */
+    static int tableTop() {
+        return tableRowY(0);
     }
 
     private static void drawDetail(
             StructureDataOperatorScreen s, GuiGraphics g, int accent, int mouseX, int mouseY) {
-        int x = StructureDataOperatorScreen.RIGHT_X;
-        ItemStack marker = s.detailMarker();
+        int x = StructureDataOperatorScreen.DETAIL_X;
+        int width = StructureDataOperatorScreen.DETAIL_W;
         if (s.selected() == null) {
-            g.drawCenteredString(
+            GuiText.centered(
+                    g,
                     s.getMinecraft().font,
                     Component.translatable("screen.dimension_tech.structure_operator.select_entry"),
-                    x + 72,
-                    136,
+                    x + width / 2,
+                    StructureDataOperatorLayout.CANVAS.height() / 2 - 4,
                     StructureMinerTheme.DIM);
             return;
         }
-        g.drawString(
+        /* The structure's name is one of the readings now, so it needs no title of its own. */
+        ItemStack marker = s.detailMarker();
+        StructureDataOperatorReadings.draw(
+                g,
                 s.getMinecraft().font,
-                Component.translatable(
-                        "screen.dimension_tech.structure_operator.catalogue_analysis"),
-                x + 8,
-                55,
-                StructureMinerTheme.INK,
-                false);
-        String dimension =
-                Component.translatable(
-                                "screen.dimension_tech.structure_operator.dimension",
-                                TranslateHelper.dimensionName(s.selected().dimension()))
-                        .getString();
-        String structure =
-                Component.translatable(
-                                "screen.dimension_tech.structure_operator.structure",
-                                TranslateHelper.structureName(s.selected().structure()))
-                        .getString();
-        g.drawString(
-                s.getMinecraft().font,
-                s.getMinecraft().font.plainSubstrByWidth(dimension, 128),
-                x + 8,
-                68,
-                accent,
-                false);
-        g.drawString(
-                s.getMinecraft().font,
-                s.getMinecraft().font.plainSubstrByWidth(structure, 128),
-                x + 8,
-                80,
-                StructureMinerTheme.DIM,
-                false);
+                x,
+                PAD,
+                width,
+                marker,
+                s.selected().dimension(),
+                s.selected().structure());
+
         if (marker.isEmpty()) {
-            Component progress =
-                    s.totalAnalysisSamples() > 0
-                            ? Component.translatable(
-                                    "screen.dimension_tech.structure_operator.virtual_progress",
-                                    s.completedAnalysisSamples(),
-                                    s.totalAnalysisSamples())
-                            : Component.translatable(
-                                    "screen.dimension_tech.structure_operator.loading");
-            g.drawCenteredString(
-                    s.getMinecraft().font, progress, x + 72, 130, StructureMinerTheme.DIM);
+            GuiText.centered(
+                    g,
+                    s.getMinecraft().font,
+                    Component.translatable("screen.dimension_tech.structure_operator.loading"),
+                    x + width / 2,
+                    tableHeaderY() + 20,
+                    StructureMinerTheme.DIM);
             return;
         }
-        StructMarkerItem.filterDiagnostic(marker)
-                .ifPresent(
-                        message ->
-                                g.drawString(
-                                        s.getMinecraft().font,
-                                        Component.literal(message),
-                                        x + 8,
-                                        96,
-                                        StructureMinerTheme.ERROR,
-                                        false));
-        if (s.totalAnalysisSamples() > 0
-                && StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.APPROXIMATE) {
-            g.drawString(
+        // A terminal entry (e.g. a structure whose templates hold no container) carries a
+        // non-reading UNSUPPORTED marker: state it instead of drawing an empty item table.
+        if (StructMarkerItem.getAnalysisStatus(marker) != AnalysisStatus.EXACT
+                && StructMarkerItem.getAnalysisStatus(marker) != AnalysisStatus.APPROXIMATE) {
+            GuiText.centered(
+                    g,
                     s.getMinecraft().font,
-                    Component.translatable(
-                            "screen.dimension_tech.structure_operator.virtual_approximate",
-                            s.totalAnalysisSamples()),
-                    x + 8,
-                    128,
-                    StructureMinerTheme.DIM,
-                    false);
+                    Component.translatable("screen.dimension_tech.structure_operator.no_loot"),
+                    x + width / 2,
+                    tableHeaderY() + 20,
+                    StructureMinerTheme.DIM);
+            return;
         }
-        metric(
-                s,
-                g,
-                x + 8,
-                96,
-                60,
-                "screen.dimension_tech.struct_marker.dimension_value",
-                StructMarkerItem.getDimensionValue(marker),
-                accent);
-        metric(
-                s,
-                g,
-                x + 76,
-                96,
-                60,
-                "screen.dimension_tech.struct_marker.structure_value",
-                StructMarkerItem.getStructureValue(marker),
-                StructureMinerTheme.AMBER);
-        StructureMinerTheme.well(g, x + 8, 138, 128, 92);
+
+        String itemLabel =
+                Component.translatable("screen.dimension_tech.struct_marker.item").getString();
+        String expectedLabel =
+                Component.translatable("screen.dimension_tech.struct_marker.expected").getString();
+        String multiplierLabel =
+                Component.translatable("screen.dimension_tech.struct_marker.multiplier_header")
+                        .getString();
+        int expectedX = x + width * 55 / 100;
+        int multiplierX = x + width * 78 / 100;
+        g.fill(x, tableHeaderY(), x + width, tableHeaderY() + TABLE_HEADER_H, StructureMinerTheme.STRIPE_WELL);
+        g.drawString(s.getMinecraft().font, itemLabel, x + 2, tableHeaderY() + 1, StructureMinerTheme.INK, false);
+        g.drawString(
+                s.getMinecraft().font,
+                expectedLabel,
+                expectedX,
+                tableHeaderY() + 1,
+                StructureMinerTheme.INK,
+                false);
+        g.drawString(
+                s.getMinecraft().font,
+                multiplierLabel,
+                multiplierX,
+                tableHeaderY() + 1,
+                StructureMinerTheme.INK,
+                false);
+
         List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(marker);
-        for (int row = 0; row < 5 && s.detailScroll() + row < rows.size(); row++) {
-            int y = 144 + row * 16;
+        int visible = StructureDataOperatorScreen.tableRows();
+        int nameBudget = Math.max(18, expectedX - x - 20);
+        for (int row = 0; row < visible && s.detailScroll() + row < rows.size(); row++) {
+            int y = tableRowY(row);
             Map.Entry<ResourceLocation, ExactProbability> entry = rows.get(s.detailScroll() + row);
             Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
-            if (item != null) g.renderItem(new ItemStack(item), x + 12, y - 2);
+            if (item != null) g.renderItem(new ItemStack(item), x + 1, y + 1);
             String name =
                     item == null
                             ? entry.getKey().toString()
                             : new ItemStack(item).getHoverName().getString();
             g.drawString(
                     s.getMinecraft().font,
-                    s.getMinecraft().font.plainSubstrByWidth(name, 78),
-                    x + 31,
-                    y + 1,
+                    s.getMinecraft().font.plainSubstrByWidth(name, nameBudget),
+                    x + 19,
+                    y + 5,
                     StructureMinerTheme.INK,
                     false);
             g.drawString(
                     s.getMinecraft().font,
-                    String.format(
-                            java.util.Locale.ROOT, "%.2f", entry.getValue().finiteDoubleValue()),
-                    x + 108,
-                    y + 1,
+                    ReadingFormat.reading(entry.getValue().finiteDoubleValue()),
+                    expectedX,
+                    y + 5,
                     accent,
                     false);
+            g.drawString(
+                    s.getMinecraft().font,
+                    String.format(
+                            Locale.ROOT,
+                            "%.2f",
+                            StructureDataOperatorOperationPage.multiplier(item == null ? net.minecraft.world.item.Items.AIR : item)),
+                    multiplierX,
+                    y + 5,
+                    StructureMinerTheme.DIM,
+                    false);
         }
-        StructureMinerTheme.scrollbar(
-                g,
-                x + StructureDataOperatorScreen.RIGHT_W - 4,
-                138,
-                92,
-                rows.size() * 16,
-                5 * 16,
-                s.detailScroll() * 16);
-    }
 
-    private static void metric(
-            StructureDataOperatorScreen s,
-            GuiGraphics g,
-            int x,
-            int y,
-            int width,
-            String key,
-            double value,
-            int accent) {
-        StructureMinerTheme.metricCard(g, x, y, width, 34, accent);
-        g.drawString(
-                s.getMinecraft().font,
-                s.getMinecraft()
-                        .font
-                        .plainSubstrByWidth(Component.translatable(key).getString(), width - 10),
-                x + 6,
-                y + 5,
-                StructureMinerTheme.DIM,
-                false);
-        g.drawString(
-                s.getMinecraft().font,
-                String.format(java.util.Locale.ROOT, "%.2f", value),
-                x + 6,
-                y + 18,
-                StructureMinerTheme.INK,
-                false);
+        StructMarkerItem.filterDiagnostic(marker)
+                .ifPresent(
+                        message ->
+                                g.drawString(
+                                        s.getMinecraft().font,
+                                        Component.literal(
+                                                s.getMinecraft()
+                                                        .font
+                                                        .plainSubstrByWidth(message, width)),
+                                        x,
+                                        StructureDataOperatorLayout.CANVAS.height() - 12,
+                                        StructureMinerTheme.ERROR,
+                                        false));
+        if (StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.APPROXIMATE) {
+            g.drawString(
+                    s.getMinecraft().font,
+                    Component.translatable(
+                                    "screen.dimension_tech.structure_operator.virtual_approximate")
+                            .getString(),
+                    x,
+                    StructureDataOperatorLayout.CANVAS.height() - 21,
+                    StructureMinerTheme.DIM,
+                    false);
+        }
+        if (rows.size() > visible) {
+            StructureMinerTheme.scrollbar(
+                    g,
+                    x + width - 3,
+                    tableRowY(0),
+                    visible * StructureDataOperatorScreen.TABLE_ROW_H,
+                    rows.size() * StructureDataOperatorScreen.TABLE_ROW_H,
+                    visible * StructureDataOperatorScreen.TABLE_ROW_H,
+                    s.detailScroll() * StructureDataOperatorScreen.TABLE_ROW_H);
+        }
     }
 
     private static List<Map.Entry<ResourceLocation, ExactProbability>> expectedItemRows(
@@ -389,30 +342,5 @@ final class StructureDataIntegratorPage {
                         .reversed()
                         .thenComparing(entry -> entry.getKey().toString()));
         return rows;
-    }
-
-    private static void button(
-            StructureDataOperatorScreen s,
-            GuiGraphics g,
-            int x,
-            int y,
-            int width,
-            int height,
-            String key,
-            boolean enabled,
-            int accent,
-            int mouseX,
-            int mouseY) {
-        StructureMinerTheme.button(
-                g,
-                s.getMinecraft().font,
-                x,
-                y,
-                width,
-                height,
-                Component.translatable(key),
-                StructureDataOperatorScreen.inside(mouseX, mouseY, x, y, width, height),
-                enabled,
-                accent);
     }
 }
