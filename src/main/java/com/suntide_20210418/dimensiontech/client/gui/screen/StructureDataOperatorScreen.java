@@ -800,28 +800,29 @@ public final class StructureDataOperatorScreen
 
     /**
      * Draws every slot tooltip by hand. The default AbstractContainerScreen hovered-slot tooltip is
-     * suppressed under this screen's custom canvas/scissor layout, so the three function slots get a
-     * purpose hint and every other slot falls back to the item tooltip — mirroring StructureReactorScreen.
+     * suppressed under this screen's custom canvas/scissor layout, so each of the three function slots
+     * is decided by {@link #functionSlotTooltip} and every other slot falls back to the item tooltip —
+     * mirroring StructureReactorScreen.
      */
     private void renderSlotTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
         Slot hovered = this.hoveredSlot;
         if (hovered == null || !hovered.isActive()) return;
         if (hovered.index == StructureDataOperatorBlockEntity.TARGET) {
-            drawSlotHint(
+            functionSlotTooltip(
                     graphics,
                     mouseX,
                     mouseY,
                     "screen.dimension_tech.structure_operator.slot.target",
                     "screen.dimension_tech.structure_operator.slot.target.func");
         } else if (hovered.index == StructureDataOperatorBlockEntity.INTEGRATOR) {
-            drawSlotHint(
+            functionSlotTooltip(
                     graphics,
                     mouseX,
                     mouseY,
                     "screen.dimension_tech.structure_operator.slot.integrator",
                     "screen.dimension_tech.structure_operator.slot.integrator.func");
         } else if (hovered.index == StructureDataOperatorBlockEntity.INTERPRETER) {
-            drawSlotHint(
+            functionSlotTooltip(
                     graphics,
                     mouseX,
                     mouseY,
@@ -829,6 +830,22 @@ public final class StructureDataOperatorScreen
                     "screen.dimension_tech.structure_operator.slot.interpreter.func");
         } else if (hovered.hasItem()) {
             graphics.renderTooltip(font, hovered.getItem(), mouseX, mouseY);
+        }
+    }
+
+    /**
+     * A function slot's tooltip. When the slot is empty it shows the purpose hint — what fits there
+     * and what it unlocks — so the player can plan before owning the part. Once an item is placed the
+     * hint would only bury that item's own description, so the slot falls back to the vanilla item
+     * tooltip.
+     */
+    private void functionSlotTooltip(
+            GuiGraphics graphics, int mouseX, int mouseY, String headKey, String funcKey) {
+        Slot hovered = this.hoveredSlot;
+        if (hovered.hasItem()) {
+            graphics.renderTooltip(font, hovered.getItem(), mouseX, mouseY);
+        } else {
+            drawSlotHint(graphics, mouseX, mouseY, headKey, funcKey);
         }
     }
 

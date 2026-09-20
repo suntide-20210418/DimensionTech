@@ -94,9 +94,9 @@ class StructureDataOperatorScreenLayoutTest {
 
     /**
      * The read marker, data integrator and structure interpreter are function slots: a hovered empty
-     * slot must still tell the player what goes there and what it unlocks, and a filled one must show
-     * that purpose rather than the bare item name. So the screen owns a hint pass for exactly these
-     * three slots and suppresses the vanilla item tooltip for them.
+     * slot still tells the player what goes there and what it unlocks, and a filled one shows the
+     * item's own tooltip instead of burying it under the hint. So the screen owns a decision pass for
+     * exactly these three slots and otherwise keeps the vanilla item tooltip.
      */
     @Test
     void theFunctionSlotsShowPurposeTooltips() throws Exception {
@@ -106,8 +106,11 @@ class StructureDataOperatorScreenLayoutTest {
                 screen.contains("renderSlotTooltips("),
                 "all slot tooltips are drawn by a single manual hover pass");
         assertTrue(
+                screen.contains("functionSlotTooltip("),
+                "the three function slots choose hint-vs-item via one helper");
+        assertTrue(
                 screen.contains("drawSlotHint("),
-                "the three function slots get a custom purpose-hint (head + func)");
+                "an empty function slot gets a custom purpose-hint (head + func)");
         assertTrue(
                 screen.contains("slot.target")
                         && screen.contains("slot.integrator")
@@ -115,7 +118,7 @@ class StructureDataOperatorScreenLayoutTest {
                 "each function slot must name what it accepts and what it unlocks");
         assertTrue(
                 screen.contains("hovered.getItem()"),
-                "every other slot keeps the vanilla item tooltip as the fallback");
+                "a filled function slot, and every other slot, keeps the vanilla item tooltip");
         assertTrue(
                 screen.contains("StructureDataOperatorBlockEntity.TARGET")
                         && screen.contains("StructureDataOperatorBlockEntity.INTEGRATOR")
