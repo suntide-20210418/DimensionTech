@@ -103,21 +103,24 @@ class StructureDataOperatorScreenLayoutTest {
         String screen = Files.readString(SCREEN);
 
         assertTrue(
-                screen.contains("renderSpecialSlotTooltip("),
-                "the three function slots need a custom purpose-hint pass");
+                screen.contains("renderSlotTooltips("),
+                "all slot tooltips are drawn by a single manual hover pass");
+        assertTrue(
+                screen.contains("drawSlotHint("),
+                "the three function slots get a custom purpose-hint (head + func)");
         assertTrue(
                 screen.contains("slot.target")
                         && screen.contains("slot.integrator")
                         && screen.contains("slot.interpreter"),
                 "each function slot must name what it accepts and what it unlocks");
         assertTrue(
-                screen.contains("super.renderTooltip("),
-                "every other slot keeps the vanilla item tooltip");
+                screen.contains("hovered.getItem()"),
+                "every other slot keeps the vanilla item tooltip as the fallback");
         assertTrue(
                 screen.contains("StructureDataOperatorBlockEntity.TARGET")
                         && screen.contains("StructureDataOperatorBlockEntity.INTEGRATOR")
                         && screen.contains("StructureDataOperatorBlockEntity.INTERPRETER"),
-                "the tooltip suppression must cover exactly the three function slots");
+                "the purpose hint must cover exactly the three function slots");
     }
 
     /**

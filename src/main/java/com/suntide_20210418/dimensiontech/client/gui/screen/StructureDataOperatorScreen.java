@@ -440,7 +440,7 @@ public final class StructureDataOperatorScreen
                     leftPos + WIDTH / 2,
                     topPos + HEIGHT - 11,
                     StructureMinerTheme.SUCCESS);
-        renderSpecialSlotTooltip(graphics, mouseX, mouseY);
+        renderSlotTooltips(graphics, mouseX, mouseY);
         /*
          * The hover pass runs after super.render, so the pose is back to identity and the canvas
          * scissor has been closed. That is what renderTooltip needs: it draws under the current
@@ -799,46 +799,41 @@ public final class StructureDataOperatorScreen
     }
 
     /**
-     * The three function slots (read marker, data integrator, structure interpreter) describe
-     * themselves with a stable two-line hint — what belongs there and what it unlocks — rather than
-     * the bare item name a filled slot would otherwise show. The vanilla hovered-slot tooltip is
-     * therefore suppressed for them in {@link #renderTooltip}; the write array and the player
-     * inventory keep the normal item tooltip, drawn by the super call there.
+     * Draws every slot tooltip by hand. The default AbstractContainerScreen hovered-slot tooltip is
+     * suppressed under this screen's custom canvas/scissor layout, so the three function slots get a
+     * purpose hint and every other slot falls back to the item tooltip — mirroring StructureReactorScreen.
      */
-    private void renderSpecialSlotTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        renderSlotHint(
-                graphics,
-                mouseX,
-                mouseY,
-                StructureDataOperatorBlockEntity.TARGET,
-                "screen.dimension_tech.structure_operator.slot.target",
-                "screen.dimension_tech.structure_operator.slot.target.func");
-        renderSlotHint(
-                graphics,
-                mouseX,
-                mouseY,
-                StructureDataOperatorBlockEntity.INTEGRATOR,
-                "screen.dimension_tech.structure_operator.slot.integrator",
-                "screen.dimension_tech.structure_operator.slot.integrator.func");
-        renderSlotHint(
-                graphics,
-                mouseX,
-                mouseY,
-                StructureDataOperatorBlockEntity.INTERPRETER,
-                "screen.dimension_tech.structure_operator.slot.interpreter",
-                "screen.dimension_tech.structure_operator.slot.interpreter.func");
+    private void renderSlotTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        Slot hovered = this.hoveredSlot;
+        if (hovered == null || !hovered.isActive()) return;
+        if (hovered.index == StructureDataOperatorBlockEntity.TARGET) {
+            drawSlotHint(
+                    graphics,
+                    mouseX,
+                    mouseY,
+                    "screen.dimension_tech.structure_operator.slot.target",
+                    "screen.dimension_tech.structure_operator.slot.target.func");
+        } else if (hovered.index == StructureDataOperatorBlockEntity.INTEGRATOR) {
+            drawSlotHint(
+                    graphics,
+                    mouseX,
+                    mouseY,
+                    "screen.dimension_tech.structure_operator.slot.integrator",
+                    "screen.dimension_tech.structure_operator.slot.integrator.func");
+        } else if (hovered.index == StructureDataOperatorBlockEntity.INTERPRETER) {
+            drawSlotHint(
+                    graphics,
+                    mouseX,
+                    mouseY,
+                    "screen.dimension_tech.structure_operator.slot.interpreter",
+                    "screen.dimension_tech.structure_operator.slot.interpreter.func");
+        } else if (hovered.hasItem()) {
+            graphics.renderTooltip(font, hovered.getItem(), mouseX, mouseY);
+        }
     }
 
-    private void renderSlotHint(
-            GuiGraphics graphics,
-            int mouseX,
-            int mouseY,
-            int slotIndex,
-            String headKey,
-            String funcKey) {
-        Slot slot = menu.getSlot(slotIndex);
-        if (slot == null || !slot.isActive()) return;
-        if (!inside(mouseX, mouseY, leftPos + slot.x, topPos + slot.y, 16, 16)) return;
+    private void drawSlotHint(
+            GuiGraphics graphics, int mouseX, int mouseY, String headKey, String funcKey) {
         graphics.renderTooltip(
                 font,
                 List.of(
@@ -847,23 +842,6 @@ public final class StructureDataOperatorScreen
                 Optional.empty(),
                 mouseX,
                 mouseY);
-    }
-
-    /**
-     * Routes the hovered-slot tooltip. The three function slots own their hint (drawn by
-     * {@link #renderSpecialSlotTooltip} after this), so the default item tooltip is skipped for them;
-     * every other slot falls through to the vanilla behaviour.
-     */
-    @Override
-    protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        Slot hovered = this.hoveredSlot;
-        if (hovered != null
-                && (hovered.index == StructureDataOperatorBlockEntity.TARGET
-                        || hovered.index == StructureDataOperatorBlockEntity.INTEGRATOR
-                        || hovered.index == StructureDataOperatorBlockEntity.INTERPRETER)) {
-            return;
-        }
-        super.renderTooltip(graphics, mouseX, mouseY);
     }
 
     @Override

@@ -391,7 +391,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.no_data", "No structure data recorded");
         add("screen.dimension_tech.structure_operator.empty", "No structures available");
         add("screen.dimension_tech.structure_operator.loading", "Analysing...");
-        add("screen.dimension_tech.structure_operator.no_loot", "This structure has no obtainable loot");
+        add("screen.dimension_tech.structure_operator.no_loot", "This structure has no loot");
         add("screen.dimension_tech.structure_operator.select_entry", "Select a structure on the left");
         add("screen.dimension_tech.structure_operator.dimension", "Dimension");
         add("screen.dimension_tech.structure_operator.structure", "Structure");
@@ -399,16 +399,12 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.status.cleared", "Write slots cleared");
         add("screen.dimension_tech.structure_operator.status.copied", "Copied to write slots");
         add("screen.dimension_tech.structure_operator.status.written", "Written to read slot");
-        add("screen.dimension_tech.structure_operator.slot.target", "Place a Structure Marker");
-        add(
-                "screen.dimension_tech.structure_operator.slot.target.func",
-                "Reads the structure data it holds; copy it to the write slots on the Operation page");
-        add("screen.dimension_tech.structure_operator.slot.integrator", "Place a Data Integrator");
+        add("screen.dimension_tech.structure_operator.slot.target", "Insert Structure Marker");
+        add("screen.dimension_tech.structure_operator.slot.target.func", "Lets the operator read and analyse the structure");
+        add("screen.dimension_tech.structure_operator.slot.integrator", "Insert Data Integrator");
         add("screen.dimension_tech.structure_operator.slot.integrator.func", "Unlocks the Explored Structures page");
-        add("screen.dimension_tech.structure_operator.slot.interpreter", "Place a Structure Interpreter");
-        add(
-                "screen.dimension_tech.structure_operator.slot.interpreter.func",
-                "Unlocks the All Structures page (requires the Data Integrator)");
+        add("screen.dimension_tech.structure_operator.slot.interpreter", "Insert Structure Interpreter");
+        add("screen.dimension_tech.structure_operator.slot.interpreter.func", "Unlocks the All Structures page (requires a Data Integrator)");
         add("screen.dimension_tech.struct_marker.title", "Structure Marker Analysis");
         add("screen.dimension_tech.struct_marker.subtitle", "Loot expectations and value overview");
         add("screen.dimension_tech.struct_marker.dimension", "Dimension: %s");

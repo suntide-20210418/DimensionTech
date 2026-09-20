@@ -309,6 +309,12 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.section.inventory", "物品栏");
         add("screen.dimension_tech.structure_operator.page.integrator", "已探索结构");
         add("screen.dimension_tech.structure_operator.page.interpreter", "所有结构");
+        add("screen.dimension_tech.structure_operator.slot.target", "放入结构标记器");
+        add("screen.dimension_tech.structure_operator.slot.target.func", "让操作仪读取并分析该结构");
+        add("screen.dimension_tech.structure_operator.slot.integrator", "放入数据整合器");
+        add("screen.dimension_tech.structure_operator.slot.integrator.func", "可解锁已探索结构页面");
+        add("screen.dimension_tech.structure_operator.slot.interpreter", "放入结构阐释器");
+        add("screen.dimension_tech.structure_operator.slot.interpreter.func", "可解锁所有结构页面（需先安装数据整合器）");
         add("screen.dimension_tech.structure_operator.search", "搜索结构…");
         add("screen.dimension_tech.structure_operator.copy", "复制");
         add("screen.dimension_tech.structure_operator.clear", "清空");
@@ -317,7 +323,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.no_data", "未记录结构数据");
         add("screen.dimension_tech.structure_operator.empty", "没有可选结构");
         add("screen.dimension_tech.structure_operator.loading", "正在解析…");
-        add("screen.dimension_tech.structure_operator.no_loot", "该结构中没有任何可获取的战利品");
+        add("screen.dimension_tech.structure_operator.no_loot", "该结构无战利品");
         add("screen.dimension_tech.structure_operator.select_entry", "从左侧选择一个结构");
         add("screen.dimension_tech.structure_operator.dimension", "维度");
         add("screen.dimension_tech.structure_operator.structure", "结构");
@@ -325,16 +331,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.status.cleared", "已清空写入槽");
         add("screen.dimension_tech.structure_operator.status.copied", "已拷贝至写入槽");
         add("screen.dimension_tech.structure_operator.status.written", "已写入读取槽");
-        add("screen.dimension_tech.structure_operator.slot.target", "放入结构标记器");
-        add(
-                "screen.dimension_tech.structure_operator.slot.target.func",
-                "读取其中记录的结构数据，可在操作页复制到写入槽");
-        add("screen.dimension_tech.structure_operator.slot.integrator", "放入数据整合器");
-        add("screen.dimension_tech.structure_operator.slot.integrator.func", "解锁「已探索结构」页面");
-        add("screen.dimension_tech.structure_operator.slot.interpreter", "放入结构阐释器");
-        add(
-                "screen.dimension_tech.structure_operator.slot.interpreter.func",
-                "解锁「所有结构」页面（需先安装数据整合器）");
         add("screen.dimension_tech.struct_marker.title", "结构标记器分析");
         add("screen.dimension_tech.struct_marker.subtitle", "战利品期望与价值概览");
         add("screen.dimension_tech.struct_marker.dimension", "维度：%s");
