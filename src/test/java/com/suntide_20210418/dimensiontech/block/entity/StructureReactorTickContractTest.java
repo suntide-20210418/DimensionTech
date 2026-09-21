@@ -69,7 +69,8 @@ class StructureReactorTickContractTest {
                         StructureReactorBlockEntity.DATA_AUTO_PUSH,
                         StructureReactorBlockEntity.DATA_ME_NETWORK,
                         StructureReactorBlockEntity.DATA_FLUID_FACE_MODES,
-                        StructureReactorBlockEntity.DATA_INPUT_FLUID_LOCKED);
+                        StructureReactorBlockEntity.DATA_INPUT_FLUID_LOCKED,
+                        StructureReactorBlockEntity.DATA_REDSTONE);
 
         assertEquals(
                 StructureReactorBlockEntity.DATA_SLOT_COUNT,
