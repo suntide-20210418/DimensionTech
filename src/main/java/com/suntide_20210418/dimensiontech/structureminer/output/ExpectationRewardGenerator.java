@@ -23,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
  * joint distribution, pool selection, function chain, or random sequence.
  */
 public final class ExpectationRewardGenerator {
+    private static final int MAX_DECONSTRUCTION_CORES = 10;
     private ExpectationRewardGenerator() {}
 
     public static List<ItemStack> draw(
@@ -70,6 +71,9 @@ public final class ExpectationRewardGenerator {
             int minerTier) {
         List<ItemStack> merged = new ArrayList<>();
         int clampedTier = Math.max(1, Math.min(6, minerTier));
+        int deconstructionCores = 0;
+        boolean coresAllowed =
+                !disabledItems.contains(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
         for (Cycle cycle : cycles) {
             MarkerAnalysis cached = cycle.loot();
             ServerLevel lootLevel =
@@ -91,8 +95,17 @@ public final class ExpectationRewardGenerator {
                         mergeEquivalent(merged, stack);
                 }
             }
-            addDimensionCoreReward(lootLevel, merged, cycle.parallel(), clampedTier, disabledItems);
+            if (coresAllowed) {
+                deconstructionCores =
+                        rollDimensionCores(
+                                deconstructionCores, lootLevel, cycle.parallel(), clampedTier);
+            }
             addTieredRewards(merged, cycle.parallel(), clampedTier);
+        }
+        if (deconstructionCores > 0) {
+            mergeEquivalent(
+                    merged,
+                    new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), deconstructionCores));
         }
         return List.copyOf(merged);
     }
@@ -116,21 +129,16 @@ public final class ExpectationRewardGenerator {
         mergeEquivalent(mergedLoot, new ItemStack(ModItems.MINING_TOKENS[tier - 1].get(), count));
     }
 
-    private static void addDimensionCoreReward(
-            ServerLevel level,
-            List<ItemStack> mergedLoot,
-            int parallel,
-            int tier,
-            Set<ResourceLocation> disabledItems) {
-        if (disabledItems.contains(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID)) return;
-        int cores = 0;
-        for (int roll = 0; roll < Math.min(10, Math.max(0, parallel)); roll++) {
-            if (level.random.nextFloat() < Math.min(1.0F, 0.05F * tier)) cores++;
+    private static int rollDimensionCores(
+            int accumulated, ServerLevel level, int parallel, int tier) {
+        if (parallel <= 0) return accumulated;
+        int remainingCap = MAX_DECONSTRUCTION_CORES - accumulated;
+        if (remainingCap <= 0) return accumulated;
+        int produced = 0;
+        for (int roll = 0; roll < parallel && produced < remainingCap; roll++) {
+            if (level.random.nextFloat() < Math.min(1.0F, 0.05F * tier)) produced++;
         }
-        if (cores > 0) {
-            mergeEquivalent(
-                    mergedLoot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), cores));
-        }
+        return accumulated + produced;
     }
 
     public record Cycle(MarkerAnalysis loot, int parallel, int draws) {}

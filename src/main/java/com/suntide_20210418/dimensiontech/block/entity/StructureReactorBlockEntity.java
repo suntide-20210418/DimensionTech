@@ -21,6 +21,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -334,10 +336,25 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     public boolean exchangeWithFluidContainer(IFluidHandlerItem container) {
         if (container.getTanks() < 1) return false;
         FluidStack held = container.getFluidInTank(0);
-        boolean moved = !held.isEmpty() && fillInputFrom(container, held);
-        if (!moved) moved = fillContainerFromOutput(container);
-        if (moved) setChanged();
-        return moved;
+        boolean input = !held.isEmpty() && fillInputFrom(container, held);
+        boolean output = !input && fillContainerFromOutput(container);
+        if (input || output) {
+            setChanged();
+            playFluidTransferSound(input);
+        }
+        return input || output;
+    }
+
+    /** Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills. */
+    private void playFluidTransferSound(boolean pouringIn) {
+        if (level == null) return;
+        level.playSound(
+                null,
+                worldPosition,
+                pouringIn ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL,
+                SoundSource.BLOCKS,
+                1.0F,
+                1.0F);
     }
 
     /** Feeds the input tank from a filled container, as far as its remaining room allows. */

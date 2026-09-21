@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.integration.kubejs;
 
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
 import dev.latvian.mods.kubejs.KubeJSPlugin;
@@ -98,6 +99,7 @@ public final class DimensionTechKubeJSPlugin extends KubeJSPlugin {
     @Override
     public void registerClasses(ScriptType type, ClassFilter filter) {
         filter.allow(DimensionTechJS.class.getName());
+        filter.allow(DimensionTechJS.ReactorRecipeJS.class.getName());
         filter.allow(MinerBlockEntityJS.class.getName());
         filter.allow(MinerEventsJS.class.getName());
     }
@@ -106,6 +108,8 @@ public final class DimensionTechKubeJSPlugin extends KubeJSPlugin {
     public void onServerReload() {
         MinerScriptConfigService.clear();
         StructureScriptConfigService.clear();
+        // Reset reactor recipes to defaults so server scripts re-apply their add/modify/override.
+        StructureReactorRecipes.resetDefaults();
     }
 
     @Override

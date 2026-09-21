@@ -41,9 +41,27 @@ final class StructureDataOperatorReadings {
 
     private StructureDataOperatorReadings() {}
 
-    /** Height of the whole block, so a page can place its item table underneath. */
+    /** Height of the whole block at the default {@link #LINE_HEIGHT} pitch. */
     static int height() {
-        return LINE_HEIGHT * 4;
+        return height(LINE_HEIGHT);
+    }
+
+    /** Height of the whole block at an arbitrary row pitch. */
+    static int height(int lineHeight) {
+        return lineHeight * 4;
+    }
+
+    /** The readings at the default row pitch — the operator's three pages. */
+    static void draw(
+            GuiGraphics g,
+            Font font,
+            int x,
+            int y,
+            int width,
+            ItemStack marker,
+            ResourceLocation dimension,
+            ResourceLocation structure) {
+        draw(g, font, x, y, width, LINE_HEIGHT, marker, dimension, structure);
     }
 
     /**
@@ -55,6 +73,12 @@ final class StructureDataOperatorReadings {
      * identifiers are passed in because the operate page reads them out of its marker while the
      * catalogue pages already know which entry is selected — and an entry can be selected before its
      * analysis lands, so the two cannot both be taken from the marker.
+     *
+     * <p>{@code lineHeight} is a parameter rather than a constant because the block is not only ever
+     * placed in the operator's 152px column. The structure marker stacks these same four readings
+     * down an 88px column that owns the whole left half of its 176px-tall face, and the looser 18 is
+     * what keeps that from reading as cramped. The label column, the value accents and the dash all
+     * stay identical, which is the point of there being one implementation rather than two.
      */
     static void draw(
             GuiGraphics g,
@@ -62,6 +86,7 @@ final class StructureDataOperatorReadings {
             int x,
             int y,
             int width,
+            int lineHeight,
             ItemStack marker,
             ResourceLocation dimension,
             ResourceLocation structure) {
@@ -82,7 +107,7 @@ final class StructureDataOperatorReadings {
                 g,
                 font,
                 x,
-                y + LINE_HEIGHT,
+                y + lineHeight,
                 column,
                 budget,
                 STRUCTURE,
@@ -92,7 +117,7 @@ final class StructureDataOperatorReadings {
                 g,
                 font,
                 x,
-                y + LINE_HEIGHT * 2,
+                y + lineHeight * 2,
                 column,
                 budget,
                 DIMENSION_VALUE,
@@ -104,7 +129,7 @@ final class StructureDataOperatorReadings {
                 g,
                 font,
                 x,
-                y + LINE_HEIGHT * 3,
+                y + lineHeight * 3,
                 column,
                 budget,
                 STRUCTURE_VALUE,

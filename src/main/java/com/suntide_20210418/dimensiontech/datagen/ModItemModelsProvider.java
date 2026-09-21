@@ -25,11 +25,14 @@ public class ModItemModelsProvider extends ItemModelProvider {
         withExistingParent(coreName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
         for (int tier = 1; tier <= 6; tier++) {
-            for (String name :
-                    new String[] {"dimension_fragment_tier_" + tier, "mining_token_tier_" + tier}) {
-                withExistingParent(name, ResourceLocationHelper.vanilla("item/generated"))
-                        .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
-            }
+            String fragmentName = "dimension_fragment_tier_" + tier;
+            withExistingParent(fragmentName, ResourceLocationHelper.vanilla("item/generated"))
+                    // Reuse the existing core texture until dedicated fragment artwork is added.
+                    .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
+
+            String tokenName = "mining_token_tier_" + tier;
+            withExistingParent(tokenName, ResourceLocationHelper.vanilla("item/generated"))
+                    .texture("layer0", ResourceLocationHelper.itemModelTexture(tokenName));
         }
         for (String name : new String[] {"data_integrator", "structure_interpreter"})
             withExistingParent(name, ResourceLocationHelper.vanilla("item/generated"))

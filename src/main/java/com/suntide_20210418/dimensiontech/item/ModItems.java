@@ -32,7 +32,7 @@ public final class ModItems {
     public static final RegistryObject<Item> DIMENSION_DECONSTRUCTION_CORE =
             ITEMS.register(
                     ResourceLocationHelper.getPath(DIMENSION_DECONSTRUCTION_CORE_ID),
-                    () -> new Item(new Item.Properties().stacksTo(64)));
+                    () -> new DimensionDeconstructionCoreItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item>[] DIMENSION_FRAGMENTS =
             tieredItems("dimension_fragment");
     public static final RegistryObject<Item>[] MINING_TOKENS = tieredItems("mining_token");

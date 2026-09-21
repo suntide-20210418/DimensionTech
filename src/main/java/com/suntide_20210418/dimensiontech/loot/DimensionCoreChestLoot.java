@@ -19,8 +19,10 @@ import net.minecraftforge.fml.common.Mod;
 public final class DimensionCoreChestLoot {
     private static final String MISSES_TAG =
             DimensionTechMod.MOD_ID + ":dimension_core_chest_misses";
-    private static final int PITY_CHEST = 20;
-    private static final float DROP_CHANCE = 0.05F;
+    /** Consecutive failed chests before the next one is guaranteed to hold a core. */
+    public static final int PITY_CHEST = 20;
+    /** Base per-chest core chance. */
+    public static final float DROP_CHANCE = 0.05F;
 
     private DimensionCoreChestLoot() {}
 

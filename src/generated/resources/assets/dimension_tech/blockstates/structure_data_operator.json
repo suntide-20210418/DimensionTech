@@ -1,7 +1,8 @@
 {
   "variants": {
     "": {
-      "model": "dimension_tech:block/structure_data_operator"
+      "model": "dimension_tech:block/structure_data_operator",
+      "y": 90
     }
   }
 }

@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.block;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -33,6 +34,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkHooks;
 
@@ -98,7 +101,7 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
                             .withStyle(ChatFormatting.GRAY));
             tooltip.add(
                     Component.translatable(
-                                    "tooltip.dimension_tech.structure_miner.material.structure", 1)
+                                    "tooltip.dimension_tech.structure_miner.material.structure", 2)
                             .withStyle(ChatFormatting.GRAY));
             tooltip.add(
                     Component.translatable(
@@ -163,12 +166,45 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
+        ItemStack held = player.getItemInHand(hand);
+        Optional<IFluidHandlerItem> container =
+                held.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).resolve();
+        if (container.isPresent()) {
+            if (!level.isClientSide()
+                    && level.getBlockEntity(position) instanceof BaseMinerBlockEntity miner) {
+                exchangeFluid(player, hand, held, miner, container.get());
+            }
+            // A held fluid container is spent on the transfer and never opens the screen, so the
+            // interaction result stays the same on both sides.
+            return InteractionResult.sidedSuccess(level.isClientSide());
+        }
         if (!level.isClientSide()
                 && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(position) instanceof BaseMinerBlockEntity blockEntity) {
             NetworkHooks.openScreen(serverPlayer, blockEntity, position);
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    /**
+     * Runs the tank transfer and then re-places the held container, because a container carries its
+     * fluid in the item itself: a water bucket becomes an empty one and the reverse.
+     */
+    private static void exchangeFluid(
+            Player player,
+            InteractionHand hand,
+            ItemStack held,
+            BaseMinerBlockEntity miner,
+            IFluidHandlerItem container) {
+        if (!miner.exchangeWithFluidContainer(container)) return;
+        ItemStack result = container.getContainer();
+        if (result.isEmpty() || ItemStack.isSameItemSameTags(result, held)) return;
+        if (held.getCount() == 1) {
+            player.setItemInHand(hand, result);
+        } else if (!player.getAbilities().instabuild) {
+            held.shrink(1);
+            if (!player.getInventory().add(result)) player.drop(result, false);
+        }
     }
 
     @Override

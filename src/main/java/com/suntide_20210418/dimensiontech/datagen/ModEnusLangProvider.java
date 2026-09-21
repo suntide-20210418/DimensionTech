@@ -280,6 +280,50 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.range.fluid", "Fluid cost: %s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.output", "Output: %s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.fragments", "Fragments: %s (at most %s)");
+        add("jei.dimension_tech.structure_miner.marker", "Marked Structure Marker");
+        add(
+                "jei.dimension_tech.structure_miner.marker.tip",
+                "Insert a marker already bound to the structure you want to mine");
+        add("jei.dimension_tech.structure_miner.loot", "Structure Loot");
+        add(
+                "jei.dimension_tech.structure_miner.loot.tip",
+                "The structure's own loot, drawn at the miner's total parallel");
+        add(
+                "jei.dimension_tech.structure_miner.requirement",
+                "Fluid requirement: %s mB per work cycle (tank %s mB)");
+        add(
+                "jei.dimension_tech.structure_miner.product",
+                "Each cycle yields this item x%s (capped by base parallel)");
+        add(
+                "jei.dimension_tech.structure_miner.core.chance",
+                "Mining: at most %s rolls per cycle, %s%% chance each");
+        add(
+                "jei.dimension_tech.structure_miner.core.at_least_one",
+                "Chance of at least one core per cycle: ~%s%%");
+        add(
+                "jei.dimension_tech.structure_miner.core.pity",
+                "Pity: chests drop at %s%% base, guaranteed within %s chests");
+        add(
+                "jei.dimension_tech.structure_miner.reward.note",
+                "Actual output scales with parallel upgrades and external acceleration");
+        add(
+                "jei.dimension_tech.structure_miner.time.step",
+                "Duration: structure value \u00f7 effective efficiency, rounded up (ticks)");
+        add(
+                "jei.dimension_tech.structure_miner.time.efficiency",
+                "Effective efficiency: base efficiency \u00d7 efficiency upgrade multiplier");
+        add(
+                "jei.dimension_tech.structure_miner.time.minimum",
+                "Below the %s-tick minimum cycle, the minimum is kept and the excess becomes parallel");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.chance",
+                "Mining drop: %s%%\u2013%s%% per roll (rises with miner tier)");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.first",
+                "Before a first miner exists, also found in chest loot");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.use",
+                "Crafts the Tier 1 Structure Miner");
         add(
                 TranslateHelper.block("tier_1_structure_miner"),
                 "Tier 1 Void Structure Resource Miner");
@@ -382,6 +426,15 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.upgrade.luck", "Luck: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.none", "No attribute bonuses");
         add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.acquire",
+                "Drops from structure mining, with higher drop chance at higher miner tiers");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.first",
+                "First acquisition: from chest loot, before any miner exists");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.use",
+                "Used to craft the Tier 1 Structure Miner");
+        add(
                 "tooltip.dimension_tech.structure_reactor.comparator",
                 "A comparator can read the ritual state (%s-%s)");
         add(
@@ -432,9 +485,12 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.structures", "Indexed structures: %s");
         add("screen.dimension_tech.struct_marker.item", "Item");
         add("screen.dimension_tech.struct_marker.expected", "Expected");
+        add("screen.dimension_tech.struct_marker.items_heading", "Item expectations");
+        add("screen.dimension_tech.struct_marker.item_count", "%s items");
         add("screen.dimension_tech.struct_marker.multiplier_header", "Multiplier");
         add("screen.dimension_tech.struct_marker.multiplier", "Multiplier: %s");
         add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
+        add("screen.dimension_tech.struct_marker.mark", "Mark Structure");
         add("screen.dimension_tech.struct_marker.select", "Select Structure");
         add("screen.dimension_tech.struct_marker.clear", "Clear Structure");
         add(

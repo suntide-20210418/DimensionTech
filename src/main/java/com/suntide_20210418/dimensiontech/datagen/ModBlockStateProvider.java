@@ -22,22 +22,28 @@ public class ModBlockStateProvider extends BlockStateProvider {
         simpleBlockWithItem(
                 ModBlocks.STRUCTURE_REACTOR.get(),
                 models().getExistingFile(modLoc("block/strcture_reactor")));
-        simpleBlockWithItem(
-                ModBlocks.STRUCTURE_DATA_OPERATOR.get(),
-                models().getExistingFile(modLoc("block/structure_data_operator")));
+        // The operator has no facing state and its hand-authored model fronts the +Z side.
+        // Panelling that runs normal to play places it with the interface rotated a quarter
+        // turn counter-clockwise, so the blockstate turns the model by 270 degrees round Y.
+        ModelFile operator =
+                models().getExistingFile(modLoc("block/structure_data_operator"));
+        getVariantBuilder(ModBlocks.STRUCTURE_DATA_OPERATOR.get())
+                .partialState()
+                .modelForState()
+                .modelFile(operator)
+                .rotationY(90)
+                .addModel();
+        simpleBlockItem(ModBlocks.STRUCTURE_DATA_OPERATOR.get(), operator);
         simpleBlockWithItem(
                 ModBlocks.STRUCTURE_MINER_CASING.get(),
                 models().getExistingFile(modLoc("block/structure_miner_casing")));
 
-        Block tier1Miner = ModBlocks.TIER_1_STRUCTURE_MINER.get();
-        ModelFile tier1MinerModel = models().getExistingFile(modLoc("block/tier_1_strcture_miner"));
-        horizontalBlock(tier1Miner, tier1MinerModel);
-        simpleBlockItem(tier1Miner, tier1MinerModel);
-        registerMiner(ModBlocks.TIER_2_STRUCTURE_MINER.get(), "tier_2_structure_miner");
-        registerMiner(ModBlocks.TIER_3_STRUCTURE_MINER.get(), "tier_3_structure_miner");
-        registerMiner(ModBlocks.TIER_4_STRUCTURE_MINER.get(), "tier_4_structure_miner");
-        registerMiner(ModBlocks.TIER_5_STRUCTURE_MINER.get(), "tier_5_structure_miner");
-        registerMiner(ModBlocks.TIER_6_STRUCTURE_MINER.get(), "tier_6_structure_miner");
+        registerHandWrittenMiner(ModBlocks.TIER_1_STRUCTURE_MINER.get(), 1);
+        registerHandWrittenMiner(ModBlocks.TIER_2_STRUCTURE_MINER.get(), 2);
+        registerHandWrittenMiner(ModBlocks.TIER_3_STRUCTURE_MINER.get(), 3);
+        registerHandWrittenMiner(ModBlocks.TIER_4_STRUCTURE_MINER.get(), 4);
+        registerHandWrittenMiner(ModBlocks.TIER_5_STRUCTURE_MINER.get(), 5);
+        registerHandWrittenMiner(ModBlocks.TIER_6_STRUCTURE_MINER.get(), 6);
 
         simpleBlockWithItem(
                 ModBlocks.STRUCTURE_MINER_STRUCTURE.get(),
@@ -62,8 +68,15 @@ public class ModBlockStateProvider extends BlockStateProvider {
         }
     }
 
-    private void registerMiner(Block block, String name) {
-        ModelFile model = models().cubeAll(name, mcLoc("block/raw_iron_block"));
+    /**
+     * The six miner tiers ship hand-authored Blockbench models, so datagen only writes the
+     * blockstate and the item model, both pointing at
+     * {@code dimension_tech:block/tier_N_strcture_miner}. The "strcture" spelling is the
+     * on-disk file name from the original Blockbench export and must not be "fixed" here —
+     * the block ids are spelled correctly ("structure"), so the two are easy to conflate.
+     */
+    private void registerHandWrittenMiner(Block block, int tier) {
+        ModelFile model = models().getExistingFile(modLoc("block/tier_" + tier + "_strcture_miner"));
         horizontalBlock(block, model);
         simpleBlockItem(block, model);
     }

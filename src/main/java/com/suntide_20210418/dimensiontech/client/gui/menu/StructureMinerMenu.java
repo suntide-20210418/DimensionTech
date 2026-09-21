@@ -417,7 +417,7 @@ public class StructureMinerMenu extends AbstractContainerMenu
     }
 
     public boolean isRedstoneControlEnabled() {
-        return getTelemetry(11) == BaseMinerBlockEntity.RedstoneMode.NO_SIGNAL.ordinal();
+        return getTelemetry(11) == BaseMinerBlockEntity.RedstoneMode.SIGNAL.ordinal();
     }
 
     /** Sends the dedicated item-output backend toggle used by the AE mode control. */

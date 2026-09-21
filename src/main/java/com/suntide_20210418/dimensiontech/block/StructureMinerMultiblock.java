@@ -10,66 +10,81 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** Coordinate-faithful structure adapted from the supplied Modular Machinery definition. */
+/**
+ * Derrick-style tower: the miner head owns the top layer and the machine hangs five layers below it.
+ *
+ * <p>The head keeps its four side neighbours and the block above it free, so automation can attach
+ * to any of those five faces without routing around the frame. The body below is a 5x5 tower: a neck
+ * collar that carries the head, three stacked module bays per face, and a 3x3 boring head at the
+ * bottom with the drill point in the middle.
+ */
 public class StructureMinerMultiblock {
     private static final Set<String> CASING =
             Set.of(
-                    "-2,0,2",
-                    "-3,0,0",
-                    "-2,0,-2",
-                    "3,0,0",
-                    "2,0,2",
-                    "3,-1,0",
-                    "2,-1,-2",
-                    "1,-1,-2",
-                    "-3,-1,1",
-                    "-2,-1,1",
-                    "-1,-1,-2",
-                    "-3,-1,0",
-                    "-2,-1,-2",
-                    "-1,-1,3",
-                    "2,-1,1",
-                    "3,-1,-1",
-                    "2,-1,-1",
-                    "1,-1,-3",
-                    "0,-1,-3",
-                    "-2,-1,-1",
-                    "-2,-1,2",
-                    "1,-1,2",
-                    "2,-1,2",
-                    "0,-1,3",
-                    "3,-1,1",
-                    "1,-1,3",
-                    "0,0,-3",
-                    "0,0,3",
-                    "-1,-1,-3",
-                    "-3,-1,-1",
-                    "-1,-1,2",
-                    "2,0,-2");
-    private static final Set<String> FOCUS =
-            Set.of("-3,1,0", "3,1,0", "-2,1,2", "2,1,2", "0,1,-3", "2,1,-2", "0,1,3", "-2,1,-2");
-    private static final Set<String> STRUCTURE = Set.of("0,-1,0");
-
-    /**
-     * The twelve non-frame, non-focus parts from the source definition. Each accepts a miner
-     * upgrade block or the structure block, and the build button fills empty ones with the structure
-     * block, so a fresh player can complete the multiblock out of the shared structure recipe alone
-     * without needing any tier-gated machine product.
-     */
-    private static final Set<String> UPGRADE =
-            Set.of(
-                    "2,-1,0",
-                    "1,-1,0",
-                    "-1,-1,0",
                     "0,-1,-2",
+                    "-1,-1,-1",
+                    "0,-1,-1",
+                    "1,-1,-1",
                     "-2,-1,0",
+                    "-1,-1,0",
+                    "1,-1,0",
+                    "2,-1,0",
                     "-1,-1,1",
                     "0,-1,1",
                     "1,-1,1",
-                    "1,-1,-1",
-                    "0,-1,-1",
-                    "-1,-1,-1",
-                    "0,-1,2");
+                    "0,-1,2",
+                    "-1,-3,-1",
+                    "0,-3,-1",
+                    "1,-3,-1",
+                    "-1,-3,0",
+                    "1,-3,0",
+                    "-1,-3,1",
+                    "0,-3,1",
+                    "1,-3,1",
+                    "-1,-4,-1",
+                    "0,-4,-1",
+                    "1,-4,-1",
+                    "-1,-4,0",
+                    "1,-4,0",
+                    "-1,-4,1",
+                    "0,-4,1",
+                    "1,-4,1",
+                    "0,-5,-2",
+                    "-2,-5,0",
+                    "2,-5,0",
+                    "0,-5,2");
+    private static final Set<String> FOCUS =
+            Set.of(
+                    "-1,-5,-1",
+                    "0,-5,-1",
+                    "1,-5,-1",
+                    "-1,-5,0",
+                    "1,-5,0",
+                    "-1,-5,1",
+                    "0,-5,1",
+                    "1,-5,1");
+    private static final Set<String> STRUCTURE = Set.of("0,-1,0", "0,-5,0");
+
+    /**
+     * The twelve module bays: four face-centred columns of three stacked slots (y = -2, -3, -4).
+     * Each accepts a miner upgrade block or the structure block, and the build button fills empty
+     * ones with the structure block, so a fresh player can complete the multiblock out of the shared
+     * structure recipe alone without needing any tier-gated machine product.
+     */
+    private static final Set<String> UPGRADE =
+            Set.of(
+                    "0,-2,-2",
+                    "-2,-2,0",
+                    "2,-2,0",
+                    "0,-2,2",
+                    "0,-3,-2",
+                    "-2,-3,0",
+                    "2,-3,0",
+                    "0,-3,2",
+                    "0,-4,-2",
+                    "-2,-4,0",
+                    "2,-4,0",
+                    "0,-4,2");
 
     private StructureMinerMultiblock() {}
 
@@ -104,7 +119,7 @@ public class StructureMinerMultiblock {
                 ModBlocks.DIMENSION_FOCUS[Math.max(0, Math.min(5, tier - 1))]
                         .get()
                         .defaultBlockState();
-        List<ProjectionBlock> blocks = new ArrayList<>(53);
+        List<ProjectionBlock> blocks = new ArrayList<>(54);
         addProjection(blocks, CASING, casing, ProjectionKind.CASING);
         addProjection(blocks, FOCUS, focus, ProjectionKind.FOCUS);
         addProjection(blocks, STRUCTURE, structure, ProjectionKind.STRUCTURE);
@@ -178,9 +193,9 @@ public class StructureMinerMultiblock {
                 ModBlocks.DIMENSION_FOCUS[Math.max(0, Math.min(5, tier - 1))]
                         .get()
                         .defaultBlockState();
-        for (int x = -3; x <= 3; x++)
-            for (int y = -1; y <= 1; y++)
-                for (int z = -3; z <= 3; z++) {
+        for (int x = -2; x <= 2; x++)
+            for (int y = -5; y <= -1; y++)
+                for (int z = -2; z <= 2; z++) {
                     String key = x + "," + y + "," + z;
                     BlockState actual = level.getBlockState(center.offset(x, y, z));
                     if (CASING.contains(key) && !actual.is(casing.getBlock())) return false;
