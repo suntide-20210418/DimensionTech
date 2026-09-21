@@ -151,7 +151,12 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
 
     @Override
     protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        g.fill(0, 0, width, height, StructureMinerTheme.BACKDROP);
+        /*
+         * No dim is painted here. AbstractContainerScreen#render already called renderBackground
+         * before this hook, and that is the half-transparent gradient the other machine screens
+         * show. An opaque fill on top of it — 0xFF141618 was the one used here — replaced the
+         * gradient outright and blacked the whole world out instead of dimming it.
+         */
         g.blit(
                 StructureReactorLayout.TEXTURE,
                 leftPos,

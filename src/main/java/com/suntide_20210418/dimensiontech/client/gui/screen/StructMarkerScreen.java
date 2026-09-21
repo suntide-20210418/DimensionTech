@@ -78,7 +78,7 @@ public final class StructMarkerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xFF0B0E12);
+        renderBackground(graphics);
         drawPanel(graphics, left, top, panelWidth, panelHeight);
         drawHeader(graphics, left);
         drawActions(graphics, mouseX, mouseY);
