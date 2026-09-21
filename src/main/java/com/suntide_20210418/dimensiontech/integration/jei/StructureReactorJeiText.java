@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.integration.jei;
 
+import com.suntide_20210418.dimensiontech.structurereactor.ReactorAnalogSignal;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StateId;
@@ -33,6 +34,10 @@ final class StructureReactorJeiText {
     static final String STEP_REQUIRES_UNKNOWN =
             "jei.dimension_tech.structure_reactor.step.requires.unknown";
     static final String STEP_TIMEOUT = "jei.dimension_tech.structure_reactor.step.timeout";
+    static final String STEP_SIGNAL = "jei.dimension_tech.structure_reactor.step.signal";
+
+    /** The levels that belong to no single step: idle, both blocked states, and refining. */
+    static final String COMPARATOR = "jei.dimension_tech.structure_reactor.comparator";
 
     static final String REWARD_WINDOW = "jei.dimension_tech.structure_reactor.reward.window";
     static final String REWARD_BRANCH = "jei.dimension_tech.structure_reactor.reward.branch";
@@ -108,12 +113,38 @@ final class StructureReactorJeiText {
                 Component.translatable(RANGE_FLUID, min.fluidCostMb(), max.fluidCostMb()),
                 Component.translatable(RANGE_OUTPUT, min.outputAmountMb(), max.outputAmountMb()),
                 Component.translatable(
-                        RANGE_FRAGMENTS, recipe.fragmentCount(), recipe.maxExtraFragments()));
+                        RANGE_FRAGMENTS, recipe.fragmentCount(), recipe.maxExtraFragments()),
+                comparatorLine());
+    }
+
+    /**
+     * The two comparator levels this step announces: the one it holds outside the reward window and
+     * the one it moves to inside it. Both come from the mapping the reactor itself publishes, so the
+     * page can never advertise a level the redstone interface does not produce.
+     */
+    static Component signalLine(StateId state) {
+        return Component.translatable(
+                STEP_SIGNAL,
+                state.signalLevel(),
+                state.signalLevel() + ReactorAnalogSignal.REWARD_WINDOW_OFFSET);
+    }
+
+    /**
+     * The comparator levels that belong to no step. The operation levels are on the step tooltips
+     * instead, because which one a reactor reports depends on the recipe.
+     */
+    static Component comparatorLine() {
+        return Component.translatable(
+                COMPARATOR,
+                ReactorAnalogSignal.IDLE,
+                ReactorAnalogSignal.IDLE_BLOCKED,
+                ReactorAnalogSignal.COMMIT_BLOCKED,
+                ReactorAnalogSignal.REFINING);
     }
 
     /**
      * The full rule text for one ritual state: what it wants, what a settlement inside the reward
-     * window pays, and what a wrong submission costs.
+     * window pays, what a wrong submission costs, and which levels a comparator reads for it.
      */
     static void appendStepTooltip(
             ITooltipBuilder tooltip, StructureReactorJeiRecipe.DisplayStep step, int index) {
@@ -129,6 +160,7 @@ final class StructureReactorJeiText {
                         STEP_TIMEOUT,
                         StructureReactorCycle.STATE_TIMEOUT_TICKS,
                         StructureReactorCycle.WRONG_STATE_TIME_PENALTY_TICKS));
+        tooltip.add(signalLine(step.state()));
     }
 
     private static Component rewardLine(StateId state) {

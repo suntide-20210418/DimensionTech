@@ -237,6 +237,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.io", "In %s mB -> Out %s mB");
         add("jei.dimension_tech.structure_reactor.branch", "Branch %s - recursion %s");
         add("jei.dimension_tech.structure_reactor.branch.alternate", "A/B alternates each commit");
+        add(
+                "jei.dimension_tech.structure_reactor.comparator",
+                "Comparator signal: %s idle - %s idle blocked - %s commit blocked - %s refining");
         add("jei.dimension_tech.structure_reactor.sequence", "Ritual sequence");
         add("jei.dimension_tech.structure_reactor.row", "%s - %s");
         add("jei.dimension_tech.structure_reactor.row.unknown", "unspecified");
@@ -246,6 +249,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "jei.dimension_tech.structure_reactor.step.requires.unknown",
                 "Requires: unspecified operation");
+        add(
+                "jei.dimension_tech.structure_reactor.step.signal",
+                "Comparator signal: %s (%s inside the reward window)");
         add(
                 "jei.dimension_tech.structure_reactor.step.timeout",
                 "Unsettled past %s ticks: time +%s ticks");
@@ -375,6 +381,18 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.upgrade.parallel", "Parallel: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.luck", "Luck: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.none", "No attribute bonuses");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator",
+                "A comparator can read the ritual state (%s-%s)");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.steps",
+                "Operation steps %s-%s (%s-%s inside the reward window)");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.levels",
+                "Idle %s - idle blocked %s - commit blocked %s - refining %s");
+        add(
+                "tooltip.dimension_tech.structure_reactor.hold_shift",
+                "Hold Shift for the comparator signal levels");
         add("screen.dimension_tech.structure_operator.title", "Structure Data Operator");
         add("screen.dimension_tech.structure_operator.tab.operation", "Operate");
         add("screen.dimension_tech.structure_operator.tab.integrator", "Explored");

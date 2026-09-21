@@ -89,6 +89,16 @@ class ReactorAnalogSignalTest {
     }
 
     @Test
+    void theStepsFormAContiguousRunStartingAtOne() {
+        // Surfaces advertise the operation levels as one range instead of listing every step, which
+        // only holds while declaration order matches level order with no gaps.
+        StateId[] steps = StateId.values();
+        for (int index = 0; index < steps.length; index++) {
+            assertEquals(index + 1, steps[index].signalLevel(), steps[index].toString());
+        }
+    }
+
+    @Test
     void noTwoMeaningsShareALevel() {
         List<Integer> assigned = new ArrayList<>();
         for (StateId state : StateId.values()) {

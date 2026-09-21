@@ -199,6 +199,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.io", "输入 %s mB → 输出 %s mB");
         add("jei.dimension_tech.structure_reactor.branch", "分支 %s · 目标递归 %s 层");
         add("jei.dimension_tech.structure_reactor.branch.alternate", "每次提交后 A/B 分支交替");
+        add(
+                "jei.dimension_tech.structure_reactor.comparator",
+                "比较器信号：%s 空闲 · %s 空闲受阻 · %s 提交受阻 · %s 炼制中");
         add("jei.dimension_tech.structure_reactor.sequence", "仪式状态序列");
         add("jei.dimension_tech.structure_reactor.row", "%s · %s");
         add("jei.dimension_tech.structure_reactor.row.unknown", "未指定");
@@ -206,6 +209,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.step", "第 %s 步：%s");
         add("jei.dimension_tech.structure_reactor.step.requires", "需要：%s（每步消耗 1 个）");
         add("jei.dimension_tech.structure_reactor.step.requires.unknown", "需要：未指定的操作物品");
+        add("jei.dimension_tech.structure_reactor.step.signal", "比较器信号：%s（奖励窗口内 %s）");
         add("jei.dimension_tech.structure_reactor.step.timeout", "超过 %s tick 未结算：时间 +%s tick");
         add("jei.dimension_tech.structure_reactor.reward.window", "奖励窗口：第 %s-%s tick 内结算");
         add("jei.dimension_tech.structure_reactor.reward.branch", "奖励：结算时间 -%s tick");
@@ -301,6 +305,14 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.upgrade.parallel", "并行提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.luck", "幸运提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.none", "无属性加成");
+        add("tooltip.dimension_tech.structure_reactor.comparator", "比较器可读取仪式状态（%s-%s）");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.steps",
+                "操作阶段 %s-%s（奖励窗口内 %s-%s）");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.levels",
+                "空闲 %s · 空闲受阻 %s · 提交受阻 %s · 炼制中 %s");
+        add("tooltip.dimension_tech.structure_reactor.hold_shift", "按住 Shift 查看比较器信号等级");
         add("screen.dimension_tech.structure_operator.title", "结构数据操作仪");
         add("screen.dimension_tech.structure_operator.tab.operation", "操作");
         add("screen.dimension_tech.structure_operator.tab.integrator", "已探索结构");
