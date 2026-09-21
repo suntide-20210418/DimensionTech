@@ -84,7 +84,12 @@ public final class StructureReactorBlock extends BaseEntityBlock {
             List<Component> tooltip,
             TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
-        tooltip.add(Component.translatable(COMPARATOR_HINT).withStyle(ChatFormatting.AQUA));
+        tooltip.add(
+                Component.translatable(
+                                COMPARATOR_HINT,
+                                ReactorAnalogSignal.MIN_VALUE,
+                                ReactorAnalogSignal.MAX_VALUE)
+                        .withStyle(ChatFormatting.AQUA));
         if (!Screen.hasShiftDown()) {
             tooltip.add(
                     Component.translatable(HOLD_SHIFT_HINT).withStyle(ChatFormatting.DARK_GRAY));
