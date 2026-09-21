@@ -47,9 +47,10 @@ final class StructureMinerSpriteRenderer {
     /**
      * A rectangular region of a texture, tagged with the file's real size.
      *
-     * <p>The size rides along because {@code blit} normalises UVs by whatever it is handed: pass
-     * {@code 256} for a 258px file and every region silently samples about a percent to the right.
-     * {@code StructureMinerScreen} had exactly that bug.
+     * <p>The size rides along because {@code blit} normalises UVs by whatever it is handed: hand it a
+     * width two pixels off the file and every region silently samples about a percent off, which is
+     * how {@code StructureMinerScreen}'s energy strip lost its last column to the panel and its fluid
+     * overlay crept into the strip.
      */
     record Fragment(
             ResourceLocation texture,

@@ -37,10 +37,12 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
             ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/output_face_config.png");
     /**
      * Real pixel size of {@link #GUI_TEXTURE}. {@code blit} normalises UVs by the size it is handed
-     * ({@code (uOffset + uWidth) / textureWidth}), so a size that does not match the file silently
-     * samples column {@code u * 258 / 256} and pushes every region up to two pixels to the right.
+     * ({@code (uOffset + uWidth) / textureWidth}), so it has to match the file exactly or every
+     * region silently samples the wrong columns. Two pixels of lie on the width is enough: the energy
+     * strip loses its last column to the panel and the fluid overlay reaches back into the energy
+     * strip. Package-private so the contract test can pin the pair to the file's own header.
      */
-    private static final int TEXTURE_WIDTH = 258, TEXTURE_HEIGHT = 256;
+    static final int TEXTURE_WIDTH = 256, TEXTURE_HEIGHT = 256;
     /**
      * Control panel region: (0,0) to (243,161). The dark outline on column 244 / row 162 is outside
      * it, matching the measured 244x162.
