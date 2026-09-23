@@ -611,13 +611,13 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isOverDetail(mouseX, mouseY)) {
-            detailScroll -= (int) Math.signum(delta) * DETAIL_LINE_HEIGHT;
+            detailScroll -= (int) Math.signum(scrollY) * DETAIL_LINE_HEIGHT;
             clampDetailScroll();
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override

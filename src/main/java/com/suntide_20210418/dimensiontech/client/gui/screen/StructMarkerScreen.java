@@ -150,7 +150,7 @@ public final class StructMarkerScreen extends Screen {
          * straight through the panel. It is drawn before super.render so the widgets land on top
          * of it, and the panel is drawn after so it lands on top of both.
          */
-        renderBackground(g);
+        renderBackground(g, mouseX, mouseY, partialTick);
         super.render(g, mouseX, mouseY, partialTick);
 
         int windowX = mouseX - left;
@@ -567,8 +567,9 @@ public final class StructMarkerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int step = (int) Math.signum(delta);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // 鼠标滚轮只产生纵向滚动量。
+        int step = (int) Math.signum(scrollY);
         if (!choices.isEmpty()) {
             int visible = Math.min(CHOICE_MAX_VISIBLE, choices.size());
             choiceScroll =

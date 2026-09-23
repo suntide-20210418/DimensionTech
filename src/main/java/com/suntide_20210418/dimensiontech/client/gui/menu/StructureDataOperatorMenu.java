@@ -3,7 +3,7 @@ package com.suntide_20210418.dimensiontech.client.gui.menu;
 import com.suntide_20210418.dimensiontech.block.entity.StructureDataOperatorBlockEntity;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -28,7 +28,7 @@ public final class StructureDataOperatorMenu extends AbstractContainerMenu {
 
     private final StructureDataOperatorBlockEntity blockEntity;
 
-    public StructureDataOperatorMenu(int id, Inventory inv, FriendlyByteBuf buf) {
+    public StructureDataOperatorMenu(int id, Inventory inv, RegistryFriendlyByteBuf buf) {
         this(id, inv, resolve(inv, buf));
     }
 
@@ -167,7 +167,8 @@ public final class StructureDataOperatorMenu extends AbstractContainerMenu {
         return false;
     }
 
-    private static StructureDataOperatorBlockEntity resolve(Inventory inv, FriendlyByteBuf buf) {
+    private static StructureDataOperatorBlockEntity resolve(
+            Inventory inv, RegistryFriendlyByteBuf buf) {
         var position = buf.readBlockPos();
         var blockEntity = inv.player.level().getBlockEntity(position);
         if (blockEntity instanceof StructureDataOperatorBlockEntity operator) return operator;

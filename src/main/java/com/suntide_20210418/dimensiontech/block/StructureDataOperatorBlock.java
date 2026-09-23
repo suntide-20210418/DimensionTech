@@ -1,10 +1,10 @@
 package com.suntide_20210418.dimensiontech.block;
 
+import com.mojang.serialization.MapCodec;
 import com.suntide_20210418.dimensiontech.block.entity.StructureDataOperatorBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -21,15 +21,22 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 
 public final class StructureDataOperatorBlock extends BaseEntityBlock {
     /** The horizontal direction the front (east, by convention) faces. */
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
+    public static final MapCodec<StructureDataOperatorBlock> CODEC =
+            simpleCodec(StructureDataOperatorBlock::new);
+
     public StructureDataOperatorBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
     }
 
     @Override
@@ -79,17 +86,16 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
      * sides, so the server can construct the container without touching anything client-only.
      */
     @Override
-    public InteractionResult use(
+    public InteractionResult useWithoutItem(
             BlockState state,
             Level level,
             BlockPos pos,
             Player player,
-            InteractionHand hand,
             BlockHitResult hit) {
         if (!level.isClientSide
                 && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof StructureDataOperatorBlockEntity operator) {
-            NetworkHooks.openScreen(serverPlayer, operator, pos);
+            serverPlayer.openMenu(operator, pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }

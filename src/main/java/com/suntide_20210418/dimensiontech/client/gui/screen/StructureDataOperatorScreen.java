@@ -430,7 +430,7 @@ public final class StructureDataOperatorScreen
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         search.setVisible(page != Page.OPERATION);
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partial);
         super.render(graphics, mouseX, mouseY, partial);
         if (statusKey != null)
             GuiText.centered(
@@ -718,8 +718,9 @@ public final class StructureDataOperatorScreen
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int step = (int) Math.signum(delta);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // 鼠标滚轮只产生纵向滚动量。
+        int step = (int) Math.signum(scrollY);
         if (page == Page.OPERATION) {
             // No position gate on the operate page, matching the miner's wheel behaviour.
             StructureDataOperatorOperationPage.scroll(this, step);

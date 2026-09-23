@@ -9,7 +9,7 @@ import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -30,7 +30,7 @@ public final class StructureReactorMenu extends AbstractContainerMenu
     private ReactorTooltipSnapshot tooltipSnapshot = ReactorTooltipSnapshot.empty();
     private int tooltipRevision = -1;
 
-    public StructureReactorMenu(int id, Inventory player, FriendlyByteBuf data) {
+    public StructureReactorMenu(int id, Inventory player, RegistryFriendlyByteBuf data) {
         this(id, player, get(player, data.readBlockPos()));
     }
 

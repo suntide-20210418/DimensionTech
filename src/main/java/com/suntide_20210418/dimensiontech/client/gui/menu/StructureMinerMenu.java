@@ -7,7 +7,7 @@ import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
@@ -108,7 +108,7 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
     private final int[] telemetry;
     private final int[] fluidTelemetry = new int[6];
 
-    public StructureMinerMenu(int containerId, Inventory playerInventory, FriendlyByteBuf data) {
+    public StructureMinerMenu(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
         this(containerId, playerInventory, getBlockEntity(playerInventory, data.readBlockPos()));
     }
 

@@ -441,7 +441,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         int logicalMouseX = toLogical(mouseX);
         int logicalMouseY = toLogical(mouseY);
         // Traced here rather than inside the pages so the lane has one source of hover truth for
@@ -799,13 +799,13 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
      * while nothing on screen moved.
      */
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         double localX = mouseX / uiScale - leftPos;
         double localY = mouseY / uiScale - topPos;
         // The work page has nothing to scroll; the scrolling pages scroll anywhere over their
         // canvas but not over the player inventory below it, which is disjoint from the page.
         if (uiState.page == Page.WORK || !insidePageCanvas(localX, localY)) return false;
-        return StructureMinerPageRenderer.mouseScrolled(this, uiState.page, delta);
+        return StructureMinerPageRenderer.mouseScrolled(this, uiState.page, scrollY);
     }
 
     @Override
