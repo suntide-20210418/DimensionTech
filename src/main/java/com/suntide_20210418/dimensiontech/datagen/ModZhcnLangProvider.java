@@ -336,6 +336,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.status.waiting_structure", "等待结构");
         add("message.dimension_tech.structure_miner.projection_on", "已显示多方块结构投影");
         add("message.dimension_tech.structure_miner.projection_off", "已隐藏多方块结构投影");
+        add("message.dimension_tech.structure_miner.structure_complete", "结构已完整，无需投影");
         add(
                 "message.dimension_tech.structure_miner.build_blocked",
                 "搭建位置被 %s 个方块阻挡，请先清理");
