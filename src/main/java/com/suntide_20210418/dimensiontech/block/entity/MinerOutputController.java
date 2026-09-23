@@ -13,6 +13,7 @@ import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -64,8 +65,10 @@ final class MinerOutputController {
                 continue;
             }
             IFluidHandler handler =
-                    adjacent.getCapability(Capabilities.FluidHandler.BLOCK, direction.getOpposite())
-                            .orElse(null);
+                    level.getCapability(
+                            Capabilities.FluidHandler.BLOCK,
+                            position.relative(direction),
+                            direction.getOpposite());
             if (handler == null) continue;
             FluidStack simulated =
                     handler.drain(
@@ -178,7 +181,11 @@ final class MinerOutputController {
         pending = List.copyOf(output);
     }
 
-    void save(CompoundTag tag, String equipmentTag, String pendingTag) {
+    void save(
+            CompoundTag tag,
+            String equipmentTag,
+            String pendingTag,
+            HolderLookup.Provider registries) {
         tag.putInt("ConfiguredOutputState", outputState.ordinal());
         tag.putInt("OutputFaceMask", outputFaceMask);
         tag.putBoolean(equipmentTag, equipmentDismantling);
@@ -186,11 +193,15 @@ final class MinerOutputController {
         disabledItems.forEach(item -> disabled.add(StringTag.valueOf(item.toString())));
         tag.put("DisabledExpectedItems", disabled);
         ListTag output = new ListTag();
-        pending.forEach(stack -> output.add(stack.save(new CompoundTag())));
+        pending.forEach(stack -> output.add(stack.saveOptional(registries)));
         tag.put(pendingTag, output);
     }
 
-    void load(CompoundTag tag, String equipmentTag, String pendingTag) {
+    void load(
+            CompoundTag tag,
+            String equipmentTag,
+            String pendingTag,
+            HolderLookup.Provider registries) {
         int ordinal =
                 tag.contains("ConfiguredOutputState", Tag.TAG_INT)
                         ? tag.getInt("ConfiguredOutputState")
@@ -211,7 +222,7 @@ final class MinerOutputController {
         }
         List<ItemStack> loaded = new ArrayList<>();
         for (Tag value : tag.getList(pendingTag, Tag.TAG_COMPOUND)) {
-            ItemStack stack = ItemStack.of((CompoundTag) value);
+            ItemStack stack = ItemStack.parseOptional(registries, (CompoundTag) value);
             if (!stack.isEmpty()) loaded.add(stack);
         }
         pending = List.copyOf(loaded);

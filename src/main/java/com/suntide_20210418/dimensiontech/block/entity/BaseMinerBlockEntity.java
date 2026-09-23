@@ -20,6 +20,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -37,10 +38,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -78,11 +76,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private final ItemStackHandler itemHandler;
     private final EnergyContainer energyStorage;
-    private LazyOptional<IItemHandler> itemHandlerCapability;
-    private LazyOptional<IEnergyStorage> energyCapability;
-    private LazyOptional<IFluidHandler> fluidCapability;
-    private LazyOptional<IFluidHandler> fluidOutputCapability;
     private final FluidTank fluidTank;
+    private final IFluidHandler fluidInputHandler;
+    private final IFluidHandler fluidOutputHandler;
     public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
     private final MinerAnalysisController analysisController;
     private final MinerUpgradeController upgradeController;
@@ -129,10 +125,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         setChanged();
                     }
                 };
-        this.itemHandlerCapability = LazyOptional.of(() -> itemHandler);
-        this.energyCapability = LazyOptional.of(() -> energyStorage);
-        this.fluidCapability = LazyOptional.of(this::createFluidInputHandler);
-        this.fluidOutputCapability = LazyOptional.of(this::createFluidOutputHandler);
+        this.fluidInputHandler = createFluidInputHandler();
+        this.fluidOutputHandler = createFluidOutputHandler();
     }
 
     public boolean requiresFluidInput() {
@@ -543,6 +537,16 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public IItemHandler getItemHandler() {
         return itemHandler;
+    }
+
+    /** Fill-only view of the single tank, used as the block capability on input faces. */
+    IFluidHandler getFluidInputHandler() {
+        return fluidInputHandler;
+    }
+
+    /** Drain-only view of the single tank, used as the block capability on output faces. */
+    IFluidHandler getFluidOutputHandler() {
+        return fluidOutputHandler;
     }
 
     /** Legacy Forge-facing accessor retained for source and binary compatibility. */
@@ -1020,11 +1024,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
-        tag.put(INVENTORY_TAG, itemHandler.serializeNBT());
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.put(INVENTORY_TAG, itemHandler.serializeNBT(registries));
         energyStorage.save(tag, ENERGY_TAG);
-        if (requiresFluidInput()) tag.put("Fluid", fluidTank.writeToNBT(new CompoundTag()));
+        if (requiresFluidInput())
+            tag.put("Fluid", fluidTank.writeToNBT(registries, new CompoundTag()));
         tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
         tag.putInt(PROGRESS_TAG, getProgress());
         tag.putIntArray(SLOT_PROGRESS_TAG, accelerationController.progressValues());
@@ -1051,22 +1056,22 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             enabledSlots[index] = slotEnabled[index] ? 1 : 0;
         }
         tag.putIntArray(SLOT_ENABLED_TAG, enabledSlots);
-        outputController.save(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG);
+        outputController.save(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG, registries);
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         if (tag.contains(INVENTORY_TAG, Tag.TAG_COMPOUND)) {
             CompoundTag inventoryTag = tag.getCompound(INVENTORY_TAG);
             inventoryTag.putInt("Size", itemHandler.getSlots());
-            itemHandler.deserializeNBT(inventoryTag);
+            itemHandler.deserializeNBT(registries, inventoryTag);
         }
         if (tag.contains(ENERGY_TAG, Tag.TAG_INT)) {
             energyStorage.load(tag, ENERGY_TAG);
         }
         if (tag.contains("Fluid", Tag.TAG_COMPOUND)) {
-            fluidTank.readFromNBT(tag.getCompound("Fluid"));
+            fluidTank.readFromNBT(registries, tag.getCompound("Fluid"));
             if (!fluidTank.isEmpty() && !fluidTank.isFluidValid(fluidTank.getFluid())) {
                 fluidTank.setFluid(FluidStack.EMPTY);
             }
@@ -1110,7 +1115,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                     : FluidFaceMode.DISABLED;
         }
         autoExtractFluid = requiresFluidInput() && tag.getBoolean("AutoExtractFluid");
-        outputController.load(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG);
+        outputController.load(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG, registries);
         java.util.Arrays.fill(slotEnabled, true);
         if (tag.contains(SLOT_ENABLED_TAG, Tag.TAG_INT_ARRAY)) {
             int[] enabledSlots = tag.getIntArray(SLOT_ENABLED_TAG);
@@ -1120,45 +1125,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 slotEnabled[index] = enabledSlots[index] != 0;
             }
         }
-    }
-
-    @NotNull
-    @Override
-    public <T> LazyOptional<T> getCapability(
-            @NotNull Capability<T> capability, @Nullable Direction side) {
-        if (capability == Capabilities.ItemHandler.BLOCK) {
-            return itemHandlerCapability.cast();
-        }
-        if (capability == Capabilities.EnergyStorage.BLOCK) {
-            return energyCapability.cast();
-        }
-        if (capability == Capabilities.FluidHandler.BLOCK && requiresFluidInput()) {
-            if (side != null && getFluidFaceMode(side) == FluidFaceMode.OUTPUT) {
-                return fluidOutputCapability.cast();
-            }
-            if (side == null || getFluidFaceMode(side) == FluidFaceMode.INPUT) {
-                return fluidCapability.cast();
-            }
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemHandlerCapability.invalidate();
-        energyCapability.invalidate();
-        fluidCapability.invalidate();
-        fluidOutputCapability.invalidate();
-    }
-
-    @Override
-    public void reviveCaps() {
-        super.reviveCaps();
-        itemHandlerCapability = LazyOptional.of(() -> itemHandler);
-        energyCapability = LazyOptional.of(() -> energyStorage);
-        fluidCapability = LazyOptional.of(this::createFluidInputHandler);
-        fluidOutputCapability = LazyOptional.of(this::createFluidOutputHandler);
     }
 
     @Override

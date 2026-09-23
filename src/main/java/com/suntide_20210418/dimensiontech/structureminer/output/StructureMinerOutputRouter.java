@@ -61,9 +61,12 @@ public final class StructureMinerOutputRouter {
                 meInterfaces.add(adjacent);
                 continue;
             }
-            adjacent.getCapability(Capabilities.ItemHandler.BLOCK, direction.getOpposite())
-                    .resolve()
-                    .ifPresent(handlers::add);
+            IItemHandler handler =
+                    level.getCapability(
+                            Capabilities.ItemHandler.BLOCK,
+                            position.relative(direction),
+                            direction.getOpposite());
+            if (handler != null) handlers.add(handler);
         }
         return new Targets(List.copyOf(meInterfaces), List.copyOf(handlers));
     }

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -34,8 +35,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -44,8 +43,6 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /** Single-block reactor: two 16,000 mB tanks, a fragment slot and an immediate operation slot. */
 public final class StructureReactorBlockEntity extends BlockEntity implements MenuProvider {
@@ -176,19 +173,15 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
      */
     private int announcedAnalogSignal = -1;
 
-    private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> inventory);
-    private final LazyOptional<IFluidHandler> dualFluidCapability =
-            LazyOptional.of(() -> new DualTankAccess(inputTank, outputTank));
-    private final Map<Direction, LazyOptional<IFluidHandler>> faceFluidCapabilities =
-            new EnumMap<>(Direction.class);
+    private final IFluidHandler dualTankHandler = new DualTankAccess(inputTank, outputTank);
+    private final Map<Direction, IFluidHandler> faceFluidHandlers = new EnumMap<>(Direction.class);
 
     public StructureReactorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.STRUCTURE_REACTOR.get(), pos, state);
         Arrays.fill(fluidFaceModes, FluidFaceMode.INPUT);
         fluidFaceModes[Direction.DOWN.ordinal()] = FluidFaceMode.OUTPUT;
         for (Direction direction : Direction.values())
-            faceFluidCapabilities.put(
-                    direction, LazyOptional.of(() -> new FaceFluidAccess(this, direction)));
+            faceFluidHandlers.put(direction, new FaceFluidAccess(this, direction));
     }
 
     private FluidTank tank(boolean input) {
@@ -213,6 +206,16 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     public IItemHandler inventory() {
         return inventory;
+    }
+
+    /** Both tanks as one handler, exposed when a capability query carries no face context. */
+    IFluidHandler dualTankHandler() {
+        return dualTankHandler;
+    }
+
+    /** The given face's view of both tanks; the face mode is read live on every call. */
+    IFluidHandler faceFluidHandler(Direction direction) {
+        return faceFluidHandlers.get(direction);
     }
 
     public FluidTank inputTank() {
@@ -407,7 +410,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                     .forEach(candidates::add);
         for (Direction direction : Direction.values()) {
             if (remaining <= 0 || !acceptsInput(getFluidFaceMode(direction))) continue;
-            BlockEntity adjacent = serverLevel.getBlockEntity(worldPosition.relative(direction));
+            BlockPos adjacentPosition = worldPosition.relative(direction);
+            BlockEntity adjacent = serverLevel.getBlockEntity(adjacentPosition);
             if (adjacent == null) continue;
             for (net.minecraft.world.level.material.Fluid fluid : candidates) {
                 if (remaining <= 0) break;
@@ -420,9 +424,10 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                     continue;
                 }
                 IFluidHandler handler =
-                        adjacent.getCapability(
-                                        Capabilities.FluidHandler.BLOCK, direction.getOpposite())
-                                .orElse(null);
+                        serverLevel.getCapability(
+                                Capabilities.FluidHandler.BLOCK,
+                                adjacentPosition,
+                                direction.getOpposite());
                 if (handler == null) continue;
                 FluidStack simulated =
                         handler.drain(
@@ -441,7 +446,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         if (outputTank.isEmpty()) return;
         for (Direction direction : Direction.values()) {
             if (outputTank.isEmpty() || !acceptsOutput(getFluidFaceMode(direction))) continue;
-            BlockEntity adjacent = serverLevel.getBlockEntity(worldPosition.relative(direction));
+            BlockPos adjacentPosition = worldPosition.relative(direction);
+            BlockEntity adjacent = serverLevel.getBlockEntity(adjacentPosition);
             if (adjacent == null) continue;
             if (meNetwork
                     && ModList.get().isLoaded("ae2")
@@ -454,8 +460,10 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                 continue;
             }
             IFluidHandler handler =
-                    adjacent.getCapability(Capabilities.FluidHandler.BLOCK, direction.getOpposite())
-                            .orElse(null);
+                    serverLevel.getCapability(
+                            Capabilities.FluidHandler.BLOCK,
+                            adjacentPosition,
+                            direction.getOpposite());
             if (handler == null) continue;
             int accepted = handler.fill(outputTank.getFluid(), IFluidHandler.FluidAction.SIMULATE);
             if (accepted > 0) {
@@ -889,13 +897,15 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
-        tag.put("ReactorItems", inventory.serializeNBT());
-        tag.put("ReactorInput", inputTank.writeToNBT(new CompoundTag()));
-        tag.put("ReactorOutput", outputTank.writeToNBT(new CompoundTag()));
-        tag.put("ReactorReservedFluid", reservedFluid.writeToNBT(new CompoundTag()));
-        tag.put("ReactorReservedFragments", reservedFragments.save(new CompoundTag()));
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.put("ReactorItems", inventory.serializeNBT(registries));
+        tag.put("ReactorInput", inputTank.writeToNBT(registries, new CompoundTag()));
+        tag.put("ReactorOutput", outputTank.writeToNBT(registries, new CompoundTag()));
+        tag.put("ReactorReservedFluid", reservedFluid.save(registries, new CompoundTag()));
+        // The reserved stack is empty whenever no cycle is running, so this has to survive an
+        // empty stack instead of using the throwing overload.
+        tag.put("ReactorReservedFragments", reservedFragments.saveOptional(registries));
         tag.putInt("FluidFaceModes", getFluidFaceModesPacked());
         tag.putBoolean("AutoPullFluid", autoPullFluid);
         tag.putBoolean("AutoPushFluid", autoPushFluid);
@@ -911,13 +921,14 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        inventory.deserializeNBT(tag.getCompound("ReactorItems"));
-        inputTank.readFromNBT(tag.getCompound("ReactorInput"));
-        outputTank.readFromNBT(tag.getCompound("ReactorOutput"));
-        reservedFluid = FluidStack.loadFluidStackFromNBT(tag.getCompound("ReactorReservedFluid"));
-        reservedFragments = ItemStack.of(tag.getCompound("ReactorReservedFragments"));
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        inventory.deserializeNBT(registries, tag.getCompound("ReactorItems"));
+        inputTank.readFromNBT(registries, tag.getCompound("ReactorInput"));
+        outputTank.readFromNBT(registries, tag.getCompound("ReactorOutput"));
+        reservedFluid = FluidStack.parseOptional(registries, tag.getCompound("ReactorReservedFluid"));
+        reservedFragments =
+                ItemStack.parseOptional(registries, tag.getCompound("ReactorReservedFragments"));
         int packed =
                 tag.contains("FluidFaceModes")
                         ? tag.getInt("FluidFaceModes")
@@ -942,28 +953,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                                 : Fluids.EMPTY)
                         : savedLockedFluid;
         cycle.<ItemStack>loadPersistent(tag, id -> StructureReactorRecipes.get(id));
-    }
-
-    @Override
-    public <T> LazyOptional<T> getCapability(
-            @NotNull Capability<T> capability, @Nullable Direction side) {
-        if (capability == Capabilities.ItemHandler.BLOCK) return itemCapability.cast();
-        if (capability == Capabilities.FluidHandler.BLOCK) {
-            if (side == null) return dualFluidCapability.cast();
-            FluidFaceMode mode = getFluidFaceMode(side);
-            return mode == FluidFaceMode.DISABLED
-                    ? LazyOptional.empty()
-                    : faceFluidCapabilities.get(side).cast();
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemCapability.invalidate();
-        dualFluidCapability.invalidate();
-        faceFluidCapabilities.values().forEach(LazyOptional::invalidate);
     }
 
     private record DualTankAccess(FluidTank input, FluidTank output) implements IFluidHandler {

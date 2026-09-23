@@ -4,8 +4,6 @@ import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import java.util.List;
-import java.util.Optional;
-import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
@@ -14,12 +12,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Mirror;
@@ -34,9 +32,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkHooks;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 
@@ -55,10 +52,10 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
     @Override
     public void appendHoverText(
             ItemStack stack,
-            @Nullable BlockGetter level,
+            Item.TooltipContext context,
             List<Component> tooltip,
             TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
+        super.appendHoverText(stack, context, tooltip, flag);
         ModConfigs.StructureMinerTierConfig config =
                 ModConfigs.TIERS[
                         Math.max(0, Math.min(ModConfigs.TIERS.length - 1, minerTier() - 1))];
@@ -165,14 +162,15 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(
+    public ItemInteractionResult useItemOn(
+            ItemStack stack,
             BlockState blockState,
             Level level,
             BlockPos position,
             Player player,
             InteractionHand hand,
             BlockHitResult hitResult) {
-        if (player.getItemInHand(hand).is(ModItems.WRENCH.get())) {
+        if (stack.is(ModItems.WRENCH.get())) {
             // Shift+right-click charges from the player's inventory and builds the multiblock;
             // plain right-click only toggles the projection overlay.
             if (player.isShiftKeyDown()) {
@@ -184,36 +182,31 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
                         player.displayClientMessage(message, true);
                     }
                 }
-                return InteractionResult.sidedSuccess(level.isClientSide());
+                return ItemInteractionResult.sidedSuccess(level.isClientSide());
             }
-            if (level.isClientSide()) {
-                DistExecutor.unsafeRunWhenOn(
-                        Dist.CLIENT,
-                        () ->
-                                () ->
-                                        com.suntide_20210418.dimensiontech.client
-                                                .StructureMinerProjectionClient.toggle(position));
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                com.suntide_20210418.dimensiontech.client.StructureMinerProjectionClient.toggle(
+                        position);
             }
-            return InteractionResult.sidedSuccess(level.isClientSide());
+            return ItemInteractionResult.sidedSuccess(level.isClientSide());
         }
-        ItemStack held = player.getItemInHand(hand);
-        Optional<IFluidHandlerItem> container =
-                held.getCapability(Capabilities.FluidHandler.ITEM).resolve();
-        if (container.isPresent()) {
+        IFluidHandlerItem container = stack.getCapability(Capabilities.FluidHandler.ITEM);
+        if (container != null) {
             if (!level.isClientSide()
                     && level.getBlockEntity(position) instanceof BaseMinerBlockEntity miner) {
-                exchangeFluid(player, hand, held, miner, container.get());
+                exchangeFluid(player, hand, stack, miner, container);
             }
             // A held fluid container is spent on the transfer and never opens the screen, so the
             // interaction result stays the same on both sides.
-            return InteractionResult.sidedSuccess(level.isClientSide());
+            return ItemInteractionResult.sidedSuccess(level.isClientSide());
         }
         if (!level.isClientSide()
                 && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(position) instanceof BaseMinerBlockEntity blockEntity) {
-            NetworkHooks.openScreen(serverPlayer, blockEntity, position);
+            // The menu factory rebuilds the block entity from the position it reads first.
+            serverPlayer.openMenu(blockEntity, buffer -> buffer.writeBlockPos(position));
         }
-        return InteractionResult.sidedSuccess(level.isClientSide());
+        return ItemInteractionResult.sidedSuccess(level.isClientSide());
     }
 
     /**
@@ -228,7 +221,7 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             IFluidHandlerItem container) {
         if (!miner.exchangeWithFluidContainer(container)) return;
         ItemStack result = container.getContainer();
-        if (result.isEmpty() || ItemStack.isSameItemSameTags(result, held)) return;
+        if (result.isEmpty() || ItemStack.isSameItemSameComponents(result, held)) return;
         if (held.getCount() == 1) {
             player.setItemInHand(hand, result);
         } else if (!player.getAbilities().instabuild) {

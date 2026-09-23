@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech;
 import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.block.ModBlocks;
 import com.suntide_20210418.dimensiontech.block.entity.ModBlockEntities;
+import com.suntide_20210418.dimensiontech.block.entity.ModCapabilities;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
@@ -45,6 +46,9 @@ public class DimensionTechMod {
         ModMenu.MENU_TYPES.register(modEventBus);
 
         modEventBus.addListener(DimensionTechMod::commonSetup);
+        modEventBus.addListener(ModCapabilities::register);
+        // ModNetwork.register() still carries Forge's zero-arg SimpleChannel signature, so it cannot
+        // be wired as a mod-bus listener yet; the network migration owns that line.
         modEventBus.addListener(ModNetwork::register);
     }
 
