@@ -11,12 +11,12 @@ import net.minecraft.world.level.saveddata.maps.MapIndex;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 
 /** Server-thread transaction used to predict map SavedData writes and then restore them. */
-final class SavedDataTransaction1201 {
+final class SavedDataTransaction1211 {
     private static final String MAP_INDEX_KEY = "idcounts";
     private static final Field CACHE_FIELD = findCacheField();
     private static final ThreadLocal<ServerLevel> ACTIVE_LEVEL = new ThreadLocal<>();
 
-    private SavedDataTransaction1201() {}
+    private SavedDataTransaction1211() {}
 
     private static Field findCacheField() {
         for (String name : new String[] {"cache", "f_78144_"}) {
@@ -25,11 +25,10 @@ final class SavedDataTransaction1201 {
                 field.setAccessible(true);
                 return field;
             } catch (NoSuchFieldException ignored) {
-                // Try the other 1.20.1 runtime naming domain.
+                // Try the other obfuscated runtime naming domain.
             }
         }
-        throw new IllegalStateException(
-                "Cannot find the Minecraft 1.20.1 DimensionDataStorage cache field");
+        throw new IllegalStateException("Cannot find the DimensionDataStorage cache field");
     }
 
     static <T> T run(ServerLevel level, Supplier<T> action) {
@@ -48,8 +47,11 @@ final class SavedDataTransaction1201 {
             Map<String, SavedData> cache = cache(storage);
             Map<String, SavedData> snapshot = new HashMap<>(cache);
             SavedData mapIndex = snapshot.get(MAP_INDEX_KEY);
+            // 1.21 的 MapIndex 读写都需要 HolderLookup.Provider。
             CompoundTag mapIndexTag =
-                    mapIndex instanceof MapIndex ? mapIndex.save(new CompoundTag()).copy() : null;
+                    mapIndex instanceof MapIndex
+                            ? mapIndex.save(new CompoundTag(), level.registryAccess()).copy()
+                            : null;
             boolean mapIndexDirty = mapIndex != null && mapIndex.isDirty();
             ACTIVE_LEVEL.set(level);
             try {
@@ -59,7 +61,7 @@ final class SavedDataTransaction1201 {
                     cache.clear();
                     cache.putAll(snapshot);
                     if (mapIndexTag != null) {
-                        MapIndex restored = MapIndex.load(mapIndexTag);
+                        MapIndex restored = MapIndex.load(mapIndexTag, level.registryAccess());
                         restored.setDirty(mapIndexDirty);
                         cache.put(MAP_INDEX_KEY, restored);
                     }

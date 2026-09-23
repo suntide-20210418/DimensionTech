@@ -5,14 +5,16 @@ import com.google.gson.JsonObject;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.ReadOnlyScoreInfo;
+import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
 
 /** Ordered NumberProvider evaluation over an exact Minecraft 1.20.1 Xoroshiro state. */
-public final class StatefulNumberProvider1201 {
-    private StatefulNumberProvider1201() {}
+public final class StatefulNumberProvider1211 {
+    private StatefulNumberProvider1211() {}
 
     public static IntResult getInt(
-            JsonElement element, LootAnalysisContext context, XoroshiroState1201 state) {
+            JsonElement element, LootAnalysisContext context, XoroshiroState1211 state) {
         try {
             return getIntUnchecked(element, context, state);
         } catch (RuntimeException exception) {
@@ -21,7 +23,7 @@ public final class StatefulNumberProvider1201 {
     }
 
     private static IntResult getIntUnchecked(
-            JsonElement element, LootAnalysisContext context, XoroshiroState1201 state) {
+            JsonElement element, LootAnalysisContext context, XoroshiroState1211 state) {
         if (element == null) return null;
         if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
             Float value = numberValue(element);
@@ -58,7 +60,7 @@ public final class StatefulNumberProvider1201 {
             if (probability == null) return null;
             if (!Float.isFinite(probability.value())) return null;
             int successes = 0;
-            XoroshiroState1201 current = probability.randomState();
+            XoroshiroState1211 current = probability.randomState();
             for (int index = 0; index < trials.value(); index++) {
                 var draw = current.nextFloat();
                 current = draw.state();
@@ -74,7 +76,7 @@ public final class StatefulNumberProvider1201 {
     }
 
     public static FloatResult getFloat(
-            JsonElement element, LootAnalysisContext context, XoroshiroState1201 state) {
+            JsonElement element, LootAnalysisContext context, XoroshiroState1211 state) {
         try {
             return getFloatUnchecked(element, context, state);
         } catch (RuntimeException exception) {
@@ -83,7 +85,7 @@ public final class StatefulNumberProvider1201 {
     }
 
     private static FloatResult getFloatUnchecked(
-            JsonElement element, LootAnalysisContext context, XoroshiroState1201 state) {
+            JsonElement element, LootAnalysisContext context, XoroshiroState1211 state) {
         if (element == null) return null;
         if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
             Float value = numberValue(element);
@@ -149,8 +151,16 @@ public final class StatefulNumberProvider1201 {
         String objectiveName = safeString(provider.get("score"));
         if (objectiveName == null) return null;
         Objective objective = scoreboard.getObjective(objectiveName);
-        if (objective == null || !scoreboard.hasPlayerScore(scoreboardName, objective)) return 0.0F;
-        int score = scoreboard.getOrCreatePlayerScore(scoreboardName, objective).getScore();
+        // 1.21 用 ScoreHolder + ReadOnlyScoreInfo 取代 hasPlayerScore/getOrCreatePlayerScore
+        // （见 Scoreboard#getPlayerScoreInfo 与 ScoreboardValue#getFloat）：没有该 objective 或该玩家
+        // 还没有分数时返回 null，与 1.20.1 的 hasPlayerScore == false 同义。
+        ReadOnlyScoreInfo scoreInfo =
+                objective == null
+                        ? null
+                        : scoreboard.getPlayerScoreInfo(
+                                ScoreHolder.forNameOnly(scoreboardName), objective);
+        if (scoreInfo == null) return 0.0F;
+        int score = scoreInfo.value();
         Float scaleValue = provider.has("scale") ? numberValue(provider.get("scale")) : 1.0F;
         if (scaleValue == null) return null;
         float scale = scaleValue;
@@ -186,7 +196,7 @@ public final class StatefulNumberProvider1201 {
         }
     }
 
-    public record IntResult(int value, XoroshiroState1201 randomState) {}
+    public record IntResult(int value, XoroshiroState1211 randomState) {}
 
-    public record FloatResult(float value, XoroshiroState1201 randomState) {}
+    public record FloatResult(float value, XoroshiroState1211 randomState) {}
 }

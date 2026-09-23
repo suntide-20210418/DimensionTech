@@ -9,11 +9,11 @@ import javax.annotation.Nullable;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.AnimalArmorItem;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.ElytraItem;
 import net.minecraft.world.item.HoeItem;
-import net.minecraft.world.item.HorseArmorItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PickaxeItem;
@@ -25,6 +25,7 @@ import net.minecraft.world.item.TieredItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 
 /** Converts generated equipment into the materials used to make it. */
@@ -162,7 +163,9 @@ public final class EquipmentDismantler {
 
     private static Ingredient repairIngredient(ItemStack equipment) {
         if (equipment.getItem() instanceof ArmorItem armor) {
-            return armor.getMaterial().getRepairIngredient();
+            // 1.21 里 ArmorMaterial 的修复材料是 record 字段 Supplier<Ingredient>，
+            // Holder#getRepairIngredient() 已删除。
+            return armor.getMaterial().value().repairIngredient().get();
         }
         if (equipment.getItem() instanceof TieredItem tieredItem) {
             return tieredItem.getTier().getRepairIngredient();
@@ -177,14 +180,16 @@ public final class EquipmentDismantler {
                 || stack.getItem() instanceof TridentItem
                 || stack.getItem() instanceof ShieldItem
                 || stack.getItem() instanceof ElytraItem
-                || stack.getItem() instanceof HorseArmorItem
+                // 1.21 删除了 HorseArmorItem，马铠改由 AnimalArmorItem 承载。
+                || stack.getItem() instanceof AnimalArmorItem
                 || stack.isDamageableItem();
     }
 
     private static Optional<List<ItemStack>> craftingIngredients(
             ServerLevel level, ItemStack equipment) {
-        for (CraftingRecipe recipe :
+        for (RecipeHolder<CraftingRecipe> held :
                 level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING)) {
+            CraftingRecipe recipe = held.value();
             ItemStack result = recipe.getResultItem(level.registryAccess());
             if (!result.is(equipment.getItem())) {
                 continue;
@@ -206,7 +211,7 @@ public final class EquipmentDismantler {
 
     private static void merge(List<ItemStack> materials, ItemStack material, int count) {
         for (ItemStack existing : materials) {
-            if (ItemStack.isSameItemSameTags(existing, material)) {
+            if (ItemStack.isSameItemSameComponents(existing, material)) {
                 existing.grow(count);
                 return;
             }

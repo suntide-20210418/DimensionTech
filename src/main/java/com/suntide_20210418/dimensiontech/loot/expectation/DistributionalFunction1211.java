@@ -3,42 +3,43 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1201.RandomCall;
-import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1201.RandomMethod;
+import com.mojang.serialization.JsonOps;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1211.RandomCall;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1211.RandomMethod;
 import com.suntide_20210418.dimensiontech.utils.FullDurabilityLoot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.Instrument;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
-import net.minecraft.world.item.SuspiciousStewItem;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.SuspiciousStewEffects;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraft.world.level.saveddata.maps.MapDecorationType;
+import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 
 /** Linear StackState function kernels with lazy finite branching. */
-public final class DistributionalFunction1201 {
-    private DistributionalFunction1201() {}
+public final class DistributionalFunction1211 {
+    private DistributionalFunction1211() {}
 
     public static Evaluation applyAll(
             StackState input,
@@ -55,7 +56,7 @@ public final class DistributionalFunction1201 {
             LootAnalysisContext context,
             int maxStates,
             String functionsPointer,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             FunctionReferenceResolver functionReferences) {
         try {
             return applyAllUnchecked(
@@ -66,7 +67,7 @@ public final class DistributionalFunction1201 {
                     functionsPointer,
                     conditionReferences,
                     functionReferences);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return Evaluation.randomSemantics(
                     functionsPointer == null ? "" : functionsPointer, exception.getMessage());
         } catch (RuntimeException exception) {
@@ -82,7 +83,7 @@ public final class DistributionalFunction1201 {
             LootAnalysisContext context,
             int maxStates,
             String functionsPointer,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             FunctionReferenceResolver functionReferences) {
         if (functions == null) {
             return Evaluation.exact(RandomTraceDistribution.singleton(input));
@@ -106,10 +107,10 @@ public final class DistributionalFunction1201 {
                 return Evaluation.unsupported(
                         pointer + "/function", "Function type is not a string");
             }
-            DistributionalCondition1201.Evaluation conditions;
+            DistributionalCondition1211.Evaluation conditions;
             try {
                 conditions =
-                        DistributionalCondition1201.testAll(
+                        DistributionalCondition1211.testAll(
                                 function.get("conditions"),
                                 context,
                                 maxStates,
@@ -136,7 +137,7 @@ public final class DistributionalFunction1201 {
                                                                             .singleton(stack),
                                                             maxStates),
                                     maxStates);
-                } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+                } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                     return Evaluation.randomSemantics(pointer, exception.getMessage());
                 }
                 continue;
@@ -163,7 +164,7 @@ public final class DistributionalFunction1201 {
                                                                                 .singleton(stack),
                                                         maxStates),
                                 maxStates);
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             }
         }
@@ -180,7 +181,7 @@ public final class DistributionalFunction1201 {
             LootAnalysisContext context,
             int maxStates,
             String functionsPointer,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             FunctionReferenceResolver functionReferences) {
         try {
             return applyAllExpectedUnchecked(
@@ -191,7 +192,7 @@ public final class DistributionalFunction1201 {
                     functionsPointer,
                     conditionReferences,
                     functionReferences);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExpectedEvaluation.randomSemantics(
                     functionsPointer == null ? "" : functionsPointer, exception.getMessage());
         } catch (RuntimeException exception) {
@@ -207,7 +208,7 @@ public final class DistributionalFunction1201 {
             LootAnalysisContext context,
             int maxStates,
             String functionsPointer,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             FunctionReferenceResolver functionReferences) {
         if (functions == null) {
             return ExpectedEvaluation.exact(FiniteDistribution.singleton(input), false, false);
@@ -235,10 +236,10 @@ public final class DistributionalFunction1201 {
                 return ExpectedEvaluation.unsupported(
                         pointer + "/function", "Function type is not a string");
             }
-            DistributionalCondition1201.Evaluation conditions;
+            DistributionalCondition1211.Evaluation conditions;
             try {
                 conditions =
-                        DistributionalCondition1201.testAll(
+                        DistributionalCondition1211.testAll(
                                 function.get("conditions"),
                                 context,
                                 maxStates,
@@ -261,31 +262,36 @@ public final class DistributionalFunction1201 {
             if (passMass.isZero()) continue;
 
             if (functionType(function).equals("minecraft:enchant_with_levels")) {
-                if (!ExactEnchantmentSemantics1201.ENABLED) {
+                if (!ExactEnchantmentSemantics1211.ENABLED) {
                     // TEMPORARY: no enchant enumeration; the function is a no-op, keeping the
                     // item un-enchanted. Conditions were handled above, so skipping keeps the
                     // distribution exact.
                     continue;
                 }
-                DistributionalNumberProvider1201.Evaluation<Integer> levels =
-                        DistributionalNumberProvider1201.getInt(
+                DistributionalNumberProvider1211.Evaluation<Integer> levels =
+                        DistributionalNumberProvider1211.getInt(
                                 function.get("levels"), context, maxStates, pointer + "/levels");
                 if (!levels.supported()) {
                     return ExpectedEvaluation.unsupported(
                             levels.pointer(), levels.message(), levels.failureKind());
                 }
-                Boolean treasureValue = booleanField(function, "treasure", false);
-                if (treasureValue == null) {
+                List<Holder<Enchantment>> possibleEnchantments =
+                        ExactEnchantmentSemantics1211.enchantmentOptions(
+                                function.get("options"), context.registries());
+                if (possibleEnchantments == null) {
                     return ExpectedEvaluation.unsupported(
-                            pointer + "/treasure", "Invalid treasure boolean");
+                            pointer + "/options",
+                            "Enchantment options need registry access or are malformed");
                 }
-                boolean treasure = treasureValue;
                 FiniteDistribution<StackState> enchanted;
                 try {
                     enchanted =
-                            ExactEnchantmentSemantics1201.enchantItemsMarginal(
-                                    current, levels.distribution().marginal(), treasure, maxStates);
-                } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+                            ExactEnchantmentSemantics1211.enchantItemsMarginal(
+                                    current,
+                                    levels.distribution().marginal(),
+                                    possibleEnchantments,
+                                    maxStates);
+                } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                     return ExpectedEvaluation.randomSemantics(pointer, exception.getMessage());
                 } catch (IllegalArgumentException exception) {
                     return ExpectedEvaluation.unsupported(pointer, exception.getMessage());
@@ -299,10 +305,10 @@ public final class DistributionalFunction1201 {
                 // enchanted stack distribution below.
                 enchantmentMarginal =
                         enchantmentMarginal.plus(
-                                ExactEnchantmentSemantics1201.enchantmentMarginal(
+                                ExactEnchantmentSemantics1211.enchantmentMarginal(
                                                 current.masses().entrySet(),
                                                 levels.distribution().marginal(),
-                                                treasure,
+                                                possibleEnchantments,
                                                 maxStates)
                                         .scale(passMass));
                 LinkedHashMap<StackState, ExactProbability> next = new LinkedHashMap<>();
@@ -395,24 +401,30 @@ public final class DistributionalFunction1201 {
                             traced.pointer(), traced.message(), traced.failureKind());
         }
 
-        DistributionalNumberProvider1201.Evaluation<Integer> levels =
-                DistributionalNumberProvider1201.getInt(
+        DistributionalNumberProvider1211.Evaluation<Integer> levels =
+                DistributionalNumberProvider1211.getInt(
                         function.get("levels"), context, maxStates, pointer + "/levels");
         if (!levels.supported()) {
             return ExpectedKernel.unsupported(
                     levels.pointer(), levels.message(), levels.failureKind());
         }
-        Boolean treasureValue = booleanField(function, "treasure", false);
-        if (treasureValue == null) {
-            return ExpectedKernel.unsupported(pointer + "/treasure", "Invalid treasure boolean");
+        List<Holder<Enchantment>> possibleEnchantments =
+                ExactEnchantmentSemantics1211.enchantmentOptions(
+                        function.get("options"), context.registries());
+        if (possibleEnchantments == null) {
+            return ExpectedKernel.unsupported(
+                    pointer + "/options",
+                    "Enchantment options need registry access or are malformed");
         }
-        boolean treasure = treasureValue;
         FiniteDistribution<StackState> result;
         try {
             result =
-                    ExactEnchantmentSemantics1201.enchantItemMarginal(
-                            input.stack(), levels.distribution().marginal(), treasure, maxStates);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+                    ExactEnchantmentSemantics1211.enchantItemMarginal(
+                            input.stack(),
+                            levels.distribution().marginal(),
+                            possibleEnchantments,
+                            maxStates);
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExpectedKernel.randomSemantics(pointer, exception.getMessage());
         } catch (IllegalArgumentException exception) {
             return ExpectedKernel.unsupported(pointer, exception.getMessage());
@@ -444,8 +456,8 @@ public final class DistributionalFunction1201 {
                     : functionReferences.resolve(id, input, maxStates, pointer);
         }
         if (type.equals("minecraft:set_count")) {
-            DistributionalNumberProvider1201.Evaluation<Integer> counts =
-                    DistributionalNumberProvider1201.getInt(
+            DistributionalNumberProvider1211.Evaluation<Integer> counts =
+                    DistributionalNumberProvider1211.getInt(
                             function.get("count"), context, maxStates, pointer + "/count");
             if (!counts.supported()) {
                 return Evaluation.unsupported(
@@ -471,7 +483,7 @@ public final class DistributionalFunction1201 {
                                                                             .getMaxStackSize())));
                                         },
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             }
         }
@@ -487,13 +499,13 @@ public final class DistributionalFunction1201 {
             boolean add = addValue;
             JsonElement damage = function.get("damage");
             Float constant = constantFloat(damage);
-            ExactRandomSemantics1201.RandomResult<Integer> damages;
+            ExactRandomSemantics1211.RandomResult<Integer> damages;
             try {
                 if (constant != null) {
                     damages =
-                            new ExactRandomSemantics1201.RandomResult<>(
+                            new ExactRandomSemantics1211.RandomResult<>(
                                     FiniteDistribution.singleton(
-                                            ExactRandomSemantics1201.setDamageValue(
+                                            ExactRandomSemantics1211.setDamageValue(
                                                     constant,
                                                     add,
                                                     stack.getDamageValue(),
@@ -510,14 +522,14 @@ public final class DistributionalFunction1201 {
                     }
                     damages =
                             context.fullDurability()
-                                    ? new ExactRandomSemantics1201.RandomResult<>(
+                                    ? new ExactRandomSemantics1211.RandomResult<>(
                                             FiniteDistribution.singleton(0),
                                             min >= max
                                                     ? List.of()
                                                     : List.of(
                                                             new RandomCall(
                                                                     RandomMethod.NEXT_FLOAT, 0)))
-                                    : ExactRandomSemantics1201.uniformFloatSetDamage(
+                                    : ExactRandomSemantics1211.uniformFloatSetDamage(
                                             min,
                                             max,
                                             add,
@@ -549,7 +561,7 @@ public final class DistributionalFunction1201 {
                                                     new StackState(output));
                                         },
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer + "/damage", exception.getMessage());
             } catch (IllegalArgumentException exception) {
                 return Evaluation.unsupported(pointer + "/damage", exception.getMessage());
@@ -566,7 +578,10 @@ public final class DistributionalFunction1201 {
                 name =
                         value != null && value.isJsonPrimitive()
                                 ? Component.literal(value.getAsString())
-                                : Component.Serializer.fromJson(value);
+                                : ComponentSerialization.CODEC
+                                        .parse(JsonOps.INSTANCE, value)
+                                        .result()
+                                        .orElse(null);
             } catch (RuntimeException exception) {
                 return Evaluation.unsupported(pointer + "/name", "Invalid name component");
             }
@@ -574,24 +589,35 @@ public final class DistributionalFunction1201 {
                 return Evaluation.unsupported(pointer + "/name", "Null name component");
             }
             ItemStack output = input.stack();
-            output.setHoverName(name);
+            // 1.21 的 SetNameFunction 默认 target 是 custom_name，直接 set 到
+            // DataComponents.CUSTOM_NAME（1.20.1 的 ItemStack#setHoverName 已删除）。
+            output.set(DataComponents.CUSTOM_NAME, name);
             return Evaluation.exact(RandomTraceDistribution.singleton(new StackState(output)));
         }
         if (type.equals("minecraft:set_potion")) {
             ResourceLocation id = resourceLocationField(function, "id");
-            Potion potion = id == null ? null : ForgeRegistries.POTIONS.getValue(id);
+            Holder<Potion> potion =
+                    id == null ? null : BuiltInRegistries.POTION.getHolder(id).orElse(null);
             if (potion == null) {
                 return Evaluation.unsupported(pointer + "/id", "Missing potion reference");
             }
             ItemStack output = input.stack();
-            PotionUtils.setPotion(output, potion);
+            // 1.21 的 SetPotionFunction：PotionUtils 已删除，药水内容由 POTION_CONTENTS 组件承载。
+            output.update(
+                    DataComponents.POTION_CONTENTS,
+                    PotionContents.EMPTY,
+                    potion,
+                    PotionContents::withPotion);
             return Evaluation.exact(RandomTraceDistribution.singleton(new StackState(output)));
         }
         if (type.equals("minecraft:enchant_randomly")) {
-            List<Enchantment> candidates = enchantmentCandidates(function, input.stack());
+            List<Holder<Enchantment>> candidates =
+                    ExactEnchantmentSemantics1211.randomCandidates(
+                            function, input.stack(), context.registries());
             if (candidates == null) {
                 return Evaluation.unsupported(
-                        pointer + "/enchantments", "Invalid enchantment reference");
+                        pointer + "/options",
+                        "Enchantment options need registry access or are malformed");
             }
             if (candidates.isEmpty()) {
                 return Evaluation.exact(RandomTraceDistribution.singleton(input));
@@ -599,72 +625,77 @@ public final class DistributionalFunction1201 {
             try {
                 return Evaluation.exact(
                         RandomTraceDistribution.fromRandomResult(
-                                        ExactRandomSemantics1201.nextInt(candidates.size()))
+                                        ExactRandomSemantics1211.nextInt(candidates.size()))
                                 .flatMap(
                                         index -> {
-                                            Enchantment enchantment = candidates.get(index);
+                                            Holder<Enchantment> enchantment =
+                                                    candidates.get(index);
                                             RandomTraceDistribution<Integer> levels =
-                                                    enchantment.getMinLevel()
-                                                                    >= enchantment.getMaxLevel()
+                                                    enchantment.value().getMinLevel()
+                                                                    >= enchantment.value()
+                                                                            .getMaxLevel()
                                                             ? RandomTraceDistribution.singleton(
-                                                                    enchantment.getMinLevel())
+                                                                    enchantment.value()
+                                                                            .getMinLevel())
                                                             : RandomTraceDistribution
                                                                     .fromRandomResult(
-                                                                            ExactRandomSemantics1201
+                                                                            ExactRandomSemantics1211
                                                                                     .uniformIntInclusive(
                                                                                             enchantment
+                                                                                                    .value()
                                                                                                     .getMinLevel(),
                                                                                             enchantment
+                                                                                                    .value()
                                                                                                     .getMaxLevel()));
                                             return levels.flatMap(
                                                     level -> {
-                                                        ItemStack output;
-                                                        if (input.stack().is(Items.BOOK)) {
-                                                            output =
-                                                                    new ItemStack(
-                                                                            Items.ENCHANTED_BOOK);
-                                                            EnchantedBookItem.addEnchantment(
-                                                                    output,
-                                                                    new EnchantmentInstance(
-                                                                            enchantment, level));
-                                                        } else {
-                                                            output = input.stack();
-                                                            output.enchant(enchantment, level);
-                                                        }
+                                                        ItemStack output =
+                                                                input.stack().is(Items.BOOK)
+                                                                        ? new ItemStack(
+                                                                                Items
+                                                                                        .ENCHANTED_BOOK)
+                                                                        : input.stack();
+                                                        output.enchant(enchantment, level);
                                                         return RandomTraceDistribution.singleton(
                                                                 new StackState(output));
                                                     },
                                                     maxStates);
                                         },
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             } catch (IllegalArgumentException exception) {
                 return Evaluation.unsupported(pointer, exception.getMessage());
             }
         }
         if (type.equals("minecraft:enchant_with_levels")) {
-            DistributionalNumberProvider1201.Evaluation<Integer> levels =
-                    DistributionalNumberProvider1201.getInt(
+            DistributionalNumberProvider1211.Evaluation<Integer> levels =
+                    DistributionalNumberProvider1211.getInt(
                             function.get("levels"), context, maxStates, pointer + "/levels");
             if (!levels.supported()) {
                 return Evaluation.unsupported(
                         levels.pointer(), levels.message(), levels.failureKind());
             }
-            Boolean treasureValue = booleanField(function, "treasure", false);
-            if (treasureValue == null) {
-                return Evaluation.unsupported(pointer + "/treasure", "Invalid treasure boolean");
+            List<Holder<Enchantment>> possibleEnchantments =
+                    ExactEnchantmentSemantics1211.enchantmentOptions(
+                            function.get("options"), context.registries());
+            if (possibleEnchantments == null) {
+                return Evaluation.unsupported(
+                        pointer + "/options",
+                        "Enchantment options need registry access or are malformed");
             }
-            boolean treasure = treasureValue;
             try {
                 return Evaluation.exact(
                         levels.distribution()
                                 .flatMap(
                                         level ->
-                                                ExactEnchantmentSemantics1201.enchantItem(
-                                                        input.stack(), level, treasure, maxStates),
+                                                ExactEnchantmentSemantics1211.enchantItem(
+                                                        input.stack(),
+                                                        level,
+                                                        possibleEnchantments,
+                                                        maxStates),
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             } catch (IllegalArgumentException exception) {
                 return Evaluation.unsupported(pointer, exception.getMessage());
@@ -693,15 +724,17 @@ public final class DistributionalFunction1201 {
                 }
                 JsonObject effectObject = effectElement.getAsJsonObject();
                 ResourceLocation effectId = resourceLocationField(effectObject, "type");
-                MobEffect effect =
-                        effectId == null ? null : ForgeRegistries.MOB_EFFECTS.getValue(effectId);
+                Holder<MobEffect> effect =
+                        effectId == null
+                                ? null
+                                : BuiltInRegistries.MOB_EFFECT.getHolder(effectId).orElse(null);
                 if (effect == null) {
                     return Evaluation.unsupported(
                             pointer + "/effects/" + index + "/type",
                             "Missing stew effect reference");
                 }
-                DistributionalNumberProvider1201.Evaluation<Integer> duration =
-                        DistributionalNumberProvider1201.getInt(
+                DistributionalNumberProvider1211.Evaluation<Integer> duration =
+                        DistributionalNumberProvider1211.getInt(
                                 effectObject.get("duration"),
                                 context,
                                 maxStates,
@@ -718,25 +751,31 @@ public final class DistributionalFunction1201 {
                                             value -> {
                                                 ItemStack output = input.stack();
                                                 int ticks =
-                                                        effect.isInstantenous()
+                                                        effect.value().isInstantenous()
                                                                 ? value
                                                                 : value * 20;
-                                                SuspiciousStewItem.saveMobEffect(
-                                                        output, effect, ticks);
+                                                // 1.21 的 SetStewEffectFunction：SuspiciousStewItem 的
+                                                // saveMobEffect 已删除，改写入 SUSPICIOUS_STEW_EFFECTS 组件。
+                                                output.update(
+                                                        DataComponents.SUSPICIOUS_STEW_EFFECTS,
+                                                        SuspiciousStewEffects.EMPTY,
+                                                        new SuspiciousStewEffects.Entry(
+                                                                effect, ticks),
+                                                        SuspiciousStewEffects::withEffectAdded);
                                                 return RandomTraceDistribution.singleton(
                                                         new StackState(output));
                                             },
                                             maxStates));
-                } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+                } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                     return Evaluation.randomSemantics(pointer, exception.getMessage());
                 }
             }
             try {
                 return Evaluation.exact(
                         RandomTraceDistribution.fromRandomResult(
-                                        ExactRandomSemantics1201.nextInt(effects.size()))
+                                        ExactRandomSemantics1211.nextInt(effects.size()))
                                 .flatMap(effectKernels::get, maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             }
         }
@@ -762,32 +801,24 @@ public final class DistributionalFunction1201 {
             }
             List<Holder<Instrument>> holders = new ArrayList<>();
             set.get().forEach(holders::add);
-            for (int index = 0; index < holders.size(); index++) {
-                if (holders.get(index).unwrapKey().isEmpty()) {
-                    return Evaluation.unsupported(
-                            pointer + "/options", "Unkeyed instrument holder");
-                }
-            }
             try {
                 return Evaluation.exact(
                         RandomTraceDistribution.fromRandomResult(
-                                        ExactRandomSemantics1201.nextInt(holders.size()))
+                                        ExactRandomSemantics1211.nextInt(holders.size()))
                                 .flatMap(
                                         index -> {
                                             ItemStack output = input.stack();
-                                            output.getOrCreateTag()
-                                                    .putString(
-                                                            "instrument",
-                                                            holders.get(index)
-                                                                    .unwrapKey()
-                                                                    .orElseThrow()
-                                                                    .location()
-                                                                    .toString());
+                                            // 1.21 的 InstrumentItem#setRandom 写入
+                                            // DataComponents.INSTRUMENT（Holder<Instrument>），
+                                            // 取代 1.20.1 的根 tag "instrument" 字符串。
+                                            output.set(
+                                                    DataComponents.INSTRUMENT,
+                                                    holders.get(index));
                                             return RandomTraceDistribution.singleton(
                                                     new StackState(output));
                                         },
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             }
         }
@@ -819,16 +850,11 @@ public final class DistributionalFunction1201 {
             if (destinationId == null) {
                 return Evaluation.unsupported(pointer + "/destination", "Invalid structure tag");
             }
-            MapDecoration.Type decoration;
-            try {
-                decoration =
-                        function.has("decoration")
-                                ? MapDecoration.Type.valueOf(
-                                        function.get("decoration")
-                                                .getAsString()
-                                                .toUpperCase(Locale.ROOT))
-                                : MapDecoration.Type.MANSION;
-            } catch (IllegalArgumentException exception) {
+            Holder<MapDecorationType> decoration =
+                    function.has("decoration")
+                            ? mapDecoration(function.get("decoration").getAsString())
+                            : MapDecorationTypes.WOODLAND_MANSION;
+            if (decoration == null) {
                 return Evaluation.unsupported(pointer + "/decoration", "Invalid map decoration");
             }
             Integer zoomValue = integerField(function, "zoom", 2);
@@ -856,7 +882,7 @@ public final class DistributionalFunction1201 {
             }
             try {
                 ItemStack output =
-                        SavedDataTransaction1201.run(
+                        SavedDataTransaction1211.run(
                                 level,
                                 () -> {
                                     ItemStack map =
@@ -883,42 +909,14 @@ public final class DistributionalFunction1201 {
         return Evaluation.unsupported(pointer, "Unsupported reachable function " + type);
     }
 
-    private static List<Enchantment> enchantmentCandidates(JsonObject function, ItemStack stack) {
-        if (function.has("enchantments")) {
-            JsonElement values = function.get("enchantments");
-            if (values == null || !values.isJsonArray()) return null;
-            // EnchantRandomlyFunction uses an empty collection as the sentinel for its
-            // randomApplicableEnchantment builder.  The runtime then discovers all currently
-            // registered, discoverable enchantments applicable to this stack; an empty JSON array
-            // is therefore not a deterministic no-op.
-            if (values.getAsJsonArray().isEmpty()) {
-                return dynamicEnchantmentCandidates(stack);
-            }
-            ArrayList<Enchantment> result = new ArrayList<>();
-            for (JsonElement value : values.getAsJsonArray()) {
-                String text =
-                        value != null
-                                        && value.isJsonPrimitive()
-                                        && value.getAsJsonPrimitive().isString()
-                                ? stringValue(value)
-                                : null;
-                ResourceLocation id = text == null ? null : ResourceLocation.tryParse(text);
-                Enchantment enchantment =
-                        id == null ? null : ForgeRegistries.ENCHANTMENTS.getValue(id);
-                if (enchantment == null) return null;
-                result.add(enchantment);
-            }
-            return List.copyOf(result);
-        }
-        return dynamicEnchantmentCandidates(stack);
-    }
-
-    private static List<Enchantment> dynamicEnchantmentCandidates(ItemStack stack) {
-        boolean book = stack.is(Items.BOOK);
-        return BuiltInRegistries.ENCHANTMENT.stream()
-                .filter(Enchantment::isDiscoverable)
-                .filter(enchantment -> book || enchantment.canEnchant(stack))
-                .toList();
+    /**
+     * 1.20.1 的 {@code "decoration"} 字段是 {@code MapDecoration.Type} 枚举名（无命名空间的字面量）；
+     * 1.21 改成注册表 {@code MapDecorationType} 的 id，默认值仍是 {@code minecraft:mansion}
+     * （见 {@code ExplorationMapFunction#DEFAULT_DECORATION} 与 {@code MapDecorationTypes}）。
+     */
+    private static Holder<MapDecorationType> mapDecoration(String name) {
+        ResourceLocation id = ResourceLocation.tryParse(name);
+        return id == null ? null : BuiltInRegistries.MAP_DECORATION_TYPE.getHolder(id).orElse(null);
     }
 
     private static Float constantFloat(JsonElement element) {

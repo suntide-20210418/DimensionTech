@@ -3,7 +3,7 @@ package com.suntide_20210418.dimensiontech.item;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
-import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1211;
 import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
 import java.util.List;
@@ -62,7 +62,7 @@ public final class StructMarkerItemGameTests {
                 || marker.status() != AnalysisStatus.EXACT
                 || marker.dimensionValue() != 10.0D
                 || marker.structureValue().orElse(-1.0D) != 42.5D
-                || !IdealRandomProbabilitySpace1201.ID.equals(marker.randomProbabilitySpace())
+                || !IdealRandomProbabilitySpace1211.ID.equals(marker.randomProbabilitySpace())
                 || marker.diagnostics().size() != 1) {
             helper.fail("Exact marker payload was not persisted stably: " + marker);
             return;
@@ -167,7 +167,7 @@ public final class StructMarkerItemGameTests {
                                 new BoundingBox(11, 64, -7, 16, 69, -2)),
                         Optional.empty(),
                         StructMarkerItem.ALGORITHM_VERSION,
-                        IdealRandomProbabilitySpace1201.ID,
+                        IdealRandomProbabilitySpace1211.ID,
                         0.0D,
                         Optional.empty(),
                         AnalysisStatus.LEGACY,

@@ -8,13 +8,13 @@ import java.util.Map;
 import java.util.function.IntUnaryOperator;
 
 /** Finite ideal-draw semantics of Minecraft 1.20.1 RandomSource methods. */
-public final class ExactRandomSemantics1201 {
+public final class ExactRandomSemantics1211 {
     private static final BigInteger FLOAT_OUTCOMES = BigInteger.ONE.shiftLeft(24);
     private static final int FLOAT_OUTCOME_COUNT = 1 << 24;
     private static final BigInteger FLOAT_PAIR_OUTCOMES = BigInteger.ONE.shiftLeft(48);
     private static final BigInteger DOUBLE_OUTCOMES = BigInteger.ONE.shiftLeft(53);
 
-    private ExactRandomSemantics1201() {}
+    private ExactRandomSemantics1211() {}
 
     public static RandomResult<Integer> nextInt(int bound) {
         if (bound <= 0) throw new IllegalArgumentException("bound must be positive");

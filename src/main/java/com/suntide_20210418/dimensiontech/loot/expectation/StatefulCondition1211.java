@@ -3,22 +3,23 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 
 /** Ordered core LootItemCondition execution over a Minecraft 1.20.1 Xoroshiro state. */
-public final class StatefulCondition1201 {
-    private StatefulCondition1201() {}
+public final class StatefulCondition1211 {
+    private StatefulCondition1211() {}
 
     public static Result testAll(
-            JsonElement conditions, LootAnalysisContext context, XoroshiroState1201 state) {
+            JsonElement conditions, LootAnalysisContext context, XoroshiroState1211 state) {
         return testAll(conditions, context, state, null);
     }
 
     public static Result testAll(
             JsonElement conditions,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             ReferenceResolver references) {
         return testAll(conditions, context, state, references, "");
     }
@@ -26,7 +27,7 @@ public final class StatefulCondition1201 {
     public static Result testAll(
             JsonElement conditions,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             ReferenceResolver references,
             String pointer) {
         try {
@@ -39,12 +40,12 @@ public final class StatefulCondition1201 {
     private static Result testAllUnchecked(
             JsonElement conditions,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             ReferenceResolver references,
             String pointer) {
         if (conditions == null) return new Result(true, state);
         if (!conditions.isJsonArray()) return test(conditions, context, state, references, pointer);
-        XoroshiroState1201 current = state;
+        XoroshiroState1211 current = state;
         for (int index = 0; index < conditions.getAsJsonArray().size(); index++) {
             JsonElement condition = conditions.getAsJsonArray().get(index);
             Result result = test(condition, context, current, references, pointer + "/" + index);
@@ -56,14 +57,14 @@ public final class StatefulCondition1201 {
     }
 
     public static Result test(
-            JsonElement element, LootAnalysisContext context, XoroshiroState1201 state) {
+            JsonElement element, LootAnalysisContext context, XoroshiroState1211 state) {
         return test(element, context, state, null);
     }
 
     public static Result test(
             JsonElement element,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             ReferenceResolver references) {
         return test(element, context, state, references, "");
     }
@@ -71,7 +72,7 @@ public final class StatefulCondition1201 {
     public static Result test(
             JsonElement element,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             ReferenceResolver references,
             String pointer) {
         try {
@@ -84,7 +85,7 @@ public final class StatefulCondition1201 {
     private static Result testUnchecked(
             JsonElement element,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             ReferenceResolver references,
             String pointer) {
         if (element == null || !element.isJsonObject()) return null;
@@ -125,10 +126,10 @@ public final class StatefulCondition1201 {
         }
         if (type.equals("minecraft:table_bonus")) {
             ResourceLocation enchantmentId = resourceLocationField(condition, "enchantment");
-            Enchantment enchantment =
-                    enchantmentId == null
-                            ? null
-                            : ForgeRegistries.ENCHANTMENTS.getValue(enchantmentId);
+            // 1.21 的 BonusLevelTableCondition 持有 Holder<Enchantment>，注册名要经 registry access 解析。
+            Holder<Enchantment> enchantment =
+                    ExactEnchantmentSemantics1211.enchantment(
+                            enchantmentId, context.registries());
             JsonArray chances =
                     condition.has("chances") && condition.get("chances").isJsonArray()
                             ? condition.getAsJsonArray("chances")
@@ -165,7 +166,7 @@ public final class StatefulCondition1201 {
                             ? condition.getAsJsonArray("terms")
                             : null;
             if (terms == null) return null;
-            XoroshiroState1201 current = state;
+            XoroshiroState1211 current = state;
             for (int index = 0; index < terms.size(); index++) {
                 Result result =
                         test(
@@ -231,13 +232,13 @@ public final class StatefulCondition1201 {
 
     @FunctionalInterface
     public interface ReferenceResolver {
-        Result resolve(ResourceLocation id, XoroshiroState1201 randomState);
+        Result resolve(ResourceLocation id, XoroshiroState1211 randomState);
 
         default Result resolve(
-                ResourceLocation id, XoroshiroState1201 randomState, String pointer) {
+                ResourceLocation id, XoroshiroState1211 randomState, String pointer) {
             return resolve(id, randomState);
         }
     }
 
-    public record Result(boolean value, XoroshiroState1201 randomState) {}
+    public record Result(boolean value, XoroshiroState1211 randomState) {}
 }

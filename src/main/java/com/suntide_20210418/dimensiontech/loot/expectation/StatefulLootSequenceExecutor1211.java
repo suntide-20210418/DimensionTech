@@ -18,12 +18,12 @@ import net.minecraft.server.level.ServerLevel;
  *
  * <p>A loot table call is a state transition, rather than an isolated expectation. In particular,
  * the state returned by one root call is the state supplied to the next root call. This class is
- * intentionally separate from {@link StatefulLootTableExecutor1201}: the latter's single-table API
+ * intentionally separate from {@link StatefulLootTableExecutor1211}: the latter's single-table API
  * remains useful to callers that need one transition and its source-compatible return type does not
  * have to grow a sequence-level state distribution.
  */
-public final class StatefulLootSequenceExecutor1201 {
-    private StatefulLootSequenceExecutor1201() {}
+public final class StatefulLootSequenceExecutor1211 {
+    private StatefulLootSequenceExecutor1211() {}
 
     /**
      * Executes each root in list order and carries the exact continuation state between roots.
@@ -37,7 +37,7 @@ public final class StatefulLootSequenceExecutor1201 {
             MinecraftServer server,
             List<ResourceLocation> tableIds,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState) {
+            XoroshiroState1211 initialState) {
         Objects.requireNonNull(server, "server");
         Objects.requireNonNull(tableIds, "tableIds");
         Objects.requireNonNull(context, "context");
@@ -46,7 +46,7 @@ public final class StatefulLootSequenceExecutor1201 {
         Supplier<Result> action =
                 () -> executeWithinTransaction(server, roots, context, initialState);
         return context.level() instanceof ServerLevel level
-                ? SavedDataTransaction1201.run(level, action)
+                ? SavedDataTransaction1211.run(level, action)
                 : action.get();
     }
 
@@ -55,7 +55,7 @@ public final class StatefulLootSequenceExecutor1201 {
             MinecraftServer server,
             Iterable<ResourceLocation> tableIds,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState) {
+            XoroshiroState1211 initialState) {
         Objects.requireNonNull(tableIds, "tableIds");
         ArrayList<ResourceLocation> roots = new ArrayList<>();
         tableIds.forEach(roots::add);
@@ -76,7 +76,7 @@ public final class StatefulLootSequenceExecutor1201 {
             MinecraftServer server,
             List<ResourceLocation> tableIds,
             LootAnalysisContext context,
-            FiniteDistribution<XoroshiroState1201> initialStates,
+            FiniteDistribution<XoroshiroState1211> initialStates,
             int maxStates) {
         Objects.requireNonNull(server, "server");
         Objects.requireNonNull(tableIds, "tableIds");
@@ -97,9 +97,9 @@ public final class StatefulLootSequenceExecutor1201 {
 
         List<ResourceLocation> roots = copyRoots(tableIds);
         StackMeasure measure = new StackMeasure();
-        LinkedHashMap<XoroshiroState1201, ExactProbability> finalMasses = new LinkedHashMap<>();
+        LinkedHashMap<XoroshiroState1211, ExactProbability> finalMasses = new LinkedHashMap<>();
         LinkedHashSet<Diagnostic> diagnostics = new LinkedHashSet<>();
-        for (Map.Entry<XoroshiroState1201, ExactProbability> branch :
+        for (Map.Entry<XoroshiroState1211, ExactProbability> branch :
                 initialStates.masses().entrySet()) {
             Result result = execute(server, roots, context, branch.getKey());
             diagnostics.addAll(result.diagnostics());
@@ -122,7 +122,7 @@ public final class StatefulLootSequenceExecutor1201 {
 
         // A FiniteDistribution is deliberately constructed at the boundary so its exact
         // normalization invariant is checked even when several branches coalesce.
-        FiniteDistribution<XoroshiroState1201> finalStates = FiniteDistribution.of(finalMasses);
+        FiniteDistribution<XoroshiroState1211> finalStates = FiniteDistribution.of(finalMasses);
         return ExpectationResult.exact(measure, finalStates, List.copyOf(diagnostics));
     }
 
@@ -131,7 +131,7 @@ public final class StatefulLootSequenceExecutor1201 {
             MinecraftServer server,
             List<ResourceLocation> tableIds,
             LootAnalysisContext context,
-            FiniteDistribution<XoroshiroState1201> initialStates,
+            FiniteDistribution<XoroshiroState1211> initialStates,
             int maxStates) {
         return expectation(server, tableIds, context, initialStates, maxStates);
     }
@@ -140,13 +140,13 @@ public final class StatefulLootSequenceExecutor1201 {
             MinecraftServer server,
             List<ResourceLocation> tableIds,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState) {
+            XoroshiroState1211 initialState) {
         ArrayList<StackState> outputs = new ArrayList<>();
         LinkedHashSet<Diagnostic> diagnostics = new LinkedHashSet<>();
-        XoroshiroState1201 state = initialState;
+        XoroshiroState1211 state = initialState;
         for (ResourceLocation tableId : tableIds) {
-            StatefulLootTableExecutor1201.Result result =
-                    StatefulLootTableExecutor1201.execute(server, tableId, context, state);
+            StatefulLootTableExecutor1211.Result result =
+                    StatefulLootTableExecutor1211.execute(server, tableId, context, state);
             diagnostics.addAll(result.diagnostics());
             if (!result.supported()) {
                 return Result.unsupported(result.randomState(), List.copyOf(diagnostics));
@@ -169,7 +169,7 @@ public final class StatefulLootSequenceExecutor1201 {
     public record Result(
             boolean supported,
             List<StackState> outputs,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             List<Diagnostic> diagnostics) {
         public Result {
             outputs = List.copyOf(Objects.requireNonNull(outputs, "outputs"));
@@ -179,13 +179,13 @@ public final class StatefulLootSequenceExecutor1201 {
 
         private static Result exact(
                 List<StackState> outputs,
-                XoroshiroState1201 randomState,
+                XoroshiroState1211 randomState,
                 List<Diagnostic> diagnostics) {
             return new Result(true, outputs, randomState, diagnostics);
         }
 
         private static Result unsupported(
-                XoroshiroState1201 randomState, List<Diagnostic> diagnostics) {
+                XoroshiroState1211 randomState, List<Diagnostic> diagnostics) {
             return new Result(false, List.of(), randomState, diagnostics);
         }
     }
@@ -194,7 +194,7 @@ public final class StatefulLootSequenceExecutor1201 {
     public record ExpectationResult(
             AnalysisStatus status,
             StackMeasure measure,
-            Optional<FiniteDistribution<XoroshiroState1201>> finalStates,
+            Optional<FiniteDistribution<XoroshiroState1211>> finalStates,
             List<Diagnostic> diagnostics) {
         public ExpectationResult {
             status = Objects.requireNonNull(status, "status");
@@ -211,7 +211,7 @@ public final class StatefulLootSequenceExecutor1201 {
 
         private static ExpectationResult exact(
                 StackMeasure measure,
-                FiniteDistribution<XoroshiroState1201> finalStates,
+                FiniteDistribution<XoroshiroState1211> finalStates,
                 List<Diagnostic> diagnostics) {
             return new ExpectationResult(
                     AnalysisStatus.EXACT, measure, Optional.of(finalStates), diagnostics);

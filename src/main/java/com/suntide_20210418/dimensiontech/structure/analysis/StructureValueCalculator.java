@@ -20,10 +20,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -37,6 +39,7 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.CommonHooks;
 import org.slf4j.Logger;
 
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
@@ -225,7 +228,9 @@ public final class StructureValueCalculator {
                     StructureValueSnapshot.Config valueConfig =
                             captureValueConfig(result.terminal(), markerInfo);
                     return service.value(result.terminal(), valueConfig)
-                            .thenApplyAsync(value -> restoreValue(result, value), server);
+                            .thenApplyAsync(
+                                    value -> restoreValue(result, value, server.registryAccess()),
+                                    server);
                 },
                 server);
     }
@@ -243,14 +248,14 @@ public final class StructureValueCalculator {
         EnchantmentMarginal marginal = EnchantmentMarginal.EMPTY;
         boolean full = true;
         AnalysisStatus status = discovery.status();
-        LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck);
+        LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck, source.registries());
         long totalStart = System.nanoTime();
         int rootCount = 0;
         for (var root : rootTableWeightsForValue(discovery).entrySet()) {
             rootCount++;
             long rootStart = System.nanoTime();
             var result =
-                    DistributionalLootTableExecutor1201.evaluate(
+                    DistributionalLootTableExecutor1211.evaluate(
                             source, root.getKey(), context, 1_000_000);
             long rootMillis = (System.nanoTime() - rootStart) / 1_000_000L;
             if (rootMillis > 20) {
@@ -268,7 +273,8 @@ public final class StructureValueCalculator {
                         new StackMeasure(),
                         TerminalStackMeasure.empty(),
                         false,
-                        diagnostics);
+                        diagnostics,
+                        source.registries());
             }
             terminal =
                     terminal.plus(
@@ -291,7 +297,13 @@ public final class StructureValueCalculator {
                     java.lang.Thread.currentThread().getName());
         }
         return freezeExpectation(
-                status, full ? measure : new StackMeasure(), terminal, full, marginal, diagnostics);
+                status,
+                full ? measure : new StackMeasure(),
+                terminal,
+                full,
+                marginal,
+                diagnostics,
+                source.registries());
     }
 
     private record SampleBatch(
@@ -497,10 +509,10 @@ public final class StructureValueCalculator {
                         .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(info.position()))
                         .withLuck(luck)
                         .create(LootContextParamSets.CHEST);
-        LootContext context = new LootContext.Builder(params).create((ResourceLocation) null);
+        LootContext context = new LootContext.Builder(params).create(Optional.empty());
         for (ResourceLocation root : roots) {
             ObjectArrayList<ItemStack> modified =
-                    ForgeHooks.modifyLoot(root, new ObjectArrayList<>(), context);
+                    CommonHooks.modifyLoot(root, new ObjectArrayList<>(), context);
             if (!modified.isEmpty()) {
                 return true;
             }
@@ -588,9 +600,16 @@ public final class StructureValueCalculator {
             StackMeasure full,
             TerminalStackMeasure terminal,
             boolean fullAvailable,
-            List<Diagnostic> diagnostics) {
+            List<Diagnostic> diagnostics,
+            HolderLookup.Provider registries) {
         return freezeExpectation(
-                status, full, terminal, fullAvailable, EnchantmentMarginal.EMPTY, diagnostics);
+                status,
+                full,
+                terminal,
+                fullAvailable,
+                EnchantmentMarginal.EMPTY,
+                diagnostics,
+                registries);
     }
 
     private static LootExpectationSnapshot freezeExpectation(
@@ -599,7 +618,8 @@ public final class StructureValueCalculator {
             TerminalStackMeasure terminal,
             boolean fullAvailable,
             EnchantmentMarginal enchantmentMarginal,
-            List<Diagnostic> diagnostics) {
+            List<Diagnostic> diagnostics,
+            HolderLookup.Provider registries) {
         Map<StructureValueSnapshot.TerminalItem, ExactProbability> occurrences =
                 new LinkedHashMap<>();
         terminal.values()
@@ -624,7 +644,7 @@ public final class StructureValueCalculator {
                                                     .getKey(stack.getItem())
                                                     .toString(),
                                             state.count(),
-                                            state.serializedStackData()),
+                                            state.serializedStackData(registries)),
                                     mass);
                         });
         return new LootExpectationSnapshot(
@@ -666,7 +686,9 @@ public final class StructureValueCalculator {
     }
 
     private static StructureValue restoreValue(
-            LootExpectationSnapshot input, StructureValueSnapshot.Result value) {
+            LootExpectationSnapshot input,
+            StructureValueSnapshot.Result value,
+            HolderLookup.Provider registries) {
         List<Diagnostic> diagnostics = new ArrayList<>(input.diagnostics());
         if (!value.supported()) diagnostics.add(new Diagnostic("VALUE_SEMANTICS", value.failure()));
         if (!value.supported()
@@ -699,7 +721,8 @@ public final class StructureValueCalculator {
                                 if (!includedItems.contains(data.itemId())) return;
                                 try {
                                     ItemStack stack =
-                                            ItemStack.of(
+                                            ItemStack.parseOptional(
+                                                    registries,
                                                     net.minecraft.nbt.TagParser.parseTag(
                                                             data.serializedNbt()));
                                     stack.setCount(data.count());
@@ -776,16 +799,17 @@ public final class StructureValueCalculator {
         LootAnalysisContext context =
                 sourceOverride == null
                         ? LootAnalysisContext.at(level, markerInfo.position(), luck)
-                        : LootAnalysisContext.snapshot(markerInfo.position(), luck);
+                        : LootAnalysisContext.snapshot(
+                                markerInfo.position(), luck, sourceOverride.registries());
         if (ModConfigs.STRUCTURE_VALUE.itemExpectationMethod() == ItemExpectationMethod.SAMPLING) {
             return sampledValue(level, markerInfo, discovery, dimensionValue, luck, diagnostics);
         }
         for (Map.Entry<ResourceLocation, ExactProbability> root : roots.entrySet()) {
             var result =
                     sourceOverride == null
-                            ? DistributionalLootTableExecutor1201.evaluate(
+                            ? DistributionalLootTableExecutor1211.evaluate(
                                     level.getServer(), root.getKey(), context, 1_000_000)
-                            : DistributionalLootTableExecutor1201.evaluate(
+                            : DistributionalLootTableExecutor1211.evaluate(
                                     sourceOverride, root.getKey(), context, 1_000_000);
             diagnostics.addAll(result.diagnostics());
             if (result.status() != AnalysisStatus.EXACT) {

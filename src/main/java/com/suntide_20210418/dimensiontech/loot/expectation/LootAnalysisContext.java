@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 
 import java.util.Map;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -20,7 +21,8 @@ public record LootAnalysisContext(
         ItemStack tool,
         Map<LootContext.EntityTarget, Entity> entityTargets,
         int lootingModifier,
-        boolean fullDurability) {
+        boolean fullDurability,
+        RegistryAccess registries) {
     public LootAnalysisContext {
         scores = Map.copyOf(scores == null ? Map.of() : scores);
         entityTargets = Map.copyOf(entityTargets == null ? Map.of() : entityTargets);
@@ -47,7 +49,8 @@ public record LootAnalysisContext(
                 tool,
                 entityTargets,
                 0,
-                false);
+                false,
+                registriesOf(level));
     }
 
     public LootAnalysisContext(
@@ -72,7 +75,8 @@ public record LootAnalysisContext(
                 tool,
                 entityTargets,
                 lootingModifier,
-                false);
+                false,
+                registriesOf(level));
     }
 
     public static LootAnalysisContext at(Level level, BlockPos origin, float luck) {
@@ -87,11 +91,17 @@ public record LootAnalysisContext(
                 ItemStack.EMPTY,
                 Map.of(),
                 0,
-                false);
+                false,
+                registriesOf(level));
     }
 
-    /** Thread-safe context snapshot for pure analysis; it deliberately has no live Level/entity. */
-    public static LootAnalysisContext snapshot(BlockPos origin, float luck) {
+    /**
+     * Thread-safe context snapshot for pure analysis; it deliberately has no live Level/entity but
+     * still carries the registry snapshot, which 1.21 needs for registry-backed component values and
+     * for resolving enchantment candidates.
+     */
+    public static LootAnalysisContext snapshot(
+            BlockPos origin, float luck, RegistryAccess registries) {
         return new LootAnalysisContext(
                 null,
                 Vec3.atCenterOf(origin),
@@ -103,7 +113,8 @@ public record LootAnalysisContext(
                 ItemStack.EMPTY.copy(),
                 Map.of(),
                 0,
-                false);
+                false,
+                registries);
     }
 
     public LootAnalysisContext withLootingModifier(int value) {
@@ -118,7 +129,8 @@ public record LootAnalysisContext(
                 tool,
                 entityTargets,
                 value,
-                fullDurability);
+                fullDurability,
+                registries);
     }
 
     public LootAnalysisContext withFullDurability() {
@@ -133,11 +145,16 @@ public record LootAnalysisContext(
                 tool,
                 entityTargets,
                 lootingModifier,
-                true);
+                true,
+                registries);
     }
 
     public Entity entity(LootContext.EntityTarget target) {
         Entity resolved = entityTargets.get(target);
         return resolved != null || target != LootContext.EntityTarget.THIS ? resolved : entity;
+    }
+
+    private static RegistryAccess registriesOf(Level level) {
+        return level == null ? null : level.registryAccess();
     }
 }

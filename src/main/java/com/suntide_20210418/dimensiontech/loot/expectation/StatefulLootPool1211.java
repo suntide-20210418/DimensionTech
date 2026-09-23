@@ -9,13 +9,13 @@ import java.util.Objects;
 import net.minecraft.util.Mth;
 
 /** Ordered LootPool expansion and selection for one concrete 1.20.1 Xoroshiro state. */
-public final class StatefulLootPool1201 {
-    private StatefulLootPool1201() {}
+public final class StatefulLootPool1211 {
+    private StatefulLootPool1211() {}
 
     public static Result execute(
             JsonObject pool,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             TagExpander tagExpander,
             String poolPointer) {
         ExecutionResult<JsonObject> result =
@@ -37,7 +37,7 @@ public final class StatefulLootPool1201 {
     public static <T> ExecutionResult<T> execute(
             JsonObject pool,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             TagExpander tagExpander,
             SelectionExecutor<T> selectionExecutor,
             String poolPointer) {
@@ -48,9 +48,9 @@ public final class StatefulLootPool1201 {
     public static <T> ExecutionResult<T> execute(
             JsonObject pool,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             TagExpander tagExpander,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             SelectionExecutor<T> selectionExecutor,
             String poolPointer) {
         try {
@@ -73,9 +73,9 @@ public final class StatefulLootPool1201 {
     private static <T> ExecutionResult<T> executeUnchecked(
             JsonObject pool,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             TagExpander tagExpander,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             SelectionExecutor<T> selectionExecutor,
             String poolPointer) {
         Objects.requireNonNull(pool, "pool");
@@ -85,8 +85,8 @@ public final class StatefulLootPool1201 {
         Objects.requireNonNull(selectionExecutor, "selectionExecutor");
         String pointer = poolPointer == null ? "" : poolPointer;
 
-        StatefulCondition1201.Result conditions =
-                StatefulCondition1201.testAll(
+        StatefulCondition1211.Result conditions =
+                StatefulCondition1211.testAll(
                         pool.get("conditions"), context, initialState, conditionReferences);
         if (conditions == null) {
             return ExecutionResult.unsupported(
@@ -94,8 +94,8 @@ public final class StatefulLootPool1201 {
         }
         if (!conditions.value()) return ExecutionResult.exact(List.of(), conditions.randomState());
 
-        StatefulNumberProvider1201.IntResult rolls =
-                StatefulNumberProvider1201.getInt(
+        StatefulNumberProvider1211.IntResult rolls =
+                StatefulNumberProvider1211.getInt(
                         pool.get("rolls"), context, conditions.randomState());
         if (rolls == null) {
             return ExecutionResult.unsupported(
@@ -103,11 +103,11 @@ public final class StatefulLootPool1201 {
                     pointer + "/rolls",
                     "Unsupported reachable rolls provider");
         }
-        StatefulNumberProvider1201.FloatResult bonus =
+        StatefulNumberProvider1211.FloatResult bonus =
                 pool.has("bonus_rolls")
-                        ? StatefulNumberProvider1201.getFloat(
+                        ? StatefulNumberProvider1211.getFloat(
                                 pool.get("bonus_rolls"), context, rolls.randomState())
-                        : new StatefulNumberProvider1201.FloatResult(0.0F, rolls.randomState());
+                        : new StatefulNumberProvider1211.FloatResult(0.0F, rolls.randomState());
         if (bonus == null) {
             return ExecutionResult.unsupported(
                     rolls.randomState(),
@@ -128,7 +128,7 @@ public final class StatefulLootPool1201 {
                         ? new JsonArray()
                         : entriesElement.getAsJsonArray();
         ArrayList<T> outputs = new ArrayList<>();
-        XoroshiroState1201 state = bonus.randomState();
+        XoroshiroState1211 state = bonus.randomState();
         for (int rollIndex = 0; rollIndex < rollCount; rollIndex++) {
             Expansion expansion =
                     expandEntries(
@@ -201,12 +201,12 @@ public final class StatefulLootPool1201 {
     private static Expansion expandEntries(
             JsonArray entries,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             TagExpander tagExpander,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             String pointer) {
         ArrayList<Candidate> candidates = new ArrayList<>();
-        XoroshiroState1201 state = initialState;
+        XoroshiroState1211 state = initialState;
         for (int index = 0; index < entries.size(); index++) {
             Expansion child =
                     expand(
@@ -226,16 +226,16 @@ public final class StatefulLootPool1201 {
     private static Expansion expand(
             JsonElement element,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             TagExpander tagExpander,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             String pointer) {
         if (element == null || !element.isJsonObject()) {
             return Expansion.unsupported(initialState, pointer, "Entry is not an object");
         }
         JsonObject entry = element.getAsJsonObject();
-        StatefulCondition1201.Result conditions =
-                StatefulCondition1201.testAll(
+        StatefulCondition1211.Result conditions =
+                StatefulCondition1211.testAll(
                         entry.get("conditions"), context, initialState, conditionReferences);
         if (conditions == null) {
             return Expansion.unsupported(
@@ -349,7 +349,7 @@ public final class StatefulLootPool1201 {
                                 : "Composite entry has no children");
             }
             ArrayList<Candidate> candidates = new ArrayList<>();
-            XoroshiroState1201 state = conditions.randomState();
+            XoroshiroState1211 state = conditions.randomState();
             for (int index = 0; index < children.size(); index++) {
                 Expansion child =
                         expand(
@@ -463,13 +463,13 @@ public final class StatefulLootPool1201 {
     @FunctionalInterface
     public interface SelectionExecutor<T> {
         SelectionResult<T> execute(
-                JsonObject selectedEntry, String entryPointer, XoroshiroState1201 randomState);
+                JsonObject selectedEntry, String entryPointer, XoroshiroState1211 randomState);
     }
 
     public record SelectionResult<T>(
             boolean supported,
             List<T> outputs,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             String pointer,
             String message) {
         public SelectionResult {
@@ -477,12 +477,12 @@ public final class StatefulLootPool1201 {
         }
 
         public static <T> SelectionResult<T> exact(
-                List<T> outputs, XoroshiroState1201 randomState) {
+                List<T> outputs, XoroshiroState1211 randomState) {
             return new SelectionResult<>(true, outputs, randomState, "", "");
         }
 
         public static <T> SelectionResult<T> unsupported(
-                XoroshiroState1201 randomState, String pointer, String message) {
+                XoroshiroState1211 randomState, String pointer, String message) {
             return new SelectionResult<>(false, List.of(), randomState, pointer, message);
         }
     }
@@ -490,7 +490,7 @@ public final class StatefulLootPool1201 {
     public record ExecutionResult<T>(
             boolean supported,
             List<T> outputs,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             String pointer,
             String message) {
         public ExecutionResult {
@@ -498,12 +498,12 @@ public final class StatefulLootPool1201 {
         }
 
         private static <T> ExecutionResult<T> exact(
-                List<T> outputs, XoroshiroState1201 randomState) {
+                List<T> outputs, XoroshiroState1211 randomState) {
             return new ExecutionResult<>(true, outputs, randomState, "", "");
         }
 
         private static <T> ExecutionResult<T> unsupported(
-                XoroshiroState1201 randomState, String pointer, String message) {
+                XoroshiroState1211 randomState, String pointer, String message) {
             return new ExecutionResult<>(false, List.of(), randomState, pointer, message);
         }
     }
@@ -511,15 +511,15 @@ public final class StatefulLootPool1201 {
     public record Result(
             boolean supported,
             List<JsonObject> selectedEntries,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             String pointer,
             String message) {
-        private static Result exact(List<JsonObject> entries, XoroshiroState1201 state) {
+        private static Result exact(List<JsonObject> entries, XoroshiroState1211 state) {
             return new Result(true, List.copyOf(entries), state, "", "");
         }
 
         private static Result unsupported(
-                XoroshiroState1201 state, String pointer, String message) {
+                XoroshiroState1211 state, String pointer, String message) {
             return new Result(false, List.of(), state, pointer, message);
         }
     }
@@ -539,17 +539,17 @@ public final class StatefulLootPool1201 {
     private record Expansion(
             boolean supported,
             List<Candidate> candidates,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             boolean expanded,
             String pointer,
             String message) {
         private static Expansion exact(
-                List<Candidate> candidates, XoroshiroState1201 state, boolean expanded) {
+                List<Candidate> candidates, XoroshiroState1211 state, boolean expanded) {
             return new Expansion(true, List.copyOf(candidates), state, expanded, "", "");
         }
 
         private static Expansion unsupported(
-                XoroshiroState1201 state, String pointer, String message) {
+                XoroshiroState1211 state, String pointer, String message) {
             return new Expansion(false, List.of(), state, false, pointer, message);
         }
     }

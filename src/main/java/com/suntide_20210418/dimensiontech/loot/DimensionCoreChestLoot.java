@@ -3,12 +3,13 @@ package com.suntide_20210418.dimensiontech.loot;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -42,9 +43,12 @@ public final class DimensionCoreChestLoot {
             return;
         }
 
-        CompoundTag unopenedData = container.saveWithoutMetadata();
-        ResourceLocation lootTable = ResourceLocation.tryParse(unopenedData.getString("LootTable"));
-        if (lootTable == null || !lootTable.getPath().startsWith("chests/")) {
+        // 1.21 的战利品表指针不再是根 tag 里的 "LootTable" 字符串：
+        // RandomizableContainerBlockEntity 把它存在 DataComponents.CONTAINER_LOOT
+        // （SeededContainerLoot）里，saveAdditional 还会显式移除该 NBT 键
+        // （见 RandomizableContainerBlockEntity#saveAdditional / #setComponents），所以这里改读注册表键。
+        ResourceKey<LootTable> lootTable = container.getLootTable();
+        if (lootTable == null || !lootTable.location().getPath().startsWith("chests/")) {
             return;
         }
 

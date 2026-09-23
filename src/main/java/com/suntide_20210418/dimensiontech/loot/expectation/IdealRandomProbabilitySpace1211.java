@@ -8,8 +8,8 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
  * conditional execution retains the complete ordered call path. This is the probability model in
  * which a weighted selection of 12 out of 137 has probability exactly {@code 12/137}.
  */
-public final class IdealRandomProbabilitySpace1201 {
+public final class IdealRandomProbabilitySpace1211 {
     public static final String ID = "minecraft_1_20_1_randomsource_ideal_finite_v1";
 
-    private IdealRandomProbabilitySpace1201() {}
+    private IdealRandomProbabilitySpace1211() {}
 }

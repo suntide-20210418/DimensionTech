@@ -9,11 +9,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.RandomSequence;
 
 /** Side-effect-free snapshot of a ServerLevel persistent random sequence. */
-public final class PersistentRandomSequenceSnapshot1201 {
-    private PersistentRandomSequenceSnapshot1201() {}
+public final class PersistentRandomSequenceSnapshot1211 {
+    private PersistentRandomSequenceSnapshot1211() {}
 
-    public static XoroshiroState1201 snapshot(ServerLevel level, ResourceLocation id) {
-        CompoundTag saved = level.getRandomSequences().save(new CompoundTag());
+    public static XoroshiroState1211 snapshot(ServerLevel level, ResourceLocation id) {
+        // 1.21 的 SavedData 序列化统一带 HolderLookup.Provider（RandomSequences#save）。
+        CompoundTag saved = level.getRandomSequences().save(new CompoundTag(), level.registryAccess());
         Tag encoded = saved.get(id.toString());
         if (encoded == null) {
             DataResult<Tag> initial =
@@ -25,7 +26,7 @@ public final class PersistentRandomSequenceSnapshot1201 {
                                     () ->
                                             new IllegalStateException(
                                                     initial.error()
-                                                            .map(DataResult.PartialResult::message)
+                                                            .map(DataResult.Error::message)
                                                             .orElse(
                                                                     "Could not encode initial"
                                                                             + " random sequence "
@@ -34,7 +35,7 @@ public final class PersistentRandomSequenceSnapshot1201 {
         return decode(encoded, id);
     }
 
-    static XoroshiroState1201 decode(Tag encoded, ResourceLocation id) {
+    static XoroshiroState1211 decode(Tag encoded, ResourceLocation id) {
         if (!(encoded instanceof CompoundTag sequence)
                 || !sequence.contains("source", Tag.TAG_LONG_ARRAY)) {
             throw new IllegalArgumentException("Invalid random sequence state for " + id);
@@ -44,6 +45,6 @@ public final class PersistentRandomSequenceSnapshot1201 {
             throw new IllegalArgumentException(
                     "Expected two Xoroshiro state longs for " + id + ", got " + state.length);
         }
-        return new XoroshiroState1201(state[0], state[1]);
+        return new XoroshiroState1211(state[0], state[1]);
     }
 }

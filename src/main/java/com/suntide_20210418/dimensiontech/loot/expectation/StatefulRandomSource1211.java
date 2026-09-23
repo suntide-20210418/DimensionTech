@@ -6,21 +6,21 @@ import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
 
 /** Mutable RandomSource adapter whose exact continuation can be recovered after runtime helpers. */
-public final class StatefulRandomSource1201 implements RandomSource {
-    private XoroshiroState1201 state;
+public final class StatefulRandomSource1211 implements RandomSource {
+    private XoroshiroState1211 state;
     private final MarsagliaPolarGaussian gaussian = new MarsagliaPolarGaussian(this);
 
-    public StatefulRandomSource1201(XoroshiroState1201 state) {
+    public StatefulRandomSource1211(XoroshiroState1211 state) {
         this.state = java.util.Objects.requireNonNull(state, "state");
     }
 
-    public XoroshiroState1201 state() {
+    public XoroshiroState1211 state() {
         return state;
     }
 
     @Override
     public RandomSource fork() {
-        return new StatefulRandomSource1201(new XoroshiroState1201(nextLong(), nextLong()));
+        return new StatefulRandomSource1211(new XoroshiroState1211(nextLong(), nextLong()));
     }
 
     @Override
@@ -30,7 +30,7 @@ public final class StatefulRandomSource1201 implements RandomSource {
 
     @Override
     public void setSeed(long seed) {
-        state = XoroshiroState1201.fromSeed(seed);
+        state = XoroshiroState1211.fromSeed(seed);
         gaussian.reset();
     }
 

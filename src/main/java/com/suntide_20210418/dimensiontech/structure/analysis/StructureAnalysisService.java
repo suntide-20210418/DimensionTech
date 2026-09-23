@@ -27,10 +27,10 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
-import net.minecraftforge.event.TickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
  * The only catalogue-analysis entry point. Callers never receive a generation world or chunks; they
@@ -55,10 +55,10 @@ public final class StructureAnalysisService {
     }
 
     @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
-            forServer(event.getServer()).tick(event.getServer());
-        }
+    public static void onServerTick(ServerTickEvent.Post event) {
+        // 1.21 把 TickEvent.ServerTickEvent 拆成了 ServerTickEvent.Pre/.Post，
+        // 原来的 Phase.END 对应 Post（见 net.neoforged.neoforge.event.tick.ServerTickEvent）。
+        forServer(event.getServer()).tick(event.getServer());
     }
 
     /** Only non-vanilla structures may fall back to detached virtual generation. */

@@ -3,12 +3,13 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 
 /** Lazy finite branching for ordered Minecraft 1.20.1 loot conditions. */
-public final class DistributionalCondition1201 {
-    private DistributionalCondition1201() {}
+public final class DistributionalCondition1211 {
+    private DistributionalCondition1211() {}
 
     public static Evaluation testAll(
             JsonElement conditions, LootAnalysisContext context, int maxStates, String pointer) {
@@ -24,7 +25,7 @@ public final class DistributionalCondition1201 {
         String safePointer = pointer == null ? "" : pointer;
         try {
             return testAllUnchecked(conditions, context, maxStates, safePointer, references);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return Evaluation.randomSemantics(safePointer, exception.getMessage());
         } catch (RuntimeException exception) {
             return Evaluation.unsupported(safePointer, malformedJsonMessage(exception));
@@ -54,7 +55,7 @@ public final class DistributionalCondition1201 {
                         current.flatMap(
                                 prior -> prior ? term : RandomTraceDistribution.singleton(false),
                                 maxStates);
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer + "/" + index, exception.getMessage());
             }
         }
@@ -70,7 +71,7 @@ public final class DistributionalCondition1201 {
         String safePointer = pointer == null ? "" : pointer;
         try {
             return testUnchecked(element, context, maxStates, safePointer, references);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return Evaluation.randomSemantics(safePointer, exception.getMessage());
         } catch (RuntimeException exception) {
             return Evaluation.unsupported(safePointer, malformedJsonMessage(exception));
@@ -105,7 +106,7 @@ public final class DistributionalCondition1201 {
             if (!Float.isFinite(chance)) {
                 return Evaluation.unsupported(pointer + "/chance", "Non-finite random chance");
             }
-            return random(ExactRandomSemantics1201.nextFloatLessThan(chance));
+            return random(ExactRandomSemantics1211.nextFloatLessThan(chance));
         }
         if (type.equals("minecraft:random_chance_with_looting")) {
             if (!condition.has("chance")) {
@@ -130,7 +131,7 @@ public final class DistributionalCondition1201 {
             if (!Float.isFinite(threshold)) {
                 return Evaluation.unsupported(pointer, "Non-finite looting-adjusted chance");
             }
-            return random(ExactRandomSemantics1201.nextFloatLessThan(threshold));
+            return random(ExactRandomSemantics1211.nextFloatLessThan(threshold));
         }
         if (type.equals("minecraft:killed_by_player")) {
             return constant(Boolean.TRUE.equals(context.killedByPlayer()));
@@ -138,14 +139,14 @@ public final class DistributionalCondition1201 {
         if (type.equals("minecraft:survives_explosion")) {
             if (context.explosionRadius() == null) return constant(true);
             return random(
-                    ExactRandomSemantics1201.nextFloatAtMost(1.0F / context.explosionRadius()));
+                    ExactRandomSemantics1211.nextFloatAtMost(1.0F / context.explosionRadius()));
         }
         if (type.equals("minecraft:table_bonus")) {
             ResourceLocation enchantmentId = resourceLocationField(condition, "enchantment");
-            Enchantment enchantment =
-                    enchantmentId == null
-                            ? null
-                            : ForgeRegistries.ENCHANTMENTS.getValue(enchantmentId);
+            // 1.21 的 BonusLevelTableCondition 持有 Holder<Enchantment>，注册名要经 registry access 解析。
+            Holder<Enchantment> enchantment =
+                    ExactEnchantmentSemantics1211.enchantment(
+                            enchantmentId, context.registries());
             if (enchantment == null) {
                 return Evaluation.unsupported(
                         pointer + "/enchantment", "Invalid table bonus enchantment");
@@ -170,7 +171,7 @@ public final class DistributionalCondition1201 {
                 return Evaluation.unsupported(
                         pointer + "/chances/" + chanceIndex, "Non-finite table bonus chance");
             }
-            return random(ExactRandomSemantics1201.nextFloatLessThan(chance));
+            return random(ExactRandomSemantics1211.nextFloatLessThan(chance));
         }
         if (type.equals("minecraft:inverted")) {
             Evaluation nested =
@@ -182,7 +183,7 @@ public final class DistributionalCondition1201 {
                                 .flatMap(
                                         value -> RandomTraceDistribution.singleton(!value),
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             }
         }
@@ -217,7 +218,7 @@ public final class DistributionalCondition1201 {
                             current.flatMap(
                                     prior -> prior ? RandomTraceDistribution.singleton(true) : term,
                                     maxStates);
-                } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+                } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                     return Evaluation.randomSemantics(
                             pointer + "/terms/" + index, exception.getMessage());
                 }
@@ -292,7 +293,7 @@ public final class DistributionalCondition1201 {
         return Evaluation.exact(RandomTraceDistribution.singleton(value));
     }
 
-    private static Evaluation random(ExactRandomSemantics1201.RandomResult<Boolean> result) {
+    private static Evaluation random(ExactRandomSemantics1211.RandomResult<Boolean> result) {
         return Evaluation.exact(RandomTraceDistribution.fromRandomResult(result));
     }
 

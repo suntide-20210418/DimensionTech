@@ -3,7 +3,7 @@ package com.suntide_20210418.dimensiontech.item;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
-import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1211;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
@@ -42,7 +42,7 @@ public class StructMarkerItem extends Item {
      * treated as legacy and recomputed, which is how a semantics change invalidates old markers
      * without a migration step.
      */
-    public static final int ALGORITHM_VERSION = 5;
+    public static final int ALGORITHM_VERSION = 6;
 
     /**
      * Discovered-structure ids live on the player, not on the item stack, so this is unrelated to
@@ -244,7 +244,7 @@ public class StructMarkerItem extends Item {
                 info.structure(),
                 chestData,
                 ALGORITHM_VERSION,
-                IdealRandomProbabilitySpace1201.ID,
+                IdealRandomProbabilitySpace1211.ID,
                 0.0D,
                 Optional.empty(),
                 AnalysisStatus.LEGACY,
@@ -378,7 +378,7 @@ public class StructMarkerItem extends Item {
                 base.structure(),
                 base.chestData(),
                 ALGORITHM_VERSION,
-                IdealRandomProbabilitySpace1201.ID,
+                IdealRandomProbabilitySpace1211.ID,
                 value.dimensionValue(),
                 usable ? Optional.of(value.structureValue()) : Optional.empty(),
                 value.status(),

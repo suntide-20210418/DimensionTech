@@ -4,8 +4,8 @@ import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 
 /** Missing and recursive reference behavior verified against Minecraft 1.20.1. */
-public final class ReferenceSemantics1201 {
-    private ReferenceSemantics1201() {}
+public final class ReferenceSemantics1211 {
+    private ReferenceSemantics1211() {}
 
     public static Diagnostic missingTable(ResourceLocation id) {
         return warning(

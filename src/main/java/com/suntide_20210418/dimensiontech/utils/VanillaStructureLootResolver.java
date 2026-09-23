@@ -3,16 +3,21 @@ package com.suntide_20210418.dimensiontech.utils;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 /**
  * Resolves the fixed chest tables used by vanilla structures whose templates do not carry a
  * LootTable tag. This intentionally applies only to the minecraft namespace; mod structures must be
  * discovered from their templates or sampled in the virtual generator.
+ *
+ * <p>1.21 的 {@code BuiltInLootTables} 常量已经是 {@code ResourceKey<LootTable>}（战利品表成了注册表），
+ * 所以这张表按注册表键保存，对外仍以 {@code ResourceLocation} 暴露（下游按 id 处理）。
  */
 public final class VanillaStructureLootResolver {
-    private static final Map<String, List<ResourceLocation>> TABLES =
+    private static final Map<String, List<ResourceKey<LootTable>>> TABLES =
             Map.ofEntries(
                     Map.entry("ancient_city", List.of(BuiltInLootTables.ANCIENT_CITY)),
                     Map.entry(
@@ -76,6 +81,9 @@ public final class VanillaStructureLootResolver {
 
     public static Optional<List<ResourceLocation>> resolve(ResourceLocation structureId) {
         if (!"minecraft".equals(structureId.getNamespace())) return Optional.empty();
-        return Optional.ofNullable(TABLES.get(structureId.getPath()));
+        List<ResourceKey<LootTable>> keys = TABLES.get(structureId.getPath());
+        return keys == null
+                ? Optional.empty()
+                : Optional.of(keys.stream().map(ResourceKey::location).toList());
     }
 }

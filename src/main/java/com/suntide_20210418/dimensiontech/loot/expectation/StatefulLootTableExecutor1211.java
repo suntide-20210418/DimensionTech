@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -22,14 +24,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootTable;
 
 /** Exact ordered table transition for an explicitly supplied Minecraft 1.20.1 RNG state. */
-public final class StatefulLootTableExecutor1201 {
-    private StatefulLootTableExecutor1201() {}
+public final class StatefulLootTableExecutor1211 {
+    private StatefulLootTableExecutor1211() {}
 
     public static Result execute(
             MinecraftServer server,
             ResourceLocation tableId,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState) {
+            XoroshiroState1211 initialState) {
         java.util.function.Supplier<Result> execution =
                 () ->
                         executeSafely(
@@ -42,7 +44,7 @@ public final class StatefulLootTableExecutor1201 {
                                 Collections.newSetFromMap(new IdentityHashMap<>()),
                                 List.of(tableId.toString()));
         return context.level() instanceof ServerLevel level
-                ? SavedDataTransaction1201.run(level, execution)
+                ? SavedDataTransaction1211.run(level, execution)
                 : execution.get();
     }
 
@@ -50,7 +52,7 @@ public final class StatefulLootTableExecutor1201 {
             MinecraftServer server,
             ResourceLocation tableId,
             LootAnalysisContext context,
-            FiniteDistribution<XoroshiroState1201> initialStates,
+            FiniteDistribution<XoroshiroState1211> initialStates,
             int maxStates) {
         if (initialStates.masses().size() > maxStates) {
             return LootExpectationResult.unsupported(
@@ -59,7 +61,7 @@ public final class StatefulLootTableExecutor1201 {
         StackMeasure measure = new StackMeasure();
         LinkedHashSet<Diagnostic> diagnostics = new LinkedHashSet<>();
         int processed = 0;
-        for (Map.Entry<XoroshiroState1201, ExactProbability> branch :
+        for (Map.Entry<XoroshiroState1211, ExactProbability> branch :
                 initialStates.masses().entrySet()) {
             Result result = execute(server, tableId, context, branch.getKey());
             diagnostics.addAll(result.diagnostics());
@@ -87,7 +89,7 @@ public final class StatefulLootTableExecutor1201 {
             RuntimeLootAstSource source,
             ResourceLocation tableId,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             Set<Object> activeTables,
             Set<Object> activePredicates,
             Set<Object> activeFunctions,
@@ -97,14 +99,14 @@ public final class StatefulLootTableExecutor1201 {
             return Result.exact(
                     List.of(),
                     initialState,
-                    List.of(ReferenceSemantics1201.missingTable(tableId, tableId, "", callPath)));
+                    List.of(ReferenceSemantics1211.missingTable(tableId, tableId, "", callPath)));
         }
         Object identity = resolved.get().identity();
         if (!activeTables.add(identity)) {
             return Result.exact(
                     List.of(),
                     initialState,
-                    List.of(ReferenceSemantics1201.recursiveTable(tableId, tableId, "", callPath)));
+                    List.of(ReferenceSemantics1211.recursiveTable(tableId, tableId, "", callPath)));
         }
         try {
             JsonElement serialized = resolved.get().json();
@@ -132,7 +134,7 @@ public final class StatefulLootTableExecutor1201 {
             PredicateResolver predicateResolver =
                     new PredicateResolver(
                             source, context, activePredicates, diagnostics, tableId, callPath);
-            XoroshiroState1201 state = initialState;
+            XoroshiroState1211 state = initialState;
             for (int poolIndex = 0; poolIndex < pools.size(); poolIndex++) {
                 String poolPointer = "/pools/" + poolIndex;
                 JsonElement poolElement = pools.get(poolIndex);
@@ -146,11 +148,11 @@ public final class StatefulLootTableExecutor1201 {
                 JsonObject pool = poolElement.getAsJsonObject();
                 JsonElement poolFunctions = pool.get("functions");
                 var poolResult =
-                        StatefulLootPool1201.execute(
+                        StatefulLootPool1211.execute(
                                 pool,
                                 context,
                                 state,
-                                StatefulLootTableExecutor1201::expandTag,
+                                StatefulLootTableExecutor1211::expandTag,
                                 predicateResolver,
                                 (entry, entryPointer, entryState) ->
                                         emitEntry(
@@ -190,7 +192,7 @@ public final class StatefulLootTableExecutor1201 {
             RuntimeLootAstSource source,
             ResourceLocation tableId,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             Set<Object> activeTables,
             Set<Object> activePredicates,
             Set<Object> activeFunctions,
@@ -214,7 +216,7 @@ public final class StatefulLootTableExecutor1201 {
         }
     }
 
-    private static StatefulLootPool1201.SelectionResult<StackState> emitEntry(
+    private static StatefulLootPool1211.SelectionResult<StackState> emitEntry(
             RuntimeLootAstSource source,
             ResourceLocation tableId,
             LootAnalysisContext context,
@@ -228,7 +230,7 @@ public final class StatefulLootTableExecutor1201 {
             String poolFunctionsPointer,
             JsonElement tableFunctions,
             String tableFunctionsPointer,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             List<Diagnostic> diagnostics) {
         if (!entry.has("type")) {
             return unsupportedSelection(initialState, entryPointer, "Entry type is missing");
@@ -238,25 +240,25 @@ public final class StatefulLootTableExecutor1201 {
             return unsupportedSelection(initialState, entryPointer, "Entry type is not a string");
         }
         if (type.equals("minecraft:empty")) {
-            return StatefulLootPool1201.SelectionResult.exact(List.of(), initialState);
+            return StatefulLootPool1211.SelectionResult.exact(List.of(), initialState);
         }
         ArrayList<ItemStack> generated = new ArrayList<>();
-        XoroshiroState1201 state = initialState;
+        XoroshiroState1211 state = initialState;
         if (type.equals("minecraft:item")) {
             ResourceLocation itemId = resourceLocationField(entry, "name");
-            if (itemId == null || !Registries.ITEM.containsKey(itemId)) {
+            if (itemId == null || !BuiltInRegistries.ITEM.containsKey(itemId)) {
                 return unsupportedSelection(
                         state, entryPointer + "/name", "Missing item reference " + itemId);
             }
-            Item item = Registries.ITEM.getValue(itemId);
+            Item item = BuiltInRegistries.ITEM.get(itemId);
             generated.add(new ItemStack(item));
         } else if (type.equals("minecraft:tag")) {
             ResourceLocation tagId = resourceLocationField(entry, "name");
             if (tagId == null) {
                 return unsupportedSelection(state, entryPointer + "/name", "Invalid item tag");
             }
-            for (Item item :
-                    BuiltInRegistries.ITEM.tags().getTag(TagKey.create(Registries.ITEM, tagId))) {
+            for (Holder<Item> item :
+                    BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, tagId))) {
                 generated.add(new ItemStack(item));
             }
         } else if (type.equals("minecraft:loot_table")) {
@@ -287,7 +289,7 @@ public final class StatefulLootTableExecutor1201 {
                                         callPath,
                                         "Nested table contains an unsupported mechanism")
                                 : nested.diagnostics().get(nested.diagnostics().size() - 1);
-                return StatefulLootPool1201.SelectionResult.unsupported(
+                return StatefulLootPool1211.SelectionResult.unsupported(
                         nested.randomState(), failure.jsonPointer(), failure.message());
             }
             nested.outputs().forEach(output -> generated.add(output.stack()));
@@ -311,8 +313,8 @@ public final class StatefulLootTableExecutor1201 {
                         tableId,
                         callPath);
         for (ItemStack stack : generated) {
-            StatefulFunction1201.Result entryResult =
-                    StatefulFunction1201.applyAll(
+            StatefulFunction1211.Result entryResult =
+                    StatefulFunction1211.applyAll(
                             stack,
                             entry.get("functions"),
                             context,
@@ -321,8 +323,8 @@ public final class StatefulLootTableExecutor1201 {
                             functionResolver,
                             entryPointer + "/functions");
             if (!entryResult.supported()) return unsupportedSelection(entryResult);
-            StatefulFunction1201.Result poolResult =
-                    StatefulFunction1201.applyAll(
+            StatefulFunction1211.Result poolResult =
+                    StatefulFunction1211.applyAll(
                             entryResult.stack(),
                             poolFunctions,
                             context,
@@ -331,8 +333,8 @@ public final class StatefulLootTableExecutor1201 {
                             functionResolver,
                             poolFunctionsPointer);
             if (!poolResult.supported()) return unsupportedSelection(poolResult);
-            StatefulFunction1201.Result tableResult =
-                    StatefulFunction1201.applyAll(
+            StatefulFunction1211.Result tableResult =
+                    StatefulFunction1211.applyAll(
                             poolResult.stack(),
                             tableFunctions,
                             context,
@@ -344,17 +346,17 @@ public final class StatefulLootTableExecutor1201 {
             outputs.add(new StackState(tableResult.stack()));
             state = tableResult.randomState();
         }
-        return StatefulLootPool1201.SelectionResult.exact(outputs, state);
+        return StatefulLootPool1211.SelectionResult.exact(outputs, state);
     }
 
-    private static StatefulLootPool1201.SelectionResult<StackState> unsupportedSelection(
-            StatefulFunction1201.Result result) {
+    private static StatefulLootPool1211.SelectionResult<StackState> unsupportedSelection(
+            StatefulFunction1211.Result result) {
         return unsupportedSelection(result.randomState(), result.pointer(), result.message());
     }
 
-    private static StatefulLootPool1201.SelectionResult<StackState> unsupportedSelection(
-            XoroshiroState1201 state, String pointer, String message) {
-        return StatefulLootPool1201.SelectionResult.unsupported(state, pointer, message);
+    private static StatefulLootPool1211.SelectionResult<StackState> unsupportedSelection(
+            XoroshiroState1211 state, String pointer, String message) {
+        return StatefulLootPool1211.SelectionResult.unsupported(state, pointer, message);
     }
 
     private static String malformedTableMessage(RuntimeException exception) {
@@ -390,9 +392,9 @@ public final class StatefulLootTableExecutor1201 {
         ResourceLocation tagId = resourceLocationField(entry, "name");
         if (tagId == null) return null;
         ArrayList<JsonObject> result = new ArrayList<>();
-        for (Item item :
-                BuiltInRegistries.ITEM.tags().getTag(TagKey.create(Registries.ITEM, tagId))) {
-            ResourceLocation itemId = Registries.ITEM.getKey(item);
+        for (Holder<Item> holder :
+                BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, tagId))) {
+            ResourceLocation itemId = holder.unwrapKey().map(ResourceKey::location).orElse(null);
             if (itemId == null) continue;
             JsonObject expanded = entry.deepCopy();
             expanded.addProperty("type", "minecraft:item");
@@ -404,7 +406,7 @@ public final class StatefulLootTableExecutor1201 {
     }
 
     private static final class PredicateResolver
-            implements StatefulCondition1201.ReferenceResolver {
+            implements StatefulCondition1211.ReferenceResolver {
         private final RuntimeLootAstSource source;
         private final LootAnalysisContext context;
         private final Set<Object> activePredicates;
@@ -428,30 +430,30 @@ public final class StatefulLootTableExecutor1201 {
         }
 
         @Override
-        public StatefulCondition1201.Result resolve(
-                ResourceLocation id, XoroshiroState1201 randomState) {
+        public StatefulCondition1211.Result resolve(
+                ResourceLocation id, XoroshiroState1211 randomState) {
             return resolve(id, randomState, "");
         }
 
         @Override
-        public StatefulCondition1201.Result resolve(
-                ResourceLocation id, XoroshiroState1201 randomState, String pointer) {
+        public StatefulCondition1211.Result resolve(
+                ResourceLocation id, XoroshiroState1211 randomState, String pointer) {
             var resolved = source.predicate(id);
             if (resolved.isEmpty()) {
                 diagnostics.add(
-                        ReferenceSemantics1201.missingPredicate(
+                        ReferenceSemantics1211.missingPredicate(
                                 id, ownerTableId, pointer, callPath));
-                return new StatefulCondition1201.Result(false, randomState);
+                return new StatefulCondition1211.Result(false, randomState);
             }
             Object identity = resolved.get().identity();
             if (!activePredicates.add(identity)) {
                 diagnostics.add(
-                        ReferenceSemantics1201.recursivePredicate(
+                        ReferenceSemantics1211.recursivePredicate(
                                 id, ownerTableId, pointer, callPath));
-                return new StatefulCondition1201.Result(false, randomState);
+                return new StatefulCondition1211.Result(false, randomState);
             }
             try {
-                return StatefulCondition1201.test(
+                return StatefulCondition1211.test(
                         resolved.get().json(), context, randomState, this);
             } finally {
                 activePredicates.remove(identity);
@@ -460,7 +462,7 @@ public final class StatefulLootTableExecutor1201 {
     }
 
     private static final class FunctionResolver
-            implements StatefulFunction1201.FunctionReferenceResolver {
+            implements StatefulFunction1211.FunctionReferenceResolver {
         private final RuntimeLootAstSource source;
         private final LootAnalysisContext context;
         private final Set<Object> activePredicates;
@@ -487,30 +489,30 @@ public final class StatefulLootTableExecutor1201 {
         }
 
         @Override
-        public StatefulFunction1201.Result resolve(
-                ResourceLocation id, ItemStack input, XoroshiroState1201 randomState) {
+        public StatefulFunction1211.Result resolve(
+                ResourceLocation id, ItemStack input, XoroshiroState1211 randomState) {
             return resolve(id, input, randomState, "");
         }
 
         @Override
-        public StatefulFunction1201.Result resolve(
+        public StatefulFunction1211.Result resolve(
                 ResourceLocation id,
                 ItemStack input,
-                XoroshiroState1201 randomState,
+                XoroshiroState1211 randomState,
                 String pointer) {
             var resolved = source.modifier(id);
             if (resolved.isEmpty()) {
                 diagnostics.add(
-                        ReferenceSemantics1201.missingFunction(
+                        ReferenceSemantics1211.missingFunction(
                                 id, ownerTableId, pointer, callPath));
-                return new StatefulFunction1201.Result(true, input.copy(), randomState, "", "");
+                return new StatefulFunction1211.Result(true, input.copy(), randomState, "", "");
             }
             Object identity = resolved.get().identity();
             if (!activeFunctions.add(identity)) {
                 diagnostics.add(
-                        ReferenceSemantics1201.recursiveFunction(
+                        ReferenceSemantics1211.recursiveFunction(
                                 id, ownerTableId, pointer, callPath));
-                return new StatefulFunction1201.Result(true, input.copy(), randomState, "", "");
+                return new StatefulFunction1211.Result(true, input.copy(), randomState, "", "");
             }
             try {
                 JsonElement json = resolved.get().json();
@@ -521,7 +523,7 @@ public final class StatefulLootTableExecutor1201 {
                     functions = new JsonArray();
                     functions.add(json);
                 }
-                return StatefulFunction1201.applyAll(
+                return StatefulFunction1211.applyAll(
                         input,
                         functions,
                         context,
@@ -544,7 +546,7 @@ public final class StatefulLootTableExecutor1201 {
     public record Result(
             boolean supported,
             List<StackState> outputs,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             List<Diagnostic> diagnostics) {
         public Result {
             outputs = List.copyOf(outputs);
@@ -553,13 +555,13 @@ public final class StatefulLootTableExecutor1201 {
 
         private static Result exact(
                 List<StackState> outputs,
-                XoroshiroState1201 randomState,
+                XoroshiroState1211 randomState,
                 List<Diagnostic> diagnostics) {
             return new Result(true, outputs, randomState, diagnostics);
         }
 
         private static Result unsupported(
-                XoroshiroState1201 randomState, List<Diagnostic> diagnostics, Diagnostic failure) {
+                XoroshiroState1211 randomState, List<Diagnostic> diagnostics, Diagnostic failure) {
             ArrayList<Diagnostic> all = new ArrayList<>(diagnostics);
             all.add(failure);
             return new Result(false, List.of(), randomState, all);

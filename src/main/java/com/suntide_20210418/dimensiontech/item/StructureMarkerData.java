@@ -6,7 +6,7 @@ import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
-import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1211;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +104,7 @@ public record StructureMarkerData(
         if (declared == null
                 || declared == AnalysisStatus.LEGACY
                 || randomProbabilitySpace == null
-                || !IdealRandomProbabilitySpace1201.ID.equals(randomProbabilitySpace)
+                || !IdealRandomProbabilitySpace1211.ID.equals(randomProbabilitySpace)
                 || !Double.isFinite(dimensionValue)
                 || dimensionValue < 0.0D) {
             return AnalysisStatus.UNSUPPORTED;

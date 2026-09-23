@@ -6,18 +6,20 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.ReadOnlyScoreInfo;
+import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
 
 /** Finite ordered branching for NumberProvider calls used by Minecraft 1.20.1 loot pools. */
-public final class DistributionalNumberProvider1201 {
-    private DistributionalNumberProvider1201() {}
+public final class DistributionalNumberProvider1211 {
+    private DistributionalNumberProvider1211() {}
 
     public static Evaluation<Integer> getInt(
             JsonElement element, LootAnalysisContext context, int maxStates, String pointer) {
         String safePointer = pointer == null ? "" : pointer;
         try {
             return getIntUnchecked(element, context, maxStates, safePointer);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return Evaluation.randomSemantics(safePointer, exception.getMessage());
         } catch (RuntimeException exception) {
             return Evaluation.unsupported(safePointer, malformedJsonMessage(exception));
@@ -70,7 +72,7 @@ public final class DistributionalNumberProvider1201 {
                                                                                 minimum, maximum),
                                                                 maxStates),
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             } catch (IllegalArgumentException exception) {
                 return Evaluation.unsupported(pointer, exception.getMessage());
@@ -95,11 +97,11 @@ public final class DistributionalNumberProvider1201 {
                                                         "Negative binomial trial count");
                                             }
                                             return RandomTraceDistribution.fromRandomResult(
-                                                    ExactRandomSemantics1201.binomial(
+                                                    ExactRandomSemantics1211.binomial(
                                                             value, constantProbability));
                                         },
                                         maxStates));
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return Evaluation.randomSemantics(pointer, exception.getMessage());
             } catch (IllegalArgumentException exception) {
                 return Evaluation.unsupported(pointer, exception.getMessage());
@@ -124,7 +126,7 @@ public final class DistributionalNumberProvider1201 {
         String safePointer = pointer == null ? "" : pointer;
         try {
             return getBonusFloorUnchecked(element, context, maxStates, safePointer);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return Evaluation.randomSemantics(safePointer, exception.getMessage());
         } catch (RuntimeException exception) {
             return Evaluation.unsupported(safePointer, malformedJsonMessage(exception));
@@ -178,9 +180,9 @@ public final class DistributionalNumberProvider1201 {
         try {
             return Evaluation.exact(
                     RandomTraceDistribution.fromRandomResult(
-                            ExactRandomSemantics1201.uniformFloatTimesLuckFloor(
+                            ExactRandomSemantics1211.uniformFloatTimesLuckFloor(
                                     min, max, context.luck(), maxStates)));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return Evaluation.randomSemantics(pointer, exception.getMessage());
         } catch (IllegalArgumentException exception) {
             return Evaluation.unsupported(pointer, exception.getMessage());
@@ -190,7 +192,7 @@ public final class DistributionalNumberProvider1201 {
     private static RandomTraceDistribution<Integer> uniformInt(int min, int max) {
         if (min >= max) return RandomTraceDistribution.singleton(min);
         return RandomTraceDistribution.fromRandomResult(
-                ExactRandomSemantics1201.uniformIntInclusive(min, max));
+                ExactRandomSemantics1211.uniformIntInclusive(min, max));
     }
 
     private static String scoreShapeFailure(JsonObject provider) {
@@ -256,10 +258,18 @@ public final class DistributionalNumberProvider1201 {
         String objectiveName = safeString(provider.get("score"));
         if (objectiveName == null) return null;
         Objective objective = scoreboard.getObjective(objectiveName);
-        if (objective == null || !scoreboard.hasPlayerScore(scoreboardName, objective)) {
+        // 1.21 用 ScoreHolder + ReadOnlyScoreInfo 取代 hasPlayerScore/getOrCreatePlayerScore
+        // （见 Scoreboard#getPlayerScoreInfo 与 ScoreboardValue#getFloat）：没有该 objective 或该玩家
+        // 还没有分数时返回 null，与 1.20.1 的 hasPlayerScore == false 同义。
+        ReadOnlyScoreInfo scoreInfo =
+                objective == null
+                        ? null
+                        : scoreboard.getPlayerScoreInfo(
+                                ScoreHolder.forNameOnly(scoreboardName), objective);
+        if (scoreInfo == null) {
             return 0.0F;
         }
-        int value = scoreboard.getOrCreatePlayerScore(scoreboardName, objective).getScore();
+        int value = scoreInfo.value();
         if (provider.has("scale") && !isNumber(provider.get("scale"))) return null;
         Float scaleValue = provider.has("scale") ? safeFloat(provider.get("scale")) : 1.0F;
         if (scaleValue == null || !Float.isFinite(scaleValue)) return null;

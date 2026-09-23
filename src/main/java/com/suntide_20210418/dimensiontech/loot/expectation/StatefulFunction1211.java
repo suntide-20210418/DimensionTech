@@ -3,44 +3,44 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.util.ArrayList;
+import com.mojang.serialization.JsonOps;
 import java.util.List;
-import java.util.Locale;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.Instrument;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
-import net.minecraft.world.item.SuspiciousStewItem;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.SuspiciousStewEffects;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraft.world.level.saveddata.maps.MapDecorationType;
+import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 
 /** Ordered LootItemFunction execution over one stack and one concrete Xoroshiro state. */
-public final class StatefulFunction1201 {
-    private StatefulFunction1201() {}
+public final class StatefulFunction1211 {
+    private StatefulFunction1211() {}
 
     public static Result applyAll(
             ItemStack input,
             JsonElement functions,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
+            XoroshiroState1211 initialState,
             String functionsPointer) {
         return applyAll(input, functions, context, initialState, null, null, functionsPointer);
     }
@@ -49,8 +49,8 @@ public final class StatefulFunction1201 {
             ItemStack input,
             JsonElement functions,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            XoroshiroState1211 initialState,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             String functionsPointer) {
         return applyAll(
                 input,
@@ -66,8 +66,8 @@ public final class StatefulFunction1201 {
             ItemStack input,
             JsonElement functions,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            XoroshiroState1211 initialState,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             FunctionReferenceResolver functionReferences,
             String functionsPointer) {
         try {
@@ -92,8 +92,8 @@ public final class StatefulFunction1201 {
             ItemStack input,
             JsonElement functions,
             LootAnalysisContext context,
-            XoroshiroState1201 initialState,
-            StatefulCondition1201.ReferenceResolver conditionReferences,
+            XoroshiroState1211 initialState,
+            StatefulCondition1211.ReferenceResolver conditionReferences,
             FunctionReferenceResolver functionReferences,
             String functionsPointer) {
         if (functions == null) return Result.exact(input.copy(), initialState);
@@ -102,7 +102,7 @@ public final class StatefulFunction1201 {
                     input, initialState, functionsPointer, "Function list is not an array");
         }
         ItemStack stack = input.copy();
-        XoroshiroState1201 state = initialState;
+        XoroshiroState1211 state = initialState;
         JsonArray array = functions.getAsJsonArray();
         for (int index = 0; index < array.size(); index++) {
             String pointer = functionsPointer + "/" + index;
@@ -111,10 +111,10 @@ public final class StatefulFunction1201 {
                 return Result.unsupported(stack, state, pointer, "Function is not an object");
             }
             JsonObject function = element.getAsJsonObject();
-            StatefulCondition1201.Result conditions;
+            StatefulCondition1211.Result conditions;
             try {
                 conditions =
-                        StatefulCondition1201.testAll(
+                        StatefulCondition1211.testAll(
                                 function.get("conditions"),
                                 context,
                                 state,
@@ -167,11 +167,11 @@ public final class StatefulFunction1201 {
             JsonObject function,
             String type,
             LootAnalysisContext context,
-            XoroshiroState1201 state,
+            XoroshiroState1211 state,
             String pointer) {
         if (type.equals("minecraft:set_count")) {
-            StatefulNumberProvider1201.IntResult count =
-                    StatefulNumberProvider1201.getInt(function.get("count"), context, state);
+            StatefulNumberProvider1211.IntResult count =
+                    StatefulNumberProvider1211.getInt(function.get("count"), context, state);
             if (count == null) {
                 return Step.unsupported(
                         input, state, pointer + "/count", "Unsupported count provider");
@@ -189,8 +189,8 @@ public final class StatefulFunction1201 {
         }
         if (type.equals("minecraft:set_damage")) {
             if (!input.isDamageableItem()) return Step.exact(input.copy(), state);
-            StatefulNumberProvider1201.FloatResult damage =
-                    StatefulNumberProvider1201.getFloat(function.get("damage"), context, state);
+            StatefulNumberProvider1211.FloatResult damage =
+                    StatefulNumberProvider1211.getFloat(function.get("damage"), context, state);
             if (damage == null) {
                 return Step.unsupported(
                         input, state, pointer + "/damage", "Unsupported damage provider");
@@ -227,7 +227,10 @@ public final class StatefulFunction1201 {
                 component =
                         name != null && name.isJsonPrimitive()
                                 ? Component.literal(name.getAsString())
-                                : Component.Serializer.fromJson(name);
+                                : ComponentSerialization.CODEC
+                                        .parse(JsonOps.INSTANCE, name)
+                                        .result()
+                                        .orElse(null);
             } catch (RuntimeException exception) {
                 return Step.unsupported(input, state, pointer + "/name", "Invalid name component");
             }
@@ -235,56 +238,76 @@ public final class StatefulFunction1201 {
                 return Step.unsupported(input, state, pointer + "/name", "Null name component");
             }
             ItemStack output = input.copy();
-            output.setHoverName(component);
+            // 1.21 的 SetNameFunction 默认 target 是 custom_name，直接 set 到
+            // DataComponents.CUSTOM_NAME（1.20.1 的 ItemStack#setHoverName 已删除）。
+            output.set(DataComponents.CUSTOM_NAME, component);
             return Step.exact(output, state);
         }
         if (type.equals("minecraft:set_potion")) {
             ResourceLocation id = resourceLocationField(function, "id");
-            Potion potion = id == null ? null : ForgeRegistries.POTIONS.getValue(id);
+            Holder<Potion> potion =
+                    id == null ? null : BuiltInRegistries.POTION.getHolder(id).orElse(null);
             if (potion == null) {
                 return Step.unsupported(input, state, pointer + "/id", "Missing potion reference");
             }
             ItemStack output = input.copy();
-            PotionUtils.setPotion(output, potion);
+            // 1.21 的 SetPotionFunction：PotionUtils 已删除，药水内容由 POTION_CONTENTS 组件承载。
+            output.update(
+                    DataComponents.POTION_CONTENTS,
+                    PotionContents.EMPTY,
+                    potion,
+                    PotionContents::withPotion);
             return Step.exact(output, state);
         }
         if (type.equals("minecraft:enchant_randomly")) {
-            List<Enchantment> candidates = enchantmentCandidates(function, input);
+            List<Holder<Enchantment>> candidates =
+                    ExactEnchantmentSemantics1211.randomCandidates(
+                            function, input, context.registries());
             if (candidates == null) {
                 return Step.unsupported(
-                        input, state, pointer + "/enchantments", "Invalid enchantment reference");
+                        input,
+                        state,
+                        pointer + "/options",
+                        "Enchantment options need registry access or are malformed");
             }
             if (candidates.isEmpty()) return Step.exact(input.copy(), state);
-            StatefulRandomSource1201 random = new StatefulRandomSource1201(state);
-            Enchantment enchantment = candidates.get(random.nextInt(candidates.size()));
-            int level = Mth.nextInt(random, enchantment.getMinLevel(), enchantment.getMaxLevel());
-            ItemStack output;
-            if (input.is(Items.BOOK)) {
-                output = new ItemStack(Items.ENCHANTED_BOOK);
-                EnchantedBookItem.addEnchantment(
-                        output, new EnchantmentInstance(enchantment, level));
-            } else {
-                output = input.copy();
-                output.enchant(enchantment, level);
-            }
+            StatefulRandomSource1211 random = new StatefulRandomSource1211(state);
+            Holder<Enchantment> enchantment = candidates.get(random.nextInt(candidates.size()));
+            int level =
+                    Mth.nextInt(
+                            random,
+                            enchantment.value().getMinLevel(),
+                            enchantment.value().getMaxLevel());
+            ItemStack output =
+                    input.is(Items.BOOK) ? new ItemStack(Items.ENCHANTED_BOOK) : input.copy();
+            // ItemStack#enchant 会按 EnchantmentHelper#getComponentType 选组件，附魔书写入
+            // STORED_ENCHANTMENTS，等价于已删除的 EnchantedBookItem#addEnchantment。
+            output.enchant(enchantment, level);
             return Step.exact(output, random.state());
         }
         if (type.equals("minecraft:enchant_with_levels")) {
-            StatefulNumberProvider1201.IntResult levels =
-                    StatefulNumberProvider1201.getInt(function.get("levels"), context, state);
+            StatefulNumberProvider1211.IntResult levels =
+                    StatefulNumberProvider1211.getInt(function.get("levels"), context, state);
             if (levels == null) {
                 return Step.unsupported(
                         input, state, pointer + "/levels", "Unsupported levels provider");
             }
-            StatefulRandomSource1201 random = new StatefulRandomSource1201(levels.randomState());
-            Boolean treasureValue = booleanField(function, "treasure", false);
-            if (treasureValue == null) {
+            // 1.21 的 EnchantWithLevelsFunction 不再有 treasure / 内置注册表，候选集来自
+            // options（缺省为整个附魔注册表），选取过程仍是 EnchantmentHelper#enchantItem。
+            List<Holder<Enchantment>> candidates =
+                    ExactEnchantmentSemantics1211.enchantmentOptions(
+                            function.get("options"), context.registries());
+            if (candidates == null) {
                 return Step.unsupported(
-                        input, state, pointer + "/treasure", "Invalid treasure boolean");
+                        input,
+                        state,
+                        pointer + "/options",
+                        "Enchantment options need registry access or are malformed");
             }
-            boolean treasure = treasureValue;
+            StatefulRandomSource1211 random = new StatefulRandomSource1211(levels.randomState());
             ItemStack output =
-                    EnchantmentHelper.enchantItem(random, input.copy(), levels.value(), treasure);
+                    EnchantmentHelper.enchantItem(
+                            random, input.copy(), levels.value(), candidates.stream());
             return Step.exact(output, random.state());
         }
         if (type.equals("minecraft:set_stew_effect")) {
@@ -309,8 +332,10 @@ public final class StatefulFunction1201 {
             }
             JsonObject effectObject = selectedElement.getAsJsonObject();
             ResourceLocation effectId = resourceLocationField(effectObject, "type");
-            MobEffect effect =
-                    effectId == null ? null : ForgeRegistries.MOB_EFFECTS.getValue(effectId);
+            Holder<MobEffect> effect =
+                    effectId == null
+                            ? null
+                            : BuiltInRegistries.MOB_EFFECT.getHolder(effectId).orElse(null);
             if (effect == null) {
                 return Step.unsupported(
                         input,
@@ -318,8 +343,8 @@ public final class StatefulFunction1201 {
                         pointer + "/effects/" + selected.value() + "/type",
                         "Missing stew effect reference");
             }
-            StatefulNumberProvider1201.IntResult duration =
-                    StatefulNumberProvider1201.getInt(
+            StatefulNumberProvider1211.IntResult duration =
+                    StatefulNumberProvider1211.getInt(
                             effectObject.get("duration"), context, selected.state());
             if (duration == null) {
                 return Step.unsupported(
@@ -329,8 +354,14 @@ public final class StatefulFunction1201 {
                         "Unsupported stew duration provider");
             }
             ItemStack output = input.copy();
-            int ticks = effect.isInstantenous() ? duration.value() : duration.value() * 20;
-            SuspiciousStewItem.saveMobEffect(output, effect, ticks);
+            int ticks = effect.value().isInstantenous() ? duration.value() : duration.value() * 20;
+            // 1.21 的 SetStewEffectFunction：SuspiciousStewItem 的 saveMobEffect 已删除，
+            // 改写入 SUSPICIOUS_STEW_EFFECTS 组件。
+            output.update(
+                    DataComponents.SUSPICIOUS_STEW_EFFECTS,
+                    SuspiciousStewEffects.EMPTY,
+                    new SuspiciousStewEffects.Entry(effect, ticks),
+                    SuspiciousStewEffects::withEffectAdded);
             return Step.exact(output, duration.randomState());
         }
         if (type.equals("minecraft:set_instrument")) {
@@ -352,16 +383,13 @@ public final class StatefulFunction1201 {
             java.util.Optional<? extends HolderSet<Instrument>> set =
                     BuiltInRegistries.INSTRUMENT.getTag(tag);
             if (set.isEmpty() || set.get().size() == 0) return Step.exact(input.copy(), state);
+            // 1.21 的 InstrumentItem#setRandom 用 HolderSet#getRandomElement（即
+            // Util#getRandomSafe → contents.get(random.nextInt(size))），与这里的抽取一致。
             var selected = state.nextInt(set.get().size());
             Holder<Instrument> holder = set.get().get(selected.value());
-            java.util.Optional<net.minecraft.resources.ResourceKey<Instrument>> key =
-                    holder.unwrapKey();
-            if (key.isEmpty()) {
-                return Step.unsupported(
-                        input, selected.state(), pointer + "/options", "Unkeyed instrument holder");
-            }
             ItemStack output = input.copy();
-            output.getOrCreateTag().putString("instrument", key.get().location().toString());
+            // 1.21 用 DataComponents.INSTRUMENT（Holder<Instrument>）取代根 tag "instrument" 字符串。
+            output.set(DataComponents.INSTRUMENT, holder);
             return Step.exact(output, selected.state());
         }
         if (type.equals("minecraft:exploration_map")) {
@@ -387,16 +415,11 @@ public final class StatefulFunction1201 {
                 return Step.unsupported(
                         input, state, pointer + "/destination", "Invalid structure tag");
             }
-            MapDecoration.Type decoration;
-            try {
-                decoration =
-                        function.has("decoration")
-                                ? MapDecoration.Type.valueOf(
-                                        function.get("decoration")
-                                                .getAsString()
-                                                .toUpperCase(Locale.ROOT))
-                                : MapDecoration.Type.MANSION;
-            } catch (IllegalArgumentException exception) {
+            Holder<MapDecorationType> decoration =
+                    function.has("decoration")
+                            ? mapDecoration(function.get("decoration").getAsString())
+                            : MapDecorationTypes.WOODLAND_MANSION;
+            if (decoration == null) {
                 return Step.unsupported(
                         input, state, pointer + "/decoration", "Invalid map decoration");
             }
@@ -427,7 +450,7 @@ public final class StatefulFunction1201 {
             if (target == null) return Step.exact(input.copy(), state);
             try {
                 ItemStack output =
-                        SavedDataTransaction1201.run(
+                        SavedDataTransaction1211.run(
                                 level,
                                 () -> {
                                     ItemStack map =
@@ -456,38 +479,14 @@ public final class StatefulFunction1201 {
         return Step.unsupported(input, state, pointer, "Unsupported reachable function " + type);
     }
 
-    private static List<Enchantment> enchantmentCandidates(JsonObject function, ItemStack stack) {
-        if (function.has("enchantments")) {
-            JsonElement values = function.get("enchantments");
-            if (values == null || !values.isJsonArray()) return null;
-            // The 1.20.1 runtime treats an empty collection as the sentinel used by
-            // randomApplicableEnchantment(), then discovers all currently registered, discoverable
-            // enchantments applicable to this stack.  It is not a deterministic no-op.
-            if (values.getAsJsonArray().isEmpty()) {
-                return dynamicEnchantmentCandidates(stack);
-            }
-            ArrayList<Enchantment> result = new ArrayList<>();
-            for (JsonElement value : values.getAsJsonArray()) {
-                ResourceLocation id =
-                        value.isJsonPrimitive()
-                                ? ResourceLocation.tryParse(value.getAsString())
-                                : null;
-                Enchantment enchantment =
-                        id == null ? null : ForgeRegistries.ENCHANTMENTS.getValue(id);
-                if (enchantment == null) return null;
-                result.add(enchantment);
-            }
-            return List.copyOf(result);
-        }
-        return dynamicEnchantmentCandidates(stack);
-    }
-
-    private static List<Enchantment> dynamicEnchantmentCandidates(ItemStack stack) {
-        boolean book = stack.is(Items.BOOK);
-        return BuiltInRegistries.ENCHANTMENT.stream()
-                .filter(Enchantment::isDiscoverable)
-                .filter(enchantment -> book || enchantment.canEnchant(stack))
-                .toList();
+    /**
+     * 1.20.1 的 {@code "decoration"} 字段是 {@code MapDecoration.Type} 枚举名（无命名空间的字面量）；
+     * 1.21 改成注册表 {@code MapDecorationType} 的 id，默认值仍是 {@code minecraft:mansion}
+     * （见 {@code ExplorationMapFunction#DEFAULT_DECORATION} 与 {@code MapDecorationTypes}）。
+     */
+    private static Holder<MapDecorationType> mapDecoration(String name) {
+        ResourceLocation id = ResourceLocation.tryParse(name);
+        return id == null ? null : BuiltInRegistries.MAP_DECORATION_TYPE.getHolder(id).orElse(null);
     }
 
     private static String functionType(JsonObject function) {
@@ -552,12 +551,12 @@ public final class StatefulFunction1201 {
 
     @FunctionalInterface
     public interface FunctionReferenceResolver {
-        Result resolve(ResourceLocation id, ItemStack input, XoroshiroState1201 randomState);
+        Result resolve(ResourceLocation id, ItemStack input, XoroshiroState1211 randomState);
 
         default Result resolve(
                 ResourceLocation id,
                 ItemStack input,
-                XoroshiroState1201 randomState,
+                XoroshiroState1211 randomState,
                 String pointer) {
             return resolve(id, input, randomState);
         }
@@ -566,15 +565,15 @@ public final class StatefulFunction1201 {
     public record Result(
             boolean supported,
             ItemStack stack,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             String pointer,
             String message) {
-        private static Result exact(ItemStack stack, XoroshiroState1201 state) {
+        private static Result exact(ItemStack stack, XoroshiroState1211 state) {
             return new Result(true, stack, state, "", "");
         }
 
         private static Result unsupported(
-                ItemStack stack, XoroshiroState1201 state, String pointer, String message) {
+                ItemStack stack, XoroshiroState1211 state, String pointer, String message) {
             return new Result(false, stack.copy(), state, pointer, message);
         }
     }
@@ -582,15 +581,15 @@ public final class StatefulFunction1201 {
     private record Step(
             boolean supported,
             ItemStack stack,
-            XoroshiroState1201 randomState,
+            XoroshiroState1211 randomState,
             String pointer,
             String message) {
-        private static Step exact(ItemStack stack, XoroshiroState1201 state) {
+        private static Step exact(ItemStack stack, XoroshiroState1211 state) {
             return new Step(true, stack, state, "", "");
         }
 
         private static Step unsupported(
-                ItemStack stack, XoroshiroState1201 state, String pointer, String message) {
+                ItemStack stack, XoroshiroState1211 state, String pointer, String message) {
             return new Step(false, stack.copy(), state, pointer, message);
         }
     }

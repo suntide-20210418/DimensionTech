@@ -112,7 +112,7 @@ public record ReactorTooltipSnapshot(
     private static boolean sameStacks(List<ItemStack> first, List<ItemStack> second) {
         if (first.size() != second.size()) return false;
         for (int index = 0; index < first.size(); index++) {
-            if (!ItemStack.isSameItemSameTags(first.get(index), second.get(index))) return false;
+            if (!ItemStack.isSameItemSameComponents(first.get(index), second.get(index))) return false;
         }
         return true;
     }

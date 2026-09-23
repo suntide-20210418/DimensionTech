@@ -8,19 +8,19 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
  * than the user-facing seed passed to the constructor. Keeping that distinction explicit is
  * important when a continuation is persisted or used as a key in a finite state distribution.
  */
-public record LegacyState1201(long internalSeed) {
+public record LegacyState1211(long internalSeed) {
     private static final long MULTIPLIER = 25214903917L;
     private static final long INCREMENT = 11L;
     private static final long MODULUS_MASK = (1L << 48) - 1L;
 
-    public LegacyState1201 {
+    public LegacyState1211 {
         // The runtime stores only the low 48 bits after every transition.
         internalSeed &= MODULUS_MASK;
     }
 
     /** Creates the exact internal state produced by {@code new LegacyRandomSource(seed)}. */
-    public static LegacyState1201 fromSeed(long seed) {
-        return new LegacyState1201((seed ^ MULTIPLIER) & MODULUS_MASK);
+    public static LegacyState1211 fromSeed(long seed) {
+        return new LegacyState1211((seed ^ MULTIPLIER) & MODULUS_MASK);
     }
 
     /** Executes the source's protected {@code next(bits)} primitive. */
@@ -29,7 +29,7 @@ public record LegacyState1201(long internalSeed) {
             throw new IllegalArgumentException("bits must be in [1, 32]");
         }
         long next = (internalSeed * MULTIPLIER + INCREMENT) & MODULUS_MASK;
-        return new Draw<>((int) (next >>> (48 - bits)), new LegacyState1201(next), 1);
+        return new Draw<>((int) (next >>> (48 - bits)), new LegacyState1211(next), 1);
     }
 
     /** Equivalent to {@link net.minecraft.util.RandomSource#nextInt()}. */
@@ -43,7 +43,7 @@ public record LegacyState1201(long internalSeed) {
      */
     public Draw<Integer> nextInt(int bound) {
         if (bound <= 0) throw new IllegalArgumentException("Bound must be positive");
-        LegacyState1201 state = this;
+        LegacyState1211 state = this;
         int draws = 0;
         if ((bound & (bound - 1)) == 0) {
             Draw<Integer> bits = state.nextBits(31);
@@ -98,5 +98,5 @@ public record LegacyState1201(long internalSeed) {
         return new Draw<>(min + draw.value(), draw.state(), draw.drawCount());
     }
 
-    public record Draw<T>(T value, LegacyState1201 state, int drawCount) {}
+    public record Draw<T>(T value, LegacyState1211 state, int drawCount) {}
 }

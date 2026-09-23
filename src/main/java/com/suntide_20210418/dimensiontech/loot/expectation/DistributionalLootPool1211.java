@@ -12,8 +12,8 @@ import java.util.Objects;
 import net.minecraft.util.Mth;
 
 /** Exact finite pool branching with lazy reachability and ordered logical random calls. */
-public final class DistributionalLootPool1201 {
-    private DistributionalLootPool1201() {}
+public final class DistributionalLootPool1211 {
+    private DistributionalLootPool1211() {}
 
     public static Evaluation execute(
             JsonObject pool,
@@ -29,7 +29,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             String poolPointer) {
         ExecutionEvaluation<SelectedEntry> result =
                 execute(
@@ -52,7 +52,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             SelectionExecutor<T> selectionExecutor,
             String poolPointer) {
         String pointer = poolPointer == null ? "" : poolPointer;
@@ -65,7 +65,7 @@ public final class DistributionalLootPool1201 {
                     conditionReferences,
                     selectionExecutor,
                     pointer);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExecutionEvaluation.randomSemantics(pointer, exception.getMessage());
         } catch (RuntimeException exception) {
             return ExecutionEvaluation.unsupported(pointer, malformedJsonMessage(exception));
@@ -77,7 +77,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             SelectionExecutor<T> selectionExecutor,
             String poolPointer) {
         Objects.requireNonNull(pool, "pool");
@@ -86,8 +86,8 @@ public final class DistributionalLootPool1201 {
         Objects.requireNonNull(selectionExecutor, "selectionExecutor");
         String pointer = poolPointer == null ? "" : poolPointer;
 
-        DistributionalCondition1201.Evaluation conditions =
-                DistributionalCondition1201.testAll(
+        DistributionalCondition1211.Evaluation conditions =
+                DistributionalCondition1211.testAll(
                         pool.get("conditions"),
                         context,
                         maxStates,
@@ -105,14 +105,14 @@ public final class DistributionalLootPool1201 {
                                     maxStates));
         }
 
-        DistributionalNumberProvider1201.Evaluation<Integer> rolls =
-                DistributionalNumberProvider1201.getInt(
+        DistributionalNumberProvider1211.Evaluation<Integer> rolls =
+                DistributionalNumberProvider1211.getInt(
                         pool.get("rolls"), context, maxStates, pointer + "/rolls");
         if (!rolls.supported())
             return ExecutionEvaluation.unsupported(
                     rolls.pointer(), rolls.message(), rolls.failureKind());
-        DistributionalNumberProvider1201.Evaluation<Integer> bonus =
-                DistributionalNumberProvider1201.getBonusFloor(
+        DistributionalNumberProvider1211.Evaluation<Integer> bonus =
+                DistributionalNumberProvider1211.getBonusFloor(
                         pool.get("bonus_rolls"), context, maxStates, pointer + "/bonus_rolls");
         if (!bonus.supported())
             return ExecutionEvaluation.unsupported(
@@ -135,7 +135,7 @@ public final class DistributionalLootPool1201 {
                                                                                                     + extra)),
                                                             maxStates),
                                     maxStates);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExecutionEvaluation.randomSemantics(pointer, exception.getMessage());
         }
 
@@ -189,14 +189,14 @@ public final class DistributionalLootPool1201 {
                                                     : RandomTraceDistribution.singleton(List.of()),
                                     maxStates);
             return ExecutionEvaluation.exact(result);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExecutionEvaluation.randomSemantics(pointer, exception.getMessage());
         }
     }
 
     /**
      * Computes first moments without materializing the Cartesian product of every roll's output
-     * list. In {@link IdealRandomProbabilitySpace1201}, roll bodies are independent and identically
+     * list. In {@link IdealRandomProbabilitySpace1211}, roll bodies are independent and identically
      * distributed after the roll-count branch has been evaluated, so linearity makes this an exact
      * reduction rather than an approximation.
      */
@@ -205,7 +205,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             ExpectedSelectionExecutor<T> selectionExecutor,
             String poolPointer) {
         String pointer = poolPointer == null ? "" : poolPointer;
@@ -218,7 +218,7 @@ public final class DistributionalLootPool1201 {
                     conditionReferences,
                     selectionExecutor,
                     pointer);
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExpectedExecutionEvaluation.randomSemantics(pointer, exception.getMessage());
         } catch (RuntimeException exception) {
             return ExpectedExecutionEvaluation.unsupported(
@@ -231,7 +231,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             ExpectedSelectionExecutor<T> selectionExecutor,
             String poolPointer) {
         Objects.requireNonNull(pool, "pool");
@@ -240,8 +240,8 @@ public final class DistributionalLootPool1201 {
         Objects.requireNonNull(selectionExecutor, "selectionExecutor");
         String pointer = poolPointer == null ? "" : poolPointer;
 
-        DistributionalCondition1201.Evaluation conditions =
-                DistributionalCondition1201.testAll(
+        DistributionalCondition1211.Evaluation conditions =
+                DistributionalCondition1211.testAll(
                         pool.get("conditions"),
                         context,
                         maxStates,
@@ -262,15 +262,15 @@ public final class DistributionalLootPool1201 {
             return ExpectedExecutionEvaluation.exact(Map.of(), hasRandomCalls, 0, 0);
         }
 
-        DistributionalNumberProvider1201.Evaluation<Integer> rolls =
-                DistributionalNumberProvider1201.getInt(
+        DistributionalNumberProvider1211.Evaluation<Integer> rolls =
+                DistributionalNumberProvider1211.getInt(
                         pool.get("rolls"), context, maxStates, pointer + "/rolls");
         if (!rolls.supported()) {
             return ExpectedExecutionEvaluation.unsupported(
                     rolls.pointer(), rolls.message(), rolls.failureKind());
         }
-        DistributionalNumberProvider1201.Evaluation<Integer> bonus =
-                DistributionalNumberProvider1201.getBonusFloor(
+        DistributionalNumberProvider1211.Evaluation<Integer> bonus =
+                DistributionalNumberProvider1211.getBonusFloor(
                         pool.get("bonus_rolls"), context, maxStates, pointer + "/bonus_rolls");
         if (!bonus.supported()) {
             return ExpectedExecutionEvaluation.unsupported(
@@ -446,7 +446,7 @@ public final class DistributionalLootPool1201 {
                                             ? RandomTraceDistribution.singleton(List.of())
                                             : kernels.get(selected),
                             maxStates));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ProcessedRollEvaluation.randomSemantics(pointer, exception.getMessage());
         }
     }
@@ -456,7 +456,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             String pointer) {
         ExpansionEvaluation expansion =
                 expandEntries(
@@ -485,7 +485,7 @@ public final class DistributionalLootPool1201 {
                                                         .map(Candidate::weight)
                                                         .toList();
                                         return RandomTraceDistribution.fromRandomResult(
-                                                        ExactRandomSemantics1201.weightedIndex(
+                                                        ExactRandomSemantics1211.weightedIndex(
                                                                 weights))
                                                 .flatMap(
                                                         index -> {
@@ -502,7 +502,7 @@ public final class DistributionalLootPool1201 {
                                                         maxStates);
                                     },
                                     maxStates));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return RollEvaluation.randomSemantics(pointer, exception.getMessage());
         } catch (IllegalArgumentException exception) {
             return RollEvaluation.unsupported(pointer, exception.getMessage());
@@ -514,7 +514,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             String pointer) {
         RandomTraceDistribution<Expansion> current =
                 RandomTraceDistribution.singleton(Expansion.of(List.of(), true));
@@ -547,7 +547,7 @@ public final class DistributionalLootPool1201 {
                                                         },
                                                         maxStates),
                                 maxStates);
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return ExpansionEvaluation.randomSemantics(pointer, exception.getMessage());
             }
         }
@@ -559,14 +559,14 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             String pointer) {
         if (element == null || !element.isJsonObject()) {
             return ExpansionEvaluation.unsupported(pointer, "Entry is not an object");
         }
         JsonObject entry = element.getAsJsonObject();
-        DistributionalCondition1201.Evaluation conditions =
-                DistributionalCondition1201.testAll(
+        DistributionalCondition1211.Evaluation conditions =
+                DistributionalCondition1211.testAll(
                         entry.get("conditions"),
                         context,
                         maxStates,
@@ -662,7 +662,7 @@ public final class DistributionalLootPool1201 {
                                                     : RandomTraceDistribution.singleton(
                                                             Expansion.of(List.of(), false)),
                                     maxStates));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return ExpansionEvaluation.randomSemantics(pointer, exception.getMessage());
         }
     }
@@ -673,7 +673,7 @@ public final class DistributionalLootPool1201 {
             LootAnalysisContext context,
             int maxStates,
             TagExpander tagExpander,
-            DistributionalCondition1201.ReferenceResolver conditionReferences,
+            DistributionalCondition1211.ReferenceResolver conditionReferences,
             String pointer) {
         boolean alternatives = type.equals("minecraft:alternatives");
         boolean sequence = type.equals("minecraft:sequence");
@@ -723,7 +723,7 @@ public final class DistributionalLootPool1201 {
                                                     maxStates);
                                 },
                                 maxStates);
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return ExpansionEvaluation.randomSemantics(pointer, exception.getMessage());
             }
         }

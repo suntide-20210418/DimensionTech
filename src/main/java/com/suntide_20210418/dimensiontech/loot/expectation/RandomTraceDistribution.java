@@ -1,6 +1,6 @@
 package com.suntide_20210418.dimensiontech.loot.expectation;
 
-import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1201.RandomCall;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1211.RandomCall;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,7 +31,7 @@ public final class RandomTraceDistribution<T> {
     }
 
     public static <T> RandomTraceDistribution<T> fromRandomResult(
-            ExactRandomSemantics1201.RandomResult<T> result) {
+            ExactRandomSemantics1211.RandomResult<T> result) {
         LinkedHashMap<Outcome<T>, ExactProbability> masses = new LinkedHashMap<>();
         result.distribution()
                 .masses()
@@ -58,7 +58,7 @@ public final class RandomTraceDistribution<T> {
                         prior.getValue().multiply(branch.getValue()),
                         ExactProbability::add);
                 if (result.size() > maxStates) {
-                    throw new ExactRandomSemantics1201.StateSpaceLimitException(
+                    throw new ExactRandomSemantics1211.StateSpaceLimitException(
                             result.size(), maxStates);
                 }
             }

@@ -1,21 +1,21 @@
 package com.suntide_20210418.dimensiontech.loot.expectation;
 
 /** Immutable Minecraft 1.20.1 Xoroshiro128++ state and exact deterministic transitions. */
-public record XoroshiroState1201(long seedLo, long seedHi) {
+public record XoroshiroState1211(long seedLo, long seedHi) {
     private static final long SILVER_RATIO_64 = -7046029254386353131L;
     private static final long GOLDEN_RATIO_64 = 7640891576956012809L;
 
-    public XoroshiroState1201 {
+    public XoroshiroState1211 {
         if ((seedLo | seedHi) == 0L) {
             seedLo = SILVER_RATIO_64;
             seedHi = GOLDEN_RATIO_64;
         }
     }
 
-    public static XoroshiroState1201 fromSeed(long seed) {
+    public static XoroshiroState1211 fromSeed(long seed) {
         long lowUnmixed = seed ^ GOLDEN_RATIO_64;
         long highUnmixed = lowUnmixed + SILVER_RATIO_64;
-        return new XoroshiroState1201(mixStafford13(lowUnmixed), mixStafford13(highUnmixed));
+        return new XoroshiroState1211(mixStafford13(lowUnmixed), mixStafford13(highUnmixed));
     }
 
     public Draw<Long> nextLong() {
@@ -25,7 +25,7 @@ public record XoroshiroState1201(long seedLo, long seedHi) {
         high ^= low;
         long nextLow = Long.rotateLeft(low, 49) ^ high ^ (high << 21);
         long nextHigh = Long.rotateLeft(high, 28);
-        return new Draw<>(value, new XoroshiroState1201(nextLow, nextHigh), 1);
+        return new Draw<>(value, new XoroshiroState1211(nextLow, nextHigh), 1);
     }
 
     public Draw<Integer> nextInt() {
@@ -35,7 +35,7 @@ public record XoroshiroState1201(long seedLo, long seedHi) {
 
     public Draw<Integer> nextInt(int bound) {
         if (bound <= 0) throw new IllegalArgumentException("Bound must be positive");
-        XoroshiroState1201 state = this;
+        XoroshiroState1211 state = this;
         int draws = 0;
         long product;
         long lowBits;
@@ -76,7 +76,7 @@ public record XoroshiroState1201(long seedLo, long seedHi) {
         return new Draw<>(min + draw.value(), draw.state(), draw.drawCount());
     }
 
-    public record Draw<T>(T value, XoroshiroState1201 state, int drawCount) {}
+    public record Draw<T>(T value, XoroshiroState1211 state, int drawCount) {}
 
     private static long mixStafford13(long value) {
         value = (value ^ value >>> 30) * -4658895280553007687L;

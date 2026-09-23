@@ -12,27 +12,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.LootTable;
 
 /** Runtime LootData AST execution over finite logical RandomSource call branches. */
-public final class DistributionalLootTableExecutor1201 {
-    private DistributionalLootTableExecutor1201() {}
+public final class DistributionalLootTableExecutor1211 {
+    private DistributionalLootTableExecutor1211() {}
 
     /**
      * Production analysis in the explicitly versioned ideal finite-call probability space.
      *
      * <p>The ideal space is part of the marker payload ({@link
-     * IdealRandomProbabilitySpace1201#ID}). Each primitive call has its own finite exact outcome
+     * IdealRandomProbabilitySpace1211#ID}). Each primitive call has its own finite exact outcome
      * domain, and the ordered call trace is retained until a first-moment reduction is proven. This
      * is deliberately distinct from a concrete seeded {@code RandomSource}; callers that need the
-     * latter must use {@link StatefulLootTableExecutor1201#expectation} with an explicit initial
+     * latter must use {@link StatefulLootTableExecutor1211#expectation} with an explicit initial
      * state distribution.
      */
     public static LootExpectationResult evaluate(
@@ -40,8 +43,8 @@ public final class DistributionalLootTableExecutor1201 {
             ResourceLocation tableId,
             LootAnalysisContext context,
             int maxStates) {
-        try (ExactEnchantmentSemantics1201.MarginalSessionScope ignored =
-                ExactEnchantmentSemantics1201.openMarginalSession()) {
+        try (ExactEnchantmentSemantics1211.MarginalSessionScope ignored =
+                ExactEnchantmentSemantics1211.openMarginalSession()) {
             LogicalResult logical = evaluateMarginalCalls(server, tableId, context, maxStates);
             return idealProductionResult(logical);
         }
@@ -53,8 +56,8 @@ public final class DistributionalLootTableExecutor1201 {
             ResourceLocation tableId,
             LootAnalysisContext context,
             int maxStates) {
-        try (ExactEnchantmentSemantics1201.MarginalSessionScope ignored =
-                ExactEnchantmentSemantics1201.openMarginalSession()) {
+        try (ExactEnchantmentSemantics1211.MarginalSessionScope ignored =
+                ExactEnchantmentSemantics1211.openMarginalSession()) {
             LogicalResult logical = evaluateMarginalCalls(source, tableId, context, maxStates);
             return idealProductionResult(logical);
         }
@@ -189,7 +192,7 @@ public final class DistributionalLootTableExecutor1201 {
                     hasRandomCalls,
                     EnchantmentMarginal.EMPTY,
                     List.copyOf(diagnostics));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             diagnostics.add(
                     Diagnostic.randomSemantics(
                             tableId, "", List.of(tableId.toString()), exception.getMessage()));
@@ -247,7 +250,7 @@ public final class DistributionalLootTableExecutor1201 {
                             evaluation.enchantmentMarginal(),
                             List.copyOf(diagnostics))
                     : LogicalResult.unsupported(List.copyOf(diagnostics));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             diagnostics.add(
                     Diagnostic.randomSemantics(
                             tableId, "", List.of(tableId.toString()), exception.getMessage()));
@@ -313,13 +316,13 @@ public final class DistributionalLootTableExecutor1201 {
             boolean allowTerminalCompression) {
         Optional<RuntimeLootAstSource.RuntimeAst<LootTable>> resolved = source.table(tableId);
         if (resolved.isEmpty()) {
-            diagnostics.add(ReferenceSemantics1201.missingTable(tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1211.missingTable(tableId, tableId, "", callPath));
             return ExpectedTableEvaluation.exact(
                     new StackMeasure(), TerminalStackMeasure.empty(), true, false, 0, 0);
         }
         Object identity = resolved.get().identity();
         if (!activeTables.add(identity)) {
-            diagnostics.add(ReferenceSemantics1201.recursiveTable(tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1211.recursiveTable(tableId, tableId, "", callPath));
             return ExpectedTableEvaluation.exact(
                     new StackMeasure(), TerminalStackMeasure.empty(), true, false, 0, 0);
         }
@@ -379,12 +382,12 @@ public final class DistributionalLootTableExecutor1201 {
                 }
                 JsonObject pool = poolElement.getAsJsonObject();
                 JsonElement poolFunctions = pool.get("functions");
-                DistributionalLootPool1201.ExpectedExecutionEvaluation<ExpectedOutput> poolResult =
-                        DistributionalLootPool1201.expectation(
+                DistributionalLootPool1211.ExpectedExecutionEvaluation<ExpectedOutput> poolResult =
+                        DistributionalLootPool1211.expectation(
                                 pool,
                                 context,
                                 maxStates,
-                                DistributionalLootTableExecutor1201::expandTag,
+                                DistributionalLootTableExecutor1211::expandTag,
                                 predicates,
                                 (selected, ignored) ->
                                         emitEntryExpected(
@@ -481,7 +484,7 @@ public final class DistributionalLootTableExecutor1201 {
         }
     }
 
-    private static DistributionalLootPool1201.ExpectedSelectionEvaluation<ExpectedOutput>
+    private static DistributionalLootPool1211.ExpectedSelectionEvaluation<ExpectedOutput>
             emitEntryExpected(
                     RuntimeLootAstSource source,
                     ResourceLocation tableId,
@@ -491,7 +494,7 @@ public final class DistributionalLootTableExecutor1201 {
                     Set<Object> activePredicates,
                     Set<Object> activeFunctions,
                     List<String> callPath,
-                    DistributionalLootPool1201.SelectedEntry selected,
+                    DistributionalLootPool1211.SelectedEntry selected,
                     JsonElement poolFunctionsElement,
                     String poolFunctionsPointer,
                     JsonElement tableFunctionsElement,
@@ -504,7 +507,7 @@ public final class DistributionalLootTableExecutor1201 {
         String pointer = selected.pointer();
         String type = stringField(entry, "type");
         if (type == null) {
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                     pointer + "/type", "Invalid emitted entry type");
         }
         JsonElement entryFunctionsElement = entry.get("functions");
@@ -520,9 +523,9 @@ public final class DistributionalLootTableExecutor1201 {
                     entry.has("name")
                             ? ResourceLocation.tryParse(entry.get("name").getAsString())
                             : null;
-            Item item = itemId == null ? null : Registries.ITEM.getValue(itemId);
+            Item item = itemId == null ? null : BuiltInRegistries.ITEM.get(itemId);
             if (item == null) {
-                return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                         pointer + "/name", "Missing item reference " + itemId);
             }
             generated.add(new StackState(new ItemStack(item)), ExactProbability.ONE);
@@ -533,11 +536,11 @@ public final class DistributionalLootTableExecutor1201 {
                             ? ResourceLocation.tryParse(entry.get("name").getAsString())
                             : null;
             if (tagId == null) {
-                return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                         pointer + "/name", "Invalid item tag");
             }
-            for (Item item :
-                    BuiltInRegistries.ITEM.tags().getTag(TagKey.create(Registries.ITEM, tagId))) {
+            for (Holder<Item> item :
+                    BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, tagId))) {
                 generated.add(new StackState(new ItemStack(item)), ExactProbability.ONE);
             }
             maxOutputs = generated.values().isEmpty() ? 0 : generated.values().size() == 1 ? 1 : 2;
@@ -547,7 +550,7 @@ public final class DistributionalLootTableExecutor1201 {
                             ? ResourceLocation.tryParse(entry.get("name").getAsString())
                             : null;
             if (nestedId == null) {
-                return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                         pointer + "/name", "Invalid nested table reference");
             }
             ArrayList<String> nestedPath = new ArrayList<>(callPath);
@@ -568,7 +571,7 @@ public final class DistributionalLootTableExecutor1201 {
                                     && isAbsentOrEmptyFunctionList(poolFunctionsElement)
                                     && isAbsentOrEmptyFunctionList(tableFunctionsElement));
             if (!nested.supported()) {
-                return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                         pointer,
                         "Nested table contains an unsupported reachable mechanism",
                         nested.failureKind());
@@ -587,7 +590,7 @@ public final class DistributionalLootTableExecutor1201 {
                                                 ExpectedOutput.terminal(key),
                                                 mass,
                                                 ExactProbability::add));
-                return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
+                return DistributionalLootPool1211.ExpectedSelectionEvaluation.exact(
                         terminalOutputs,
                         nested.hasRandomCalls(),
                         nested.maxOutputs(),
@@ -600,12 +603,12 @@ public final class DistributionalLootTableExecutor1201 {
             maxMapAllocations = nested.maxMapAllocations();
             entryMarginal = nested.enchantmentMarginal();
         } else {
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                     pointer, "Unsupported emitted entry " + type);
         }
 
         if (generated.values().isEmpty()) {
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.exact(
                     Map.of(), hasRandomCalls, maxOutputs, maxMapAllocations, entryMarginal);
         }
         String invalidFunctions =
@@ -623,7 +626,7 @@ public final class DistributionalLootTableExecutor1201 {
                             : invalidFunctions.equals(poolFunctionsPointer)
                                     ? "Loot pool"
                                     : "Loot table";
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                     invalidFunctions, layer + " functions is not an array");
         }
         JsonArray entryFunctions = functionArray(entryFunctionsElement);
@@ -631,7 +634,7 @@ public final class DistributionalLootTableExecutor1201 {
         JsonArray tableFunctions = functionArray(tableFunctionsElement);
 
         if (allowTerminalCompression
-                && ExactEnchantmentSemantics1201.ENABLED
+                && ExactEnchantmentSemantics1211.ENABLED
                 && poolFunctions.isEmpty()
                 && tableFunctions.isEmpty()
                 && isTerminalEnchantWithLevels(entryFunctions)) {
@@ -658,32 +661,37 @@ public final class DistributionalLootTableExecutor1201 {
                                 functionResolver,
                                 maxOutputs);
                 if (!prefixLayer.supported()) {
-                    return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                    return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                             prefixLayer.pointer(),
                             prefixLayer.message(),
                             prefixLayer.failureKind());
                 }
-                DistributionalNumberProvider1201.Evaluation<Integer> levels =
-                        DistributionalNumberProvider1201.getInt(
+                DistributionalNumberProvider1211.Evaluation<Integer> levels =
+                        DistributionalNumberProvider1211.getInt(
                                 terminalFunction.get("levels"),
                                 context,
                                 maxStates,
                                 pointer + "/functions/" + terminalIndex + "/levels");
                 if (!levels.supported()) {
-                    return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                    return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                             levels.pointer(), levels.message(), levels.failureKind());
                 }
-                boolean treasure =
-                        terminalFunction.has("treasure")
-                                && terminalFunction.get("treasure").getAsBoolean();
-                ExactEnchantmentSemantics1201.TerminalEvaluation terminal =
-                        ExactEnchantmentSemantics1201.enchantItemsTerminal(
+                List<Holder<Enchantment>> possibleEnchantments =
+                        ExactEnchantmentSemantics1211.enchantmentOptions(
+                                terminalFunction.get("options"), context.registries());
+                if (possibleEnchantments == null) {
+                    return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
+                            pointer + "/functions/" + terminalIndex + "/options",
+                            "Enchantment options need registry access or are malformed");
+                }
+                ExactEnchantmentSemantics1211.TerminalEvaluation terminal =
+                        ExactEnchantmentSemantics1211.enchantItemsTerminal(
                                 prefixLayer.measure(),
                                 levels.distribution().marginal(),
-                                treasure,
+                                possibleEnchantments,
                                 maxStates);
                 if (!terminal.supported()) {
-                    return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+                    return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                             pointer + "/functions/" + terminalIndex,
                             terminal.message(),
                             terminal.failureKind());
@@ -703,12 +711,12 @@ public final class DistributionalLootTableExecutor1201 {
                 // (compatible set, level) state shape of the ordered-selection enumeration but
                 // stores one count vector per state, which is what lets this path stay compressed.
                 EnchantmentMarginal markMarginal =
-                        ExactEnchantmentSemantics1201.enchantmentMarginal(
+                        ExactEnchantmentSemantics1211.enchantmentMarginal(
                                 prefixLayer.measure().values().entrySet(),
                                 levels.distribution().marginal(),
-                                treasure,
+                                possibleEnchantments,
                                 maxStates);
-                return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
+                return DistributionalLootPool1211.ExpectedSelectionEvaluation.exact(
                         terminalOutputs,
                         prefixLayer.hasRandomCalls()
                                 || terminal.hasRandomCalls()
@@ -731,7 +739,7 @@ public final class DistributionalLootTableExecutor1201 {
                         functionResolver,
                         maxOutputs);
         if (!entryLayer.supported()) {
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                     entryLayer.pointer(), entryLayer.message(), entryLayer.failureKind());
         }
         ExpectedLayerEvaluation poolLayer =
@@ -745,7 +753,7 @@ public final class DistributionalLootTableExecutor1201 {
                         functionResolver,
                         entryLayer.maxOutputs());
         if (!poolLayer.supported()) {
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                     poolLayer.pointer(), poolLayer.message(), poolLayer.failureKind());
         }
         ExpectedLayerEvaluation tableLayer =
@@ -759,7 +767,7 @@ public final class DistributionalLootTableExecutor1201 {
                         functionResolver,
                         poolLayer.maxOutputs());
         if (!tableLayer.supported()) {
-            return DistributionalLootPool1201.ExpectedSelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
                     tableLayer.pointer(), tableLayer.message(), tableLayer.failureKind());
         }
         hasRandomCalls |=
@@ -777,7 +785,7 @@ public final class DistributionalLootTableExecutor1201 {
                         (state, mass) ->
                                 outputs.merge(
                                         ExpectedOutput.full(state), mass, ExactProbability::add));
-        return DistributionalLootPool1201.ExpectedSelectionEvaluation.exact(
+        return DistributionalLootPool1211.ExpectedSelectionEvaluation.exact(
                 outputs,
                 hasRandomCalls,
                 tableLayer.maxOutputs(),
@@ -805,8 +813,8 @@ public final class DistributionalLootTableExecutor1201 {
         boolean mayAllocateMap = false;
         EnchantmentMarginal marginal = EnchantmentMarginal.EMPTY;
         for (Map.Entry<StackState, ExactProbability> inputBranch : input.values().entrySet()) {
-            DistributionalFunction1201.ExpectedEvaluation transformed =
-                    DistributionalFunction1201.applyAllExpected(
+            DistributionalFunction1211.ExpectedEvaluation transformed =
+                    DistributionalFunction1211.applyAllExpected(
                             inputBranch.getKey(),
                             functions,
                             context,
@@ -860,12 +868,12 @@ public final class DistributionalLootTableExecutor1201 {
             Set<Diagnostic> diagnostics) {
         Optional<RuntimeLootAstSource.RuntimeAst<LootTable>> resolved = source.table(tableId);
         if (resolved.isEmpty()) {
-            diagnostics.add(ReferenceSemantics1201.missingTable(tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1211.missingTable(tableId, tableId, "", callPath));
             return TableEvaluation.exact(RandomTraceDistribution.singleton(List.of()));
         }
         Object identity = resolved.get().identity();
         if (!activeTables.add(identity)) {
-            diagnostics.add(ReferenceSemantics1201.recursiveTable(tableId, tableId, "", callPath));
+            diagnostics.add(ReferenceSemantics1211.recursiveTable(tableId, tableId, "", callPath));
             return TableEvaluation.exact(RandomTraceDistribution.singleton(List.of()));
         }
         try {
@@ -917,12 +925,12 @@ public final class DistributionalLootTableExecutor1201 {
                 }
                 JsonObject pool = poolElement.getAsJsonObject();
                 JsonElement poolFunctions = pool.get("functions");
-                DistributionalLootPool1201.ExecutionEvaluation<StackState> poolResult =
-                        DistributionalLootPool1201.execute(
+                DistributionalLootPool1211.ExecutionEvaluation<StackState> poolResult =
+                        DistributionalLootPool1211.execute(
                                 pool,
                                 context,
                                 maxStates,
-                                DistributionalLootTableExecutor1201::expandTag,
+                                DistributionalLootTableExecutor1211::expandTag,
                                 predicates,
                                 (selected, ignored) ->
                                         emitEntry(
@@ -968,7 +976,7 @@ public final class DistributionalLootTableExecutor1201 {
                                                     },
                                                     maxStates),
                                     maxStates);
-                } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+                } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                     return unsupported(
                             tableId,
                             poolPointer,
@@ -984,7 +992,7 @@ public final class DistributionalLootTableExecutor1201 {
         }
     }
 
-    private static DistributionalLootPool1201.SelectionEvaluation<StackState> emitEntry(
+    private static DistributionalLootPool1211.SelectionEvaluation<StackState> emitEntry(
             RuntimeLootAstSource source,
             ResourceLocation tableId,
             LootAnalysisContext context,
@@ -993,7 +1001,7 @@ public final class DistributionalLootTableExecutor1201 {
             Set<Object> activePredicates,
             Set<Object> activeFunctions,
             List<String> callPath,
-            DistributionalLootPool1201.SelectedEntry selected,
+            DistributionalLootPool1211.SelectedEntry selected,
             JsonElement poolFunctionsElement,
             String poolFunctionsPointer,
             JsonElement tableFunctionsElement,
@@ -1005,7 +1013,7 @@ public final class DistributionalLootTableExecutor1201 {
         String pointer = selected.pointer();
         String type = stringField(entry, "type");
         if (type == null) {
-            return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                     pointer + "/type", "Invalid emitted entry type");
         }
         TableEvaluation generated;
@@ -1016,9 +1024,9 @@ public final class DistributionalLootTableExecutor1201 {
                     entry.has("name")
                             ? ResourceLocation.tryParse(entry.get("name").getAsString())
                             : null;
-            Item item = itemId == null ? null : Registries.ITEM.getValue(itemId);
+            Item item = itemId == null ? null : BuiltInRegistries.ITEM.get(itemId);
             if (item == null) {
-                return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                         pointer + "/name", "Missing item reference " + itemId);
             }
             generated =
@@ -1031,12 +1039,12 @@ public final class DistributionalLootTableExecutor1201 {
                             ? ResourceLocation.tryParse(entry.get("name").getAsString())
                             : null;
             if (tagId == null) {
-                return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                         pointer + "/name", "Invalid item tag");
             }
             ArrayList<StackState> stacks = new ArrayList<>();
-            for (Item item :
-                    BuiltInRegistries.ITEM.tags().getTag(TagKey.create(Registries.ITEM, tagId))) {
+            for (Holder<Item> item :
+                    BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, tagId))) {
                 stacks.add(new StackState(new ItemStack(item)));
             }
             generated =
@@ -1047,7 +1055,7 @@ public final class DistributionalLootTableExecutor1201 {
                             ? ResourceLocation.tryParse(entry.get("name").getAsString())
                             : null;
             if (nestedId == null) {
-                return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                         pointer + "/name", "Invalid nested table reference");
             }
             ArrayList<String> nestedPath = new ArrayList<>(callPath);
@@ -1064,13 +1072,13 @@ public final class DistributionalLootTableExecutor1201 {
                             List.copyOf(nestedPath),
                             diagnostics);
             if (!generated.supported()) {
-                return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                         pointer,
                         "Nested table contains an unsupported reachable mechanism",
                         generated.failureKind());
             }
         } else {
-            return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                     pointer, "Unsupported emitted entry " + type);
         }
 
@@ -1078,7 +1086,7 @@ public final class DistributionalLootTableExecutor1201 {
                 generated.distribution().marginal().masses().keySet().stream()
                         .anyMatch(stacks -> !stacks.isEmpty());
         if (!hasGeneratedStack) {
-            return DistributionalLootPool1201.SelectionEvaluation.exact(generated.distribution());
+            return DistributionalLootPool1211.SelectionEvaluation.exact(generated.distribution());
         }
         JsonElement entryFunctionsElement = entry.get("functions");
         String invalidFunctions =
@@ -1096,7 +1104,7 @@ public final class DistributionalLootTableExecutor1201 {
                             : invalidFunctions.equals(poolFunctionsPointer)
                                     ? "Loot pool"
                                     : "Loot table";
-            return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+            return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                     invalidFunctions, layer + " functions is not an array");
         }
         JsonArray entryFunctions = functionArray(entryFunctionsElement);
@@ -1119,16 +1127,16 @@ public final class DistributionalLootTableExecutor1201 {
                             predicates,
                             functionResolver);
             if (!processed.supported()) {
-                return DistributionalLootPool1201.SelectionEvaluation.unsupported(
+                return DistributionalLootPool1211.SelectionEvaluation.unsupported(
                         processed.pointer(), processed.message(), processed.failureKind());
             }
             kernels.put(stacks, processed.distribution());
         }
         try {
-            return DistributionalLootPool1201.SelectionEvaluation.exact(
+            return DistributionalLootPool1211.SelectionEvaluation.exact(
                     generated.distribution().flatMap(kernels::get, maxStates));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
-            return DistributionalLootPool1201.SelectionEvaluation.randomSemantics(
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
+            return DistributionalLootPool1211.SelectionEvaluation.randomSemantics(
                     pointer, exception.getMessage());
         }
     }
@@ -1148,7 +1156,7 @@ public final class DistributionalLootTableExecutor1201 {
         RandomTraceDistribution<List<StackState>> current =
                 RandomTraceDistribution.singleton(List.of());
         for (StackState stack : stacks) {
-            DistributionalFunction1201.Evaluation transformed =
+            DistributionalFunction1211.Evaluation transformed =
                     applyFunctionLayers(
                             stack,
                             entryFunctions,
@@ -1180,14 +1188,14 @@ public final class DistributionalLootTableExecutor1201 {
                                                 },
                                                 maxStates),
                                 maxStates);
-            } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+            } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
                 return TableEvaluation.randomSemantics(entryPointer, exception.getMessage());
             }
         }
         return TableEvaluation.exact(current);
     }
 
-    private static DistributionalFunction1201.Evaluation applyFunctionLayers(
+    private static DistributionalFunction1211.Evaluation applyFunctionLayers(
             StackState input,
             JsonArray entryFunctions,
             String entryPointer,
@@ -1199,8 +1207,8 @@ public final class DistributionalLootTableExecutor1201 {
             int maxStates,
             PredicateResolver predicates,
             FunctionResolver functions) {
-        DistributionalFunction1201.Evaluation entry =
-                DistributionalFunction1201.applyAll(
+        DistributionalFunction1211.Evaluation entry =
+                DistributionalFunction1211.applyAll(
                         input,
                         entryFunctions,
                         context,
@@ -1219,7 +1227,7 @@ public final class DistributionalLootTableExecutor1201 {
                         predicates,
                         functions);
         if (!pool.supported()) {
-            return DistributionalFunction1201.Evaluation.unsupported(
+            return DistributionalFunction1211.Evaluation.unsupported(
                     pool.pointer(), pool.message(), pool.failureKind());
         }
         LayerEvaluation table =
@@ -1232,8 +1240,8 @@ public final class DistributionalLootTableExecutor1201 {
                         predicates,
                         functions);
         return table.supported()
-                ? DistributionalFunction1201.Evaluation.exact(table.distribution())
-                : DistributionalFunction1201.Evaluation.unsupported(
+                ? DistributionalFunction1211.Evaluation.exact(table.distribution())
+                : DistributionalFunction1211.Evaluation.unsupported(
                         table.pointer(), table.message(), table.failureKind());
     }
 
@@ -1247,8 +1255,8 @@ public final class DistributionalLootTableExecutor1201 {
             FunctionResolver functionResolver) {
         Map<StackState, RandomTraceDistribution<StackState>> kernels = new LinkedHashMap<>();
         for (StackState stack : input.marginal().masses().keySet()) {
-            DistributionalFunction1201.Evaluation result =
-                    DistributionalFunction1201.applyAll(
+            DistributionalFunction1211.Evaluation result =
+                    DistributionalFunction1211.applyAll(
                             stack,
                             functions,
                             context,
@@ -1264,7 +1272,7 @@ public final class DistributionalLootTableExecutor1201 {
         }
         try {
             return LayerEvaluation.exact(input.flatMap(kernels::get, maxStates));
-        } catch (ExactRandomSemantics1201.StateSpaceLimitException exception) {
+        } catch (ExactRandomSemantics1211.StateSpaceLimitException exception) {
             return LayerEvaluation.randomSemantics(pointer, exception.getMessage());
         }
     }
@@ -1274,9 +1282,9 @@ public final class DistributionalLootTableExecutor1201 {
         ResourceLocation tagId = name == null ? null : ResourceLocation.tryParse(name);
         if (tagId == null) return null;
         ArrayList<JsonObject> result = new ArrayList<>();
-        for (Item item :
-                BuiltInRegistries.ITEM.tags().getTag(TagKey.create(Registries.ITEM, tagId))) {
-            ResourceLocation itemId = Registries.ITEM.getKey(item);
+        for (Holder<Item> holder :
+                BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, tagId))) {
+            ResourceLocation itemId = holder.unwrapKey().map(ResourceKey::location).orElse(null);
             if (itemId == null) continue;
             JsonObject expanded = entry.deepCopy();
             expanded.addProperty("type", "minecraft:item");
@@ -1375,7 +1383,7 @@ public final class DistributionalLootTableExecutor1201 {
     }
 
     private static final class PredicateResolver
-            implements DistributionalCondition1201.ReferenceResolver {
+            implements DistributionalCondition1211.ReferenceResolver {
         private final RuntimeLootAstSource source;
         private final LootAnalysisContext context;
         private final int maxStates;
@@ -1402,26 +1410,26 @@ public final class DistributionalLootTableExecutor1201 {
         }
 
         @Override
-        public DistributionalCondition1201.Evaluation resolve(
+        public DistributionalCondition1211.Evaluation resolve(
                 ResourceLocation id, int ignored, String pointer) {
             var resolved = source.predicate(id);
             if (resolved.isEmpty()) {
                 diagnostics.add(
-                        ReferenceSemantics1201.missingPredicate(
+                        ReferenceSemantics1211.missingPredicate(
                                 id, ownerTableId, pointer, callPath));
-                return DistributionalCondition1201.Evaluation.exact(
+                return DistributionalCondition1211.Evaluation.exact(
                         RandomTraceDistribution.singleton(false));
             }
             Object identity = resolved.get().identity();
             if (!active.add(identity)) {
                 diagnostics.add(
-                        ReferenceSemantics1201.recursivePredicate(
+                        ReferenceSemantics1211.recursivePredicate(
                                 id, ownerTableId, pointer, callPath));
-                return DistributionalCondition1201.Evaluation.exact(
+                return DistributionalCondition1211.Evaluation.exact(
                         RandomTraceDistribution.singleton(false));
             }
             try {
-                return DistributionalCondition1201.test(
+                return DistributionalCondition1211.test(
                         resolved.get().json(), context, maxStates, pointer, this);
             } finally {
                 active.remove(identity);
@@ -1430,7 +1438,7 @@ public final class DistributionalLootTableExecutor1201 {
     }
 
     private static final class FunctionResolver
-            implements DistributionalFunction1201.FunctionReferenceResolver {
+            implements DistributionalFunction1211.FunctionReferenceResolver {
         private final RuntimeLootAstSource source;
         private final LootAnalysisContext context;
         private final int maxStates;
@@ -1460,22 +1468,22 @@ public final class DistributionalLootTableExecutor1201 {
         }
 
         @Override
-        public DistributionalFunction1201.Evaluation resolve(
+        public DistributionalFunction1211.Evaluation resolve(
                 ResourceLocation id, StackState input, int ignored, String pointer) {
             var resolved = source.modifier(id);
             if (resolved.isEmpty()) {
                 diagnostics.add(
-                        ReferenceSemantics1201.missingFunction(
+                        ReferenceSemantics1211.missingFunction(
                                 id, ownerTableId, pointer, callPath));
-                return DistributionalFunction1201.Evaluation.exact(
+                return DistributionalFunction1211.Evaluation.exact(
                         RandomTraceDistribution.singleton(input));
             }
             Object identity = resolved.get().identity();
             if (!activeFunctions.add(identity)) {
                 diagnostics.add(
-                        ReferenceSemantics1201.recursiveFunction(
+                        ReferenceSemantics1211.recursiveFunction(
                                 id, ownerTableId, pointer, callPath));
-                return DistributionalFunction1201.Evaluation.exact(
+                return DistributionalFunction1211.Evaluation.exact(
                         RandomTraceDistribution.singleton(input));
             }
             try {
@@ -1487,7 +1495,7 @@ public final class DistributionalLootTableExecutor1201 {
                     array = new JsonArray();
                     array.add(json);
                 }
-                return DistributionalFunction1201.applyAll(
+                return DistributionalFunction1211.applyAll(
                         input,
                         array,
                         context,

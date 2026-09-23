@@ -5,29 +5,29 @@ import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.MarsagliaPolarGaussian;
 import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 
-/** Mutable {@link RandomSource} adapter backed by an exact {@link LegacyState1201} continuation. */
-public final class StatefulLegacyRandomSource1201 implements RandomSource {
-    private LegacyState1201 state;
+/** Mutable {@link RandomSource} adapter backed by an exact {@link LegacyState1211} continuation. */
+public final class StatefulLegacyRandomSource1211 implements RandomSource {
+    private LegacyState1211 state;
     private final MarsagliaPolarGaussian gaussian = new MarsagliaPolarGaussian(this);
 
     /**
      * Creates an adapter with the same user-facing seed semantics as {@code LegacyRandomSource}.
      */
-    public StatefulLegacyRandomSource1201(long seed) {
-        this(LegacyState1201.fromSeed(seed));
+    public StatefulLegacyRandomSource1211(long seed) {
+        this(LegacyState1211.fromSeed(seed));
     }
 
-    public StatefulLegacyRandomSource1201(LegacyState1201 state) {
+    public StatefulLegacyRandomSource1211(LegacyState1211 state) {
         this.state = java.util.Objects.requireNonNull(state, "state");
     }
 
-    public LegacyState1201 state() {
+    public LegacyState1211 state() {
         return state;
     }
 
     @Override
     public RandomSource fork() {
-        return new StatefulLegacyRandomSource1201(LegacyState1201.fromSeed(nextLong()));
+        return new StatefulLegacyRandomSource1211(LegacyState1211.fromSeed(nextLong()));
     }
 
     @Override
@@ -38,7 +38,7 @@ public final class StatefulLegacyRandomSource1201 implements RandomSource {
 
     @Override
     public void setSeed(long seed) {
-        state = LegacyState1201.fromSeed(seed);
+        state = LegacyState1211.fromSeed(seed);
         gaussian.reset();
     }
 

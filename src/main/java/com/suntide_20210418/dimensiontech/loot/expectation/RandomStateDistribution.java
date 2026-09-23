@@ -14,7 +14,7 @@ public final class RandomStateDistribution<T> {
     }
 
     public static <T> RandomStateDistribution<T> singleton(
-            T value, XoroshiroState1201 randomState) {
+            T value, XoroshiroState1211 randomState) {
         return of(Map.of(new State<>(value, randomState), ExactProbability.ONE));
     }
 
@@ -38,7 +38,7 @@ public final class RandomStateDistribution<T> {
                         prior.getValue().multiply(branch.getValue()),
                         ExactProbability::add);
                 if (result.size() > maxStates) {
-                    throw new ExactRandomSemantics1201.StateSpaceLimitException(
+                    throw new ExactRandomSemantics1211.StateSpaceLimitException(
                             result.size(), maxStates);
                 }
             }
@@ -52,5 +52,5 @@ public final class RandomStateDistribution<T> {
         return FiniteDistribution.of(result);
     }
 
-    public record State<T>(T value, XoroshiroState1201 randomState) {}
+    public record State<T>(T value, XoroshiroState1211 randomState) {}
 }

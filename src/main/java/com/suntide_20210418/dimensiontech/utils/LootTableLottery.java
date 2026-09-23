@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -60,7 +62,11 @@ public final class LootTableLottery {
         List<ItemStack> results = new ArrayList<>();
         int tableIndex = 0;
         for (ResourceLocation lootTableId : lootTables) {
-            LootTable lootTable = level.getServer().getLootData().getLootTable(lootTableId);
+            LootTable lootTable =
+                    level.getServer()
+                            .reloadableRegistries()
+                            .getLootTable(
+                                    ResourceKey.create(Registries.LOOT_TABLE, lootTableId));
             for (int i = 0; i < parallel; i++) {
                 if (seed == null) {
                     lootTable.getRandomItems(lootParams, results::add);

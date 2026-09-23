@@ -1,40 +1,49 @@
 package com.suntide_20210418.dimensiontech.loot.expectation;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.world.level.storage.loot.Deserializers;
-import net.minecraft.world.level.storage.loot.LootDataManager;
-import net.minecraft.world.level.storage.loot.LootDataType;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import org.slf4j.Logger;
 
-/** Serializes the server's loaded loot objects, including Forge load-event modifications. */
+/**
+ * Serializes the server's loaded loot objects, including NeoForge load-event modifications.
+ *
+ * <p>1.21 取消了 {@code LootDataManager} 与 {@code Deserializers.create*Serializer()}：战利品表、谓词与
+ * 物品修饰器现在是普通注册表（{@code Registries.LOOT_TABLE} / {@code PREDICATE} / {@code ITEM_MODIFIER}），
+ * 元素在装载时已经过 {@code LootDataType.deserialize}（其中会触发 NeoForge 的 {@code loadLootTable} 事件）。
+ * 序列化改走各 {@code LootDataType} 对应的 DIRECT/ROOT codec，并且必须配 {@link RegistryOps}：
+ * 1.21 的附魔是 {@code Holder<Enchantment>}，Gson 路线无法还原。因此本类全程持有
+ * {@link RegistryAccess}。
+ */
 public class RuntimeLootAstSource {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    // A frozen source must be usable without initializing Minecraft's live loot registries.
-    private static final class RuntimeSerializers {
-        static final Gson TABLE = Deserializers.createLootTableSerializer().create();
-        static final Gson PREDICATE = Deserializers.createConditionSerializer().create();
-        static final Gson MODIFIER = Deserializers.createFunctionSerializer().create();
-    }
-
-    private final LootDataManager lootData;
+    private final RegistryAccess registries;
+    private final Registry<LootTable> tables;
+    private final Registry<LootItemCondition> predicates;
+    private final Registry<LootItemFunction> modifiers;
     private final ResourceManager resources;
     private final Map<ResourceLocation, FrozenJson> tableSnapshot;
     private final Map<ResourceLocation, FrozenJson> predicateSnapshot;
@@ -42,7 +51,10 @@ public class RuntimeLootAstSource {
     private final String runtimeSemanticsFingerprint;
 
     public RuntimeLootAstSource(MinecraftServer server) {
-        this.lootData = server.getLootData();
+        this.registries = server.registryAccess();
+        this.tables = this.registries.registryOrThrow(Registries.LOOT_TABLE);
+        this.predicates = this.registries.registryOrThrow(Registries.PREDICATE);
+        this.modifiers = this.registries.registryOrThrow(Registries.ITEM_MODIFIER);
         this.resources = server.getResourceManager();
         this.tableSnapshot = Map.of();
         this.predicateSnapshot = Map.of();
@@ -54,8 +66,12 @@ public class RuntimeLootAstSource {
             Map<ResourceLocation, JsonElement> tables,
             Map<ResourceLocation, JsonElement> predicates,
             Map<ResourceLocation, JsonElement> modifiers,
+            RegistryAccess registries,
             String runtimeSemanticsFingerprint) {
-        this.lootData = null;
+        this.registries = java.util.Objects.requireNonNull(registries, "registries");
+        this.tables = null;
+        this.predicates = null;
+        this.modifiers = null;
         this.resources = null;
         this.tableSnapshot = deepCopy(tables);
         this.predicateSnapshot = deepCopy(predicates);
@@ -68,8 +84,9 @@ public class RuntimeLootAstSource {
     public static RuntimeLootAstSource snapshot(
             Map<ResourceLocation, JsonElement> tables,
             Map<ResourceLocation, JsonElement> predicates,
-            Map<ResourceLocation, JsonElement> modifiers) {
-        return new RuntimeLootAstSource(tables, predicates, modifiers, "");
+            Map<ResourceLocation, JsonElement> modifiers,
+            RegistryAccess registries) {
+        return new RuntimeLootAstSource(tables, predicates, modifiers, registries, "");
     }
 
     /** Captures root tables and recursively referenced loot tables on the owning server thread. */
@@ -112,10 +129,11 @@ public class RuntimeLootAstSource {
                             });
         }
         long fingerprintStart = System.nanoTime();
-        String semanticsFingerprint = runtimeSemanticsFingerprint();
+        String semanticsFingerprint = live.runtimeSemanticsFingerprint();
         long fingerprintMillis = (System.nanoTime() - fingerprintStart) / 1_000_000L;
         RuntimeLootAstSource result =
-                new RuntimeLootAstSource(tables, predicates, modifiers, semanticsFingerprint);
+                new RuntimeLootAstSource(
+                        tables, predicates, modifiers, live.registries, semanticsFingerprint);
         long totalMillis = (System.nanoTime() - start) / 1_000_000L;
         if (totalMillis > 20) {
             LOGGER.warn(
@@ -180,51 +198,58 @@ public class RuntimeLootAstSource {
         return resources;
     }
 
+    /** Registry context needed to decode/encode registry-backed component values. */
+    public RegistryAccess registries() {
+        return registries;
+    }
+
     public Optional<RuntimeAst<LootTable>> table(ResourceLocation id) {
         FrozenJson snap = tableSnapshot.get(id);
         if (snap != null) return Optional.of(new RuntimeAst<LootTable>(snap, snap.toJson()));
-        if (lootData == null) return Optional.empty();
-        return lootData.getElementOptional(LootDataType.TABLE, id)
-                .map(
-                        value ->
-                                new RuntimeAst<>(
-                                        value, serializeObject(RuntimeSerializers.TABLE, value)));
+        if (tables == null) return Optional.empty();
+        LootTable value = tables.get(id);
+        if (value == null) return Optional.empty();
+        return Optional.of(
+                new RuntimeAst<>(value, serializeObject(LootTable.DIRECT_CODEC, value)));
     }
 
     public Optional<RuntimeAst<LootItemCondition>> predicate(ResourceLocation id) {
         FrozenJson snap = predicateSnapshot.get(id);
         if (snap != null)
             return Optional.of(new RuntimeAst<LootItemCondition>(snap, snap.toJson()));
-        if (lootData == null) return Optional.empty();
-        return lootData.getElementOptional(LootDataType.PREDICATE, id)
-                .map(
-                        value ->
-                                new RuntimeAst<>(
-                                        value, RuntimeSerializers.PREDICATE.toJsonTree(value)));
+        if (predicates == null) return Optional.empty();
+        LootItemCondition value = predicates.get(id);
+        if (value == null) return Optional.empty();
+        return Optional.of(
+                new RuntimeAst<>(
+                        value, serializeObject(LootItemCondition.DIRECT_CODEC, value)));
     }
 
     public Optional<RuntimeAst<LootItemFunction>> modifier(ResourceLocation id) {
         FrozenJson snap = modifierSnapshot.get(id);
         if (snap != null) return Optional.of(new RuntimeAst<LootItemFunction>(snap, snap.toJson()));
-        if (lootData == null) return Optional.empty();
-        return lootData.getElementOptional(LootDataType.MODIFIER, id)
-                .map(
-                        value ->
-                                new RuntimeAst<>(
-                                        value, RuntimeSerializers.MODIFIER.toJsonTree(value)));
+        if (modifiers == null) return Optional.empty();
+        LootItemFunction value = modifiers.get(id);
+        if (value == null) return Optional.empty();
+        return Optional.of(
+                new RuntimeAst<>(value, serializeObject(LootItemFunctions.ROOT_CODEC, value)));
     }
 
-    private static JsonObject serializeObject(Gson serializer, Object value) {
-        JsonElement element = serializer.toJsonTree(value);
+    private <T> JsonObject serializeObject(Codec<T> codec, T value) {
+        JsonElement element = codec.encodeStart(registryOps(), value).getOrThrow();
         if (!element.isJsonObject()) {
-            throw new IllegalStateException("Loot table serializer did not produce an object");
+            throw new IllegalStateException("Loot serializer did not produce an object");
         }
         return element.getAsJsonObject();
     }
 
+    private RegistryOps<JsonElement> registryOps() {
+        return RegistryOps.create(JsonOps.INSTANCE, registries);
+    }
+
     /** Includes recursively referenced tables, predicates and functions, in stable key order. */
     public String inputFingerprint() {
-        if (lootData != null) throw new IllegalStateException("Freeze the live source first");
+        if (tables != null) throw new IllegalStateException("Freeze the live source first");
         return new FrozenJson.ObjectValue(
                         Map.of(
                                 "tables", frozenEntries(tableSnapshot),
@@ -246,36 +271,36 @@ public class RuntimeLootAstSource {
         }
     }
 
-    private static String runtimeSemanticsFingerprint() {
+    /**
+     * 1.21 的附魔不再位于内置注册表，而是 datapack 注册表 + 标签：可用附魔候选集由
+     * {@code options}（默认整个注册表）与 {@code ItemStack#isPrimaryItemFor} 决定
+     * （见 {@code EnchantmentHelper#getAvailableEnchantmentResults}），"可发现性" 由
+     * {@code EnchantmentTags#IN_ENCHANTING_TABLE} / {@code NON_TREASURE} 驱动
+     * （见 {@code EnchantmentMenu}）。这些数据都参与语义，所以一并纳入指纹。
+     */
+    private String runtimeSemanticsFingerprint() {
         com.google.gson.JsonObject root = new com.google.gson.JsonObject();
-        com.google.gson.JsonObject itemTags = new com.google.gson.JsonObject();
-        if (BuiltInRegistries.ITEM.tags() != null) {
-            Registries.ITEM
-                    .tags()
-                    .getTagNames()
-                    .sorted(Comparator.comparing(tag -> tag.location().toString()))
-                    .forEach(
-                            tag -> {
-                                com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
-                                BuiltInRegistries.ITEM.tags().getTag(tag).stream()
-                                        .map(BuiltInRegistries.ITEM::getKey)
-                                        .filter(java.util.Objects::nonNull)
-                                        .map(ResourceLocation::toString)
-                                        .sorted()
-                                        .forEach(ids::add);
-                                itemTags.add(tag.location().toString(), ids);
-                            });
-        }
-        root.add("itemTags", itemTags);
-        com.google.gson.JsonObject instrumentTags = new com.google.gson.JsonObject();
-        BuiltInRegistries.INSTRUMENT
-                .getTagNames()
+        root.add("itemTags", tagFingerprint(BuiltInRegistries.ITEM));
+        root.add("instrumentTags", tagFingerprint(BuiltInRegistries.INSTRUMENT));
+        Registry<Enchantment> enchantments = registries.registryOrThrow(Registries.ENCHANTMENT);
+        root.add("enchantmentTags", tagFingerprint(enchantments));
+        com.google.gson.JsonArray enchantmentIds = new com.google.gson.JsonArray();
+        enchantments.keySet().stream()
+                .map(ResourceLocation::toString)
+                .sorted()
+                .forEach(enchantmentIds::add);
+        root.add("enchantments", enchantmentIds);
+        return FrozenJson.freeze(root).fingerprint();
+    }
+
+    private static <T> JsonObject tagFingerprint(Registry<T> registry) {
+        JsonObject tags = new JsonObject();
+        registry.getTagNames()
                 .sorted(Comparator.comparing(tag -> tag.location().toString()))
                 .forEach(
                         tag -> {
-                            com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
-                            BuiltInRegistries.INSTRUMENT
-                                    .getTag(tag)
+                            JsonArray ids = new JsonArray();
+                            registry.getTag(tag)
                                     .ifPresent(
                                             set ->
                                                     set.forEach(
@@ -286,10 +311,9 @@ public class RuntimeLootAstSource {
                                                                                             ids.add(
                                                                                                     key.location()
                                                                                                             .toString()))));
-                            instrumentTags.add(tag.location().toString(), ids);
+                            tags.add(tag.location().toString(), ids);
                         });
-        root.add("instrumentTags", instrumentTags);
-        return FrozenJson.freeze(root).fingerprint();
+        return tags;
     }
 
     private static FrozenJson frozenEntries(Map<ResourceLocation, FrozenJson> entries) {
