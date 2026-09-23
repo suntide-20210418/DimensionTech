@@ -1,9 +1,6 @@
 package com.suntide_20210418.dimensiontech.fluid;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import java.util.function.Consumer;
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidType;
 
 final class EssenceFluidType extends FluidType {
@@ -21,26 +18,12 @@ final class EssenceFluidType extends FluidType {
         return "fluid." + DimensionTechMod.MOD_ID + "." + id;
     }
 
-    @Override
-    public void initializeClient(Consumer<IClientFluidTypeExtensions> consumer) {
-        consumer.accept(
-                new IClientFluidTypeExtensions() {
-                    @Override
-                    public ResourceLocation getStillTexture() {
-                        return ResourceLocation.fromNamespaceAndPath(
-                                "minecraft", "block/water_still");
-                    }
-
-                    @Override
-                    public ResourceLocation getFlowingTexture() {
-                        return ResourceLocation.fromNamespaceAndPath(
-                                "minecraft", "block/water_flow");
-                    }
-
-                    @Override
-                    public int getTintColor() {
-                        return color;
-                    }
-                });
+    /**
+     * 贴图与着色在 1.21 不再经 {@code initializeClient}（该方法已标记 forRemoval），改由客户端在 {@code
+     * RegisterClientExtensionsEvent} 里注册 {@code IClientFluidTypeExtensions}。见 {@code
+     * client/EssenceFluidClientExtensions}。这里保留 color 供其读取。
+     */
+    int color() {
+        return color;
     }
 }

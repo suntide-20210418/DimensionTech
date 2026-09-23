@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.fluid;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import java.util.List;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.material.Fluid;
@@ -26,6 +27,15 @@ public final class ModFluids {
     public static final EssenceFluid SURGING_RECURSIVE_ESSENCE =
             essence("surging_recursive_essence", 0xFF302F10);
     public static final EssenceFluid FRACTAL_ESSENCE = essence("fractal_essence", 0xFF76B38E);
+
+    /** 全部精华流体，声明顺序。供客户端注册 {@code IClientFluidTypeExtensions} 遍历使用。 */
+    public static final List<EssenceFluid> ALL =
+            List.of(
+                    STRUCTURE_ESSENCE,
+                    SURGING_STRUCTURE_ESSENCE,
+                    RECURSIVE_ESSENCE,
+                    SURGING_RECURSIVE_ESSENCE,
+                    FRACTAL_ESSENCE);
 
     public static Fluid forMinerTier(int tier) {
         return switch (tier) {
@@ -53,9 +63,11 @@ public final class ModFluids {
         private final DeferredHolder<Fluid, BaseFlowingFluid.Source> source;
         private final DeferredHolder<Fluid, BaseFlowingFluid.Flowing> flowing;
         private final Lazy<BaseFlowingFluid.Properties> properties;
+        private final int color;
         private DeferredHolder<Item, ? extends Item> bucket;
 
         private EssenceFluid(String id, int color) {
+            this.color = color;
             type = FLUID_TYPES.register(id, () -> new EssenceFluidType(id, color));
             properties =
                     Lazy.of(
@@ -73,6 +85,15 @@ public final class ModFluids {
 
         public DeferredHolder<Fluid, BaseFlowingFluid.Source> source() {
             return source;
+        }
+
+        public DeferredHolder<FluidType, FluidType> type() {
+            return type;
+        }
+
+        /** 客户端着色用的 ARGB。 */
+        public int color() {
+            return color;
         }
 
         public void setBucket(DeferredHolder<Item, ? extends Item> bucket) {

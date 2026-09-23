@@ -167,7 +167,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     /** Pours a filled container into the tank, up to the tank's remaining room. */
     private boolean pourIntoFrom(IFluidHandlerItem container, FluidStack held) {
-        if (!fluidTank.isEmpty() && !fluidTank.getFluid().isFluidEqual(held)) return false;
+        if (!fluidTank.isEmpty()
+                && !FluidStack.isSameFluidSameComponents(fluidTank.getFluid(), held)) return false;
         int wanted =
                 Math.min(fluidTank.getCapacity() - fluidTank.getFluidAmount(), held.getAmount());
         if (wanted <= 0 || !fluidTank.isFluidValid(held)) return false;
@@ -187,7 +188,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (fluidTank.isEmpty()) return false;
         FluidStack stored = fluidTank.getFluid();
         FluidStack held = container.getFluidInTank(0);
-        if (!held.isEmpty() && !held.isFluidEqual(stored)) return false;
+        if (!held.isEmpty() && !FluidStack.isSameFluidSameComponents(held, stored)) return false;
         int room = container.getTankCapacity(0) - held.getAmount();
         if (room <= 0) return false;
         FluidStack offered =

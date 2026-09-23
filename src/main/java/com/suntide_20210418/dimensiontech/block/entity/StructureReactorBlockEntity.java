@@ -364,7 +364,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     /** Feeds the input tank from a filled container, as far as its remaining room allows. */
     private boolean fillInputFrom(IFluidHandlerItem container, FluidStack held) {
-        if (!inputTank.isEmpty() && !inputTank.getFluid().isFluidEqual(held)) return false;
+        if (!inputTank.isEmpty()
+                && !FluidStack.isSameFluidSameComponents(inputTank.getFluid(), held)) return false;
         int wanted =
                 Math.min(inputTank.getCapacity() - inputTank.getFluidAmount(), held.getAmount());
         if (wanted <= 0) return false;
@@ -385,7 +386,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         if (outputTank.isEmpty()) return false;
         FluidStack stored = outputTank.getFluid();
         FluidStack held = container.getFluidInTank(0);
-        if (!held.isEmpty() && !held.isFluidEqual(stored)) return false;
+        if (!held.isEmpty() && !FluidStack.isSameFluidSameComponents(held, stored)) return false;
         int room = container.getTankCapacity(0) - held.getAmount();
         if (room <= 0) return false;
         FluidStack offered =

@@ -14,7 +14,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
-@EventBusSubscriber(modid = DimensionTechMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
+// 不指定 bus：NeoForge 21.1 已忽略该值，GatherDataEvent 实现 IModBusEvent，会自动落在 mod 总线上。
+@EventBusSubscriber(modid = DimensionTechMod.MOD_ID)
 public final class ModDataGenerator {
     @SubscribeEvent
     public static void gatherData(GatherDataEvent event) {
