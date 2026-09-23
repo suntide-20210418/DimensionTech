@@ -628,14 +628,15 @@ public final class DistributionalFunction1211 {
                                         ExactRandomSemantics1211.nextInt(candidates.size()))
                                 .flatMap(
                                         index -> {
-                                            Holder<Enchantment> enchantment =
-                                                    candidates.get(index);
+                                            Holder<Enchantment> enchantment = candidates.get(index);
                                             RandomTraceDistribution<Integer> levels =
                                                     enchantment.value().getMinLevel()
-                                                                    >= enchantment.value()
+                                                                    >= enchantment
+                                                                            .value()
                                                                             .getMaxLevel()
                                                             ? RandomTraceDistribution.singleton(
-                                                                    enchantment.value()
+                                                                    enchantment
+                                                                            .value()
                                                                             .getMinLevel())
                                                             : RandomTraceDistribution
                                                                     .fromRandomResult(
@@ -812,8 +813,7 @@ public final class DistributionalFunction1211 {
                                             // DataComponents.INSTRUMENT（Holder<Instrument>），
                                             // 取代 1.20.1 的根 tag "instrument" 字符串。
                                             output.set(
-                                                    DataComponents.INSTRUMENT,
-                                                    holders.get(index));
+                                                    DataComponents.INSTRUMENT, holders.get(index));
                                             return RandomTraceDistribution.singleton(
                                                     new StackState(output));
                                         },
@@ -910,9 +910,9 @@ public final class DistributionalFunction1211 {
     }
 
     /**
-     * 1.20.1 的 {@code "decoration"} 字段是 {@code MapDecoration.Type} 枚举名（无命名空间的字面量）；
-     * 1.21 改成注册表 {@code MapDecorationType} 的 id，默认值仍是 {@code minecraft:mansion}
-     * （见 {@code ExplorationMapFunction#DEFAULT_DECORATION} 与 {@code MapDecorationTypes}）。
+     * 1.20.1 的 {@code "decoration"} 字段是 {@code MapDecoration.Type} 枚举名（无命名空间的字面量）； 1.21 改成注册表
+     * {@code MapDecorationType} 的 id，默认值仍是 {@code minecraft:mansion} （见 {@code
+     * ExplorationMapFunction#DEFAULT_DECORATION} 与 {@code MapDecorationTypes}）。
      */
     private static Holder<MapDecorationType> mapDecoration(String name) {
         ResourceLocation id = ResourceLocation.tryParse(name);

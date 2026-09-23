@@ -21,9 +21,8 @@ import net.minecraft.world.item.ItemStack;
 /**
  * 客户端专用的 payload 处理体。
  *
- * <p>这里集中了唯一会触碰客户端类（{@code Minecraft}、界面类）的逻辑。各 payload 的 {@code handle}
- * 必须先用 {@code FMLEnvironment.dist.isClient()} 守卫再调用本类，否则专用服务端会去解析本类引用的
- * 客户端类而类加载失败。
+ * <p>这里集中了唯一会触碰客户端类（{@code Minecraft}、界面类）的逻辑。各 payload 的 {@code handle} 必须先用 {@code
+ * FMLEnvironment.dist.isClient()} 守卫再调用本类，否则专用服务端会去解析本类引用的 客户端类而类加载失败。
  */
 public final class ClientPayloadHandlers {
 

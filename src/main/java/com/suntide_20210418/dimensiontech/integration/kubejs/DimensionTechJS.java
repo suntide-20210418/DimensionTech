@@ -6,12 +6,11 @@ import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecip
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
-import dev.latvian.mods.kubejs.item.ingredient.IngredientJS;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -22,7 +21,12 @@ public final class DimensionTechJS {
     private DimensionTechJS() {}
 
     public static String version() {
-        return "1.0.0-1.20.1";
+        // 原实现硬编码 "1.0.0-1.20.1"，移植后会对外报出错误的版本。改为读模组元数据，
+        // 让 gradle.properties 的 mod_version 成为唯一来源，避免再次漂移。
+        return net.neoforged.fml.ModList.get()
+                .getModContainerById(com.suntide_20210418.dimensiontech.DimensionTechMod.MOD_ID)
+                .map(container -> container.getModInfo().getVersion().toString())
+                .orElse("unknown");
     }
 
     /** Starts a structure reactor recipe builder: create new or modify an existing recipe by id. */
@@ -60,15 +64,12 @@ public final class DimensionTechJS {
         return rl;
     }
 
-    private static Ingredient parseIngredient(Object value) {
-        return IngredientJS.of(value);
-    }
-
     private static Fluid parseFluid(Object value) {
         if (value instanceof Fluid fluid) return fluid;
         ResourceLocation rl = ResourceLocation.tryParse(String.valueOf(value));
         if (rl == null) throw new IllegalArgumentException("Invalid fluid id: " + value);
-        Fluid fluid = Registries.FLUID.getValue(rl);
+        // 1.21 的 Registry 用 get(ResourceLocation)；DefaultedRegistry 对未知 id 返回 Fluids.EMPTY。
+        Fluid fluid = BuiltInRegistries.FLUID.get(rl);
         if (fluid == null || fluid.isSame(Fluids.EMPTY))
             throw new IllegalArgumentException("Unknown fluid: " + value);
         return fluid;
@@ -126,8 +127,12 @@ public final class DimensionTechJS {
             return this;
         }
 
-        public ReactorRecipeJS fragment(Object ingredient) {
-            fragment = parseIngredient(ingredient);
+        /**
+         * 1.21 删除了 {@code IngredientJS.of(Object)}：这里直接收 {@code Ingredient}，由 KubeJS 的 Ingredient
+         * 类型包装器在调用点转换脚本值，脚本写法不变。
+         */
+        public ReactorRecipeJS fragment(Ingredient ingredient) {
+            fragment = ingredient;
             return this;
         }
 
@@ -158,11 +163,12 @@ public final class DimensionTechJS {
 
         /**
          * Overrides the ritual operation item for one state in one branch. {@code stateName} must
-         * occur in that branch's DSL.
+         * occur in that branch's DSL. The ingredient is wrapped by KubeJS's Ingredient type
+         * wrapper.
          */
-        public ReactorRecipeJS overrideOperation(String side, String stateName, Object ingredient) {
-            Ingredient parsed = parseIngredient(ingredient);
-            (isB(side) ? overridesB : overridesA).put(stateName, parsed);
+        public ReactorRecipeJS overrideOperation(
+                String side, String stateName, Ingredient ingredient) {
+            (isB(side) ? overridesB : overridesA).put(stateName, ingredient);
             return this;
         }
 

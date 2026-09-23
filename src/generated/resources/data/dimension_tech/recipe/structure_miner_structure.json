@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "QAQ",
+    "AIA",
+    "RAR"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dimension_tech:structure_miner_structure"
+  }
+}

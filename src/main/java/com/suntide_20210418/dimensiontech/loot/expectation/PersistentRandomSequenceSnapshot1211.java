@@ -14,7 +14,8 @@ public final class PersistentRandomSequenceSnapshot1211 {
 
     public static XoroshiroState1211 snapshot(ServerLevel level, ResourceLocation id) {
         // 1.21 的 SavedData 序列化统一带 HolderLookup.Provider（RandomSequences#save）。
-        CompoundTag saved = level.getRandomSequences().save(new CompoundTag(), level.registryAccess());
+        CompoundTag saved =
+                level.getRandomSequences().save(new CompoundTag(), level.registryAccess());
         Tag encoded = saved.get(id.toString());
         if (encoded == null) {
             DataResult<Tag> initial =

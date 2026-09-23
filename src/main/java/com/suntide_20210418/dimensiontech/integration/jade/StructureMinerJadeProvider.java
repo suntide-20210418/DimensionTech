@@ -22,7 +22,7 @@ import snownee.jade.api.config.IPluginConfig;
 import snownee.jade.api.theme.IThemeHelper;
 import snownee.jade.api.ui.BoxStyle;
 import snownee.jade.api.ui.IElementHelper;
-import snownee.jade.api.ui.IProgressStyle;
+import snownee.jade.api.ui.ProgressStyle;
 
 public enum StructureMinerJadeProvider
         implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
@@ -271,8 +271,8 @@ public enum StructureMinerJadeProvider
                 processingTicks <= 0
                         ? 0.0F
                         : Math.max(0.0F, Math.min(1.0F, (float) progressTicks / processingTicks));
-        IElementHelper elements = tooltip.getElementHelper();
-        IProgressStyle style = elements.progressStyle().color(0xFF22D3EE, 0xFF164E63);
+        IElementHelper elements = IElementHelper.get();
+        ProgressStyle style = elements.progressStyle().color(0xFF22D3EE, 0xFF164E63);
         tooltip.add(
                 elements.progress(
                                 progress,
@@ -280,7 +280,7 @@ public enum StructureMinerJadeProvider
                                         "jade.dimension_tech.slot_progress_percent",
                                         Math.round(progress * 100.0F)),
                                 style,
-                                BoxStyle.DEFAULT,
+                                BoxStyle.getNestedBox(),
                                 false)
                         .tag(UID));
     }

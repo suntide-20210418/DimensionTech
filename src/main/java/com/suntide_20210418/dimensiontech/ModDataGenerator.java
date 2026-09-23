@@ -28,7 +28,8 @@ public final class ModDataGenerator {
         // 1.21 起 RecipeProvider / BlockLootSubProvider 都需要一个 HolderLookup.Provider，由事件提供。
         CompletableFuture<HolderLookup.Provider> registries = event.getLookupProvider();
 
-        generator.addProvider(event.includeServer(), new ModRecipesProvider(packOutput, registries));
+        generator.addProvider(
+                event.includeServer(), new ModRecipesProvider(packOutput, registries));
         generator.addProvider(
                 event.includeServer(),
                 new LootTableProvider(

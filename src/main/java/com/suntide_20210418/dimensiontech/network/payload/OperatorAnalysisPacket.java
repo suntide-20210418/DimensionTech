@@ -12,10 +12,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** 某条目录项分析出的标记物品快照。服务端 → 客户端。 */
 public record OperatorAnalysisPacket(
-        int containerId,
-        ResourceLocation dimension,
-        ResourceLocation structure,
-        ItemStack marker)
+        int containerId, ResourceLocation dimension, ResourceLocation structure, ItemStack marker)
         implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<OperatorAnalysisPacket> TYPE =

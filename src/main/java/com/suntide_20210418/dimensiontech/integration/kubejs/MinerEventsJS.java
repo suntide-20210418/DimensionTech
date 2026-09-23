@@ -1,6 +1,6 @@
 package com.suntide_20210418.dimensiontech.integration.kubejs;
 
-import dev.latvian.mods.kubejs.event.EventJS;
+import dev.latvian.mods.kubejs.event.KubeEvent;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -9,7 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
 /** Stable event payload base reserved for server-side miner lifecycle hooks. */
-public class MinerEventsJS extends EventJS {
+public class MinerEventsJS implements KubeEvent {
     public MinerBlockEntityJS miner;
     public ServerLevel level;
     public BlockPos position;

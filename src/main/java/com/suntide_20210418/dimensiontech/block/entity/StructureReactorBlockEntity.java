@@ -926,7 +926,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         inventory.deserializeNBT(registries, tag.getCompound("ReactorItems"));
         inputTank.readFromNBT(registries, tag.getCompound("ReactorInput"));
         outputTank.readFromNBT(registries, tag.getCompound("ReactorOutput"));
-        reservedFluid = FluidStack.parseOptional(registries, tag.getCompound("ReactorReservedFluid"));
+        reservedFluid =
+                FluidStack.parseOptional(registries, tag.getCompound("ReactorReservedFluid"));
         reservedFragments =
                 ItemStack.parseOptional(registries, tag.getCompound("ReactorReservedFragments"));
         int packed =

@@ -87,11 +87,7 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
      */
     @Override
     public InteractionResult useWithoutItem(
-            BlockState state,
-            Level level,
-            BlockPos pos,
-            Player player,
-            BlockHitResult hit) {
+            BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!level.isClientSide
                 && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof StructureDataOperatorBlockEntity operator) {

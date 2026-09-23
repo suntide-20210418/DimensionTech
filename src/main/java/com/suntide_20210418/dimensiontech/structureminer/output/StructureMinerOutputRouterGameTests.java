@@ -59,9 +59,9 @@ public final class StructureMinerOutputRouterGameTests {
         level.setBlock(controllerPosition, AEBlocks.CONTROLLER.block().defaultBlockState(), 3);
         level.setBlock(
                 energyPosition, AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState(), 3);
-        level.setBlock(chestPosition, AEBlocks.CHEST.block().defaultBlockState(), 3);
+        level.setBlock(chestPosition, AEBlocks.ME_CHEST.block().defaultBlockState(), 3);
         if (!(level.getBlockEntity(chestPosition)
-                instanceof appeng.blockentity.storage.ChestBlockEntity chest)) {
+                instanceof appeng.blockentity.storage.MEChestBlockEntity chest)) {
             helper.fail("AE2 chest did not create its block entity");
             return;
         }

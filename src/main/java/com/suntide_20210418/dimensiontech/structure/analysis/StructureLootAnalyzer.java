@@ -92,7 +92,9 @@ public final class StructureLootAnalyzer {
                         .forEach(
                                 (position, blockEntity) -> {
                                     if (bounds.isInside(position)) {
-                                        containerLootTable(blockEntity.saveWithoutMetadata(level.registryAccess()))
+                                        containerLootTable(
+                                                        blockEntity.saveWithoutMetadata(
+                                                                level.registryAccess()))
                                                 .ifPresent(
                                                         table ->
                                                                 lootTables.merge(

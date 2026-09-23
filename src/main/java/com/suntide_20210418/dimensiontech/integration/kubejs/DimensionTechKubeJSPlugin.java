@@ -4,25 +4,27 @@ import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
-import dev.latvian.mods.kubejs.KubeJSPlugin;
 import dev.latvian.mods.kubejs.event.EventGroup;
-import dev.latvian.mods.kubejs.script.BindingsEvent;
+import dev.latvian.mods.kubejs.event.EventGroupRegistry;
+import dev.latvian.mods.kubejs.plugin.ClassFilter;
+import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
+import dev.latvian.mods.kubejs.script.BindingRegistry;
+import dev.latvian.mods.kubejs.script.ScriptManager;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.util.AttachedData;
-import dev.latvian.mods.kubejs.util.ClassFilter;
 import java.util.ArrayList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 
-public final class DimensionTechKubeJSPlugin extends KubeJSPlugin {
+public final class DimensionTechKubeJSPlugin implements KubeJSPlugin {
     private static final EventGroup EVENTS = EventGroup.of("DimensionTechEvents");
 
     @Override
-    public void registerEvents() {
+    public void registerEvents(EventGroupRegistry registry) {
         EVENTS.server("minerWork", () -> MinerEventsJS.class);
         EVENTS.server("minerCycle", () -> MinerEventsJS.class);
         EVENTS.server("minerOutput", () -> MinerEventsJS.class);
-        EVENTS.register();
+        registry.register(EVENTS);
         MinerIntegrationHooks.install(
                 new MinerIntegrationHooks.Hooks() {
                     @Override
@@ -92,20 +94,27 @@ public final class DimensionTechKubeJSPlugin extends KubeJSPlugin {
     }
 
     @Override
-    public void registerBindings(BindingsEvent event) {
+    public void registerBindings(BindingRegistry event) {
         event.add("DimensionTech", DimensionTechJS.class);
     }
 
     @Override
-    public void registerClasses(ScriptType type, ClassFilter filter) {
+    public void registerClasses(ClassFilter filter) {
         filter.allow(DimensionTechJS.class.getName());
         filter.allow(DimensionTechJS.ReactorRecipeJS.class.getName());
         filter.allow(MinerBlockEntityJS.class.getName());
         filter.allow(MinerEventsJS.class.getName());
     }
 
+    /**
+     * 1.21 移除了 {@code onServerReload()}。服务端脚本每次重载都会走 {@code beforeScriptsLoaded}，且发生在脚本真正执行之前，语义与旧的
+     * onServerReload 一致（先清空脚本态，再由脚本重新 apply）。
+     */
     @Override
-    public void onServerReload() {
+    public void beforeScriptsLoaded(ScriptManager manager) {
+        if (manager.scriptType != ScriptType.SERVER) {
+            return;
+        }
         MinerScriptConfigService.clear();
         StructureScriptConfigService.clear();
         // Reset reactor recipes to defaults so server scripts re-apply their add/modify/override.

@@ -1,0 +1,5 @@
+{
+  "parent": "neoforge:item/bucket",
+  "fluid": "dimension_tech:surging_structure_essence",
+  "loader": "neoforge:fluid_container"
+}

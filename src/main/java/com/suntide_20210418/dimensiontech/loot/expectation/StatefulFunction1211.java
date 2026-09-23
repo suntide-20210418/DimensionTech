@@ -480,9 +480,9 @@ public final class StatefulFunction1211 {
     }
 
     /**
-     * 1.20.1 的 {@code "decoration"} 字段是 {@code MapDecoration.Type} 枚举名（无命名空间的字面量）；
-     * 1.21 改成注册表 {@code MapDecorationType} 的 id，默认值仍是 {@code minecraft:mansion}
-     * （见 {@code ExplorationMapFunction#DEFAULT_DECORATION} 与 {@code MapDecorationTypes}）。
+     * 1.20.1 的 {@code "decoration"} 字段是 {@code MapDecoration.Type} 枚举名（无命名空间的字面量）； 1.21 改成注册表
+     * {@code MapDecorationType} 的 id，默认值仍是 {@code minecraft:mansion} （见 {@code
+     * ExplorationMapFunction#DEFAULT_DECORATION} 与 {@code MapDecorationTypes}）。
      */
     private static Holder<MapDecorationType> mapDecoration(String name) {
         ResourceLocation id = ResourceLocation.tryParse(name);

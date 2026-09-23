@@ -8,7 +8,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 
 /**
@@ -34,7 +33,10 @@ public class WrenchItem extends Item {
 
     @Override
     public void appendHoverText(
-            ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+            ItemStack stack,
+            Item.TooltipContext context,
+            List<Component> tooltip,
+            TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(
                 Component.translatable("tooltip.dimension_tech.wrench.projection")

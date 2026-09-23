@@ -12,10 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/**
- * 结构数据算子按钮触发的动作请求。{@code dimension} 与 {@code structure} 仅在写入读取槽时使用，
- * 其余动作为 null。客户端 → 服务端。
- */
+/** 结构数据算子按钮触发的动作请求。{@code dimension} 与 {@code structure} 仅在写入读取槽时使用， 其余动作为 null。客户端 → 服务端。 */
 public record OperatorActionPacket(
         int containerId,
         ModNetwork.OperatorAction action,

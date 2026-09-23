@@ -248,7 +248,8 @@ public final class StructureValueCalculator {
         EnchantmentMarginal marginal = EnchantmentMarginal.EMPTY;
         boolean full = true;
         AnalysisStatus status = discovery.status();
-        LootAnalysisContext context = LootAnalysisContext.snapshot(position, luck, source.registries());
+        LootAnalysisContext context =
+                LootAnalysisContext.snapshot(position, luck, source.registries());
         long totalStart = System.nanoTime();
         int rootCount = 0;
         for (var root : rootTableWeightsForValue(discovery).entrySet()) {

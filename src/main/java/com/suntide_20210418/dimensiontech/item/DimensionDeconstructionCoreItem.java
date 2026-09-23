@@ -18,7 +18,10 @@ public class DimensionDeconstructionCoreItem extends Item {
 
     @Override
     public void appendHoverText(
-            ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+            ItemStack stack,
+            Item.TooltipContext context,
+            List<Component> tooltip,
+            TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(
                 Component.translatable(

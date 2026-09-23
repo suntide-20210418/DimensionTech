@@ -7,13 +7,13 @@ import com.suntide_20210418.dimensiontech.network.payload.OperatorAnalysisReques
 import com.suntide_20210418.dimensiontech.network.payload.OperatorCataloguePacket;
 import com.suntide_20210418.dimensiontech.network.payload.OperatorCatalogueRequestPacket;
 import com.suntide_20210418.dimensiontech.network.payload.RefreshedMarkerPacket;
+import com.suntide_20210418.dimensiontech.network.payload.StructMarkerActionPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureChoicesPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerAnalysisPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerAnalysisRequestPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerExpectedItemTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerSlotTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureReactorTooltipPacket;
-import com.suntide_20210418.dimensiontech.network.payload.StructMarkerActionPacket;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 

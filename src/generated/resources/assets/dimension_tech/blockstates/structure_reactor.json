@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "dimension_tech:block/strcture_reactor"
+    },
+    "facing=north": {
+      "model": "dimension_tech:block/strcture_reactor",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "dimension_tech:block/strcture_reactor",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "dimension_tech:block/strcture_reactor",
+      "y": 180
+    }
+  }
+}

@@ -12,6 +12,7 @@ import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.AbstractRecipeCategory;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -160,28 +161,28 @@ public final class StructureMinerJeiCategory
     /** A target marker, named so the player knows the slot wants an already-marked one. */
     private static ItemStack markedMarker() {
         ItemStack stack = new ItemStack(ModItems.STRUCTURE_MARKER.get());
-        stack.setHoverName(StructureMinerJeiText.markerName());
+        stack.set(DataComponents.CUSTOM_NAME, StructureMinerJeiText.markerName());
         return stack;
     }
 
     /** A chest marker, named so the player knows the slot wants an already-marked one. */
     private static ItemStack chestMarker() {
         ItemStack stack = new ItemStack(ModItems.CHEST_MARKER.get());
-        stack.setHoverName(ChestMinerJeiText.chestMarkerName());
+        stack.set(DataComponents.CUSTOM_NAME, ChestMinerJeiText.chestMarkerName());
         return stack;
     }
 
     /** A Heart of the Sea standing in for the structure's own natural loot. */
     private static ItemStack structureLoot() {
         ItemStack stack = new ItemStack(Items.HEART_OF_THE_SEA);
-        stack.setHoverName(StructureMinerJeiText.lootName());
+        stack.set(DataComponents.CUSTOM_NAME, StructureMinerJeiText.lootName());
         return stack;
     }
 
     /** A chest standing in for the marked chest's own loot expectations. */
     private static ItemStack chestLoot() {
         ItemStack stack = new ItemStack(Items.CHEST);
-        stack.setHoverName(ChestMinerJeiText.chestLootName());
+        stack.set(DataComponents.CUSTOM_NAME, ChestMinerJeiText.chestLootName());
         return stack;
     }
 

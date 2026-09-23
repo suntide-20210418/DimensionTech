@@ -40,9 +40,7 @@ public final class ModCapabilities {
         event.registerBlockEntity(
                 Capabilities.ItemHandler.BLOCK, type, (miner, side) -> miner.getItemHandler());
         event.registerBlockEntity(
-                Capabilities.EnergyStorage.BLOCK,
-                type,
-                (miner, side) -> miner.getEnergyStorage());
+                Capabilities.EnergyStorage.BLOCK, type, (miner, side) -> miner.getEnergyStorage());
         event.registerBlockEntity(
                 Capabilities.FluidHandler.BLOCK,
                 type,
@@ -51,8 +49,8 @@ public final class ModCapabilities {
 
     /**
      * The miner's single tank is exposed as a fill-only handler on input faces and a drain-only
-     * handler on output faces. {@code side == null} carries no face context and means input, while a
-     * disabled face (and a tier that needs no fluid at all) exposes nothing.
+     * handler on output faces. {@code side == null} carries no face context and means input, while
+     * a disabled face (and a tier that needs no fluid at all) exposes nothing.
      */
     private static IFluidHandler minerFluidHandler(BaseMinerBlockEntity miner, Direction side) {
         if (!miner.requiresFluidInput()) return null;

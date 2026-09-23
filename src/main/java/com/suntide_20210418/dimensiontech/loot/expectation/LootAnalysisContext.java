@@ -97,8 +97,8 @@ public record LootAnalysisContext(
 
     /**
      * Thread-safe context snapshot for pure analysis; it deliberately has no live Level/entity but
-     * still carries the registry snapshot, which 1.21 needs for registry-backed component values and
-     * for resolving enchantment candidates.
+     * still carries the registry snapshot, which 1.21 needs for registry-backed component values
+     * and for resolving enchantment candidates.
      */
     public static LootAnalysisContext snapshot(
             BlockPos origin, float luck, RegistryAccess registries) {

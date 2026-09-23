@@ -1,10 +1,10 @@
 package com.suntide_20210418.dimensiontech.loot.expectation;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1211.RandomCall;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactRandomSemantics1211.RandomMethod;
 import com.suntide_20210418.dimensiontech.loot.expectation.RandomTraceDistribution.Outcome;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,12 +32,11 @@ import net.minecraft.world.item.enchantment.EnchantmentInstance;
 /**
  * Exact finite branching of {@code EnchantmentHelper#selectEnchantment} for Minecraft 1.21.1.
  *
- * <p>1.21 把附魔改成 datapack 注册表里的记录（{@code Holder<Enchantment>}），并把
- * {@code enchant_with_levels} 的候选集从内置注册表 + {@code treasure} 布尔量改成战利品函数里的
- * {@code options}（{@code HolderSet<Enchantment>}，缺省即整个注册表）。选中的算法本身没有变：
- * {@code EnchantmentHelper#selectEnchantment} 仍是"先按权重取一个，再以 {@code nextInt(50) <= level}
- * 继续、每轮 level 减半、每次都要过滤互斥附魔"。因此本类接收候选集 {@code possibleEnchantments}，
- * 其余推导与 1.20.1 一一对应。
+ * <p>1.21 把附魔改成 datapack 注册表里的记录（{@code Holder<Enchantment>}），并把 {@code enchant_with_levels}
+ * 的候选集从内置注册表 + {@code treasure} 布尔量改成战利品函数里的 {@code options}（{@code
+ * HolderSet<Enchantment>}，缺省即整个注册表）。选中的算法本身没有变： {@code EnchantmentHelper#selectEnchantment}
+ * 仍是"先按权重取一个，再以 {@code nextInt(50) <= level} 继续、每轮 level 减半、每次都要过滤互斥附魔"。因此本类接收候选集 {@code
+ * possibleEnchantments}， 其余推导与 1.20.1 一一对应。
  */
 public final class ExactEnchantmentSemantics1211 {
     /**
@@ -83,12 +82,12 @@ public final class ExactEnchantmentSemantics1211 {
     /**
      * 解析 1.21 的附魔候选集。
      *
-     * <p>1.20.1 的 {@code enchant_with_levels} 用 {@code treasure} 布尔量在内置注册表上做过滤；
-     * 1.21 改成了 {@code options}
-     * （{@code RegistryCodecs.homogeneousList(Registries.ENCHANTMENT)}：附魔 id 列表或 {@code #tag}），
-     * 缺省时原版用整个注册表 —— 见 {@code EnchantmentHelper#enchantItem} 的
-     * {@code possibleEnchantments.map(HolderSet::stream).orElseGet(() -> registryAccess.registryOrThrow(...).holders()...)}。
-     * 附魔已不在内置注册表，因此必须有 registry access，否则返回 {@code null} 表示无法判定。
+     * <p>1.20.1 的 {@code enchant_with_levels} 用 {@code treasure} 布尔量在内置注册表上做过滤； 1.21 改成了 {@code
+     * options} （{@code RegistryCodecs.homogeneousList(Registries.ENCHANTMENT)}：附魔 id 列表或 {@code
+     * #tag}）， 缺省时原版用整个注册表 —— 见 {@code EnchantmentHelper#enchantItem} 的 {@code
+     * possibleEnchantments.map(HolderSet::stream).orElseGet(() ->
+     * registryAccess.registryOrThrow(...).holders()...)}。 附魔已不在内置注册表，因此必须有 registry access，否则返回
+     * {@code null} 表示无法判定。
      */
     public static List<Holder<Enchantment>> enchantmentOptions(
             JsonElement options, RegistryAccess registries) {
@@ -128,8 +127,8 @@ public final class ExactEnchantmentSemantics1211 {
     }
 
     /**
-     * 解析单个附魔引用。1.21 不再有 {@code ForgeRegistries.ENCHANTMENTS}，附魔是 datapack 注册表，
-     * 注册名必须经 registry access 换成 {@code Holder}（{@code Enchantment.CODEC} 的结果类型）。
+     * 解析单个附魔引用。1.21 不再有 {@code ForgeRegistries.ENCHANTMENTS}，附魔是 datapack 注册表， 注册名必须经 registry
+     * access 换成 {@code Holder}（{@code Enchantment.CODEC} 的结果类型）。
      */
     public static Holder<Enchantment> enchantment(ResourceLocation id, RegistryAccess registries) {
         if (id == null || registries == null) return null;
@@ -146,11 +145,11 @@ public final class ExactEnchantmentSemantics1211 {
     /**
      * {@code enchant_randomly} 的候选集：先解析 {@code options}，再按 1.21 的兼容性判据过滤。
      *
-     * <p>1.20.1 的过滤是"可发现 + 能附在该物品上 + （是书 或 非宝藏）"，用的是
-     * {@code isDiscoverable()/canEnchant()/isTreasureOnly()}；1.21 这三点分别落到
-     * 「{@code options} 指定的集合本身就代表了可附魔范围」「{@code ItemStack#supportsEnchantment}
-     * （{@code EnchantmentDefinition#supportedItems}）」「{@code only_compatible} 字段」上 ——
-     * 见 {@code EnchantRandomlyFunction#run}。
+     * <p>1.20.1 的过滤是"可发现 + 能附在该物品上 + （是书 或 非宝藏）"，用的是 {@code
+     * isDiscoverable()/canEnchant()/isTreasureOnly()}；1.21 这三点分别落到 「{@code options}
+     * 指定的集合本身就代表了可附魔范围」「{@code ItemStack#supportsEnchantment} （{@code
+     * EnchantmentDefinition#supportedItems}）」「{@code only_compatible} 字段」上 —— 见 {@code
+     * EnchantRandomlyFunction#run}。
      */
     public static List<Holder<Enchantment>> randomCandidates(
             JsonObject function, ItemStack stack, RegistryAccess registries) {
@@ -323,7 +322,11 @@ public final class ExactEnchantmentSemantics1211 {
                     "", "Terminal state limit must be positive: " + maxStates);
         }
         return aggregateTerminal(
-                inputs.values().entrySet(), levels, possibleEnchantments, maxStates, levelsHaveRandomCalls);
+                inputs.values().entrySet(),
+                levels,
+                possibleEnchantments,
+                maxStates,
+                levelsHaveRandomCalls);
     }
 
     /** Exact terminal transition for a normalized finite input PMF. */
@@ -348,7 +351,11 @@ public final class ExactEnchantmentSemantics1211 {
                     "", "Terminal state limit must be positive: " + maxStates);
         }
         return aggregateTerminal(
-                inputs.masses().entrySet(), levels, possibleEnchantments, maxStates, levelsHaveRandomCalls);
+                inputs.masses().entrySet(),
+                levels,
+                possibleEnchantments,
+                maxStates,
+                levelsHaveRandomCalls);
     }
 
     /**
@@ -364,7 +371,8 @@ public final class ExactEnchantmentSemantics1211 {
         Objects.requireNonNull(levels, "levels");
         boolean levelCalls =
                 levels.masses().keySet().stream().anyMatch(outcome -> !outcome.calls().isEmpty());
-        return enchantItemsTerminal(inputs, levels.marginal(), possibleEnchantments, maxStates, levelCalls);
+        return enchantItemsTerminal(
+                inputs, levels.marginal(), possibleEnchantments, maxStates, levelCalls);
     }
 
     public static TerminalEvaluation enchantItemsTerminal(
@@ -375,12 +383,16 @@ public final class ExactEnchantmentSemantics1211 {
         Objects.requireNonNull(levels, "levels");
         boolean levelCalls =
                 levels.masses().keySet().stream().anyMatch(outcome -> !outcome.calls().isEmpty());
-        return enchantItemsTerminal(inputs, levels.marginal(), possibleEnchantments, maxStates, levelCalls);
+        return enchantItemsTerminal(
+                inputs, levels.marginal(), possibleEnchantments, maxStates, levelCalls);
     }
 
     /** Convenience overload for one runtime stack and one deterministic base level. */
     public static TerminalEvaluation enchantItemTerminal(
-            ItemStack input, int level, List<Holder<Enchantment>> possibleEnchantments, int maxStates) {
+            ItemStack input,
+            int level,
+            List<Holder<Enchantment>> possibleEnchantments,
+            int maxStates) {
         Objects.requireNonNull(input, "input");
         return enchantItemsTerminal(
                 FiniteDistribution.singleton(new StackState(input)),
@@ -391,7 +403,10 @@ public final class ExactEnchantmentSemantics1211 {
 
     /** Convenience overload for one complete stack state and a level PMF. */
     public static TerminalEvaluation enchantItemTerminal(
-            StackState input, FiniteDistribution<Integer> levels, List<Holder<Enchantment>> possibleEnchantments, int maxStates) {
+            StackState input,
+            FiniteDistribution<Integer> levels,
+            List<Holder<Enchantment>> possibleEnchantments,
+            int maxStates) {
         Objects.requireNonNull(input, "input");
         return enchantItemsTerminal(
                 FiniteDistribution.singleton(input), levels, possibleEnchantments, maxStates);
@@ -568,7 +583,10 @@ public final class ExactEnchantmentSemantics1211 {
     }
 
     public static RandomTraceDistribution<StackState> enchantItem(
-            ItemStack input, int level, List<Holder<Enchantment>> possibleEnchantments, int maxStates) {
+            ItemStack input,
+            int level,
+            List<Holder<Enchantment>> possibleEnchantments,
+            int maxStates) {
         int enchantability = input.getEnchantmentValue();
         if (enchantability <= 0) return RandomTraceDistribution.singleton(new StackState(input));
 
@@ -604,8 +622,12 @@ public final class ExactEnchantmentSemantics1211 {
      * materializing call-trace outcomes that no later kernel observes.
      */
     public static FiniteDistribution<StackState> enchantItemMarginal(
-            ItemStack input, int level, List<Holder<Enchantment>> possibleEnchantments, int maxStates) {
-        return enchantItemMarginal(input, FiniteDistribution.singleton(level), possibleEnchantments, maxStates);
+            ItemStack input,
+            int level,
+            List<Holder<Enchantment>> possibleEnchantments,
+            int maxStates) {
+        return enchantItemMarginal(
+                input, FiniteDistribution.singleton(level), possibleEnchantments, maxStates);
     }
 
     /**
@@ -613,9 +635,15 @@ public final class ExactEnchantmentSemantics1211 {
      * combined before enchantment selection, so each distinct adjusted level is expanded once.
      */
     public static FiniteDistribution<StackState> enchantItemMarginal(
-            ItemStack input, FiniteDistribution<Integer> levels, List<Holder<Enchantment>> possibleEnchantments, int maxStates) {
+            ItemStack input,
+            FiniteDistribution<Integer> levels,
+            List<Holder<Enchantment>> possibleEnchantments,
+            int maxStates) {
         return enchantItemsMarginal(
-                FiniteDistribution.singleton(new StackState(input)), levels, possibleEnchantments, maxStates);
+                FiniteDistribution.singleton(new StackState(input)),
+                levels,
+                possibleEnchantments,
+                maxStates);
     }
 
     /**
@@ -648,7 +676,8 @@ public final class ExactEnchantmentSemantics1211 {
                     adjustedByEnchantability.computeIfAbsent(
                             enchantability,
                             ignored -> adjustedLevels(levels, enchantability, maxStates));
-            SelectionPlanKey planKey = selectionPlanKey(stack, adjustedLevels, possibleEnchantments);
+            SelectionPlanKey planKey =
+                    selectionPlanKey(stack, adjustedLevels, possibleEnchantments);
             FiniteDistribution<List<SelectedEnchantment>> selections =
                     selectionCache.computeIfAbsent(
                             planKey,
@@ -776,15 +805,14 @@ public final class ExactEnchantmentSemantics1211 {
 
     /**
      * For a non-book stack without existing enchantments, enchantItem only appends the ordered
-     * selected list and preserves every pre-existing stack state. Therefore distinct base states and
-     * distinct serialized selection lists form a provably injective Cartesian product. This common
-     * set_damage -> enchant_with_levels case can enforce the state limit before allocating and
-     * serializing up to a million ItemStacks.
+     * selected list and preserves every pre-existing stack state. Therefore distinct base states
+     * and distinct serialized selection lists form a provably injective Cartesian product. This
+     * common set_damage -> enchant_with_levels case can enforce the state limit before allocating
+     * and serializing up to a million ItemStacks.
      *
-     * <p>1.20.1 用根 tag 里的 "Enchantments" 键做这个判据。1.21 里附魔是
-     * {@code DataComponents.ENCHANTMENTS} / {@code STORED_ENCHANTMENTS}（书用后者，见
-     * {@code EnchantmentHelper#getComponentType}），所以判据改成"该类型组件是否非空"，
-     * 规范化基态也改成一份移除了该组件的副本。
+     * <p>1.20.1 用根 tag 里的 "Enchantments" 键做这个判据。1.21 里附魔是 {@code DataComponents.ENCHANTMENTS} /
+     * {@code STORED_ENCHANTMENTS}（书用后者，见 {@code
+     * EnchantmentHelper#getComponentType}），所以判据改成"该类型组件是否非空"， 规范化基态也改成一份移除了该组件的副本。
      */
     private static void rejectProvenOversizedCartesianProduct(
             List<EnchantmentWork> work, int maxStates) {
@@ -853,7 +881,9 @@ public final class ExactEnchantmentSemantics1211 {
     }
 
     private static SelectionPlanKey selectionPlanKey(
-            ItemStack stack, Map<Integer, ExactProbability> adjustedLevels, List<Holder<Enchantment>> possibleEnchantments) {
+            ItemStack stack,
+            Map<Integer, ExactProbability> adjustedLevels,
+            List<Holder<Enchantment>> possibleEnchantments) {
         ArrayList<AvailableAtLevel> availableByLevel = new ArrayList<>(adjustedLevels.size());
         for (int level : adjustedLevels.keySet()) {
             List<SelectedEnchantment> available =
@@ -1087,7 +1117,10 @@ public final class ExactEnchantmentSemantics1211 {
     }
 
     private static RandomTraceDistribution<List<SelectedEnchantment>> selectEnchantments(
-            ItemStack stack, int level, List<Holder<Enchantment>> possibleEnchantments, int maxStates) {
+            ItemStack stack,
+            int level,
+            List<Holder<Enchantment>> possibleEnchantments,
+            int maxStates) {
         List<EnchantmentInstance> available =
                 EnchantmentHelper.getAvailableEnchantmentResults(
                         level, stack, possibleEnchantments.stream());
@@ -1205,8 +1238,8 @@ public final class ExactEnchantmentSemantics1211 {
     }
 
     /**
-     * 1.20.1 通过 NBT 往返重建以保留 count <= 0 的状态（{@code ItemStack.copy()} 会把它们折成 EMPTY）。
-     * 1.21 直接按 (Item, 组件补丁, count) 重建，语义等价且不需要注册表上下文。
+     * 1.20.1 通过 NBT 往返重建以保留 count <= 0 的状态（{@code ItemStack.copy()} 会把它们折成 EMPTY）。 1.21 直接按 (Item,
+     * 组件补丁, count) 重建，语义等价且不需要注册表上下文。
      */
     private static ItemStack copyPreservingCount(ItemStack source) {
         return new ItemStack(
@@ -1216,8 +1249,8 @@ public final class ExactEnchantmentSemantics1211 {
     }
 
     /**
-     * 1.21 的附魔由 {@code Holder<Enchantment>} 承载（{@code EnchantmentInstance#enchantment} 也是
-     * holder），与 1.20.1 直接持有 {@code Enchantment} 的差别仅此一处。
+     * 1.21 的附魔由 {@code Holder<Enchantment>} 承载（{@code EnchantmentInstance#enchantment} 也是 holder），与
+     * 1.20.1 直接持有 {@code Enchantment} 的差别仅此一处。
      */
     private record SelectedEnchantment(Holder<Enchantment> enchantment, int level) {
         private static SelectedEnchantment of(EnchantmentInstance instance) {
@@ -1225,8 +1258,8 @@ public final class ExactEnchantmentSemantics1211 {
         }
 
         /**
-         * 1.20.1 取的是 {@code getRarity().getWeight()}；1.21 删除 rarity 后等价物是附魔定义里的
-         * {@code weight}，{@code EnchantmentInstance} 的构造也是用它（{@code WeightedEntry.IntrusiveBase}），
+         * 1.20.1 取的是 {@code getRarity().getWeight()}；1.21 删除 rarity 后等价物是附魔定义里的 {@code
+         * weight}，{@code EnchantmentInstance} 的构造也是用它（{@code WeightedEntry.IntrusiveBase}），
          * 因此权重分布不变。
          */
         private int weight() {

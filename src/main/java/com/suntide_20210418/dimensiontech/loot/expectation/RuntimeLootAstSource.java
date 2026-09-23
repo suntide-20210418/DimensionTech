@@ -32,10 +32,9 @@ import org.slf4j.Logger;
  *
  * <p>1.21 取消了 {@code LootDataManager} 与 {@code Deserializers.create*Serializer()}：战利品表、谓词与
  * 物品修饰器现在是普通注册表（{@code Registries.LOOT_TABLE} / {@code PREDICATE} / {@code ITEM_MODIFIER}），
- * 元素在装载时已经过 {@code LootDataType.deserialize}（其中会触发 NeoForge 的 {@code loadLootTable} 事件）。
- * 序列化改走各 {@code LootDataType} 对应的 DIRECT/ROOT codec，并且必须配 {@link RegistryOps}：
- * 1.21 的附魔是 {@code Holder<Enchantment>}，Gson 路线无法还原。因此本类全程持有
- * {@link RegistryAccess}。
+ * 元素在装载时已经过 {@code LootDataType.deserialize}（其中会触发 NeoForge 的 {@code loadLootTable} 事件）。 序列化改走各
+ * {@code LootDataType} 对应的 DIRECT/ROOT codec，并且必须配 {@link RegistryOps}： 1.21 的附魔是 {@code
+ * Holder<Enchantment>}，Gson 路线无法还原。因此本类全程持有 {@link RegistryAccess}。
  */
 public class RuntimeLootAstSource {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -209,8 +208,7 @@ public class RuntimeLootAstSource {
         if (tables == null) return Optional.empty();
         LootTable value = tables.get(id);
         if (value == null) return Optional.empty();
-        return Optional.of(
-                new RuntimeAst<>(value, serializeObject(LootTable.DIRECT_CODEC, value)));
+        return Optional.of(new RuntimeAst<>(value, serializeObject(LootTable.DIRECT_CODEC, value)));
     }
 
     public Optional<RuntimeAst<LootItemCondition>> predicate(ResourceLocation id) {
@@ -221,8 +219,7 @@ public class RuntimeLootAstSource {
         LootItemCondition value = predicates.get(id);
         if (value == null) return Optional.empty();
         return Optional.of(
-                new RuntimeAst<>(
-                        value, serializeObject(LootItemCondition.DIRECT_CODEC, value)));
+                new RuntimeAst<>(value, serializeObject(LootItemCondition.DIRECT_CODEC, value)));
     }
 
     public Optional<RuntimeAst<LootItemFunction>> modifier(ResourceLocation id) {
@@ -272,11 +269,11 @@ public class RuntimeLootAstSource {
     }
 
     /**
-     * 1.21 的附魔不再位于内置注册表，而是 datapack 注册表 + 标签：可用附魔候选集由
-     * {@code options}（默认整个注册表）与 {@code ItemStack#isPrimaryItemFor} 决定
-     * （见 {@code EnchantmentHelper#getAvailableEnchantmentResults}），"可发现性" 由
-     * {@code EnchantmentTags#IN_ENCHANTING_TABLE} / {@code NON_TREASURE} 驱动
-     * （见 {@code EnchantmentMenu}）。这些数据都参与语义，所以一并纳入指纹。
+     * 1.21 的附魔不再位于内置注册表，而是 datapack 注册表 + 标签：可用附魔候选集由 {@code options}（默认整个注册表）与 {@code
+     * ItemStack#isPrimaryItemFor} 决定 （见 {@code
+     * EnchantmentHelper#getAvailableEnchantmentResults}），"可发现性" 由 {@code
+     * EnchantmentTags#IN_ENCHANTING_TABLE} / {@code NON_TREASURE} 驱动 （见 {@code
+     * EnchantmentMenu}）。这些数据都参与语义，所以一并纳入指纹。
      */
     private String runtimeSemanticsFingerprint() {
         com.google.gson.JsonObject root = new com.google.gson.JsonObject();

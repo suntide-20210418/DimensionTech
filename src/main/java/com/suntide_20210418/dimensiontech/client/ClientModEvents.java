@@ -26,9 +26,9 @@ public final class ClientModEvents {
      * Screens are registered here rather than through {@code MenuScreens.register}, which vanilla
      * made private in 1.21 and now points at this event.
      *
-     * <p>The three machine models no longer pick their render pass from code: the cutout / translucent
-     * passes are declared in the block model JSONs as {@code "render_type"}, which is the route the
-     * deprecated {@code ItemBlockRenderTypes.setRenderLayer} asked mods to take.
+     * <p>The three machine models no longer pick their render pass from code: the cutout /
+     * translucent passes are declared in the block model JSONs as {@code "render_type"}, which is
+     * the route the deprecated {@code ItemBlockRenderTypes.setRenderLayer} asked mods to take.
      */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {

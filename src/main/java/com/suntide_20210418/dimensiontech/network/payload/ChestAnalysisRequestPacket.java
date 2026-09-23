@@ -16,10 +16,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/**
- * 箱子标记器的分析键请求：客户端准星指向的方块与握持标记的手。服务端会重新校验位置，
- * 过时或被伪造的目标无法标记到够不着的箱子。客户端 → 服务端。
- */
+/** 箱子标记器的分析键请求：客户端准星指向的方块与握持标记的手。服务端会重新校验位置， 过时或被伪造的目标无法标记到够不着的箱子。客户端 → 服务端。 */
 public record ChestAnalysisRequestPacket(InteractionHand hand, BlockPos position)
         implements CustomPacketPayload {
 

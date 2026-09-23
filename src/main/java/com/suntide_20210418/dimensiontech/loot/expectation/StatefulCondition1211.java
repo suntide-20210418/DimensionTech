@@ -128,8 +128,7 @@ public final class StatefulCondition1211 {
             ResourceLocation enchantmentId = resourceLocationField(condition, "enchantment");
             // 1.21 的 BonusLevelTableCondition 持有 Holder<Enchantment>，注册名要经 registry access 解析。
             Holder<Enchantment> enchantment =
-                    ExactEnchantmentSemantics1211.enchantment(
-                            enchantmentId, context.registries());
+                    ExactEnchantmentSemantics1211.enchantment(enchantmentId, context.registries());
             JsonArray chances =
                     condition.has("chances") && condition.get("chances").isJsonArray()
                             ? condition.getAsJsonArray("chances")

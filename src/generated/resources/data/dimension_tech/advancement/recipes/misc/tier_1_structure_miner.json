@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_dimension_deconstruction_core": {
+      "conditions": {
+        "items": [
+          {
+            "items": "dimension_tech:dimension_deconstruction_core"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "dimension_tech:tier_1_structure_miner"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_dimension_deconstruction_core"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "dimension_tech:tier_1_structure_miner"
+    ]
+  }
+}

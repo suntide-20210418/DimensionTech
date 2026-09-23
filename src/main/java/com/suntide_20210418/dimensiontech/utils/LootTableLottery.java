@@ -65,8 +65,7 @@ public final class LootTableLottery {
             LootTable lootTable =
                     level.getServer()
                             .reloadableRegistries()
-                            .getLootTable(
-                                    ResourceKey.create(Registries.LOOT_TABLE, lootTableId));
+                            .getLootTable(ResourceKey.create(Registries.LOOT_TABLE, lootTableId));
             for (int i = 0; i < parallel; i++) {
                 if (seed == null) {
                     lootTable.getRandomItems(lootParams, results::add);

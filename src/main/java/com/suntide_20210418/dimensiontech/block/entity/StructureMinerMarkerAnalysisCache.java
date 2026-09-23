@@ -101,7 +101,8 @@ final class StructureMinerMarkerAnalysisCache {
                 continue;
             }
             CachedMarkerLoot previous = cachedLootForSlot(slot);
-            if (previous == null || !ItemStack.isSameItemSameComponents(previous.marker(), marker)) {
+            if (previous == null
+                    || !ItemStack.isSameItemSameComponents(previous.marker(), marker)) {
                 invalidate(slot, invalidatedSlots);
                 previous = null;
             }

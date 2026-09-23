@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "minecraft:quartz"
+    },
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_2"
+    },
+    "S": {
+      "item": "dimension_tech:structure_miner_casing"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_2"
+    }
+  },
+  "pattern": [
+    "CTC",
+    "FSF",
+    "CTC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dimension_tech:structure_miner_upgrade_efficiency_tier_2"
+  }
+}

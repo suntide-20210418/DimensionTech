@@ -145,8 +145,7 @@ public final class DistributionalCondition1211 {
             ResourceLocation enchantmentId = resourceLocationField(condition, "enchantment");
             // 1.21 的 BonusLevelTableCondition 持有 Holder<Enchantment>，注册名要经 registry access 解析。
             Holder<Enchantment> enchantment =
-                    ExactEnchantmentSemantics1211.enchantment(
-                            enchantmentId, context.registries());
+                    ExactEnchantmentSemantics1211.enchantment(enchantmentId, context.registries());
             if (enchantment == null) {
                 return Evaluation.unsupported(
                         pointer + "/enchantment", "Invalid table bonus enchantment");

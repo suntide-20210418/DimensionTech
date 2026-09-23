@@ -5,11 +5,11 @@ import com.suntide_20210418.dimensiontech.network.payload.OperatorActionPacket;
 import com.suntide_20210418.dimensiontech.network.payload.OperatorAnalysisRequestPacket;
 import com.suntide_20210418.dimensiontech.network.payload.OperatorCatalogueRequestPacket;
 import com.suntide_20210418.dimensiontech.network.payload.RefreshedMarkerPacket;
+import com.suntide_20210418.dimensiontech.network.payload.StructMarkerActionPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerAnalysisRequestPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerExpectedItemTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerSlotTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureReactorTooltipPacket;
-import com.suntide_20210418.dimensiontech.network.payload.StructMarkerActionPacket;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -19,8 +19,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * 发送侧门面：其余代码只通过这里的静态方法发包。payload 的类型、编解码与处理体各自放在
- * {@code network.payload} 下，注册在 {@link NetworkHandler}。
+ * 发送侧门面：其余代码只通过这里的静态方法发包。payload 的类型、编解码与处理体各自放在 {@code network.payload} 下，注册在 {@link
+ * NetworkHandler}。
  */
 public final class ModNetwork {
 

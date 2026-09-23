@@ -67,8 +67,7 @@ final class VirtualStructureSampler {
         for (int z = startChunk.z - radius; z <= startChunk.z + radius; z++) {
             for (int x = startChunk.x - radius; x <= startChunk.x + radius; x++) {
                 ChunkPos pos = new ChunkPos(x, z);
-                ProtoChunk chunk =
-                        new ProtoChunk(pos, UpgradeData.EMPTY, level, biomes, null);
+                ProtoChunk chunk = new ProtoChunk(pos, UpgradeData.EMPTY, level, biomes, null);
                 // 1.21 把 ChunkStatus 的持久化状态改写入口改名为 setPersistedStatus(ChunkStatus)。
                 chunk.setPersistedStatus(ChunkStatus.FEATURES);
                 chunks.add(chunk);
@@ -86,7 +85,10 @@ final class VirtualStructureSampler {
         ChunkStep featuresStep = ChunkPyramid.GENERATION_PYRAMID.getStepTo(ChunkStatus.FEATURES);
         StaticCache2D<GenerationChunkHolder> cache =
                 StaticCache2D.create(
-                        startChunk.x, startChunk.z, radius, (x, z) -> holders.get(new ChunkPos(x, z)));
+                        startChunk.x,
+                        startChunk.z,
+                        radius,
+                        (x, z) -> holders.get(new ChunkPos(x, z)));
         WorldGenRegion region = new WorldGenRegion(level, cache, featuresStep, center);
         for (ChunkAccess chunk : chunks) {
             ChunkPos chunkPos = chunk.getPos();
@@ -149,13 +151,12 @@ final class VirtualStructureSampler {
     }
 
     /**
-     * 1.21 的 {@link WorldGenRegion} 只能通过 {@link GenerationChunkHolder} 取块，而 holder 的块存放是私有的
-     * futures 数组（唯一写入入口 {@code completeFuture} 是私有的）。这里继承 holder 并覆写读取入口，让 region
-     * 看到我们预先放好的 ProtoChunk。
+     * 1.21 的 {@link WorldGenRegion} 只能通过 {@link GenerationChunkHolder} 取块，而 holder 的块存放是私有的 futures
+     * 数组（唯一写入入口 {@code completeFuture} 是私有的）。这里继承 holder 并覆写读取入口，让 region 看到我们预先放好的 ProtoChunk。
      *
-     * <p>{@code getChunkIfPresentUnchecked} 是 public 且非 final，语义上等价于 1.20.1
-     * {@code WorldGenRegion#getChunk} 中"缓存块的 status 已满足要求就返回它"的那一支；我们预置的状态是
-     * FEATURES，因此任何 FEATURES 之前的状态请求都会命中同一份 ProtoChunk，与旧实现一致。
+     * <p>{@code getChunkIfPresentUnchecked} 是 public 且非 final，语义上等价于 1.20.1 {@code
+     * WorldGenRegion#getChunk} 中"缓存块的 status 已满足要求就返回它"的那一支；我们预置的状态是 FEATURES，因此任何 FEATURES
+     * 之前的状态请求都会命中同一份 ProtoChunk，与旧实现一致。
      */
     private static final class VirtualChunkHolder extends GenerationChunkHolder {
         private final ProtoChunk chunk;

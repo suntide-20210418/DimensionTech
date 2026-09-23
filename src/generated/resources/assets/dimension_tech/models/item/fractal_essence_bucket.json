@@ -1,0 +1,5 @@
+{
+  "parent": "neoforge:item/bucket",
+  "fluid": "dimension_tech:fractal_essence",
+  "loader": "neoforge:fluid_container"
+}

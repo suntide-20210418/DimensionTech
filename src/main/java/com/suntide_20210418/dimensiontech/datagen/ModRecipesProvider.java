@@ -29,7 +29,8 @@ import org.jetbrains.annotations.NotNull;
 public class ModRecipesProvider extends RecipeProvider implements IConditionBuilder {
     private static final String[] SPECIALIZATIONS = {"efficiency", "parallel", "luck", "energy"};
 
-    public ModRecipesProvider(PackOutput pOutput, CompletableFuture<HolderLookup.Provider> registries) {
+    public ModRecipesProvider(
+            PackOutput pOutput, CompletableFuture<HolderLookup.Provider> registries) {
         super(pOutput, registries);
     }
 

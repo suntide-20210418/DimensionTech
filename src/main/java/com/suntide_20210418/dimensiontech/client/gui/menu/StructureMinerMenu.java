@@ -108,7 +108,8 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
     private final int[] telemetry;
     private final int[] fluidTelemetry = new int[6];
 
-    public StructureMinerMenu(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
+    public StructureMinerMenu(
+            int containerId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
         this(containerId, playerInventory, getBlockEntity(playerInventory, data.readBlockPos()));
     }
 

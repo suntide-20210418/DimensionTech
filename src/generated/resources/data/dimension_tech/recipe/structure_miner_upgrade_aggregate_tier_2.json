@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "dimension_tech:dimension_deconstruction_core"
+    },
+    "D": {
+      "item": "dimension_tech:structure_miner_upgrade_energy_tier_2"
+    },
+    "E": {
+      "item": "dimension_tech:structure_miner_upgrade_efficiency_tier_2"
+    },
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_2"
+    },
+    "L": {
+      "item": "dimension_tech:structure_miner_upgrade_luck_tier_2"
+    },
+    "P": {
+      "item": "dimension_tech:structure_miner_upgrade_parallel_tier_2"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_2"
+    }
+  },
+  "pattern": [
+    "PTE",
+    "FCF",
+    "LTD"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dimension_tech:structure_miner_upgrade_aggregate_tier_2"
+  }
+}
