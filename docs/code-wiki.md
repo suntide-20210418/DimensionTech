@@ -2,7 +2,7 @@
 
 > 本文档面向需要理解、修改或扩展本模组源代码的开发者。它描述 `src/main/java/com/suntide_20210418/dimensiontech` 的整体架构、模块职责、关键类、依赖关系与运行方式。所有描述均以当前源码为准（README 中的"代码地图"是更短的快速版）。
 
-- 技术栈：Minecraft `1.20.1` + Forge `47.4.10`，Java `17`，Parchment 映射，ForgeGradle 6
+- 技术栈：Minecraft `1.21.1` + NeoForge `21.1.251`，Java `21`，Parchment 映射，ModDevGradle 2
 - Mod 标识：`dimension_tech`，包根：`com.suntide_20210418.dimensiontech`
 - 许可证：GPL-3.0
 
@@ -69,12 +69,12 @@
 | `loot/expectation` | **期望引擎**：确定性战利品表期望分析 |
 | `loot/fingerprint` | 分析指纹 `LootAnalysisFingerprint`（缓存/存档稳定性） |
 | `loot/` | `DimensionCoreChestLoot` 自定义战利品表 |
-| `energy/` | `EnergyContainer`、`SimpleEnergyContainer`（Forge 能量） |
+| `energy/` | `EnergyContainer`、`SimpleEnergyContainer`（NeoForge 能量） |
 | `fluid/` | `ModFluids`、`EssenceFluidType` |
 | `item/` | `ModItems`、`ModCreativeModeTabs`、`StructMarkerItem`（结构标记器）、`ChestMarkerItem`（宝箱分析器）、`WrenchItem`（扳手）、`DimensionDeconstructionCoreItem`（维度拆解核心）、数据整合器与结构阐释器 |
-| `network/` | `ModNetwork`：Forge 简单信道包注册 |
+| `network/` | `ModNetwork`（发送侧）、`NetworkHandler`（注册）、`network/payload/`（各 payload） |
 | `recipe/` | `ModRecipes`：RecipeSerializer 的 `DeferredRegister` 注册表 |
-| `config/` | `ModConfigs`：ForgeConfigSpec 常见配置 + 各 Tier 参数 |
+| `config/` | `ModConfigs`：ModConfigSpec 常见配置 + 各 Tier 参数 |
 | `client/gui/screen` | 屏幕 & 页面（`StructureMinerScreen` 等） |
 | `client/gui/menu` | 容器 Menu 与布局 |
 | `client/` | `ClientModEvents`、`StructMarkerClient`、`ChestMarkerClient`、`ChestMarkerKeyHandler`、`KeyBindings`、`StructureMinerProjectionClient`、`ModMenu` |
@@ -187,27 +187,27 @@ modEventBus.addListener(…::commonSetup);
 
 ### 5.1 核心思想
 
-1. **随机数状态不可变、可枚举**：引擎重写 1.20.1 的两个随机源——`XoroshiroState1201`（Xoroshiro128++，现代 `RandomSource`）与 `LegacyState1201`（48-bit LCG，`LegacyRandomSource`）。每个随机调用返回 `Draw<T>(value, newState, drawCount)`：因为状态迁移是确定的，给定当前 seed，`nextInt(n)` 等调用会落在一个**有限、可精确计算**的取值集合上，并记录"消耗了几次底层 draw"。
+1. **随机数状态不可变、可枚举**：引擎重写 1.20.1 的两个随机源——`XoroshiroState1211`（Xoroshiro128++，现代 `RandomSource`）与 `LegacyState1211`（48-bit LCG，`LegacyRandomSource`）。每个随机调用返回 `Draw<T>(value, newState, drawCount)`：因为状态迁移是确定的，给定当前 seed，`nextInt(n)` 等调用会落在一个**有限、可精确计算**的取值集合上，并记录"消耗了几次底层 draw"。
 2. **把"随机抽取"升级为"有限概率分布"**：一次 `roll` 不再是一次 `nextDouble()`，而是一张"取值 → 精确概率"的映射（`FiniteDistribution`，要求 mass 精确等于 1）。
-3. **用线性期望约化**：`DistributionalLootPool1201` 的注释明确写着通过线性期望（linearity of expectation）避免逐样本随机模拟——期望 roll 次数、单格选择期望、最终期望产出都由分布推导。
-4. **保持与原版的逐位语义一致**：随机语义类（Exact/Distributional/Stateful 前缀的 `*1201`）刻意复刻原版 `nextInt`/weighted index/附魔语法的边界行为（幂次快速路径、有符号拒绝条件等），以此保证分析结果与原版抽奖等价。
+3. **用线性期望约化**：`DistributionalLootPool1211` 的注释明确写着通过线性期望（linearity of expectation）避免逐样本随机模拟——期望 roll 次数、单格选择期望、最终期望产出都由分布推导。
+4. **保持与原版的逐位语义一致**：随机语义类（Exact/Distributional/Stateful 前缀的 `*1211`）刻意复刻原版 `nextInt`/weighted index/附魔语法的边界行为（幂次快速路径、有符号拒绝条件等），以此保证分析结果与原版抽奖等价。后缀 `1211` 标明这套语义只对 1.21.1 精确。
 
 ### 5.2 关键类族（`loot/expectation`）
 
 | 类族 | 代表类 | 职责 |
 | --- | --- | --- |
-| 随机状态 | `XoroshiroState1201`、`LegacyState1201`、`StatefulRandomSource1201`、`StatefulLegacyRandomSource1201` | 不可变随机数状态；`Draw` 携带新状态与 drawCount |
-| Reference 语义 | `ReferenceSemantics1201` | 缺失/递归引用（TABLE/PREDICATE/FUNCTION）在 1.20.1 的精确行为：缺失表→空输出、缺失谓词→false、缺失函数→identity，并产出一条带 JSON 指针和调用栈的 `Diagnostic` |
-| 精确语义 | `ExactRandomSemantics1201`、`ExactEnchantmentSemantics1201`、`ExactProbability` | 把原版随机方法定义为有限精确语义（可枚举/可复现），用于附魔等场景 |
-| Distributional 求值 | `DistributionalLootTableExecutor1201`、`DistributionalLootPool1201`、`DistributionalFunction1201`、`DistributionalCondition1201`、`DistributionalNumberProvider1201` | 把一张表/一个池解析成期望与分布；入口 `evaluate` / `expectation` |
-| Stateful 执行 | `StatefulLootTableExecutor1201`、`StatefulLootSequenceExecutor1201`、`StatefulLootPool1201`、`StatefulCondition1201`、`StatefulFunction1201`、`StatefulNumberProvider1201` | 有状态地推进"直到产出实际 item stack"的执行模拟 |
-| 随机状态分布式 | `RandomStateExecutor1201`、`RandomStateDistribution`、`RandomTraceDistribution`、`PersistentRandomSequenceSnapshot1201` | 随机状态在分布空间里的执行/追踪 |
-| 概率/数学 | `FiniteDistribution`、`ExactProbability`、`ExpectationMath`、`IdealRandomProbabilitySpace1201` | 归一化 PMF、精确概率、长程期望计算 |
+| 随机状态 | `XoroshiroState1211`、`LegacyState1211`、`StatefulRandomSource1211`、`StatefulLegacyRandomSource1211` | 不可变随机数状态；`Draw` 携带新状态与 drawCount |
+| Reference 语义 | `ReferenceSemantics1211` | 缺失/递归引用（TABLE/PREDICATE/FUNCTION）在 1.20.1 的精确行为：缺失表→空输出、缺失谓词→false、缺失函数→identity，并产出一条带 JSON 指针和调用栈的 `Diagnostic` |
+| 精确语义 | `ExactRandomSemantics1211`、`ExactEnchantmentSemantics1211`、`ExactProbability` | 把原版随机方法定义为有限精确语义（可枚举/可复现），用于附魔等场景 |
+| Distributional 求值 | `DistributionalLootTableExecutor1211`、`DistributionalLootPool1211`、`DistributionalFunction1211`、`DistributionalCondition1211`、`DistributionalNumberProvider1211` | 把一张表/一个池解析成期望与分布；入口 `evaluate` / `expectation` |
+| Stateful 执行 | `StatefulLootTableExecutor1211`、`StatefulLootSequenceExecutor1211`、`StatefulLootPool1211`、`StatefulCondition1211`、`StatefulFunction1211`、`StatefulNumberProvider1211` | 有状态地推进"直到产出实际 item stack"的执行模拟 |
+| 随机状态分布式 | `RandomStateExecutor1211`、`RandomStateDistribution`、`RandomTraceDistribution`、`PersistentRandomSequenceSnapshot1211` | 随机状态在分布空间里的执行/追踪 |
+| 概率/数学 | `FiniteDistribution`、`ExactProbability`、`ExpectationMath`、`IdealRandomProbabilitySpace1211` | 归一化 PMF、精确概率、长程期望计算 |
 | 附魔边际 | `EnchantmentKey`、`EnchantmentMarginal` | 附魔选择/等级的概率边际量 |
 | 数据结构与产物 | `StackState`、`StackMeasure`、`TerminalStackMeasure`、`StackObservationMeasure`、`StackObservation`、`TerminalStackKey`、`FrozenJson`、`LootExpectationResult`、`LootAnalysisContext`、`Diagnostic`、`MarkerAnalysis` | 分析的输入/输出/中间表示；`LootExpectationResult` 是统一输出 |
 | 状态/产物枚举 | `AnalysisStatus`（`EXACT / APPROXIMATE / UNSUPPORTED / LEGACY`）、`EvaluationFailureKind` | 结果状态标记 |
 | 可达性 | `Reachability` | 惰性可达性分析，避免展开完整输出列表的乘积爆炸 |
-| 外部支持 | `RuntimeLootAstSource`、`SavedDataTransaction1201` | 从运行时/存档读取战利品表数据 |
+| 外部支持 | `RuntimeLootAstSource`、`SavedDataTransaction1211` | 从运行时/存档读取战利品表数据 |
 
 ### 5.3 输出结果：`LootExpectationResult`
 
@@ -226,7 +226,7 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 - `StructureAnalysisService`：分析服务门面，负责把 loot-expectation 缓存下来（`capture`）。
 - `StructureLootAnalyzer`：解析一个结构的战利品表来源。
 - `StructureValueCalculator`：价值计算入口，**异步**评估 frozen loot source，并按配置在两条路径间切换：
-  - 精确期望路径：对每个 root table 调 `DistributionalLootTableExecutor1201.evaluate`，汇总 terminal/full `StackMeasure` 并冻结为 `LootExpectationSnapshot`。
+  - 精确期望路径：对每个 root table 调 `DistributionalLootTableExecutor1211.evaluate`，汇总 terminal/full `StackMeasure` 并冻结为 `LootExpectationSnapshot`。
   - 采样近似路径（`ItemExpectationMethod.SAMPLING` 或非精确场景）：通过 `LootTableLottery.draw` 做 Monte Carlo 采样，把计数/频率折算为期望概率。
 - `VirtualStructureSampler`：在虚拟（不落盘）结构中采样结构内容/战利品。
 - `StructureValueSnapshot`：一次分析结果的不可变快照。
@@ -324,33 +324,33 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 - 生成产物写入 `src/generated/resources`。
 
 ### 10.2 网络（`network/ModNetwork`）
-- 使用 Forge `NetworkRegistry.newSimpleChannel` 建立 `main` 信道，版本 `"10"`。
+- 使用 NeoForge `RegisterPayloadHandlersEvent` + `CustomPacketPayload`/`StreamCodec` 注册 14 个 payload（`network/payload/` 一包一文件，`TYPE` 的 ResourceLocation 即包身份），`PacketDistributor.sendToServer/sendToPlayer` 发送。1.20.1 的 `SimpleChannel` + 手写序号已整体废弃。
 - 共注册 14 个包：`StructMarkerActionPacket`、`RefreshedMarkerPacket`、`StructureChoicesPacket`、`StructureMinerAnalysisRequestPacket`、`StructureMinerAnalysisPacket`、`StructureMinerExpectedItemTogglePacket`、`StructureMinerSlotTogglePacket`、`StructureReactorTooltipPacket`、`OperatorCatalogueRequestPacket`、`OperatorCataloguePacket`、`OperatorAnalysisRequestPacket`、`OperatorAnalysisPacket`、`OperatorActionPacket`、`ChestAnalysisRequestPacket`。
 - 覆盖：marker 交互、矿机分析请求/响应、expected-item/slot toggle、反应堆 tooltip、数据操作仪的操作与目录、宝箱分析请求。
 
 ### 10.3 配置（`config/ModConfigs`）
-- `ForgeConfigSpec` 构建一个 common 配置（`ModConfig.Type.COMMON`），注册为最早一步。
+- `ModConfigSpec` 构建一个 common 配置（`ModConfig.Type.COMMON`），由入口注入的 `ModContainer` 注册，为最早一步。
 - 内容：`structureMiner`（各 Tier）、`structureMinerUpgrades`、`structureMinerAggregateUpgrades`、`structureValue`（`StructureValueConfig`：稀有度倍率、`ItemExpectationMethod`、采样数 `samplingCount`、`glmSupplementSamples`、虚拟结构采样、维度/物品/结构白黑名单、维度价值与物品倍率列表）。
-- 配置文件由 Forge 生成在实例 `config` 目录，可被 KubeJS 覆盖；配置变化会使相关分析缓存失效。
+- 配置文件由 NeoForge 生成在实例 `config` 目录，可被 KubeJS 覆盖；配置变化会使相关分析缓存失效。
 
 ### 10.4 资源（`src/main/resources`）
-- `META-INF/mods.toml`：声明 forge/minecraft 必选依赖 + ae2/jade/jei 可选依赖（`mandatory=false`，`ordering=AFTER`）。
-- `META-INF/accesstransformer.cfg`：AT 声明。
-- `assets/dimension_tech/`：guis 精灵图（`guis/*.png`）、方块/物品纹理与模型、`pack.mcmeta`。
-- `data/dimension_tech/`：`loot_tables/`、`item_modifiers/`、`predicates/`。其中 `gametest/` 与 `loot_tables/test/` 下的 18 个 fixture 原本只服务于已移除的期望引擎回归测试，现在没有任何代码引用（见 §13）。
+- `src/main/templates/META-INF/neoforge.mods.toml`：模板，经 `processResources` 展开；声明 neoforge/minecraft 必选依赖 + ae2/jade/jei 可选依赖（`type="optional"`，`ordering=AFTER`）。
+- `assets/dimension_tech/`：guis 精灵图（`guis/*.png`）、方块/物品纹理与模型（`render_type` 直接写在手写模型 JSON 里，取代 1.20.1 的 `ItemBlockRenderTypes.setRenderLayer`）。
+- `data/dimension_tech/`：`loot_table/`、`item_modifier/`、`predicate/`（1.21 把注册表目录名改为单数，目录名等于注册表键路径）。其中 `gametest/` 与 `loot_table/test/` 下的 18 个 fixture 服务于期望引擎回归测试。
 - `kubejs.plugins.txt`：KubeJS 插件枚举。
+- 无 `pack.mcmeta`（NeoForge 自行处理模组资源）与 accesstransformer。
 
 ---
 
 ## 11. 依赖关系总览
 
 ### 11.1 必选依赖（`mods.toml` + `build.gradle`）
-- `forgemod`/`minecraft`：开发期通过 `net.minecraftforge:forge:1.20.1-47.4.10`；运行时 `minecraft` 与 `forge` 为必选且 `ordering=NONE`。
+- `neoforge`/`minecraft`：开发期通过 ModDevGradle 拉取 `net.neoforged:neoforge:21.1.251`；运行时 `minecraft` 与 `neoforge` 为必选且 `ordering=NONE`。
 
 ### 11.2 可选模组依赖（`mods.toml` 声明 + 运行时只在存在时生效）
-`ae2`（≥15.4.10）、`jade`（≥11.0.0）、`jei`（≥15.20.0，因为用到了 `AbstractRecipeCategory` 与 recipe-extras 文本组件）。
+`ae2`（≥19.2.17）、`jade`（≥15.10.6）、`jei`（≥19.25.0.322，因为用到了 `AbstractRecipeCategory` 与 recipe-extras 文本组件）。KubeJS 经 `kubejs.plugins.txt` 发现，故刻意不在 `neoforge.mods.toml` 声明。
 
-另在 `build.gradle` 中 `add(optionalModConfiguration, …)` 的可选依赖：KubeJS、Jade、GuideME、Applied Energistics 2、Mekanism、Architectury API、Rhino、AllTheModium、GeckoLib、ATO、Time in a Bottle、JEI；`compileOnly` 的有 EMI 与 Mouse Tweaks（后者是纯客户端便利模组，被刻意排除出 dev 运行时以避免 runData/server 构建它）。其中 `optionalModConfiguration` 依据是否为数据生成运行而切换为 `compileOnly` 或 `implementation`。
+另在 `build.gradle` 中 `add(optionalModConfiguration, …)` 的可选依赖：KubeJS、Rhino、Jade、Applied Energistics 2、**GuideME**（AE2 的 `REQUIRED` 依赖，虽无源码 import 但运行时必需）、AllTheModium、**GeckoLib**（Allthemodium 未声明却实际加载其类，故运行时也必需）、JEI；`compileOnly` 的有 Mouse Tweaks（纯客户端便利模组，被刻意排除出 dev 运行时以避免 runData/server 构建它）。其中 `optionalModConfiguration` 依据是否为数据生成运行而切换为 `compileOnly` 或 `implementation`。
 
 ### 11.3 代码内部依赖方向（核心）
 ```
@@ -368,25 +368,25 @@ integration/* ──> block/entity + structurereactor(配方展示)
 ## 12. 运行方式与常用命令
 
 ### 12.1 环境要求
-- JDK 17；Minecraft Forge 1.20.1 开发环境。
+- JDK 21；Minecraft NeoForge 1.21.1 开发环境。
 - Windows 用 `.\gradlew.bat`，macOS/Linux 用 `./gradlew`。
-- 首次导入用 Gradle 包装器下载依赖；使用 ForgeGradle 6、Parchment 映射、Java 17 工具链。（仓库同时配置了阿里云/BMCLAPI 镜像，方便国内环境。）
-- 本机实测：`JAVA_HOME` 必须指向 JDK 17（Zulu 17 可用）；用 JDK 25 跑 Gradle 8.8 会因 class major 69 报错。
+- 首次导入用 Gradle 包装器下载依赖；使用 ModDevGradle 2、Parchment 映射、Java 21 工具链。
 
-### 12.2 常用命令（在项目根 `d:\mycode\ModDevelopment\DimensionTech-1.20.1`）
+### 12.2 常用命令（在项目根 `d:\mycode\ModDevelopment\DimensionTech-1.21.1`）
 
 ```powershell
 .\gradlew.bat build                  # 编译 + spotless 检查 + 打包 → build/libs
 .\gradlew.bat runClient              # 启动开发客户端
 .\gradlew.bat runServer              # 启动无 GUI 服务端
 .\gradlew.bat runData                # 数据生成，写入 src/generated/resources
+.\gradlew.bat runGameTestServer      # 游戏测试（依赖 syncGameTestStructures 先就位）
 .\gradlew.bat spotlessCheck          # 格式检查
 .\gradlew.bat compileJava --rerun    # 只重编译 Java（改签名后最常用）
 ```
 
 - `runData` 会重写 `src/generated/resources/...` 下的语言文件等产物；若工作区里存在未提交的手改语言条目，跑之前先确认。
-- `spotlessApply` 在本仓不可用：aosp 100 列会全量重排且自身失败，因此只跑 `spotlessCheck`。
-- `reobfJar` 报 `Duplicate entries` = 历史残留，先 `.\gradlew.bat clean build`。
+- `runGameTestServer` 依赖 `prepareGameTestServerRun` → `syncGameTestStructures`，后者把 `src/test/resources/gameteststructures/empty.snbt` 复制进游戏目录。**原版不提供 `minecraft:empty` 模板**，缺这个文件所有 GameTest 会以 `Missing test structure: minecraft:empty` 直接崩掉。（ModDevGradle 的任务名是 `prepare<RunName>Run`，与 ForgeGradle 的 `prepareRun<RunName>` 不同，接线时容易接错。）
+- `-PvanillaLootRuntime=true` 会把可选模组降级为 `compileOnly`，用于纯原版语料门禁。
 
 ### 12.3 修改约定
 - 采掘器行为遵守 `BaseMinerBlockEntity#serverTick` 的固定阶段顺序。
@@ -400,9 +400,11 @@ integration/* ──> block/entity + structurereactor(配方展示)
 
 以下均为**在当前源码里核实过**的事实，尚未处理，改文档时不要把它们写成正常状态：
 
-1. **测试体系已从入口摘除，但测试代码仍在树里**。`DimensionTechMod` 已不再注册 GameTest；`src/main/java` 下仍留着 19 个 `*GameTests` 类（`gametest/`、`block/entity/`、`item/`、`structure/analysis/`、`structureminer/output/`），其中 `StructureMinerBuildPlanGameTests`、`StructureMinerTickContractGameTests`、`StructureMinerMarkerAnalysisCacheGameTests` 还在调用旧的 `StructureMinerMultiblock#place/planMaterials/projection` 签名，导致 `compileJava` 报错。`src/test/java` 下 68 个测试类、`src/test/resources/gameteststructures/empty.snbt`、`data/dimension_tech/{loot_tables,item_modifiers,predicates}/gametest/*` 与 `loot_tables/test/*` 共 18 个 fixture 同样失去引用。
-2. **`build.gradle` 的测试接线仍在**：`testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'`、`tasks.named('test')`、`syncGameTestStructures`、`gameTestServer` run 与 `-PvanillaLootRuntime` 开关。测试代码清完后这些也应一并处理。
-3. **`ModRecipesProvider` 的两处注释与代码不符**：`:120` 写 "one machine eats 44 casings"（实际 40）；`:214` 写 "twelve upgrade slots also accept plain casings"（`acceptsUpgradeSlot` 实际接受升级方块或结构方块，不是机壳）。
-4. **`gradle.properties` 的 `mod_description` 有拼写错误**：`This is a mod for strcture processing.`（应为 `structure`）。该串会经 `processResources` 展开进 `mods.toml`，是玩家可见文本。
-5. **Tier 1 的流体需求以代码为准，且判据本身可疑**：`requiresFluidInput()` 的默认分支写成 `getMinerTier() >= 1`，对任何合法 Tier 都恒为真，因此 Tier 1 实际需要水（`forMinerTier(1) = Fluids.WATER`，JEI 也照此展示）。旧版 README 曾写"Tier 1 默认不需要流体"，与本条不符。若原意是让 Tier 1 免流体，需要把判据改成 `>= 2`（或让 `forMinerTier(1)` 返回 `null`）——这属于设计决策，未擅自改动。
+1. **19 个 `*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 19 个中 18 个通过；唯一失败的是下面第 5 条的既有测试/代码矛盾。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致。
+2. **`src/test/java` 为空目录**，`build.gradle` 也没有 `testImplementation` / `test` 任务。当前实际在用的测试只有 `src/main/java` 下那 19 个 GameTest 类，加上 `src/test/resources/gameteststructures/empty.snbt`（由 `syncGameTestStructures` 复制进游戏目录；**原版不提供 `minecraft:empty`，缺它所有 GameTest 直接崩**）。`data/dimension_tech/gametest/*` 与 `loot_table/test/*` 共 18 个 fixture 由这些测试消费。
+3. **`ModRecipesProvider` 的两处注释与代码不符**：`:123` 写 "one machine eats 44 casings"（实际 40）；`:218` 写 "twelve upgrade slots also accept plain casings"（`acceptsUpgradeSlot` 实际接受升级方块或结构方块，不是机壳）。
+4. **`neoforge.mods.toml` 的 `description` 有拼写错误**：`This is a mod for strcture processing.`（应为 `structure`）。这是玩家可见文本。
+5. **Tier 1 的流体需求以代码为准，且判据本身可疑**：`requiresFluidInput()` 的默认分支写成 `getMinerTier() >= 1`，对任何合法 Tier 都恒为真，因此 Tier 1 实际需要水（`forMinerTier(1) = Fluids.WATER`，JEI 也照此展示）。旧版 README 曾写"Tier 1 默认不需要流体"，与本条不符。若原意是让 Tier 1 免流体，需要把判据改成 `>= 2`（或让 `forMinerTier(1)` 返回 `null`）——这属于设计决策，未擅自改动。**`StructureMinerTierGameTests#allTiersMapToTheirConfiguredMachineValues` 断言的是 `tier >= 2`，与该判据直接冲突，因此在 1.21.1 上是唯一失败的 GameTest。**
 6. **宝箱分析器的命名中英不同源，JEI 文案也对不上**：`item.dimension_tech.chest_marker` 的中文名是「宝箱分析器」，英文名是「Chest Marker」；而 JEI 中文串 `jei.dimension_tech.chest_miner.chest_marker` 写成「已标记的宝箱标记器」。三处不一致，统一命名待定——文档暂按物品中文名「宝箱分析器」写（`ChestMarkerItem` 的类注释用的也是「宝箱分析器」）。
+7. **`structureminer/output/EquipmentDismantler` 对狼铠的产出量未定稿**：1.21 新增 `ArmorItem.Type.BODY`（狼铠），1.20.1 无对应物，现按同为耐久系数 16 的胸甲口径取材料数。这是等价映射而非忠实移植，属于平衡决策。
+8. **`gametest` 战利品表 fixture 的附魔候选集语义在 1.21 变宽**：`nested_terminal_child.json` / `mixed_terminal_output.json` 原本写 `treasure: false`（等价于 `"options": "#minecraft:non_treasure"`），而 1.21 已删除该字段，省略 `options` 即取**整个附魔注册表**（含宝藏专属附魔）。未编造替代字段，这两张表的期望值因此包含宝藏附魔，其断言尚未复核。

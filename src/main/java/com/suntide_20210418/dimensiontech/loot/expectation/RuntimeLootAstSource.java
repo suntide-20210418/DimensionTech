@@ -50,7 +50,11 @@ public class RuntimeLootAstSource {
     private final String runtimeSemanticsFingerprint;
 
     public RuntimeLootAstSource(MinecraftServer server) {
-        this.registries = server.registryAccess();
+        // 1.21 把战利品表/谓词/物品修饰器/附魔放进了可重载注册表层（RegistryLayer.RELOADABLE）。
+        // MinecraftServer#registryAccess() 返回的是服务端自身的 LayeredRegistryAccess 复合视图，
+        // 只到 DIMENSIONS 层，取不到 LOOT_TABLE（会抛 "Missing registry"）；含 RELOADABLE 层的是
+        // ReloadableServerResources 持有的那一份，经 reloadableRegistries().get() 暴露。
+        this.registries = server.reloadableRegistries().get();
         this.tables = this.registries.registryOrThrow(Registries.LOOT_TABLE);
         this.predicates = this.registries.registryOrThrow(Registries.PREDICATE);
         this.modifiers = this.registries.registryOrThrow(Registries.ITEM_MODIFIER);

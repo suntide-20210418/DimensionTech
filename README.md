@@ -1,25 +1,163 @@
+# 维度科技 / Dimension Tech
 
-Installation information
-=======
+[English](README.en.md) | [代码 Wiki](docs/code-wiki.md) | [KubeJS 文档](docs/kubejs.md) | [许可证](LICENSE.txt)
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+Dimension Tech 是一个面向 Minecraft NeoForge 1.21.1 的技术模组。它围绕“结构的价值”构建自动化：将世界中的结构转化为可分析的结构标记，再由神话采掘器按结构的战利品期望持续产出资源。
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+当前版本：`1.0.0-1.21.1`
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything
-{this does not affect your code} and then start the process again.
+运行环境：Minecraft `1.21.1`、NeoForge `21.1.251` 或兼容版本
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+许可证：GPL-3.0
 
-Additional Resources:
-==========
-Community Documentation: https://docs.neoforged.net/
-NeoForged Discord: https://discord.neoforged.net/
+## 玩家指南
+
+### 核心循环
+
+1. **在结构中**手持**结构标记器**右键：界面会列出你当前位置命中的所有结构，选中一个即把维度、位置与边界写进标记，并算出战利品期望。散落的容器改用**宝箱分析器**：按 `V` 分析并标记准星指向的容器。
+2. 放置对应 Tier 的**神话采掘器**，右键打开其控制界面。
+3. 手持**扳手**右键采掘器可切换多方块投影；**shift+右键**可一键按投影从背包构建。按投影完成结构。
+4. 将已写入的**结构标记**放入采掘器槽位，接入 FE 能源与需要的流体。
+5. 配置红石、物品输出、流体面和自动抽液，等待采掘器完成加工并输出战利品。除结构战利品外，每个周期还会按采掘器自身的 Tier 附带产出**维度碎片**与**采掘代币**（各 `min(10, 并行)` 个）。
+6. 攒到 Tier 2 的碎片与代币后合成**数据整合器**，攒到 Tier 5 的后合成**结构阐释器**（还要一个数据整合器 + 下界之星 + 下界合金锭）。两者装入**结构数据操作仪分别**解锁结构目录浏览与批量写入
+
+结构分析会读取结构的战利品表，并计算每种物品的期望数量与结构价值。计算可能在后台完成；在结果准备好前，采掘器不会把该标记推进为加工任务。
+
+采掘器产出按已分析的物品期望构造奖励权重。它保留长期期望值，但不复现原版 LootTable 的联合随机分布、奖池选择、函数链或随机序列。
+
+### 神话采掘器
+
+采掘器提供 Tier 1 到 Tier 6。每个 Tier 的标记槽数与基础并行、幸运、效率和能源规格都不同（Tier 1 为 1 个标记槽，Tier 6 为 9 个），每个槽位独立推进。实际数值由服务器通用配置决定。
+
+多方块的基础材料为：
+
+- 40 个神话采掘器机壳
+- 12 个神话采掘器玻璃
+- 2 个神话采掘器结构块
+- 12 个升级槽（每个槽可放入一个升级块或一个结构块）
+
+多方块的机身全部位于采掘器本体下方（本体独占顶层）：需要先在其下方清空 5×5×5 的空间，投影会标出每一个位置。玻璃取代了旧版所需的维度聚焦方块，贯穿腰部并让机壳侧面保持通透。
+
+所有 Tier 默认都需要流体输入（判据是 `BaseMinerBlockEntity#requiresFluidInput`，默认 `tier >= 1`；可用 KubeJS 的 `requiresFluid(false)` 关闭）。各 Tier 所需流体为：
+
+| Tier | 所需流体   |
+| ---- | ------ |
+| 1    | 水      |
+| 2    | 神话精华   |
+| 3    | 涌动神话精华 |
+| 4    | 递归精华   |
+| 5    | 涌动递归精华 |
+| 6    | 分形精华   |
+
+流体在一个加工周期开始时扣除，能量按自然游戏刻结算。每个加工周期至少为 400 自然 tick；这是为了让受到外部 tick 加速时仍保持稳定、可预期的资源结算。
+
+除结构战利品外，采掘器每个加工周期还会额外产出三样东西：**维度碎片**与**采掘代币**各 `min(10, 并行)` 个（档位跟随采掘器自身的 Tier），以及按 `min(1, 5% × Tier)` 概率掷 `并行` 次、单周期上限 10 个的**维度拆解核心**（可被"预期物品"开关关闭）。前两者是数据整合器与结构阐释器的原料，所以这两件前置件只能排在采掘器之后。
+
+### 结构反应堆
+
+**结构反应堆**是单方块机器，是结构相关工艺（如生产维度碎片等维度产物）的主要产线。它拥有两个 16,000 mB 精华槽、一个碎片槽与一个即时操作槽，按有限状态循环推进配方，启动与提交时校验输入流体、碎片、配方匹配与输出容量，并能输出红石模拟信号。
+
+默认配方把精华与维度碎片逐级推进：水 → 神话精华 → 涌动神话精华 → 递归精华 → 涌动递归精华 → 分形精华，每一级消耗对应 Tier 的维度碎片。配方可由 KubeJS 覆盖，具体数值与遥测见游戏内 GUI、JEI 与 [KubeJS 文档](docs/kubejs.md)。
+
+### 结构数据操作仪与结构标记器
+
+这台机器需要两个前置件，而它们的配方都吃采掘器产物：**数据整合器** = Tier 2 维度碎片 + Tier 2 采掘代币（外加石英、紫水晶碎片、机壳、红石）；**结构阐释器** = Tier 5 维度碎片 + Tier 5 采掘代币 + 下界之星 + 下界合金锭，且配方里需要一个**数据整合器**。所以结构数据操作仪天然排在采掘器之后。
+
+结构数据操作仪本身**不能浏览结构**：要用结构目录，必须先在整合器槽装入**数据整合器**，再到阐释器槽装入**结构阐释器**——阐释器槽只在整合器在位时才接受它，且阐释器在位时整合器也抽不出来。两件齐备后界面才出现结构目录，可浏览、分析结构，并把目录项写入目标槽里的结构标记器。
+
+- **复制**不需要任何前置件：目标槽放一个已写入数据的标记器、写入槽放好待写入的标记器，即可把目标标记器的数据复制到全部写入槽。
+- **结构标记器**会保存目标维度、位置或目录结构、边界、价值和物品期望等分析数据。
+
+**宝箱分析器**用于处理散落的容器：手持它按 `V`（默认按键）分析准星指向的容器，若该容器带 LootTable 引用，就直接以该战利品表为来源做期望分析并标记该容器。分析走按键而不是右键，因为右键一个宝箱会优先打开它；右键宝箱分析器只打开分析界面查看已标记内容（宝箱价值、计算方式）。
+
+宝箱分析器与结构标记器共用同一套标记 NBT（`StructureMarkerData`，宝箱另在其下写一个 `ChestData` 子标签记录 LootTable 与 seed）；下游只认 NBT 结构、不认物品类型，因此数据操作仪的复制模式和采掘器的生产链路都能直接消费它。两者唯一的差异在分析：宝箱不注册结构，它的 profile 只用 NBT 里记录的 LootTable，不查结构模板、不依赖世界是否已加载。
+
+结构、维度和物品的价值规则可由服务器配置或 KubeJS 配置修改。配置变化会使相关分析缓存失效，并在下次使用时重新计算。
+
+### 配置与兼容
+
+Forge 通用配置包含六个 Tier 的基础参数，以及结构价值、稀有度倍率、维度价值、物品规则和分析策略。配置文件由 NeoForge 创建并位于实例的 `config` 目录。
+
+下列集成为可选项：
+
+- **KubeJS**：按服务器脚本覆盖采掘器参数、反应堆配方、结构价值规则和工作事件。
+- **Jade**：显示采掘器的工作状态。
+- **Applied Energistics 2**：支持 ME 网络相关的输出与流体交互。
+- **JEI**：展示反应堆、采掘器与拆解核心的配方。
+
+完整的 KubeJS 配置、事件和验证规则见 [docs/kubejs.md](docs/kubejs.md)。其中 `processingTime` 必须不小于 400；小于该值会被明确拒绝。
+
+## 开发者指南
+
+### 工程要求
+
+- JDK 21（NeoForge 1.21.1 要求 Java 21 工具链）
+- Minecraft NeoForge 1.21.1 开发环境
+- Windows 可使用 `gradlew.bat`；macOS/Linux 使用 `./gradlew`
+
+首次导入时使用 Gradle 包装器下载依赖。项目使用 ModDevGradle 2、Parchment 映射和 Java 21 工具链。
+
+### 常用命令
+
+```powershell
+# 编译、格式检查与打包
+.\gradlew.bat build
+
+# 只重编译 Java（改签名后最常用）
+.\gradlew.bat compileJava --rerun
+
+# 启动开发客户端或无 GUI 服务端
+.\gradlew.bat runClient
+.\gradlew.bat runServer
+
+# 生成数据资源
+.\gradlew.bat runData
+
+# 检查格式
+.\gradlew.bat spotlessCheck
+```
+
+构建产物位于 `build/libs`。`runData` 会将生成资源写入 `src/generated/resources`。
+
+不要运行 `spotlessApply`：本仓的 aosp 100 列配置会全量重排代码且自身失败，只跑 `spotlessCheck`。
+
+### 代码地图
+
+| 位置                    | 职责                                        |
+| --------------------- | ----------------------------------------- |
+| `block/`              | 神话采掘器、结构反应堆、结构数据操作仪、多方块布局与投影、机壳/玻璃/升级方块   |
+| `block/entity/`       | 采掘器 tick、资源结算、输出、异步标记分析、反应堆循环与 Tier 实现    |
+| `structureminer/`     | 采掘器加工数值（`ProcessingMath`、外部 tick 加速）与产出路由 |
+| `structurereactor/`   | 反应堆配方、公式、状态节与遥测                           |
+| `structure/analysis/` | 结构价值计算、虚拟采样与战利品分析服务                       |
+| `item/`               | 结构标记器/宝箱分析器、扳手、维度拆解核心、数据整合器、结构阐释器、碎片与采掘代币 |
+| `loot/expectation/`   | 战利品表期望计算、概率模型与运行时 AST 快照                  |
+| `loot/fingerprint/`   | 分析指纹（缓存/存档稳定性）                            |
+| `recipe/`             | RecipeSerializer 注册                       |
+| `config/`             | NeoForge 通用配置和 Tier 参数                    |
+| `integration/`        | KubeJS、Jade、AE2、JEI 等可选集成                 |
+| `datagen/`            | 配方、方块战利品表、模型与中英文语言文件的数据生成                 |
+
+更完整的模块职责、关键类与依赖方向见 [docs/code-wiki.md](docs/code-wiki.md)。
+
+### 采掘器行为约定
+
+`BaseMinerBlockEntity#serverTick` 是采掘器的服务端协调入口。它遵循固定阶段：更新结构与升级状态、红石判断、自动抽液、待输出重试、标记与分析缓存、加工计划、工作 hook、能源与周期流体结算、槽位推进、周期 hook、战利品生成、输出 hook 和输出路由。
+
+异步标记分析以 fingerprint 识别输入。fingerprint 包括算法版本、有效标记、维度、位置、结构与边界、幸运和分析配置；它忽略物品数量及非分析派生数据。任何过期、被替换、被清空或已移除方块实体的异步结果都不能提交。
+
+改多方块几何前先跑 `python docs/tools/multiblock_geometry_check.py`：它会校验计数、重叠、包围盒覆盖、D4 对称、面连通与机头契约。
+
+### KubeJS 扩展
+
+KubeJS 是可选依赖。它可配置各采掘器的处理时间、能耗、容量、并行、效率、幸运与流体要求，覆盖结构反应堆配方，并提供 `minerWork`、`minerCycle` 和 `minerOutput` 事件。接口示例与完整约束见 [docs/kubejs.md](docs/kubejs.md)。
+
+## 贡献
+
+提交前请至少让 `.\gradlew.bat build` 通过（编译 + 格式检查 + 打包）；涉及采掘器、战利品分析或配置的改动，请在开发客户端或服务端里实际跑一遍受影响的循环。
+
+保留现有的中文注释与命名语境，并避免在无明确性能数据时引入缓存索引或通用抽象层。
+
+## 许可证
+
+本项目采用 [GNU General Public License v3.0](LICENSE.txt) 发布。

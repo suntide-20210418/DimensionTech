@@ -139,7 +139,17 @@ dependencies {
 
     add(optionalModConfiguration, "curse.maven:jade-324717:${jade_version}")
     add(optionalModConfiguration, "curse.maven:applied-energistics-2-223794:${ae2_version}")
+    // AE2 19.2.17 declares guideme as a REQUIRED dependency ([21.1.1,)). Dimension Tech's own code
+    // never imports GuideME, but without it on the runtime classpath AE2 fails to load - which takes
+    // the AE2 integration and the AE2 game test down with it. This is a runtime requirement of a mod
+    // we integrate with, not a source-level import.
+    add(optionalModConfiguration, "curse.maven:guideme-1173950:${guideme_version}")
     add(optionalModConfiguration, "curse.maven:allthemodium-364466:${allthemodium_version}")
+    // Allthemodium loads GeckoLib classes (software.bernie.geckolib.animatable.GeoEntity) without
+    // declaring it in its own mods.toml, so omitting GeckoLib from the dev runtime makes
+    // Allthemodium fail with NoClassDefFoundError and take the whole launch down. Undeclared, but
+    // real.
+    add(optionalModConfiguration, "curse.maven:geckolib-388172:${geckolib_version}")
     add(optionalModConfiguration, "curse.maven:jei-238222:${jei_version}")
 
     // Mouse Tweaks is a client-only convenience mod. Keeping it off the dev runtime prevents
@@ -173,7 +183,12 @@ tasks.register('syncGameTestStructures', Sync) {
             : 'run/gametest/gameteststructures')
 }
 
-tasks.matching { it.name == 'prepareRunGameTestServer' }.configureEach {
+// ModDevGradle names run tasks "prepare<RunName>Run" (ForgeGradle used "prepareRun<RunName>"), so the
+// dependency has to hang off prepareGameTestServerRun. Without it the structure copy never runs and
+// every game test dies with "Missing test structure: minecraft:empty", because vanilla ships no such
+// template - the game directory's gameteststructures/ folder is what StructureTemplateManager falls
+// back to.
+tasks.matching { it.name == 'prepareGameTestServerRun' }.configureEach {
     dependsOn tasks.named('syncGameTestStructures')
 }
 
