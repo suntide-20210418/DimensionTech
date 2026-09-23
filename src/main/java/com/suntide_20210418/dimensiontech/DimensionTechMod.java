@@ -10,7 +10,7 @@ import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
 import com.suntide_20210418.dimensiontech.item.ModDataComponents;
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import com.suntide_20210418.dimensiontech.network.ModNetwork;
+import com.suntide_20210418.dimensiontech.network.NetworkHandler;
 import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
 import net.neoforged.bus.api.IEventBus;
@@ -47,9 +47,7 @@ public class DimensionTechMod {
 
         modEventBus.addListener(DimensionTechMod::commonSetup);
         modEventBus.addListener(ModCapabilities::register);
-        // ModNetwork.register() still carries Forge's zero-arg SimpleChannel signature, so it cannot
-        // be wired as a mod-bus listener yet; the network migration owns that line.
-        modEventBus.addListener(ModNetwork::register);
+        modEventBus.addListener(NetworkHandler::register);
     }
 
     private static void commonSetup(final FMLCommonSetupEvent event) {
