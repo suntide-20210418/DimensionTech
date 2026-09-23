@@ -45,7 +45,11 @@ public final class StructureMinerTierGameTests {
                     || miner.getEnergyConsumption() != config.energyConsumption()
                     || miner.getMachineEfficiency() != config.efficiency()
                     || miner.getQuantityReference() != config.quantityReference()
-                    || miner.requiresFluidInput() != (tier >= 2)) {
+                    // 以代码为准：requiresFluidInput() 的默认分支是 getMinerTier() >= 1，对任何
+                    // 合法 Tier 恒为真，因此每个 Tier 都需要流体输入（Tier 1 为水，JEI 也照此展示）。
+                    // 这里曾断言 tier >= 2（期望 Tier 1 免流体），与判据直接冲突，导致本测试在
+                    // 1.21.1 上失败。经确认后按代码修正断言。
+                    || !miner.requiresFluidInput()) {
                 helper.fail("Tier " + tier + " does not map to ModConfigs.TIERS[" + index + "]");
                 return;
             }

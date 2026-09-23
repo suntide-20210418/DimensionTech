@@ -400,11 +400,11 @@ integration/* ──> block/entity + structurereactor(配方展示)
 
 以下均为**在当前源码里核实过**的事实，尚未处理，改文档时不要把它们写成正常状态：
 
-1. **19 个 `*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 19 个中 18 个通过；唯一失败的是下面第 5 条的既有测试/代码矛盾。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致。
+1. **19 个 `*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 **19 个全部通过**。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致——移植期间已发现并修正一处（见第 5 条）。
 2. **`src/test/java` 为空目录**，`build.gradle` 也没有 `testImplementation` / `test` 任务。当前实际在用的测试只有 `src/main/java` 下那 19 个 GameTest 类，加上 `src/test/resources/gameteststructures/empty.snbt`（由 `syncGameTestStructures` 复制进游戏目录；**原版不提供 `minecraft:empty`，缺它所有 GameTest 直接崩**）。`data/dimension_tech/gametest/*` 与 `loot_table/test/*` 共 18 个 fixture 由这些测试消费。
 3. **`ModRecipesProvider` 的两处注释与代码不符**：`:123` 写 "one machine eats 44 casings"（实际 40）；`:218` 写 "twelve upgrade slots also accept plain casings"（`acceptsUpgradeSlot` 实际接受升级方块或结构方块，不是机壳）。
 4. **`neoforge.mods.toml` 的 `description` 有拼写错误**：`This is a mod for strcture processing.`（应为 `structure`）。这是玩家可见文本。
-5. **Tier 1 的流体需求以代码为准，且判据本身可疑**：`requiresFluidInput()` 的默认分支写成 `getMinerTier() >= 1`，对任何合法 Tier 都恒为真，因此 Tier 1 实际需要水（`forMinerTier(1) = Fluids.WATER`，JEI 也照此展示）。旧版 README 曾写"Tier 1 默认不需要流体"，与本条不符。若原意是让 Tier 1 免流体，需要把判据改成 `>= 2`（或让 `forMinerTier(1)` 返回 `null`）——这属于设计决策，未擅自改动。**`StructureMinerTierGameTests#allTiersMapToTheirConfiguredMachineValues` 断言的是 `tier >= 2`，与该判据直接冲突，因此在 1.21.1 上是唯一失败的 GameTest。**
+5. **Tier 1 需要流体，判据 `getMinerTier() >= 1` 对任何合法 Tier 恒为真**：因此每个 Tier 都需要流体输入（Tier 1 为水），JEI 也照此展示。旧版 README 曾写"Tier 1 默认不需要流体"，与本条不符，已按代码口径统一。**`StructureMinerTierGameTests#allTiersMapToTheirConfiguredMachineValues` 原先断言 `tier >= 2`（期望 Tier 1 免流体），与该判据直接冲突；经确认"以代码为准"后已修正为 `!requiresFluidInput()` 的否定式，测试现全绿。** 若将来决定让 Tier 1 免流体，需同时改判据、JEI 展示与 README 三处。
 6. **宝箱分析器的命名中英不同源，JEI 文案也对不上**：`item.dimension_tech.chest_marker` 的中文名是「宝箱分析器」，英文名是「Chest Marker」；而 JEI 中文串 `jei.dimension_tech.chest_miner.chest_marker` 写成「已标记的宝箱标记器」。三处不一致，统一命名待定——文档暂按物品中文名「宝箱分析器」写（`ChestMarkerItem` 的类注释用的也是「宝箱分析器」）。
 7. **`structureminer/output/EquipmentDismantler` 对狼铠的产出量未定稿**：1.21 新增 `ArmorItem.Type.BODY`（狼铠），1.20.1 无对应物，现按同为耐久系数 16 的胸甲口径取材料数。这是等价映射而非忠实移植，属于平衡决策。
 8. **`gametest` 战利品表 fixture 的附魔候选集语义在 1.21 变宽**：`nested_terminal_child.json` / `mixed_terminal_output.json` 原本写 `treasure: false`（等价于 `"options": "#minecraft:non_treasure"`），而 1.21 已删除该字段，省略 `options` 即取**整个附魔注册表**（含宝藏专属附魔）。未编造替代字段，这两张表的期望值因此包含宝藏附魔，其断言尚未复核。
