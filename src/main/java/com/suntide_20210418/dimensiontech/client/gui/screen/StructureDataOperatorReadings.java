@@ -90,8 +90,37 @@ final class StructureDataOperatorReadings {
             ItemStack marker,
             ResourceLocation dimension,
             ResourceLocation structure) {
+        draw(
+                g,
+                font,
+                x,
+                y,
+                width,
+                lineHeight,
+                marker,
+                dimension,
+                structure,
+                STRUCTURE_VALUE);
+    }
+
+    /**
+     * The same readings with a custom value label for the last line — the chest marker page calls
+     * this with "chest value" instead of "structure value". The label's width participates in the
+     * column measurement, so an overridden label keeps the values aligned.
+     */
+    static void draw(
+            GuiGraphics g,
+            Font font,
+            int x,
+            int y,
+            int width,
+            int lineHeight,
+            ItemStack marker,
+            ResourceLocation dimension,
+            ResourceLocation structure,
+            Component structureValueLabel) {
         boolean hasValues = !marker.isEmpty() && StructMarkerItem.getMarkerInfo(marker).isPresent();
-        int column = labelColumn(font);
+        int column = labelColumn(font, structureValueLabel);
         int budget = Math.max(0, width - column);
         row(
                 g,
@@ -132,7 +161,7 @@ final class StructureDataOperatorReadings {
                 y + lineHeight * 3,
                 column,
                 budget,
-                STRUCTURE_VALUE,
+                structureValueLabel,
                 hasValues
                         ? ReadingFormat.reading(StructMarkerItem.getStructureValue(marker))
                         : NONE,
@@ -140,9 +169,10 @@ final class StructureDataOperatorReadings {
     }
 
     /** Width reserved for the label, measured so the value column lines up in the current language. */
-    private static int labelColumn(Font font) {
+    private static int labelColumn(Font font, Component structureValueLabel) {
         int widest = 0;
-        for (Component label : List.of(DIMENSION, STRUCTURE, DIMENSION_VALUE, STRUCTURE_VALUE)) {
+        for (Component label :
+                List.of(DIMENSION, STRUCTURE, DIMENSION_VALUE, structureValueLabel)) {
             widest = Math.max(widest, font.width(label.getString()));
         }
         return widest + COLUMN_GAP;

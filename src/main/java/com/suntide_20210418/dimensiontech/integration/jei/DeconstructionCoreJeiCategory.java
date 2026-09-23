@@ -47,7 +47,7 @@ public final class DeconstructionCoreJeiCategory
 
     @Override
     public ResourceLocation getRegistryName(DeconstructionCoreJeiRecipe recipe) {
-        return ResourceLocation.fromNamespaceAndPath("dimension_tech", "deconstruction_core");
+        return new ResourceLocation("dimension_tech", "deconstruction_core");
     }
 
     @Override

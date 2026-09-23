@@ -24,6 +24,7 @@ final class StructureMinerJeiText {
     static final String LOOT_TIP = "jei.dimension_tech.structure_miner.loot.tip";
     static final String PRODUCT = "jei.dimension_tech.structure_miner.product";
     static final String REWARD_NOTE = "jei.dimension_tech.structure_miner.reward.note";
+    static final String NOT_CONSUMED = "jei.dimension_tech.structure_miner.not_consumed";
 
     // Deconstruction-core tooltip on the miner page.
     static final String CORE_CHANCE = "jei.dimension_tech.structure_miner.core.chance";
@@ -48,6 +49,11 @@ final class StructureMinerJeiText {
 
     static Component markerTip() {
         return Component.translatable(MARKER_TIP);
+    }
+
+    /** The label both marker slots carry: the input marker is not consumed by a work cycle. */
+    static Component notConsumed() {
+        return Component.translatable(NOT_CONSUMED);
     }
 
     static Component lootName() {

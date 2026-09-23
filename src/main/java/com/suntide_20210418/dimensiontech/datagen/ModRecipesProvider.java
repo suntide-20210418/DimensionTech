@@ -37,7 +37,6 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
         amethystDecomposition(writer);
         entryTools(writer);
         frameParts(writer);
-        focusBlocks(writer);
         machines(writer);
         upgradeBlocks(writer);
     }
@@ -48,6 +47,18 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .pattern("IQI")
                 .pattern("AGA")
                 .pattern("IRI")
+                .define('I', Items.IRON_INGOT)
+                .define('Q', Items.QUARTZ)
+                .define('A', Items.AMETHYST_SHARD)
+                .define('G', Items.GLASS_PANE)
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
+                .save(writer);
+
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.CHEST_MARKER.get())
+                .pattern("IAI")
+                .pattern("QGR")
+                .pattern("IAI")
                 .define('I', Items.IRON_INGOT)
                 .define('Q', Items.QUARTZ)
                 .define('A', Items.AMETHYST_SHARD)
@@ -69,6 +80,15 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .define('T', ModItems.MINING_TOKENS[1].get())
                 .define('R', Items.REDSTONE)
                 .unlockedBy("has_mining_token_tier_2", has(ModItems.MINING_TOKENS[1].get()))
+                .save(writer);
+
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.WRENCH.get())
+                .pattern(" I ")
+                .pattern(" SI")
+                .pattern("S  ")
+                .define('I', Items.IRON_INGOT)
+                .define('S', Items.STICK)
+                .unlockedBy("has_iron_ingot", has(Items.IRON_INGOT))
                 .save(writer);
 
         // Reads every structure in the game, which skips exploration outright, so it is late.
@@ -120,48 +140,15 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .define('R', Items.REDSTONE)
                 .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
                 .save(writer);
-    }
 
-    /**
-     * Focus blocks must match the miner tier and each tier needs ten of them, so they upgrade in
-     * place: four of the previous tier become four of the next. Dismantling an old machine returns
-     * exactly the ten focus blocks the next stage asks for.
-     */
-    private void focusBlocks(Consumer<FinishedRecipe> writer) {
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.DIMENSION_FOCUS[0].get())
-                .pattern("IRI")
-                .pattern("AGA")
-                .pattern("IRI")
-                .define('I', Items.IRON_INGOT)
-                .define('A', Items.AMETHYST_SHARD)
-                .define('R', Items.REDSTONE)
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MINER_GLASS.get(), 8)
+                .pattern("GGG")
+                .pattern("GAG")
+                .pattern("GGG")
                 .define('G', Items.GLASS)
-                .unlockedBy("has_redstone", has(Items.REDSTONE))
+                .define('A', Items.AMETHYST_SHARD)
+                .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
                 .save(writer);
-
-        ItemLike[] markers = {
-            Items.AMETHYST_SHARD,
-            Items.GLOWSTONE_DUST,
-            Items.ENDER_PEARL,
-            Items.OBSIDIAN,
-            ModItems.DIMENSION_DECONSTRUCTION_CORE.get()
-        };
-        for (int tier = 2; tier <= 6; tier++) {
-            ItemLike previousFocus = ModItems.DIMENSION_FOCUS[tier - 2].get();
-            ShapedRecipeBuilder.shaped(
-                            RecipeCategory.MISC, ModItems.DIMENSION_FOCUS[tier - 1].get())
-                    .pattern("GMG")
-                    .pattern("ANA")
-                    .pattern("GMG")
-                    .define('N', previousFocus)
-                    .define('A', Items.AMETHYST_SHARD)
-                    .define('M', markers[tier - 2])
-                    .define('G', Items.GLASS)
-                    .unlockedBy(
-                            "has_dimension_focus_tier_" + (tier - 1),
-                            has(previousFocus))
-                    .save(writer);
-        }
     }
 
     private void machines(Consumer<FinishedRecipe> writer) {
@@ -211,11 +198,10 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
             ItemLike previousToken = ModItems.MINING_TOKENS[tier - 2].get();
             ShapedRecipeBuilder.shaped(RecipeCategory.MISC, minerItem(tier).get())
                     .pattern("SFS")
-                    .pattern("CMC")
-                    .pattern("STS")
+                    .pattern("TMT")
+                    .pattern("SFS")
                     .define('S', ModItems.STRUCTURE_MINER_CASING.get())
                     .define('F', previousFragment)
-                    .define('C', ModItems.DIMENSION_FOCUS[tier - 1].get())
                     .define('M', minerItem(tier - 1).get())
                     .define('T', previousToken)
                     .unlockedBy("has_mining_token_tier_" + (tier - 1), has(previousToken))

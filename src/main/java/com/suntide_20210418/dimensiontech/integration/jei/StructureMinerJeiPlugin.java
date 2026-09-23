@@ -29,7 +29,7 @@ import net.minecraft.world.level.block.Block;
 @JeiPlugin
 public final class StructureMinerJeiPlugin implements IModPlugin {
     public static final ResourceLocation PLUGIN_UID =
-            ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, "structure_miner");
+            new ResourceLocation(DimensionTechMod.MOD_ID, "structure_miner");
 
     public static final int TIER_COUNT = 6;
 
@@ -68,7 +68,11 @@ public final class StructureMinerJeiPlugin implements IModPlugin {
                         tier -> Ingredient.of(ModItems.DIMENSION_FRAGMENTS[tier - 1].get()),
                         tier -> Ingredient.of(ModItems.MINING_TOKENS[tier - 1].get()));
         for (int tier = 1; tier <= TIER_COUNT; tier++) {
-            registration.addRecipes(TIER_RECIPE_TYPES[tier - 1], List.of(all.get(tier - 1)));
+            StructureMinerJeiRecipe structure = all.get(tier - 1);
+            // Two entries on one page: the structure-marker recipe and its chest-marker variant.
+            registration.addRecipes(
+                    TIER_RECIPE_TYPES[tier - 1],
+                    List.of(structure, structure.asChestVariant()));
         }
         registration.addRecipes(CORE_TYPE, DeconstructionCoreJeiRecipes.build());
     }

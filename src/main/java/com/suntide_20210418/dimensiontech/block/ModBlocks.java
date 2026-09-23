@@ -73,6 +73,12 @@ public final class ModBlocks {
                     () ->
                             new StructureMinerStructureBlock(
                                     BlockBehaviour.Properties.of().strength(3.0F)));
+    // Glass pane for the multi-block shell. noOcclusion lets faces of the surrounding
+    // structure (and the block itself) keep rendering so the pane stays see-through.
+    public static final RegistryObject<Block> STRUCTURE_MINER_GLASS =
+            BLOCKS.register(
+                    "structure_miner_glass",
+                    () -> new Block(BlockBehaviour.Properties.of().strength(3.0F).noOcclusion()));
     public static final RegistryObject<Block> UPGRADE_PARALLEL =
             upgrade("parallel", StructureMinerUpgradeBlock.Type.PARALLEL, 1);
     public static final RegistryObject<Block> UPGRADE_LUCK =
@@ -93,18 +99,6 @@ public final class ModBlocks {
             upgradeTiers("efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
     public static final RegistryObject<Block>[] UPGRADE_AGGREGATE_TIERS =
             upgradeTiers("aggregate", StructureMinerUpgradeBlock.Type.AGGREGATE, UPGRADE_AGGREGATE);
-    public static final RegistryObject<Block>[] DIMENSION_FOCUS = new RegistryObject[6];
-
-    static {
-        for (int tier = 1; tier <= 6; tier++) {
-            final int level = tier;
-            DIMENSION_FOCUS[tier - 1] =
-                    BLOCKS.register(
-                            "dimension_focus_tier_" + tier,
-                            () -> new Block(BlockBehaviour.Properties.of().strength(4.0F)));
-        }
-    }
-
     private static RegistryObject<Block> upgrade(
             String name, StructureMinerUpgradeBlock.Type type, int tier) {
         return BLOCKS.register(

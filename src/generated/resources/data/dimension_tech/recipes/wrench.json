@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "pattern": [
+    " I ",
+    " SI",
+    "S  "
+  ],
+  "result": {
+    "item": "dimension_tech:wrench"
+  },
+  "show_notification": true
+}

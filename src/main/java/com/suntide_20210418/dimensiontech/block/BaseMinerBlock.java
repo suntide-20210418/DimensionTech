@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.block;
 
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.item.ModItems;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -10,12 +11,12 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -95,29 +96,34 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             tooltip.add(
                     Component.translatable("tooltip.dimension_tech.structure_miner.materials")
                             .withStyle(ChatFormatting.GOLD));
-            tooltip.add(
-                    Component.translatable(
-                                    "tooltip.dimension_tech.structure_miner.material.casing", 32)
-                            .withStyle(ChatFormatting.GRAY));
-            tooltip.add(
-                    Component.translatable(
-                                    "tooltip.dimension_tech.structure_miner.material.structure", 2)
-                            .withStyle(ChatFormatting.GRAY));
-            tooltip.add(
-                    Component.translatable(
-                                    "tooltip.dimension_tech.structure_miner.material.focus",
-                                    minerTier(),
-                                    8)
-                            .withStyle(ChatFormatting.GRAY));
-            tooltip.add(
-                    Component.translatable(
-                                    "tooltip.dimension_tech.structure_miner.material.upgrade", 12)
-                            .withStyle(ChatFormatting.GRAY));
+            // Counted straight off the pattern, so the list can never drift from the coordinates.
+            int[] materials = StructureMinerMultiblock.projectionCounts();
+            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.CASING,
+                    "material.casing");
+            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.STRUCTURE,
+                    "material.structure");
+            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.GLASS,
+                    "material.glass");
+            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.UPGRADE,
+                    "material.upgrade");
         } else {
             tooltip.add(
                     Component.translatable("tooltip.dimension_tech.structure_miner.hold_shift")
                             .withStyle(ChatFormatting.DARK_GRAY));
         }
+    }
+
+    /** One material line, skipped when the pattern does not use that block at all. */
+    private static void addMaterialLine(
+            List<Component> tooltip,
+            int[] materials,
+            StructureMinerMultiblock.ProjectionKind kind,
+            String langKey) {
+        int count = materials[kind.ordinal()];
+        if (count <= 0) return;
+        tooltip.add(
+                Component.translatable("tooltip.dimension_tech.structure_miner." + langKey, count)
+                        .withStyle(ChatFormatting.GRAY));
     }
 
     @Override
@@ -154,15 +160,27 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             Player player,
             InteractionHand hand,
             BlockHitResult hitResult) {
-        if (player.getItemInHand(hand).is(Items.STICK)) {
+        if (player.getItemInHand(hand).is(ModItems.WRENCH.get())) {
+            // Shift+right-click charges from the player's inventory and builds the multiblock;
+            // plain right-click only toggles the projection overlay.
+            if (player.isShiftKeyDown()) {
+                if (level instanceof ServerLevel serverLevel) {
+                    Component message =
+                            StructureMinerMultiblock.buildFromInventory(
+                                    serverLevel, position, player);
+                    if (message != null) {
+                        player.displayClientMessage(message, true);
+                    }
+                }
+                return InteractionResult.sidedSuccess(level.isClientSide());
+            }
             if (level.isClientSide()) {
                 DistExecutor.unsafeRunWhenOn(
                         Dist.CLIENT,
                         () ->
                                 () ->
                                         com.suntide_20210418.dimensiontech.client
-                                                .StructureMinerProjectionClient.toggle(
-                                                position, minerTier()));
+                                                .StructureMinerProjectionClient.toggle(position));
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }

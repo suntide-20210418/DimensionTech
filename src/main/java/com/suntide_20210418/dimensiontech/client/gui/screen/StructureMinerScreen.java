@@ -32,9 +32,9 @@ import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 public final class StructureMinerScreen extends AbstractContainerScreen<StructureMinerMenu>
         implements StructureMinerScreenContext {
     private static final ResourceLocation GUI_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/void_structre_miner.png");
+            new ResourceLocation("dimension_tech", "guis/void_structre_miner.png");
     private static final ResourceLocation OUTPUT_FACE_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/output_face_config.png");
+            new ResourceLocation("dimension_tech", "guis/output_face_config.png");
     /**
      * Real pixel size of {@link #GUI_TEXTURE}. {@code blit} normalises UVs by the size it is handed
      * ({@code (uOffset + uWidth) / textureWidth}), so it has to match the file exactly or every

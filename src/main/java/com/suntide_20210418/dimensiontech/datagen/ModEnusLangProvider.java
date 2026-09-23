@@ -29,6 +29,13 @@ public class ModEnusLangProvider extends LanguageProvider {
         }
         add(TranslateHelper.item("data_integrator"), "Data Integrator");
         add(TranslateHelper.item("structure_interpreter"), "Structure Interpreter");
+        add(TranslateHelper.item("wrench"), "Wrench");
+        add(
+                "tooltip.dimension_tech.wrench.projection",
+                "Right-click a Structure Miner: show/hide the multiblock projection");
+        add(
+                "tooltip.dimension_tech.wrench.build",
+                "Shift+right-click: build the multiblock from your inventory");
         add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("block.dimension_tech.structure_reactor", "Structure Reactor");
         add("container.dimension_tech.structure_reactor", "Structure Reactor");
@@ -307,6 +314,17 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "jei.dimension_tech.structure_miner.reward.note",
                 "Actual output scales with parallel upgrades and external acceleration");
         add(
+                "jei.dimension_tech.structure_miner.not_consumed",
+                "Not consumed: the marker stays in the miner");
+        add("jei.dimension_tech.chest_miner.chest_marker", "Marked Chest Marker");
+        add(
+                "jei.dimension_tech.chest_miner.chest_marker.tip",
+                "Insert a chest marker that has marked a chest");
+        add("jei.dimension_tech.chest_miner.loot", "Chest Loot");
+        add(
+                "jei.dimension_tech.chest_miner.loot.tip",
+                "Expected items from the marked chest's loot table, drawn by total parallel");
+        add(
                 "jei.dimension_tech.structure_miner.time.step",
                 "Duration: structure value \u00f7 effective efficiency, rounded up (ticks)");
         add(
@@ -342,6 +360,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("container.dimension_tech.tier_6_structure_miner", "Tier 6 Void Structure Resource Miner");
         add("block.dimension_tech.structure_miner_casing", "Miner Casing");
         add("block.dimension_tech.structure_miner_structure", "Miner Structure Block");
+        add("block.dimension_tech.structure_miner_glass", "Structure Miner Glass");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "Tier 1 Parallel Upgrade");
         add("block.dimension_tech.structure_miner_upgrade_luck", "Tier 1 Luck Upgrade");
         add("block.dimension_tech.structure_miner_upgrade_energy", "Tier 1 Energy Upgrade");
@@ -364,8 +383,6 @@ public class ModEnusLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
                     "Tier " + tier + " Aggregate Upgrade");
         }
-        for (int tier = 1; tier <= 6; tier++)
-            add("block.dimension_tech.dimension_focus_tier_" + tier, "Dimension Focus " + tier);
         add("screen.dimension_tech.structure_miner.place_structure", "Place Multiblock Structure");
         add("screen.dimension_tech.structure_miner.place_structure_short", "Build");
         add("screen.dimension_tech.structure_miner.overview.working", "Working: %s / %s");
@@ -408,7 +425,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.materials", "Multiblock Materials");
         add("tooltip.dimension_tech.structure_miner.material.casing", "Miner Casing x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "Miner Structure Block x%s");
-        add("tooltip.dimension_tech.structure_miner.material.focus", "Tier %s Dimension Focus x%s");
+        add(
+                "tooltip.dimension_tech.structure_miner.material.glass",
+                "Structure Miner Glass x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
                 "Any Upgrade Block or Miner Structure Block x%s");
@@ -492,7 +511,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
         add("screen.dimension_tech.struct_marker.mark", "Mark Structure");
         add("screen.dimension_tech.struct_marker.select", "Select Structure");
-        add("screen.dimension_tech.struct_marker.clear", "Clear Structure");
+        add("screen.dimension_tech.struct_marker.clear", "Clear Data");
         add(
                 "screen.dimension_tech.struct_marker.select_prompt",
                 "Multiple structures found here; select one");
@@ -717,6 +736,23 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "Legacy value hidden; mark the structure again");
         add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
+        add(TranslateHelper.item("chest_marker"), "Chest Marker");
+        add("screen.dimension_tech.chest_marker.title", "Chest Marker Analysis");
+        add("screen.dimension_tech.chest_marker.selection.selected", "Chest marked");
+        add("screen.dimension_tech.chest_marker.selection.empty", "No chest marked");
+        add("screen.dimension_tech.chest_marker.calculation_method", "Calculation method: %s");
+        add("screen.dimension_tech.chest_marker.chest_value", "Chest Value");
+        add("dimension_tech.structure.dimension_tech.chest_marker", "Chest");
+        add(
+                TranslateHelper.tooltip("chest_marker.empty"),
+                "Press V to analyse the chest under the crosshair");
+        add(TranslateHelper.tooltip("chest_marker.chest_value"), "Chest value: %s");
+        add(TranslateHelper.tooltip("chest_marker.chest"), "Chest: %s");
+        add(TranslateHelper.tooltip("chest_marker.no_chest"), "Chest: None");
+        add("key.dimension_tech.chest_analyse", "Analyse Chest");
+        add(
+                "message.dimension_tech.chest_marker.no_target",
+                "The block under the crosshair is not an analysable chest");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "Structure Miner Status");
         add("jade.dimension_tech.status.idle", "Idle");
         add("jade.dimension_tech.status.running", "Running");

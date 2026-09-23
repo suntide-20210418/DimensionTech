@@ -147,7 +147,7 @@ public final class StructureDataOperatorMenu extends AbstractContainerMenu {
                     StructureDataOperatorBlockEntity.INTERPRETER + 1,
                     false);
         }
-        if (stack.is(ModItems.STRUCTURE_MARKER.get())) {
+        if (ModItems.isMarker(stack)) {
             if (moveItemStackTo(
                     stack,
                     StructureDataOperatorBlockEntity.TARGET,

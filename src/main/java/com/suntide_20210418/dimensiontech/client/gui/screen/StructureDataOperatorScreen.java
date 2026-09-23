@@ -176,7 +176,7 @@ public final class StructureDataOperatorScreen
     /** The marker in the read slot, or empty when the slot holds something else. */
     ItemStack readMarker() {
         ItemStack stack = menu.getSlot(StructureDataOperatorBlockEntity.TARGET).getItem();
-        return stack.is(ModItems.STRUCTURE_MARKER.get()) ? stack : ItemStack.EMPTY;
+        return ModItems.isMarker(stack) ? stack : ItemStack.EMPTY;
     }
 
     List<StructureDataOperatorBlockEntity.StructureCatalogueEntry> catalogue() {

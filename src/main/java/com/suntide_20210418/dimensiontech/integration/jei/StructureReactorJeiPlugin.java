@@ -24,7 +24,7 @@ import net.minecraft.resources.ResourceLocation;
 @JeiPlugin
 public final class StructureReactorJeiPlugin implements IModPlugin {
     public static final ResourceLocation PLUGIN_UID =
-            ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, "structure_reactor");
+            new ResourceLocation(DimensionTechMod.MOD_ID, "structure_reactor");
 
     public static final RecipeType<StructureReactorJeiRecipe> RECIPE_TYPE =
             RecipeType.create(

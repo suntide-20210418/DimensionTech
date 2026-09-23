@@ -62,10 +62,14 @@ public final class StructureMinerJeiCategory
         this.tier = tier;
     }
 
-    /** The tier is the recipe's identity, so each tier bookmarks independently. */
+    /** The tier is the recipe's identity; the chest variant gets its own name so both bookmark. */
     @Override
     public ResourceLocation getRegistryName(StructureMinerJeiRecipe recipe) {
-        return ResourceLocation.fromNamespaceAndPath("dimension_tech", "structure_miner/tier_" + tier);
+        return new ResourceLocation(
+                "dimension_tech",
+                recipe.chestVariant()
+                        ? "chest_miner/tier_" + tier
+                        : "structure_miner/tier_" + tier);
     }
 
     @Override
@@ -76,10 +80,23 @@ public final class StructureMinerJeiCategory
                     .addFluidStack(recipe.inputFluid(), recipe.fluidPerCycleMb())
                     .setFluidRenderer(recipe.fluidPerCycleMb(), false, SLOT, SLOT);
         }
-        builder.addSlot(RecipeIngredientRole.INPUT, MARKER_X, TOP_Y)
-                .addItemStack(markedMarker())
-                .addRichTooltipCallback(
-                        (view, tooltip) -> tooltip.add(StructureMinerJeiText.markerTip()));
+        if (recipe.chestVariant()) {
+            builder.addSlot(RecipeIngredientRole.INPUT, MARKER_X, TOP_Y)
+                    .addItemStack(chestMarker())
+                    .addRichTooltipCallback(
+                            (view, tooltip) -> {
+                                tooltip.add(ChestMinerJeiText.chestMarkerTip());
+                                tooltip.add(StructureMinerJeiText.notConsumed());
+                            });
+        } else {
+            builder.addSlot(RecipeIngredientRole.INPUT, MARKER_X, TOP_Y)
+                    .addItemStack(markedMarker())
+                    .addRichTooltipCallback(
+                            (view, tooltip) -> {
+                                tooltip.add(StructureMinerJeiText.markerTip());
+                                tooltip.add(StructureMinerJeiText.notConsumed());
+                            });
+        }
         ItemStack fragment = fragment(recipe);
         if (!fragment.isEmpty()) {
             builder.addSlot(RecipeIngredientRole.OUTPUT, FRAGMENT_X, TOP_Y)
@@ -97,10 +114,13 @@ public final class StructureMinerJeiCategory
                                     tooltip.add(StructureMinerJeiText.productTip(recipe)));
         }
         builder.addSlot(RecipeIngredientRole.OUTPUT, LOOT_X, TOP_Y)
-                .addItemStack(structureLoot())
+                .addItemStack(recipe.chestVariant() ? chestLoot() : structureLoot())
                 .addRichTooltipCallback(
                         (view, tooltip) -> {
-                            tooltip.add(StructureMinerJeiText.lootTip());
+                            tooltip.add(
+                                    recipe.chestVariant()
+                                            ? ChestMinerJeiText.chestLootTip()
+                                            : StructureMinerJeiText.lootTip());
                             tooltip.add(StructureMinerJeiText.rewardNote());
                         });
         builder.addSlot(RecipeIngredientRole.OUTPUT, CORE_X, TOP_Y)
@@ -141,10 +161,24 @@ public final class StructureMinerJeiCategory
         return stack;
     }
 
+    /** A chest marker, named so the player knows the slot wants an already-marked one. */
+    private static ItemStack chestMarker() {
+        ItemStack stack = new ItemStack(ModItems.CHEST_MARKER.get());
+        stack.setHoverName(ChestMinerJeiText.chestMarkerName());
+        return stack;
+    }
+
     /** A Heart of the Sea standing in for the structure's own natural loot. */
     private static ItemStack structureLoot() {
         ItemStack stack = new ItemStack(Items.HEART_OF_THE_SEA);
         stack.setHoverName(StructureMinerJeiText.lootName());
+        return stack;
+    }
+
+    /** A chest standing in for the marked chest's own loot expectations. */
+    private static ItemStack chestLoot() {
+        ItemStack stack = new ItemStack(Items.CHEST);
+        stack.setHoverName(ChestMinerJeiText.chestLootName());
         return stack;
     }
 

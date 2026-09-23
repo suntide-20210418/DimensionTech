@@ -25,6 +25,13 @@ public class ModZhcnLangProvider extends LanguageProvider {
         }
         add(TranslateHelper.item("data_integrator"), "数据整合器");
         add(TranslateHelper.item("structure_interpreter"), "结构阐释器");
+        add(TranslateHelper.item("wrench"), "扳手");
+        add(
+                "tooltip.dimension_tech.wrench.projection",
+                "右键采掘器：显示/隐藏多方块结构投影");
+        add(
+                "tooltip.dimension_tech.wrench.build",
+                "Shift+右键：用背包中的方块一键搭建多方块结构");
         add("block.dimension_tech.structure_data_operator", "结构数据操作仪");
         add("block.dimension_tech.structure_reactor", "结构反应堆");
         add("container.dimension_tech.structure_reactor", "结构反应堆");
@@ -251,6 +258,17 @@ public class ModZhcnLangProvider extends LanguageProvider {
                 "jei.dimension_tech.structure_miner.reward.note",
                 "实际产出随并行升级与外部加速而提升");
         add(
+                "jei.dimension_tech.structure_miner.not_consumed",
+                "不消耗：标记器保留在采掘器中，不会被消耗");
+        add("jei.dimension_tech.chest_miner.chest_marker", "已标记的宝箱标记器");
+        add(
+                "jei.dimension_tech.chest_miner.chest_marker.tip",
+                "放入一个已标记宝箱的宝箱标记器");
+        add("jei.dimension_tech.chest_miner.loot", "宝箱中的战利品");
+        add(
+                "jei.dimension_tech.chest_miner.loot.tip",
+                "被标记宝箱的 LootTable 期望物品，按采掘器总并行抽取");
+        add(
                 "jei.dimension_tech.structure_miner.time.step",
                 "耗时：结构价值 ÷ 有效效率（向上取整，tick）");
         add(
@@ -282,6 +300,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("container.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("block.dimension_tech.structure_miner_casing", "采掘器外壳");
         add("block.dimension_tech.structure_miner_structure", "采掘器结构方块");
+        add("block.dimension_tech.structure_miner_glass", "结构采掘器玻璃");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "1级并行升级方块");
         add("block.dimension_tech.structure_miner_upgrade_luck", "1级幸运升级方块");
         add("block.dimension_tech.structure_miner_upgrade_energy", "1级能量升级方块");
@@ -300,8 +319,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
                     tier + "级聚合升级方块");
         }
-        for (int tier = 1; tier <= 6; tier++)
-            add("block.dimension_tech.dimension_focus_tier_" + tier, "维度聚焦方块 " + tier);
         add("screen.dimension_tech.structure_miner.place_structure", "一键搭建");
         add("screen.dimension_tech.structure_miner.place_structure_short", "一键搭建");
         add("screen.dimension_tech.structure_miner.overview.working", "工作中：%s / %s");
@@ -334,7 +351,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.materials", "多方块搭建材料");
         add("tooltip.dimension_tech.structure_miner.material.casing", "采掘器外壳 x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "采掘器结构方块 x%s");
-        add("tooltip.dimension_tech.structure_miner.material.focus", "%s 级维度聚焦方块 x%s");
+        add("tooltip.dimension_tech.structure_miner.material.glass", "结构采掘器玻璃 x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
                 "任意升级方块或采掘器结构方块 x%s");
@@ -412,7 +429,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.no_items", "没有可用的期望物品");
         add("screen.dimension_tech.struct_marker.mark", "标记结构");
         add("screen.dimension_tech.struct_marker.select", "选择结构");
-        add("screen.dimension_tech.struct_marker.clear", "清除结构");
+        add("screen.dimension_tech.struct_marker.clear", "清除数据");
         add("screen.dimension_tech.struct_marker.select_prompt", "当前位置属于多个结构，请选择");
         add("screen.dimension_tech.struct_marker.selection.selected", "已选择结构");
         add("screen.dimension_tech.struct_marker.selection.empty", "未选择结构");
@@ -580,6 +597,19 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.legacy"), "旧版价值已隐藏，请重新标记结构");
         add(TranslateHelper.tooltip("struct_marker.structure"), "结构：%s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "结构：无");
+        add(TranslateHelper.item("chest_marker"), "宝箱分析器");
+        add("screen.dimension_tech.chest_marker.title", "宝箱分析器分析");
+        add("screen.dimension_tech.chest_marker.selection.selected", "已标记宝箱");
+        add("screen.dimension_tech.chest_marker.selection.empty", "未标记宝箱");
+        add("screen.dimension_tech.chest_marker.calculation_method", "计算方式：%s");
+        add("screen.dimension_tech.chest_marker.chest_value", "宝箱价值");
+        add("dimension_tech.structure.dimension_tech.chest_marker", "宝箱");
+        add(TranslateHelper.tooltip("chest_marker.empty"), "按 V 键分析准星指向的宝箱");
+        add(TranslateHelper.tooltip("chest_marker.chest_value"), "宝箱价值：%s");
+        add(TranslateHelper.tooltip("chest_marker.chest"), "宝箱：%s");
+        add(TranslateHelper.tooltip("chest_marker.no_chest"), "宝箱：无");
+        add("key.dimension_tech.chest_analyse", "分析准星指向的宝箱");
+        add("message.dimension_tech.chest_marker.no_target", "准星指向的不是可分析的宝箱");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "结构采掘器状态");
         add("jade.dimension_tech.status.idle", "空闲");
         add("jade.dimension_tech.status.running", "运行中");

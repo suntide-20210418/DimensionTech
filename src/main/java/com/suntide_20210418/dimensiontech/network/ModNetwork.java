@@ -6,6 +6,7 @@ import com.suntide_20210418.dimensiontech.block.entity.StructureMinerAnalysisSna
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
+import com.suntide_20210418.dimensiontech.item.ChestMarkerItem;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
@@ -31,10 +32,10 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "8";
+    private static final String VERSION = "10";
     private static final SimpleChannel CHANNEL =
             NetworkRegistry.newSimpleChannel(
-                    ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, "main"),
+                    new ResourceLocation(DimensionTechMod.MOD_ID, "main"),
                     () -> VERSION,
                     VERSION::equals,
                     VERSION::equals);
@@ -108,6 +109,11 @@ public final class ModNetwork {
                 .decoder(OperatorActionPacket::decode)
                 .consumerMainThread(OperatorActionPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(ChestAnalysisRequestPacket.class, nextId++)
+                .encoder(ChestAnalysisRequestPacket::encode)
+                .decoder(ChestAnalysisRequestPacket::decode)
+                .consumerMainThread(ChestAnalysisRequestPacket::handle)
+                .add();
     }
 
     public static void requestStructureSelection(InteractionHand hand) {
@@ -126,6 +132,11 @@ public final class ModNetwork {
     public static void clear(InteractionHand hand) {
         CHANNEL.sendToServer(
                 new StructMarkerActionPacket(hand, MarkerAction.CLEAR, BlockPos.ZERO, -1));
+    }
+
+    /** Asks the server to analyse the given position with the chest marker in {@code hand}. */
+    public static void requestChestAnalysis(InteractionHand hand, BlockPos position) {
+        CHANNEL.sendToServer(new ChestAnalysisRequestPacket(hand, position));
     }
 
     public static void requestStructureMinerAnalysis(int containerId, int slot) {
@@ -249,22 +260,28 @@ public final class ModNetwork {
             ServerPlayer player = context.getSender();
             if (player != null) {
                 ItemStack stack = player.getItemInHand(packet.hand());
-                if (stack.is(ModItems.STRUCTURE_MARKER.get())) {
+                boolean structureMarker = stack.is(ModItems.STRUCTURE_MARKER.get());
+                boolean chestMarker = stack.is(ModItems.CHEST_MARKER.get());
+                if (structureMarker || chestMarker) {
                     switch (packet.action()) {
                         case CLEAR -> {
-                            StructMarkerItem.clearMarker(stack);
+                            if (structureMarker) StructMarkerItem.clearMarker(stack);
+                            else ChestMarkerItem.clearMarker(stack);
                             openRefreshedMarker(player, stack, packet.hand());
                         }
-                        case REQUEST_SELECTION -> requestChoices(player, stack, packet.hand());
+                        case REQUEST_SELECTION -> {
+                            if (structureMarker) requestChoices(player, stack, packet.hand());
+                        }
                         case SELECT -> {
-                            if (player.blockPosition().equals(packet.selectionPosition())
+                            if (structureMarker
+                                    && player.blockPosition().equals(packet.selectionPosition())
                                     && StructMarkerItem.markAt(
                                             player.serverLevel(),
                                             stack,
                                             packet.selectionPosition(),
                                             packet.selectionIndex())) {
                                 openRefreshedMarker(player, stack, packet.hand());
-                            } else {
+                            } else if (structureMarker) {
                                 player.displayClientMessage(
                                         net.minecraft.network.chat.Component.translatable(
                                                 "message.dimension_tech.struct_marker.selection_invalid"),
@@ -316,9 +333,15 @@ public final class ModNetwork {
             net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
                     Dist.CLIENT,
                     () ->
-                            () ->
+                            () -> {
+                                if (packet.marker().is(ModItems.CHEST_MARKER.get())) {
+                                    com.suntide_20210418.dimensiontech.client.ChestMarkerClient
+                                            .open(packet.marker(), packet.hand());
+                                } else {
                                     com.suntide_20210418.dimensiontech.client.StructMarkerClient
-                                            .open(packet.marker(), packet.hand()));
+                                            .open(packet.marker(), packet.hand());
+                                }
+                            });
             context.setPacketHandled(true);
         }
     }
@@ -896,6 +919,53 @@ public final class ModNetwork {
                             blockEntity.writeCatalogueEntry(packet.dimension(), packet.structure());
                         }
                     }
+                }
+            }
+            context.setPacketHandled(true);
+        }
+    }
+
+    // ------------------------------------------------------- chest analysis
+
+    /**
+     * The chest marker's analyse-key request: which block the client's crosshair is pointing at and
+     * which hand holds the marker. The server re-validates the position against the player before
+     * marking, so a stale or spoofed target cannot mark an out-of-reach chest.
+     */
+    private record ChestAnalysisRequestPacket(InteractionHand hand, BlockPos position) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeEnum(hand);
+            buffer.writeBlockPos(position);
+        }
+
+        private static ChestAnalysisRequestPacket decode(FriendlyByteBuf buffer) {
+            return new ChestAnalysisRequestPacket(
+                    buffer.readEnum(InteractionHand.class), buffer.readBlockPos());
+        }
+
+        private static void handle(
+                ChestAnalysisRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            ServerPlayer player = context.getSender();
+            if (player != null) {
+                ItemStack stack = player.getItemInHand(packet.hand());
+                if (stack.is(ModItems.CHEST_MARKER.get())) {
+                    net.minecraft.server.level.ServerLevel serverLevel = player.serverLevel();
+                    BlockPos position = packet.position();
+                    if (player.blockPosition().distSqr(position) <= 64.0D) {
+                        ResourceLocation lootTable =
+                                ChestMarkerItem.lootTableAt(serverLevel, position);
+                        if (lootTable != null) {
+                            ChestMarkerItem.markChest(serverLevel, stack, position, lootTable);
+                            openRefreshedMarker(player, stack, packet.hand());
+                            context.setPacketHandled(true);
+                            return;
+                        }
+                    }
+                    player.displayClientMessage(
+                            net.minecraft.network.chat.Component.translatable(
+                                    "message.dimension_tech.chest_marker.no_target"),
+                            true);
                 }
             }
             context.setPacketHandled(true);

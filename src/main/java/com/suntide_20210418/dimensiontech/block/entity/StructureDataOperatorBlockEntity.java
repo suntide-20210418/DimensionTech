@@ -72,8 +72,7 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
 
                 @Override
                 public boolean isItemValid(int slot, ItemStack stack) {
-                    if (slot == TARGET || isOperandSlot(slot))
-                        return stack.is(ModItems.STRUCTURE_MARKER.get());
+                    if (slot == TARGET || isOperandSlot(slot)) return ModItems.isMarker(stack);
                     if (slot == INTEGRATOR) return stack.is(ModItems.DATA_INTEGRATOR.get());
                     return slot == INTERPRETER
                             && stack.is(ModItems.STRUCTURE_INTERPRETER.get())

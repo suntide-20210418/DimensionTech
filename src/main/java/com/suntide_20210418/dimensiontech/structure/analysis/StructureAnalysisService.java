@@ -270,14 +270,29 @@ public final class StructureAnalysisService {
                             if (closed) return;
                             if (error != null) {
                                 failDiscovery(key, error);
-                            } else {
-                                /*
-                                 * Virtual structure generation is disabled: a structure that yields
-                                 * no template loot tables is reported as-is (UNSUPPORTED, no loot)
-                                 * instead of being handed to the detached-generation sampler.
-                                 */
+                            } else if (result.status() == AnalysisStatus.EXACT
+                                    || result.status() == AnalysisStatus.APPROXIMATE
+                                    || !mayUseVirtualAnalysis(structure)
+                                    || !dimensionAllowed
+                                    || !structureAllowed) {
                                 publishState(key, waiting.complete(0, result));
                                 future.complete(result);
+                            } else if (queue.size() >= 32) {
+                                failDiscovery(
+                                        key,
+                                        new java.util.concurrent.RejectedExecutionException(
+                                                "Virtual sampling queue is full"));
+                            } else {
+                                /*
+                                 * A non-vanilla structure with no statically discoverable root
+                                 * table is handed to the detached-generation sampler; its loot is
+                                 * read from the containers the generated structure actually places.
+                                 */
+                                staticDiscoveries.put(key, result);
+                                observedTables.remove(key);
+                                failedSamples.remove(key);
+                                attemptedCandidates.remove(key);
+                                queue.addLast(key);
                             }
                         });
         return states.getOrDefault(key, State.missing());

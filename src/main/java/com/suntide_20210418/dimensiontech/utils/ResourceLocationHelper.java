@@ -14,11 +14,11 @@ public final class ResourceLocationHelper {
      * @return ResourceLocation对象
      */
     public static ResourceLocation modLoc(String path) {
-        return ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, path);
+        return new ResourceLocation(DimensionTechMod.MOD_ID, path);
     }
 
     public static ResourceLocation loc(String namespace, String path) {
-        return ResourceLocation.fromNamespaceAndPath(namespace, path);
+        return new ResourceLocation(namespace, path);
     }
 
     public static ResourceLocation vanilla(String path) {

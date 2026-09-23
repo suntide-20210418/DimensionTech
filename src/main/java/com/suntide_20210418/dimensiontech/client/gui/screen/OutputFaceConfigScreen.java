@@ -55,7 +55,7 @@ public final class OutputFaceConfigScreen extends Screen {
         g.pose().pushPose();
         g.pose().translate(left, top, 0);
         g.blit(
-                ResourceLocation.fromNamespaceAndPath(
+                new ResourceLocation(
                         "dimension_tech", "guis/output_face_config.png"),
                 0,
                 0,

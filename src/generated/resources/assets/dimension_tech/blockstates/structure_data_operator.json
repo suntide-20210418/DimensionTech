@@ -1,8 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=east": {
       "model": "dimension_tech:block/structure_data_operator",
       "y": 90
+    },
+    "facing=north": {
+      "model": "dimension_tech:block/structure_data_operator"
+    },
+    "facing=south": {
+      "model": "dimension_tech:block/structure_data_operator",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "dimension_tech:block/structure_data_operator",
+      "y": 270
     }
   }
 }

@@ -776,7 +776,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private boolean isStructureComplete(ServerLevel serverLevel) {
-        return StructureMinerMultiblock.isComplete(serverLevel, worldPosition, getMinerTier());
+        return StructureMinerMultiblock.isComplete(serverLevel, worldPosition);
     }
 
     private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
@@ -787,8 +787,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private boolean hasValidMarker() {
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             ItemStack marker = itemHandler.getStackInSlot(slot);
-            if (marker.is(ModItems.STRUCTURE_MARKER.get())
-                    && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
+            if (ModItems.isMarker(marker) && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
                 return true;
             }
         }
@@ -801,22 +800,22 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private long slotAverageParallelHundredths(int slot) {
+        // Same formula as ProcessingMath.totalParallel, in hundredths of parallel.
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
-                        * accelerationController.currentParallelHundredths(slot)
-                        * upgradeController.state().parallelMultiplierHundredths()
-                        / 100L;
+                                * upgradeController.state().parallelMultiplierHundredths()
+                        + (accelerationController.currentParallelHundredths(slot) - 100L);
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
                 machineParallelHundredths + accelerationController.previousExtraParallel(slot));
     }
 
     private long slotDisplayParallelHundredths(int slot) {
+        // Same formula as ProcessingMath.totalParallel, in hundredths of parallel.
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
-                        * accelerationController.currentParallelHundredths(slot)
-                        * upgradeController.state().parallelMultiplierHundredths()
-                        / 100L;
+                                * upgradeController.state().parallelMultiplierHundredths()
+                        + (accelerationController.currentParallelHundredths(slot) - 100L);
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
                 machineParallelHundredths + accelerationController.currentExtraParallel(slot));
@@ -1002,15 +1001,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return new ItemStackHandler(slotCount) {
             @Override
             public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-                return stack.is(ModItems.STRUCTURE_MARKER.get());
+                return ModItems.isMarker(stack);
             }
 
             @Override
             protected void onContentsChanged(int slot) {
                 if (analysisController != null) analysisController.invalidateIfInputsChanged();
                 ItemStack marker = getStackInSlot(slot);
-                if (!marker.is(ModItems.STRUCTURE_MARKER.get())
-                        || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
+                if (!ModItems.isMarker(marker) || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
                     resetSlotState(slot);
                 }
                 setChanged();

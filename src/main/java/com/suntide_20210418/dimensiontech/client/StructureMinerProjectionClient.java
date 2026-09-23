@@ -2,22 +2,19 @@ package com.suntide_20210418.dimensiontech.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock.ProjectionBlock;
 import java.util.List;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -31,7 +28,7 @@ public final class StructureMinerProjectionClient {
 
     private StructureMinerProjectionClient() {}
 
-    public static void toggle(BlockPos center, int tier) {
+    public static void toggle(BlockPos center) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null) return;
         ResourceKey<Level> dimension = minecraft.level.dimension();
@@ -46,7 +43,7 @@ public final class StructureMinerProjectionClient {
         }
         projection =
                 new Projection(
-                        center.immutable(), dimension, StructureMinerMultiblock.projection(tier));
+                        center.immutable(), dimension, StructureMinerMultiblock.projection());
         minecraft.player.displayClientMessage(
                 Component.translatable("message.dimension_tech.structure_miner.projection_on"), true);
     }
@@ -74,9 +71,18 @@ public final class StructureMinerProjectionClient {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.depthMask(false);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.38F);
         for (ProjectionBlock block : projection.blocks()) {
             BlockPos worldPos = projection.center().offset(block.offset());
+            BlockState actual = minecraft.level.getBlockState(worldPos);
+            // Already carries the right block: nothing left to place here, so it drops out.
+            if (actual.is(block.state().getBlock())) continue;
+            float[] tint = color(block);
+            if (!actual.isAir() && !actual.canBeReplaced()) {
+                // Occupied by an unrelated, non-replaceable block: flag it red instead of hiding it.
+                tint = RED;
+            }
+            // Flush per block so the ColorModulator tint set here actually applies.
+            RenderSystem.setShaderColor(tint[0], tint[1], tint[2], 0.38F);
             poseStack.pushPose();
             poseStack.translate(worldPos.getX(), worldPos.getY(), worldPos.getZ());
             minecraft
@@ -88,35 +94,20 @@ public final class StructureMinerProjectionClient {
                             LightTexture.FULL_BRIGHT,
                             OverlayTexture.NO_OVERLAY);
             poseStack.popPose();
+            buffers.endBatch();
         }
-        buffers.endBatch();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-        RenderSystem.disableDepthTest();
-        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
-        for (ProjectionBlock block : projection.blocks()) {
-            BlockPos worldPos = projection.center().offset(block.offset());
-            float[] color = color(block);
-            LevelRenderer.renderLineBox(
-                    poseStack,
-                    lines,
-                    new AABB(worldPos).inflate(0.002D),
-                    color[0],
-                    color[1],
-                    color[2],
-                    0.85F);
-        }
-        buffers.endBatch(RenderType.lines());
-        RenderSystem.enableDepthTest();
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
         poseStack.popPose();
     }
 
+    private static final float[] RED = {1.00F, 0.16F, 0.16F};
+
     private static float[] color(ProjectionBlock block) {
         return switch (block.kind()) {
             case CASING -> new float[] {0.30F, 0.84F, 0.82F};
-            case FOCUS -> new float[] {0.72F, 0.42F, 1.00F};
+            case GLASS -> new float[] {0.55F, 0.78F, 1.00F};
             case STRUCTURE -> new float[] {1.00F, 0.71F, 0.36F};
             case UPGRADE -> new float[] {0.42F, 0.92F, 0.58F};
         };

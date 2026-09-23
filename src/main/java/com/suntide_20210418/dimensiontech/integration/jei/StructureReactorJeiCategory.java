@@ -102,7 +102,7 @@ public final class StructureReactorJeiCategory
     /** The recipe's own registry name plus its branch, so A and B bookmark separately. */
     @Override
     public ResourceLocation getRegistryName(StructureReactorJeiRecipe recipe) {
-        return ResourceLocation.fromNamespaceAndPath(
+        return new ResourceLocation(
                 recipe.id().getNamespace(),
                 recipe.id().getPath() + "/" + recipe.branch().name().toLowerCase(Locale.ROOT));
     }

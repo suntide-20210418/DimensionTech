@@ -12,15 +12,18 @@ public final class ProcessingMath {
         return (float) (machineLuck + percentageBase * luckIncreasePercent / 100.0D);
     }
 
+    /**
+     * Total parallel = base × parallel-upgrade multiplier + excess efficiency multiplier. The
+     * efficiency-derived term is independent of the base parallel and of the parallel upgrade.
+     */
     public static int totalParallel(
             int machineBaseParallel,
             int efficiencyParallelHundredths,
             int upgradeMultiplierHundredths) {
         long scaled =
-                (long) machineBaseParallel
-                        * efficiencyParallelHundredths
-                        * upgradeMultiplierHundredths;
-        return Math.max(1, (int) Math.min(Integer.MAX_VALUE, scaled / 10_000L));
+                (long) machineBaseParallel * upgradeMultiplierHundredths
+                        + (efficiencyParallelHundredths - 100L);
+        return Math.max(1, (int) Math.min(Integer.MAX_VALUE, scaled / 100L));
     }
 
     public static int upgradedBaseParallel(

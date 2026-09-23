@@ -6,21 +6,16 @@ import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
@@ -523,94 +518,15 @@ public class StructureMinerMenu extends AbstractContainerMenu
 
     /**
      * Builds the multiblock around this controller, charging the player for whatever it places.
-     *
-     * <p>Nothing is mutated until the whole plan validates, so an obstructed or understocked
-     * attempt leaves the world untouched rather than producing a half-built structure. Positions
-     * that already hold the right block are not charged again, which makes a repeated press free.
+     * See {@link StructureMinerMultiblock#buildFromInventory} for the validation and mutation rules.
      */
     private void placeMultiblockChargingMaterials(ServerLevel level, Player player) {
-        int tier =
-                blockEntity.getBlockState().getBlock() instanceof BaseMinerBlock miner
-                        ? miner.minerTier()
-                        : 1;
-        StructureMinerMultiblock.BuildPlan plan =
-                StructureMinerMultiblock.planMaterials(level, blockEntity.getBlockPos(), tier);
-        if (!plan.isClear()) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.dimension_tech.structure_miner.build_blocked",
-                            plan.blocked().size()),
-                    false);
-            return;
+        Component message =
+                StructureMinerMultiblock.buildFromInventory(
+                        level, blockEntity.getBlockPos(), player);
+        if (message != null) {
+            player.displayClientMessage(message, false);
         }
-        if (plan.isSatisfied()) return;
-
-        // Creative players place for free; only survival pays out of the inventory.
-        if (!player.getAbilities().instabuild) {
-            Map<Block, Integer> shortfall = missingFromInventory(player, plan.required());
-            if (!shortfall.isEmpty()) {
-                player.displayClientMessage(shortfallMessage(shortfall), false);
-                return;
-            }
-            consumeFromInventory(player, plan.required());
-        }
-        StructureMinerMultiblock.place(level, blockEntity.getBlockPos(), tier);
-    }
-
-    /** Compares the plan against the player's carried blocks; empty when they can pay in full. */
-    private static Map<Block, Integer> missingFromInventory(
-            Player player, Map<Block, Integer> required) {
-        Map<Block, Integer> shortfall = new LinkedHashMap<>();
-        for (Map.Entry<Block, Integer> entry : required.entrySet()) {
-            int available = countInInventory(player, entry.getKey());
-            if (available < entry.getValue()) {
-                shortfall.put(entry.getKey(), entry.getValue() - available);
-            }
-        }
-        return shortfall;
-    }
-
-    private static int countInInventory(Player player, Block block) {
-        Item item = block.asItem();
-        Inventory inventory = player.getInventory();
-        int total = 0;
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            ItemStack stack = inventory.getItem(slot);
-            if (stack.is(item)) total += stack.getCount();
-        }
-        return total;
-    }
-
-    private static void consumeFromInventory(Player player, Map<Block, Integer> required) {
-        Inventory inventory = player.getInventory();
-        for (Map.Entry<Block, Integer> entry : required.entrySet()) {
-            Item item = entry.getKey().asItem();
-            int remaining = entry.getValue();
-            for (int slot = 0; slot < inventory.getContainerSize() && remaining > 0; slot++) {
-                ItemStack stack = inventory.getItem(slot);
-                if (!stack.is(item)) continue;
-                int taken = Math.min(remaining, stack.getCount());
-                stack.shrink(taken);
-                remaining -= taken;
-            }
-        }
-        inventory.setChanged();
-    }
-
-    private static Component shortfallMessage(Map<Block, Integer> shortfall) {
-        MutableComponent entries = Component.empty();
-        boolean first = true;
-        for (Map.Entry<Block, Integer> entry : shortfall.entrySet()) {
-            if (!first) entries.append(Component.literal(", "));
-            first = false;
-            entries.append(
-                    Component.translatable(
-                            "message.dimension_tech.structure_miner.build_missing_entry",
-                            entry.getKey().getName(),
-                            entry.getValue()));
-        }
-        return Component.translatable(
-                "message.dimension_tech.structure_miner.build_missing", entries);
     }
 
     /** Returns the latest server-synchronized telemetry value for client rendering. */
@@ -1019,7 +935,7 @@ public class StructureMinerMenu extends AbstractContainerMenu
                 return ItemStack.EMPTY;
             }
         } else {
-            if (!stack.is(ModItems.STRUCTURE_MARKER.get())
+            if (!ModItems.isMarker(stack)
                     || !moveItemStackTo(stack, 0, containerSlotCount, false)) {
                 return ItemStack.EMPTY;
             }

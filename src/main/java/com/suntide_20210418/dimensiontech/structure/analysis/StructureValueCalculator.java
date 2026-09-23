@@ -13,6 +13,7 @@ import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyz
 import com.suntide_20210418.dimensiontech.utils.LootExpectationSnapshot;
 import com.suntide_20210418.dimensiontech.utils.LootTableLottery;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,12 +22,22 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.Set;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.ForgeHooks;
 import org.slf4j.Logger;
 
 /** Coordinates exact loot analysis and applies runtime rarity/dimension valuation. */
@@ -43,13 +54,13 @@ public final class StructureValueCalculator {
      */
     private static final Set<ResourceLocation> NBT_HEAVY_ITEM_IDS =
             Set.of(
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "filled_map"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "enchanted_book"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "suspicious_stew"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "potion"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "splash_potion"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "lingering_potion"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "tipped_arrow"));
+                    new ResourceLocation("minecraft", "filled_map"),
+                    new ResourceLocation("minecraft", "enchanted_book"),
+                    new ResourceLocation("minecraft", "suspicious_stew"),
+                    new ResourceLocation("minecraft", "potion"),
+                    new ResourceLocation("minecraft", "splash_potion"),
+                    new ResourceLocation("minecraft", "lingering_potion"),
+                    new ResourceLocation("minecraft", "tipped_arrow"));
 
     private static boolean isNbtHeavy(ItemStack stack) {
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
@@ -150,6 +161,34 @@ public final class StructureValueCalculator {
             expectation =
                     expectation.thenComposeAsync(
                             result -> {
+                                if (result.status() == AnalysisStatus.EXACT
+                                        && discovery.status() == AnalysisStatus.EXACT
+                                        && glmSupplementNeeded(
+                                                server, markerInfo, discovery, luck)) {
+                                    /*
+                                     * An exactly analyzed table cannot see items injected by Forge
+                                     * global loot modifiers, which act on rolled stacks at runtime.
+                                     * Supplement the exact expectation with a small sampling pass so
+                                     * those injections still reach the reward pool. The probe path
+                                     * covers tables whose targeting conditions are not the standard
+                                     * forge:loot_table_id shape.
+                                     */
+                                    int glmSamples =
+                                            ModConfigs.STRUCTURE_VALUE.glmSupplementSamples();
+                                    String glmConfig =
+                                            expectationConfig + "|glmSamples=" + glmSamples;
+                                    return requestSamples(
+                                                    server,
+                                                    markerInfo,
+                                                    luck,
+                                                    discovery,
+                                                    source,
+                                                    contentFingerprint,
+                                                    glmConfig,
+                                                    glmSamples)
+                                            .thenApply(
+                                                    sampled -> mergeGlmSupplement(result, sampled));
+                                }
                                 if (result.status() == AnalysisStatus.EXACT
                                         || result.status() == AnalysisStatus.APPROXIMATE
                                         || (discovery.status() != AnalysisStatus.EXACT
@@ -417,6 +456,130 @@ public final class StructureValueCalculator {
                                         }));
     }
 
+    /**
+     * Whether an exact result should be supplemented with a sampling pass that can observe items
+     * injected by Forge global loot modifiers. The static parse covers the standard {@code
+     * forge:loot_table_id} targeting condition; a single runtime probe per root table covers
+     * deterministic custom-condition injections. Both are cheap, and neither runs when no modifier
+     * touches any root table.
+     */
+    private static boolean glmSupplementNeeded(
+            MinecraftServer server, MarkerInfo markerInfo, DiscoveryResult discovery, float luck) {
+        Set<ResourceLocation> roots = rootTableWeightsForValue(discovery).keySet();
+        if (roots.isEmpty()) {
+            return false;
+        }
+        Set<ResourceLocation> targeted =
+                StructureLootAnalyzer.glmTargetedTables(server.getResourceManager());
+        for (ResourceLocation root : roots) {
+            if (targeted.contains(root)) {
+                return true;
+            }
+        }
+        ServerLevel level =
+                server.getLevel(ResourceKey.create(Registries.DIMENSION, markerInfo.dimension()));
+        return level != null && probeFindsInjection(level, markerInfo, roots, luck);
+    }
+
+    /**
+     * Applies every registered global loot modifier once to an empty stack list per root table.
+     * Modifiers whose conditions pass on this single draw contribute their injected stacks, which
+     * is enough to detect a deterministic injection even when its targeting condition is not the
+     * standard {@code forge:loot_table_id} shape.
+     */
+    private static boolean probeFindsInjection(
+            ServerLevel level, MarkerInfo info, Collection<ResourceLocation> roots, float luck) {
+        LootParams params =
+                new LootParams.Builder(level)
+                        .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(info.position()))
+                        .withLuck(luck)
+                        .create(LootContextParamSets.CHEST);
+        LootContext context = new LootContext.Builder(params).create((ResourceLocation) null);
+        for (ResourceLocation root : roots) {
+            ObjectArrayList<ItemStack> modified =
+                    ForgeHooks.modifyLoot(root, new ObjectArrayList<>(), context);
+            if (!modified.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Merges the sampled expectation into the exact one: items the exact pass already covers keep
+     * their exact mass, while items observed only by the sampling pass (global-loot-modifier
+     * injections) are appended with their sampled mass. Status and full-stack data stay exact.
+     */
+    private static LootExpectationSnapshot mergeGlmSupplement(
+            LootExpectationSnapshot exact, LootExpectationSnapshot sampled) {
+        Set<String> exactItems =
+                exact.terminal().occurrences().keySet().stream()
+                        .map(StructureValueSnapshot.TerminalItem::itemId)
+                        .collect(Collectors.toSet());
+        LinkedHashMap<StructureValueSnapshot.TerminalItem, ExactProbability> merged =
+                new LinkedHashMap<>(exact.terminal().occurrences());
+        int added = 0;
+        for (Map.Entry<StructureValueSnapshot.TerminalItem, ExactProbability> entry :
+                sampled.terminal().occurrences().entrySet()) {
+            if (!exactItems.contains(entry.getKey().itemId())) {
+                merged.put(entry.getKey(), entry.getValue());
+                added++;
+            }
+        }
+        List<Diagnostic> diagnostics = new ArrayList<>(exact.diagnostics());
+        if (added > 0) {
+            diagnostics.add(
+                    new Diagnostic(
+                            "GLM_ITEMS_SUPPLEMENTED",
+                            added
+                                    + " items injected by global loot modifiers were supplemented"
+                                    + " by sampling"));
+        }
+        return new LootExpectationSnapshot(
+                exact.status(),
+                new StructureValueSnapshot.Expectation(merged),
+                exact.stacks(),
+                exact.fullStackMeasureAvailable(),
+                exact.enchantmentMarginal(),
+                diagnostics);
+    }
+
+    /** Samples terminal masses from the discovered roots, mirroring the sampled-value fallback. */
+    private static TerminalStackMeasure sampleGlmSupplement(
+            ServerLevel level, MarkerInfo markerInfo, DiscoveryResult discovery, float luck) {
+        int samples = ModConfigs.STRUCTURE_VALUE.glmSupplementSamples();
+        LinkedHashMap<Item, Long> counts = new LinkedHashMap<>();
+        for (StructureLoot structure : discovery.structures()) {
+            for (Map.Entry<ResourceLocation, Integer> table : structure.occurrences().entrySet()) {
+                for (int occurrence = 0; occurrence < table.getValue(); occurrence++) {
+                    for (ItemStack stack :
+                            LootTableLottery.draw(
+                                    level,
+                                    Vec3.atCenterOf(markerInfo.position()),
+                                    List.of(table.getKey()),
+                                    null,
+                                    luck,
+                                    samples)) {
+                        if (!stack.isEmpty() && stack.getCount() > 0) {
+                            ResourceLocation itemId =
+                                    BuiltInRegistries.ITEM.getKey(stack.getItem());
+                            if (itemId == null || ModConfigs.STRUCTURE_VALUE.allowsItem(itemId)) {
+                                counts.merge(stack.getItem(), (long) stack.getCount(), Long::sum);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        LinkedHashMap<TerminalStackKey, ExactProbability> masses = new LinkedHashMap<>();
+        counts.forEach(
+                (item, count) ->
+                        masses.put(
+                                new TerminalStackKey(item, 1, new ItemStack(item).getRarity()),
+                                ExactProbability.of(count, samples)));
+        return TerminalStackMeasure.of(masses);
+    }
+
     private static LootExpectationSnapshot freezeExpectation(
             AnalysisStatus status,
             StackMeasure full,
@@ -476,7 +639,7 @@ public final class StructureValueCalculator {
         if (ModConfigs.STRUCTURE_VALUE.allowsDimension(marker.dimension())
                 && ModConfigs.STRUCTURE_VALUE.allowsStructure(marker.structure().id())) {
             for (var terminal : expectation.occurrences().keySet()) {
-                ResourceLocation id = ResourceLocation.parse(terminal.itemId());
+                ResourceLocation id = new ResourceLocation(terminal.itemId());
                 if (!ModConfigs.STRUCTURE_VALUE.allowsItem(id)) continue;
                 Item item =
                         net.minecraft.core.registries.BuiltInRegistries.ITEM
@@ -516,7 +679,9 @@ public final class StructureValueCalculator {
                                 terminal.put(
                                         new TerminalStackKey(
                                                 net.minecraft.core.registries.BuiltInRegistries.ITEM
-                                                        .get(ResourceLocation.parse(item.itemId())),
+                                                        .get(
+                                                                new ResourceLocation(
+                                                                        item.itemId())),
                                                 item.count(),
                                                 net.minecraft.world.item.Rarity.valueOf(
                                                         item.rarity())),
@@ -659,6 +824,38 @@ public final class StructureValueCalculator {
             } else if (!result.fullStackMeasureAvailable()) {
                 fullStackMeasureAvailable = false;
                 measure = new StackMeasure();
+            }
+        }
+        if (status == AnalysisStatus.EXACT
+                && discovery.status() == AnalysisStatus.EXACT
+                && glmSupplementNeeded(level.getServer(), markerInfo, discovery, luck)) {
+            /*
+             * Mirror the async supplement: global-loot-modifier injections are invisible to the
+             * exact evaluator, so append sampled-only terminal items to the exact measure.
+             */
+            TerminalStackMeasure sampled = sampleGlmSupplement(level, markerInfo, discovery, luck);
+            Set<Item> existingItems =
+                    terminalMeasure.values().keySet().stream()
+                            .map(TerminalStackKey::item)
+                            .collect(Collectors.toSet());
+            LinkedHashMap<TerminalStackKey, ExactProbability> combined =
+                    new LinkedHashMap<>(terminalMeasure.values());
+            int added = 0;
+            for (Map.Entry<TerminalStackKey, ExactProbability> entry :
+                    sampled.values().entrySet()) {
+                if (!existingItems.contains(entry.getKey().item())) {
+                    combined.put(entry.getKey(), entry.getValue());
+                    added++;
+                }
+            }
+            if (added > 0) {
+                terminalMeasure = TerminalStackMeasure.of(combined);
+                diagnostics.add(
+                        new Diagnostic(
+                                "GLM_ITEMS_SUPPLEMENTED",
+                                added
+                                        + " items injected by global loot modifiers were"
+                                        + " supplemented by sampling"));
             }
         }
         if (status != AnalysisStatus.EXACT && status != AnalysisStatus.APPROXIMATE) {

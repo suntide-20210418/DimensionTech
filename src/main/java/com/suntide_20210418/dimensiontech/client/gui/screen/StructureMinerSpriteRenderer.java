@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 /** Sprite-sheet primitives used by the fixed-size miner console. */
 final class StructureMinerSpriteRenderer {
     static final ResourceLocation SPRITESHEET =
-            ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/spritesheet.png");
+            new ResourceLocation("dimension_tech", "guis/spritesheet.png");
     static final int BUTTON_U = 0, BUTTON_V = 48, BUTTON_W = 32, BUTTON_H = 16;
     static final int PRESSED_U = 32, PRESSED_V = 48;
     static final int MARKER_U = 0, MARKER_V = 80, MARKER_W = 18, MARKER_H = 18;
