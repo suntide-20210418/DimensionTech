@@ -224,6 +224,7 @@
   "message.dimension_tech.structure_miner.build_missing_entry": "%s x%s",
   "message.dimension_tech.structure_miner.projection_off": "已隐藏多方块结构投影",
   "message.dimension_tech.structure_miner.projection_on": "已显示多方块结构投影",
+  "message.dimension_tech.structure_miner.structure_complete": "结构已完整，无需投影",
   "screen.dimension_tech.chest_marker.calculation_method": "计算方式：%s",
   "screen.dimension_tech.chest_marker.chest_value": "宝箱价值",
   "screen.dimension_tech.chest_marker.selection.empty": "未标记宝箱",
