@@ -368,6 +368,75 @@ public final class StructureLootAnalyzer {
         return ResourceLocationHelper.loc(id.getNamespace(), directory + id.getPath() + extension);
     }
 
+    /**
+     * Tables referenced by {@code forge:loot_table_id} conditions in enabled global loot modifiers.
+     * Only the standard condition shape is read; mod-specific modifier fields are opaque and
+     * deliberately ignored.
+     */
+    public static Set<ResourceLocation> glmTargetedTables(ResourceManager resources) {
+        Set<ResourceLocation> targeted = new HashSet<>();
+        List<ResourceLocation> entries = new ArrayList<>();
+        ResourceLocation listId =
+                ResourceLocationHelper.loc("forge", "loot_modifiers/global_loot_modifiers.json");
+        for (Resource resource : resources.getResourceStack(listId)) {
+            try (Reader reader = resource.openAsReader()) {
+                JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+                if (root.has("replace") && root.get("replace").getAsBoolean()) {
+                    entries.clear();
+                }
+                if (root.has("entries") && root.get("entries").isJsonArray()) {
+                    for (JsonElement element : root.getAsJsonArray("entries")) {
+                        ResourceLocation entry = ResourceLocation.tryParse(element.getAsString());
+                        if (entry != null) {
+                            entries.remove(entry);
+                            entries.add(entry);
+                        }
+                    }
+                }
+            } catch (IOException | RuntimeException exception) {
+                // A malformed global list disables its entries; keep the layered remainder.
+            }
+        }
+        for (ResourceLocation entry : entries) {
+            ResourceLocation modifierId =
+                    ResourceLocationHelper.loc(
+                            entry.getNamespace(), "loot_modifiers/" + entry.getPath() + ".json");
+            readJson(resources, modifierId)
+                    .ifPresent(
+                            json -> {
+                                if (!json.isJsonObject()) {
+                                    return;
+                                }
+                                JsonObject root = json.getAsJsonObject();
+                                if (!root.has("conditions")
+                                        || !root.get("conditions").isJsonArray()) {
+                                    return;
+                                }
+                                for (JsonElement element : root.getAsJsonArray("conditions")) {
+                                    if (!element.isJsonObject()) {
+                                        continue;
+                                    }
+                                    JsonObject condition = element.getAsJsonObject();
+                                    String conditionType =
+                                            condition.has("condition")
+                                                    ? condition.get("condition").getAsString()
+                                                    : "";
+                                    if (!"forge:loot_table_id".equals(conditionType)
+                                            || !condition.has("loot_table_id")) {
+                                        continue;
+                                    }
+                                    ResourceLocation table =
+                                            ResourceLocation.tryParse(
+                                                    condition.get("loot_table_id").getAsString());
+                                    if (table != null) {
+                                        targeted.add(table);
+                                    }
+                                }
+                            });
+        }
+        return targeted;
+    }
+
     private static LootTableItems resolveLootTableItems(
             MinecraftServer server, Set<ResourceLocation> rootTables) {
         return resolveLootTableItems(server, rootTables, true);

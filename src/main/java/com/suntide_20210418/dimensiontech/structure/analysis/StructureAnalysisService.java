@@ -271,6 +271,7 @@ public final class StructureAnalysisService {
                             if (error != null) {
                                 failDiscovery(key, error);
                             } else if (result.status() == AnalysisStatus.EXACT
+                                    || result.status() == AnalysisStatus.APPROXIMATE
                                     || !mayUseVirtualAnalysis(structure)
                                     || !dimensionAllowed
                                     || !structureAllowed) {
@@ -282,6 +283,11 @@ public final class StructureAnalysisService {
                                         new java.util.concurrent.RejectedExecutionException(
                                                 "Virtual sampling queue is full"));
                             } else {
+                                /*
+                                 * A non-vanilla structure with no statically discoverable root
+                                 * table is handed to the detached-generation sampler; its loot is
+                                 * read from the containers the generated structure actually places.
+                                 */
                                 staticDiscoveries.put(key, result);
                                 observedTables.remove(key);
                                 failedSamples.remove(key);

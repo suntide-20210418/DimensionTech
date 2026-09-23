@@ -55,7 +55,9 @@ public final class StructureReactorJeiCategory
 
     private static final int FOOTER_GAP = 5;
     private static final int FOOTER_LINE_H = 10;
-    private static final int FOOTER_LINES = 5;
+
+    /** Must match the size of {@link StructureReactorJeiText#footerLines}, or lines get clipped. */
+    private static final int FOOTER_LINES = 6;
 
     /** Minecraft's default font line height; text widgets add their line spacing on top of it. */
     private static final int FONT_LINE_H = 9;
@@ -100,7 +102,7 @@ public final class StructureReactorJeiCategory
     /** The recipe's own registry name plus its branch, so A and B bookmark separately. */
     @Override
     public ResourceLocation getRegistryName(StructureReactorJeiRecipe recipe) {
-        return ResourceLocation.fromNamespaceAndPath(
+        return new ResourceLocation(
                 recipe.id().getNamespace(),
                 recipe.id().getPath() + "/" + recipe.branch().name().toLowerCase(Locale.ROOT));
     }

@@ -1,15 +1,33 @@
 package com.suntide_20210418.dimensiontech.integration.kubejs;
 
+import com.suntide_20210418.dimensiontech.structurereactor.OperationMatcher;
+import com.suntide_20210418.dimensiontech.structurereactor.StateStep;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipe;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
+import dev.latvian.mods.kubejs.item.ingredient.IngredientJS;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public final class DimensionTechJS {
     private DimensionTechJS() {}
 
     public static String version() {
         return "1.0.0-1.20.1";
+    }
+
+    /** Starts a structure reactor recipe builder: create new or modify an existing recipe by id. */
+    public static ReactorRecipeJS reactorRecipe(Object id) {
+        return new ReactorRecipeJS(parse(id));
     }
 
     public static MinerConfigJS miner(Object id) {
@@ -40,6 +58,154 @@ public final class DimensionTechJS {
         ResourceLocation rl = ResourceLocation.tryParse(String.valueOf(id));
         if (rl == null) throw new IllegalArgumentException("Invalid resource location: " + id);
         return rl;
+    }
+
+    private static Ingredient parseIngredient(Object value) {
+        return IngredientJS.of(value);
+    }
+
+    private static Fluid parseFluid(Object value) {
+        if (value instanceof Fluid fluid) return fluid;
+        ResourceLocation rl = ResourceLocation.tryParse(String.valueOf(value));
+        if (rl == null) throw new IllegalArgumentException("Invalid fluid id: " + value);
+        Fluid fluid = ForgeRegistries.FLUIDS.getValue(rl);
+        if (fluid == null || fluid.isSame(Fluids.EMPTY))
+            throw new IllegalArgumentException("Unknown fluid: " + value);
+        return fluid;
+    }
+
+    private static List<StateStep<ItemStack>> sequenceWithOverrides(
+            List<StateStep<ItemStack>> sequence, Map<String, Ingredient> overrides) {
+        if (overrides.isEmpty()) return sequence;
+        for (String state : overrides.keySet()) {
+            boolean present =
+                    sequence.stream().anyMatch(step -> step.state().name().equalsIgnoreCase(state));
+            if (!present)
+                throw new IllegalArgumentException(
+                        "Operation override state not in this branch's DSL: " + state);
+        }
+        return sequence.stream()
+                .map(
+                        step -> {
+                            Ingredient override =
+                                    overrides.get(step.state().name().toLowerCase(Locale.ROOT));
+                            return override == null
+                                    ? step
+                                    : new StateStep<ItemStack>(
+                                            step.state(),
+                                            OperationMatcher.of(override));
+                        })
+                .toList();
+    }
+
+    /**
+     * Builds a structure reactor recipe. Call {@code add()} to register; omissions reuse the
+     * existing recipe of the same id when present (or fail validation for a fresh recipe).
+     */
+    public static final class ReactorRecipeJS {
+        private final ResourceLocation id;
+        private final StructureReactorRecipe<ItemStack> base;
+        private Fluid input, output;
+        private Ingredient fragment;
+        private Integer fragmentCount, baseFluidCost, targetOutput;
+        private String dslA, dslB;
+        private final Map<String, Ingredient> overridesA = new HashMap<>();
+        private final Map<String, Ingredient> overridesB = new HashMap<>();
+
+        ReactorRecipeJS(ResourceLocation id) {
+            this.id = id;
+            this.base = StructureReactorRecipes.get(id);
+        }
+
+        public ReactorRecipeJS input(Object fluid) {
+            input = parseFluid(fluid);
+            return this;
+        }
+
+        public ReactorRecipeJS output(Object fluid) {
+            output = parseFluid(fluid);
+            return this;
+        }
+
+        public ReactorRecipeJS fragment(Object ingredient) {
+            fragment = parseIngredient(ingredient);
+            return this;
+        }
+
+        public ReactorRecipeJS fragmentCount(int value) {
+            fragmentCount = value;
+            return this;
+        }
+
+        public ReactorRecipeJS baseFluidCost(int value) {
+            baseFluidCost = value;
+            return this;
+        }
+
+        public ReactorRecipeJS targetOutput(int value) {
+            targetOutput = value;
+            return this;
+        }
+
+        public ReactorRecipeJS sequenceA(String dsl) {
+            dslA = dsl;
+            return this;
+        }
+
+        public ReactorRecipeJS sequenceB(String dsl) {
+            dslB = dsl;
+            return this;
+        }
+
+        /**
+         * Overrides the ritual operation item for one state in one branch. {@code stateName} must
+         * occur in that branch's DSL.
+         */
+        public ReactorRecipeJS overrideOperation(
+                String side, String stateName, Object ingredient) {
+            Ingredient parsed = parseIngredient(ingredient);
+            (isB(side) ? overridesB : overridesA).put(stateName, parsed);
+            return this;
+        }
+
+        /** Merges omissions from the current recipe and registers the result. */
+        public ReactorRecipeJS add() {
+            build();
+            return this;
+        }
+
+        private void build() {
+            List<StateStep<ItemStack>> seqA =
+                    sequenceWithOverrides(
+                            dslA != null
+                                    ? StructureReactorRecipes.sequence(dslA)
+                                    : base.sequence(StructureReactorRecipe.Branch.A),
+                            overridesA);
+            List<StateStep<ItemStack>> seqB =
+                    dslB != null
+                            ? sequenceWithOverrides(
+                                    StructureReactorRecipes.sequence(dslB), overridesB)
+                            : base.hasAlternateBranch()
+                                    ? sequenceWithOverrides(
+                                            base.sequence(StructureReactorRecipe.Branch.B),
+                                            overridesB)
+                                    : null;
+            StructureReactorRecipes.add(
+                    new StructureReactorRecipe<>(
+                            id,
+                            input != null ? input : base.input(),
+                            output != null ? output : base.output(),
+                            fragment != null ? fragment : base.fragment(),
+                            fragmentCount != null ? fragmentCount : base.fragmentCount(),
+                            baseFluidCost != null ? baseFluidCost : base.baseFluidCost(),
+                            targetOutput != null ? targetOutput : base.targetOutput(),
+                            seqA,
+                            seqB));
+        }
+
+        private static boolean isB(String side) {
+            return "B".equalsIgnoreCase(side);
+        }
     }
 
     public static final class StructureConfigJS {

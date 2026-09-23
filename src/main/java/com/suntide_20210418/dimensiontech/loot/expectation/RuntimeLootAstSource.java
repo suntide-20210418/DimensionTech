@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -20,9 +21,11 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.slf4j.Logger;
 
 /** Serializes the server's loaded loot objects, including Forge load-event modifications. */
 public class RuntimeLootAstSource {
+    private static final Logger LOGGER = LogUtils.getLogger();
     // A frozen source must be usable without initializing Minecraft's live loot registries.
     private static final class RuntimeSerializers {
         static final Gson TABLE = Deserializers.createLootTableSerializer().create();
@@ -71,6 +74,7 @@ public class RuntimeLootAstSource {
     /** Captures root tables and recursively referenced loot tables on the owning server thread. */
     public static RuntimeLootAstSource snapshotTables(
             MinecraftServer server, Collection<ResourceLocation> roots) {
+        long start = System.nanoTime();
         RuntimeLootAstSource live = new RuntimeLootAstSource(server);
         LinkedHashMap<ResourceLocation, JsonElement> tables = new LinkedHashMap<>();
         LinkedHashMap<ResourceLocation, JsonElement> predicates = new LinkedHashMap<>();
@@ -106,8 +110,24 @@ public class RuntimeLootAstSource {
                                 collectReferences(value.json(), referenced);
                             });
         }
-        return new RuntimeLootAstSource(
-                tables, predicates, modifiers, runtimeSemanticsFingerprint());
+        long fingerprintStart = System.nanoTime();
+        String semanticsFingerprint = runtimeSemanticsFingerprint();
+        long fingerprintMillis = (System.nanoTime() - fingerprintStart) / 1_000_000L;
+        RuntimeLootAstSource result =
+                new RuntimeLootAstSource(tables, predicates, modifiers, semanticsFingerprint);
+        long totalMillis = (System.nanoTime() - start) / 1_000_000L;
+        if (totalMillis > 20) {
+            LOGGER.warn(
+                    "[TEMP PROBE] snapshotTables roots={} tables={} preds={} mods={} totalMs={} fingerprintMs={} on {}",
+                    roots.size(),
+                    tables.size(),
+                    predicates.size(),
+                    modifiers.size(),
+                    totalMillis,
+                    fingerprintMillis,
+                    java.lang.Thread.currentThread().getName());
+        }
+        return result;
     }
 
     private static void collectNestedTables(

@@ -29,6 +29,13 @@ public class ModEnusLangProvider extends LanguageProvider {
         }
         add(TranslateHelper.item("data_integrator"), "Data Integrator");
         add(TranslateHelper.item("structure_interpreter"), "Structure Interpreter");
+        add(TranslateHelper.item("wrench"), "Wrench");
+        add(
+                "tooltip.dimension_tech.wrench.projection",
+                "Right-click a Structure Miner: show/hide the multiblock projection");
+        add(
+                "tooltip.dimension_tech.wrench.build",
+                "Shift+right-click: build the multiblock from your inventory");
         add("block.dimension_tech.structure_data_operator", "Structure Data Operator");
         add("block.dimension_tech.structure_reactor", "Structure Reactor");
         add("container.dimension_tech.structure_reactor", "Structure Reactor");
@@ -237,6 +244,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.io", "In %s mB -> Out %s mB");
         add("jei.dimension_tech.structure_reactor.branch", "Branch %s - recursion %s");
         add("jei.dimension_tech.structure_reactor.branch.alternate", "A/B alternates each commit");
+        add(
+                "jei.dimension_tech.structure_reactor.comparator",
+                "Comparator signal: %s idle - %s idle blocked - %s commit blocked - %s refining");
         add("jei.dimension_tech.structure_reactor.sequence", "Ritual sequence");
         add("jei.dimension_tech.structure_reactor.row", "%s - %s");
         add("jei.dimension_tech.structure_reactor.row.unknown", "unspecified");
@@ -246,6 +256,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "jei.dimension_tech.structure_reactor.step.requires.unknown",
                 "Requires: unspecified operation");
+        add(
+                "jei.dimension_tech.structure_reactor.step.signal",
+                "Comparator signal: %s (%s inside the reward window)");
         add(
                 "jei.dimension_tech.structure_reactor.step.timeout",
                 "Unsettled past %s ticks: time +%s ticks");
@@ -274,63 +287,61 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.range.fluid", "Fluid cost: %s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.output", "Output: %s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.fragments", "Fragments: %s (at most %s)");
-        add("container.dimension_tech.structure_data_operator", "Structure Data Operator");
-        add("screen.dimension_tech.structure_operator.copy", "↓Copy↓");
-        add("screen.dimension_tech.structure_operator.clear", "Clear");
-        add("screen.dimension_tech.structure_operator.refresh", "Explored Structures");
-        add("screen.dimension_tech.structure_operator.all", "All Structures");
-        add("screen.dimension_tech.structure_operator.slots", "Target / Destination / Plugins");
-        add("screen.dimension_tech.structure_operator.tab.operation", "Operate");
-        add("screen.dimension_tech.structure_operator.tab.integrator", "Integrator");
-        add("screen.dimension_tech.structure_operator.tab.interpreter", "Interpreter");
-        add("screen.dimension_tech.structure_operator.target", "Target Marker");
-        add("screen.dimension_tech.structure_operator.destination", "Destination Marker");
-        add("screen.dimension_tech.structure_operator.source_status", "Source data");
-        add("screen.dimension_tech.structure_operator.destination_status", "Write target");
-        add("screen.dimension_tech.structure_operator.integrator", "Data Integrator");
-        add("screen.dimension_tech.structure_operator.interpreter", "Structure Interpreter");
-        add("screen.dimension_tech.structure_operator.inventory", "Player Inventory");
-        add("screen.dimension_tech.structure_operator.page.integrator", "Data Integrator");
-        add("screen.dimension_tech.structure_operator.page.interpreter", "Structure Interpreter");
+        add("jei.dimension_tech.structure_miner.marker", "Marked Structure Marker");
         add(
-                "screen.dimension_tech.structure_operator.source.explored",
-                "Source: Explored structures (%s)");
+                "jei.dimension_tech.structure_miner.marker.tip",
+                "Insert a marker already bound to the structure you want to mine");
+        add("jei.dimension_tech.structure_miner.loot", "Structure Loot");
         add(
-                "screen.dimension_tech.structure_operator.source.all",
-                "Source: All game structures (%s)");
-        add("screen.dimension_tech.structure_operator.search", "Search structure ID");
-        add("screen.dimension_tech.structure_operator.write", "Write");
-        add("screen.dimension_tech.structure_operator.refresh_short", "Refresh");
-        add("screen.dimension_tech.structure_operator.write_short", "Write");
-        add("screen.dimension_tech.structure_operator.operands", "Destination markers: %s");
-        add("screen.dimension_tech.structure_operator.empty", "No structures available");
-        add("screen.dimension_tech.structure_operator.empty_marker", "Not installed");
-        add("screen.dimension_tech.structure_operator.no_data", "No structure data");
-        add("screen.dimension_tech.structure_operator.confirm.copy", "Confirm structure copy");
-        add("screen.dimension_tech.structure_operator.confirm.write", "Confirm structure write");
-        add("screen.dimension_tech.structure_operator.preview.source", "Source: %s");
-        add("screen.dimension_tech.structure_operator.preview.target", "Target: %s");
+                "jei.dimension_tech.structure_miner.loot.tip",
+                "The structure's own loot, drawn at the miner's total parallel");
         add(
-                "screen.dimension_tech.structure_operator.preview.overwrite",
-                "Existing data will be overwritten");
-        add("screen.dimension_tech.structure_operator.preview.empty", "Target is currently empty");
-        add("screen.dimension_tech.structure_operator.cancel", "Cancel");
-        add("screen.dimension_tech.structure_operator.confirm", "Confirm");
-        add("screen.dimension_tech.structure_operator.status.copied", "Structure data copied");
-        add("screen.dimension_tech.structure_operator.status.written", "Structure data written");
-        add("screen.dimension_tech.structure_operator.status.cleared", "Structure data cleared");
-        add("screen.dimension_tech.structure_operator.catalogue_marker", "Catalogue marker");
-        add("screen.dimension_tech.structure_operator.catalogue_analysis", "Catalogue analysis");
-        add("screen.dimension_tech.structure_operator.dimension", "Dimension: %s");
-        add("screen.dimension_tech.structure_operator.structure", "Structure: %s");
+                "jei.dimension_tech.structure_miner.requirement",
+                "Fluid requirement: %s mB per work cycle (tank %s mB)");
         add(
-                "screen.dimension_tech.structure_operator.select_entry",
-                "Select a structure with loot");
-        add("screen.dimension_tech.structure_operator.loading", "Loading analysis data");
-        add("screen.dimension_tech.structure_operator.virtual_progress", "Virtual sampling: %s/%s");
+                "jei.dimension_tech.structure_miner.product",
+                "Each cycle yields this item x%s (capped by base parallel)");
         add(
-                "screen.dimension_tech.structure_operator.virtual_approximate",
-                "Approximate result (%s samples)");
+                "jei.dimension_tech.structure_miner.core.chance",
+                "Mining: at most %s rolls per cycle, %s%% chance each");
+        add(
+                "jei.dimension_tech.structure_miner.core.at_least_one",
+                "Chance of at least one core per cycle: ~%s%%");
+        add(
+                "jei.dimension_tech.structure_miner.core.pity",
+                "Pity: chests drop at %s%% base, guaranteed within %s chests");
+        add(
+                "jei.dimension_tech.structure_miner.reward.note",
+                "Actual output scales with parallel upgrades and external acceleration");
+        add(
+                "jei.dimension_tech.structure_miner.not_consumed",
+                "Not consumed: the marker stays in the miner");
+        add("jei.dimension_tech.chest_miner.chest_marker", "Marked Chest Marker");
+        add(
+                "jei.dimension_tech.chest_miner.chest_marker.tip",
+                "Insert a chest marker that has marked a chest");
+        add("jei.dimension_tech.chest_miner.loot", "Chest Loot");
+        add(
+                "jei.dimension_tech.chest_miner.loot.tip",
+                "Expected items from the marked chest's loot table, drawn by total parallel");
+        add(
+                "jei.dimension_tech.structure_miner.time.step",
+                "Duration: structure value \u00f7 effective efficiency, rounded up (ticks)");
+        add(
+                "jei.dimension_tech.structure_miner.time.efficiency",
+                "Effective efficiency: base efficiency \u00d7 efficiency upgrade multiplier");
+        add(
+                "jei.dimension_tech.structure_miner.time.minimum",
+                "Below the %s-tick minimum cycle, the minimum is kept and the excess becomes parallel");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.chance",
+                "Mining drop: %s%%\u2013%s%% per roll (rises with miner tier)");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.first",
+                "Before a first miner exists, also found in chest loot");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.use",
+                "Crafts the Tier 1 Structure Miner");
         add(
                 TranslateHelper.block("tier_1_structure_miner"),
                 "Tier 1 Void Structure Resource Miner");
@@ -349,6 +360,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("container.dimension_tech.tier_6_structure_miner", "Tier 6 Void Structure Resource Miner");
         add("block.dimension_tech.structure_miner_casing", "Miner Casing");
         add("block.dimension_tech.structure_miner_structure", "Miner Structure Block");
+        add("block.dimension_tech.structure_miner_glass", "Structure Miner Glass");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "Tier 1 Parallel Upgrade");
         add("block.dimension_tech.structure_miner_upgrade_luck", "Tier 1 Luck Upgrade");
         add("block.dimension_tech.structure_miner_upgrade_energy", "Tier 1 Energy Upgrade");
@@ -371,8 +383,6 @@ public class ModEnusLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
                     "Tier " + tier + " Aggregate Upgrade");
         }
-        for (int tier = 1; tier <= 6; tier++)
-            add("block.dimension_tech.dimension_focus_tier_" + tier, "Dimension Focus " + tier);
         add("screen.dimension_tech.structure_miner.place_structure", "Place Multiblock Structure");
         add("screen.dimension_tech.structure_miner.place_structure_short", "Build");
         add("screen.dimension_tech.structure_miner.overview.working", "Working: %s / %s");
@@ -415,7 +425,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.materials", "Multiblock Materials");
         add("tooltip.dimension_tech.structure_miner.material.casing", "Miner Casing x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "Miner Structure Block x%s");
-        add("tooltip.dimension_tech.structure_miner.material.focus", "Tier %s Dimension Focus x%s");
+        add(
+                "tooltip.dimension_tech.structure_miner.material.glass",
+                "Structure Miner Glass x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
                 "Any Upgrade Block or Miner Structure Block x%s");
@@ -432,6 +444,57 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.upgrade.parallel", "Parallel: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.luck", "Luck: +%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.none", "No attribute bonuses");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.acquire",
+                "Drops from structure mining, with higher drop chance at higher miner tiers");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.first",
+                "First acquisition: from chest loot, before any miner exists");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.use",
+                "Used to craft the Tier 1 Structure Miner");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator",
+                "A comparator can read the ritual state (%s-%s)");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.steps",
+                "Operation steps %s-%s (%s-%s inside the reward window)");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.levels",
+                "Idle %s - idle blocked %s - commit blocked %s - refining %s");
+        add(
+                "tooltip.dimension_tech.structure_reactor.hold_shift",
+                "Hold Shift for the comparator signal levels");
+        add("screen.dimension_tech.structure_operator.title", "Structure Data Operator");
+        add("screen.dimension_tech.structure_operator.tab.operation", "Operate");
+        add("screen.dimension_tech.structure_operator.tab.integrator", "Explored");
+        add("screen.dimension_tech.structure_operator.tab.interpreter", "All");
+        add("screen.dimension_tech.structure_operator.section.write_slots", "Marker write slots");
+        add("screen.dimension_tech.structure_operator.section.inventory", "Inventory");
+        add("screen.dimension_tech.structure_operator.page.integrator", "Explored structures");
+        add("screen.dimension_tech.structure_operator.page.interpreter", "All structures");
+        add("screen.dimension_tech.structure_operator.search", "Search structures...");
+        add("screen.dimension_tech.structure_operator.copy", "Copy");
+        add("screen.dimension_tech.structure_operator.clear", "Clear");
+        add("screen.dimension_tech.structure_operator.refresh_short", "Redo");
+        add("screen.dimension_tech.structure_operator.write_short", "Write");
+        add("screen.dimension_tech.structure_operator.no_data", "No structure data recorded");
+        add("screen.dimension_tech.structure_operator.empty", "No structures available");
+        add("screen.dimension_tech.structure_operator.loading", "Analysing...");
+        add("screen.dimension_tech.structure_operator.no_loot", "This structure has no loot");
+        add("screen.dimension_tech.structure_operator.select_entry", "Select a structure on the left");
+        add("screen.dimension_tech.structure_operator.dimension", "Dimension");
+        add("screen.dimension_tech.structure_operator.structure", "Structure");
+        add("screen.dimension_tech.structure_operator.virtual_approximate", "Approximate analysis");
+        add("screen.dimension_tech.structure_operator.status.cleared", "Write slots cleared");
+        add("screen.dimension_tech.structure_operator.status.copied", "Copied to write slots");
+        add("screen.dimension_tech.structure_operator.status.written", "Written to read slot");
+        add("screen.dimension_tech.structure_operator.slot.target", "Insert Structure Marker");
+        add("screen.dimension_tech.structure_operator.slot.target.func", "Lets the operator read and analyse the structure");
+        add("screen.dimension_tech.structure_operator.slot.integrator", "Insert Data Integrator");
+        add("screen.dimension_tech.structure_operator.slot.integrator.func", "Unlocks the Explored Structures page");
+        add("screen.dimension_tech.structure_operator.slot.interpreter", "Insert Structure Interpreter");
+        add("screen.dimension_tech.structure_operator.slot.interpreter.func", "Unlocks the All Structures page (requires a Data Integrator)");
         add("screen.dimension_tech.struct_marker.title", "Structure Marker Analysis");
         add("screen.dimension_tech.struct_marker.subtitle", "Loot expectations and value overview");
         add("screen.dimension_tech.struct_marker.dimension", "Dimension: %s");
@@ -441,11 +504,14 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.structures", "Indexed structures: %s");
         add("screen.dimension_tech.struct_marker.item", "Item");
         add("screen.dimension_tech.struct_marker.expected", "Expected");
+        add("screen.dimension_tech.struct_marker.items_heading", "Item expectations");
+        add("screen.dimension_tech.struct_marker.item_count", "%s items");
         add("screen.dimension_tech.struct_marker.multiplier_header", "Multiplier");
         add("screen.dimension_tech.struct_marker.multiplier", "Multiplier: %s");
         add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
+        add("screen.dimension_tech.struct_marker.mark", "Mark Structure");
         add("screen.dimension_tech.struct_marker.select", "Select Structure");
-        add("screen.dimension_tech.struct_marker.clear", "Clear Structure");
+        add("screen.dimension_tech.struct_marker.clear", "Clear Data");
         add(
                 "screen.dimension_tech.struct_marker.select_prompt",
                 "Multiple structures found here; select one");
@@ -670,6 +736,23 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "Legacy value hidden; mark the structure again");
         add(TranslateHelper.tooltip("struct_marker.structure"), "Structure: %s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "Structure: None");
+        add(TranslateHelper.item("chest_marker"), "Chest Marker");
+        add("screen.dimension_tech.chest_marker.title", "Chest Marker Analysis");
+        add("screen.dimension_tech.chest_marker.selection.selected", "Chest marked");
+        add("screen.dimension_tech.chest_marker.selection.empty", "No chest marked");
+        add("screen.dimension_tech.chest_marker.calculation_method", "Calculation method: %s");
+        add("screen.dimension_tech.chest_marker.chest_value", "Chest Value");
+        add("dimension_tech.structure.dimension_tech.chest_marker", "Chest");
+        add(
+                TranslateHelper.tooltip("chest_marker.empty"),
+                "Press V to analyse the chest under the crosshair");
+        add(TranslateHelper.tooltip("chest_marker.chest_value"), "Chest value: %s");
+        add(TranslateHelper.tooltip("chest_marker.chest"), "Chest: %s");
+        add(TranslateHelper.tooltip("chest_marker.no_chest"), "Chest: None");
+        add("key.dimension_tech.chest_analyse", "Analyse Chest");
+        add(
+                "message.dimension_tech.chest_marker.no_target",
+                "The block under the crosshair is not an analysable chest");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "Structure Miner Status");
         add("jade.dimension_tech.status.idle", "Idle");
         add("jade.dimension_tech.status.running", "Running");

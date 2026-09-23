@@ -28,3 +28,7 @@ forge*changelog.txt
 
 # Agent workspace data (project memory); never part of the shipped sources
 .workbuddy/
+
+# Design docs and AI-tool workspaces: not part of the shipped sources
+docs/
+.trae/

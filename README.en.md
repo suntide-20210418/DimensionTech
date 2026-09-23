@@ -29,9 +29,11 @@ Mythic Miners are available from Tier 1 through Tier 6. Each tier can process mu
 The base multiblock requires:
 
 - 32 Mythic Miner Casings
-- 1 Mythic Miner Structure block
+- 2 Mythic Miner Structure blocks
 - 8 Dimension Foci matching the miner tier
 - 12 upgrade blocks
+
+The whole machine hangs below the miner itself (the miner owns the top layer): clear a 5x5x5 space underneath it first. The projection marks every position.
 
 Tier 1 requires no fluid by default. Tiers 2 through 6 respectively require:
 

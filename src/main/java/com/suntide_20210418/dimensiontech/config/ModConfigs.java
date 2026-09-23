@@ -79,6 +79,7 @@ public final class ModConfigs {
         private final ForgeConfigSpec.DoubleValue epicMultiplier;
         private final ForgeConfigSpec.EnumValue<ItemExpectationMethod> itemExpectationMethod;
         private final ForgeConfigSpec.IntValue samplingCount;
+        private final ForgeConfigSpec.IntValue glmSupplementSamples;
         private final ForgeConfigSpec.IntValue virtualStructureSamples;
         private final ForgeConfigSpec.IntValue virtualStructureStepsPerTick;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionValues;
@@ -108,6 +109,13 @@ public final class ModConfigs {
             samplingCount =
                     builder.comment("Monte Carlo samples per loot table")
                             .defineInRange("samplingCount", 1000, 1, 1_000_000);
+            glmSupplementSamples =
+                    builder.comment(
+                                    "Supplemental Monte Carlo draws used to observe items injected",
+                                    "by Forge global loot modifiers into an otherwise exactly",
+                                    "analyzed table. Only runs when a modifier targets the table",
+                                    "or a runtime probe detects an injection.")
+                            .defineInRange("glmSupplementSamples", 64, 1, 1_000_000);
             virtualStructureSamples =
                     builder.comment(
                                     "Detached structure-generation samples used by catalogue"
@@ -128,7 +136,8 @@ public final class ModConfigs {
                                             "minecraft:overworld=1.0",
                                             "minecraft:the_nether=10.0",
                                             "minecraft:the_end=20.0",
-                                            "allthemodium:the_other=100.0"),
+                                            "allthemodium:the_other=100.0",
+                                            "bloodmagic:dungeon=100.0"),
                                     StructureValueConfig::isDimensionValueEntry);
             itemMultipliers =
                     builder.comment(
@@ -300,7 +309,12 @@ public final class ModConfigs {
         }
 
         public String expectationFingerprint() {
-            return "algorithm=1|method=" + itemExpectationMethod() + "|samples=" + samplingCount();
+            return "algorithm=1|method="
+                    + itemExpectationMethod()
+                    + "|samples="
+                    + samplingCount()
+                    + "|glmSamples="
+                    + glmSupplementSamples();
         }
 
         private static void addFilterFingerprint(
@@ -324,6 +338,10 @@ public final class ModConfigs {
             return StructureScriptConfigService.samplingCount() != null
                     ? StructureScriptConfigService.samplingCount()
                     : samplingCount.get();
+        }
+
+        public int glmSupplementSamples() {
+            return glmSupplementSamples.get();
         }
 
         public int virtualStructureSamples() {

@@ -49,8 +49,9 @@ final class StructureMinerPageRenderer {
 
     /**
      * @return {@code true} when the page consumed the click. The work page returns {@code false} for
-     *     anything that is not part of its lane, because the player inventory is still vanilla's to
-     *     handle.
+     *     anything that is not part of its lane. The scrolling pages own every primary click inside
+     *     their canvas, and {@code false} everywhere else, so the player inventory below the canvas
+     *     stays vanilla's to handle.
      */
     static boolean mouseClicked(
             StructureMinerScreenContext c,
@@ -60,27 +61,38 @@ final class StructureMinerPageRenderer {
             int button) {
         return switch (page) {
             case WORK -> workClicked(c, x, y, button);
-            // Both scrolling pages swallow every primary click inside their viewport; anything else
-            // is left to the screen, which already answers true for those pages anyway.
-            case INFO -> button == 0 && infoClicked(c, x, y);
-            case ATTRIBUTES -> button == 0 && attributesClicked(c, x, y);
+            case INFO -> button == 0 && insideCanvas(x, y) && infoClicked(c, x, y);
+            case ATTRIBUTES -> button == 0 && insideCanvas(x, y) && attributesClicked(c, x, y);
         };
+    }
+
+    /** True when a panel-local point is inside the page canvas, clear of the player inventory. */
+    private static boolean insideCanvas(double x, double y) {
+        return StructureMinerInfoLayout.inside(
+                x,
+                y,
+                StructureMinerInfoLayout.INFO_X,
+                StructureMinerInfoLayout.INFO_Y,
+                StructureMinerInfoLayout.INFO_W,
+                StructureMinerInfoLayout.INFO_H);
     }
 
     /**
      * Scrolls the current page.
      *
-     * <p>There is deliberately no position gate. The page is the only scrollable surface on the
-     * panel, so gating on hover position can only ever create a way for the wheel to do nothing —
-     * which is indistinguishable from a page that does not scroll, and is exactly the report that
-     * prompted removing it. Where the pointer rests is not information a player expects to matter.
+     * <p>Position is gated by the screen before this is reached: the wheel applies over the page
+     * canvas but not over the player inventory. Pages draw at {@code viewportY - scroll}, so a
+     * larger offset looks further down the content. GLFW reports a positive y-offset for a wheel
+     * pushed away, which must show content above, so the wheel sign is inverted: wheel down
+     * (delta &lt; 0) increases the offset. This matches vanilla's creative inventory, which subtracts
+     * too.
      */
     static boolean mouseScrolled(
             StructureMinerScreenContext c, StructureMinerScreen.Page page, double delta) {
         // Pages draw at `viewportY - scroll`, so a larger offset looks further down the content.
         // GLFW reports a positive y-offset for a wheel pushed away, which must show content above,
         // so the wheel sign is inverted: wheel down (delta < 0) increases the offset. This matches
-        // both vanilla's creative inventory and StructureDataOperatorScreen, which subtract too.
+        // vanilla's creative inventory, which subtracts too.
         int step = -(int) Math.signum(delta) * StructureMinerInfoLayout.ROW_H_INTERACTIVE;
         return switch (page) {
             case INFO -> {

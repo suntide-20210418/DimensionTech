@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorMenu;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
+import com.suntide_20210418.dimensiontech.structurereactor.ReactorAnalogSignal;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorSequenceTelemetry;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
@@ -20,6 +21,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -162,6 +165,17 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     private StructureReactorCycle.Resolution lastResolution = StructureReactorCycle.Resolution.NONE;
 
     private StateId lastEventState;
+
+    /**
+     * The comparator level currently published to neighbouring comparators, or {@code -1} before the
+     * first server tick.
+     *
+     * <p>The sentinel earns its keep on chunk load: the comparators around the reactor keep whatever
+     * they recorded before the save, so a freshly loaded reactor has to publish once even though
+     * nothing has changed since.
+     */
+    private int announcedAnalogSignal = -1;
+
     private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> inventory);
     private final LazyOptional<IFluidHandler> dualFluidCapability =
             LazyOptional.of(() -> new DualTankAccess(inputTank, outputTank));
@@ -322,10 +336,25 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     public boolean exchangeWithFluidContainer(IFluidHandlerItem container) {
         if (container.getTanks() < 1) return false;
         FluidStack held = container.getFluidInTank(0);
-        boolean moved = !held.isEmpty() && fillInputFrom(container, held);
-        if (!moved) moved = fillContainerFromOutput(container);
-        if (moved) setChanged();
-        return moved;
+        boolean input = !held.isEmpty() && fillInputFrom(container, held);
+        boolean output = !input && fillContainerFromOutput(container);
+        if (input || output) {
+            setChanged();
+            playFluidTransferSound(input);
+        }
+        return input || output;
+    }
+
+    /** Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills. */
+    private void playFluidTransferSound(boolean pouringIn) {
+        if (level == null) return;
+        level.playSound(
+                null,
+                worldPosition,
+                pouringIn ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL,
+                SoundSource.BLOCKS,
+                1.0F,
+                1.0F);
     }
 
     /** Feeds the input tank from a filled container, as far as its remaining room allows. */
@@ -444,30 +473,36 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     public static void serverTick(
             Level level, BlockPos pos, BlockState blockState, StructureReactorBlockEntity be) {
-        // With redstone control on, the reactor stays inert until a strong redstone signal arrives.
-        if (be.redstoneControl && level.getBestNeighborSignal(pos) == 0) return;
-        if (level instanceof ServerLevel serverLevel) {
-            if (be.autoPullFluid) be.pullFluids(serverLevel);
-            if (be.autoPushFluid) be.pushFluid(serverLevel);
+        // Redstone control gates the cycle, not the outward report: a reactor frozen by a missing
+        // signal still has to tell comparators which step it is frozen on.
+        boolean cycleRuns = !be.redstoneControl || level.getBestNeighborSignal(pos) > 0;
+        if (cycleRuns) {
+            if (level instanceof ServerLevel serverLevel) {
+                if (be.autoPullFluid) be.pullFluids(serverLevel);
+                if (be.autoPushFluid) be.pushFluid(serverLevel);
+            }
+            if (cycleNeedsStart(be)) be.tryStart();
+            if (be.cycle.status() == StructureReactorCycle.Status.RUNNING) {
+                be.cycle.tick();
+                ItemStack operation = be.inventory.getStackInSlot(OPERATION_SLOT);
+                // The state the reactor is waiting on, captured before the settle advances it.
+                StateId expected = be.cycle.currentState();
+                // The slot is empty on most ticks; only a real submission may settle or penalize.
+                StructureReactorCycle.Resolution result =
+                        be.cycle.resolve(operation, operation.isEmpty());
+                if (result != StructureReactorCycle.Resolution.NONE) be.recordEvent(result, expected);
+                if (result.consumesInput()) be.inventory.extractItem(OPERATION_SLOT, 1, false);
+                be.setChanged();
+            }
+            if (be.cycle.status() == StructureReactorCycle.Status.REFINING) {
+                be.cycle.tick();
+                be.setChanged();
+            }
+            if (be.cycle.status() == StructureReactorCycle.Status.READY_TO_COMMIT) be.tryCommit();
         }
-        if (cycleNeedsStart(be)) be.tryStart();
-        if (be.cycle.status() == StructureReactorCycle.Status.RUNNING) {
-            be.cycle.tick();
-            ItemStack operation = be.inventory.getStackInSlot(OPERATION_SLOT);
-            // The state the reactor is waiting on, captured before the settle advances it.
-            StateId expected = be.cycle.currentState();
-            // The slot is empty on most ticks; only a real submission may settle or penalize.
-            StructureReactorCycle.Resolution result =
-                    be.cycle.resolve(operation, operation.isEmpty());
-            if (result != StructureReactorCycle.Resolution.NONE) be.recordEvent(result, expected);
-            if (result.consumesInput()) be.inventory.extractItem(OPERATION_SLOT, 1, false);
-            be.setChanged();
-        }
-        if (be.cycle.status() == StructureReactorCycle.Status.REFINING) {
-            be.cycle.tick();
-            be.setChanged();
-        }
-        if (be.cycle.status() == StructureReactorCycle.Status.READY_TO_COMMIT) be.tryCommit();
+        // Published after the tick body, because a refinement whose resources are in place commits
+        // within the same tick: refining goes straight to idle instead of flashing the blocked level.
+        be.announceAnalogSignal();
     }
 
     /**
@@ -487,14 +522,92 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         return be.cycle.status() == StructureReactorCycle.Status.IDLE;
     }
 
-    private void tryStart() {
-        StructureReactorRecipe recipe =
-                StructureReactorRecipes.firstMatching(inputTank.getFluid().getFluid());
-        if (recipe == null || inputTank.getFluidAmount() < recipe.baseFluidCost()) return;
+    /**
+     * The comparator level this reactor announces right now.
+     *
+     * <p>It is a pure function of the cycle and the stored material, so a comparator that re-reads at
+     * any moment gets the same answer the tick loop compares against, and the block never has to keep
+     * a second copy of the state machine in sync with the first.
+     *
+     * <p>A client-side block entity carries no tank or inventory contents, so the idle sub-case
+     * degrades to the plain idle level there. That is harmless: the power a comparator emits is
+     * decided by the server, and both idle levels still read as "on" for {@code shouldTurnOn}.
+     */
+    public int analogSignal() {
+        return ReactorAnalogSignal.of(
+                cycle.status(),
+                cycle.currentState(),
+                cycle.stateTicks(),
+                cycle.status() == StructureReactorCycle.Status.IDLE
+                        && startCheck().block() != StartBlock.NONE);
+    }
+
+    /**
+     * Publishes {@link #analogSignal()} to neighbouring comparators, but only when the level actually
+     * changed.
+     *
+     * <p>Notifying unconditionally would walk all six neighbours on every tick and, through redstone
+     * conductors, reach the blocks behind them. Hooking {@link #setChanged()} is no better: the
+     * running and refining branches call it on every tick already.
+     */
+    private void announceAnalogSignal() {
+        if (level == null || level.isClientSide) return;
+        int signal = analogSignal();
+        if (signal == announcedAnalogSignal) return;
+        announcedAnalogSignal = signal;
+        level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
+    }
+
+    /** Why a cycle cannot start from the stored material; {@link StartBlock#NONE} when it can. */
+    public enum StartBlock {
+        NONE,
+        WAITING,
+        FOREIGN_FLUID,
+        WRONG_FRAGMENTS,
+        OUTPUT_BLOCKED
+    }
+
+    /** The recipe a start attempt would use, together with the reason it is refused. */
+    private record StartCheck(StructureReactorRecipe<ItemStack> recipe, StartBlock block) {}
+
+    /**
+     * The single verdict on whether a cycle may begin, and why it may not.
+     *
+     * <p>{@link #tryStart()} and {@link #analogSignal()} both read this one verdict, so the redstone
+     * report can never disagree with what the reactor actually does. Splitting the checks between
+     * them is precisely how a "blocked" report would end up describing a reactor that is running.
+     *
+     * <p>Only conditions a player cannot wait out map to {@link StartBlock#WAITING}: material that is
+     * still arriving resolves itself, while material no recipe accepts never will.
+     */
+    private StartCheck startCheck() {
+        FluidStack held = inputTank.getFluid();
+        StructureReactorRecipe<ItemStack> recipe =
+                StructureReactorRecipes.firstMatching(held.getFluid());
+        if (recipe == null) {
+            return new StartCheck(
+                    null, held.isEmpty() ? StartBlock.WAITING : StartBlock.FOREIGN_FLUID);
+        }
+        if (held.getAmount() < recipe.baseFluidCost())
+            return new StartCheck(recipe, StartBlock.WAITING);
         ItemStack fragments = inventory.getStackInSlot(FRAGMENT_SLOT);
-        if (!recipe.fragment().test(fragments) || fragments.getCount() < recipe.fragmentCount())
-            return;
-        if (outputTank.getCapacity() - outputTank.getFluidAmount() < recipe.targetOutput()) return;
+        if (!recipe.fragment().test(fragments)) {
+            // An empty slot is a player who has not got there yet; a wrong item is a mistake.
+            return new StartCheck(
+                    recipe, fragments.isEmpty() ? StartBlock.WAITING : StartBlock.WRONG_FRAGMENTS);
+        }
+        if (fragments.getCount() < recipe.fragmentCount())
+            return new StartCheck(recipe, StartBlock.WAITING);
+        if (outputTank.getCapacity() - outputTank.getFluidAmount() < recipe.targetOutput()) {
+            return new StartCheck(recipe, StartBlock.OUTPUT_BLOCKED);
+        }
+        return new StartCheck(recipe, StartBlock.NONE);
+    }
+
+    private void tryStart() {
+        StartCheck check = startCheck();
+        if (check.block() != StartBlock.NONE) return;
+        StructureReactorRecipe<ItemStack> recipe = check.recipe();
         FluidStack extracted =
                 inputTank.drain(recipe.baseFluidCost(), IFluidHandler.FluidAction.EXECUTE);
         if (extracted.getAmount() != recipe.baseFluidCost()) return;

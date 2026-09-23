@@ -2,30 +2,15 @@ package com.suntide_20210418.dimensiontech;
 
 import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.block.ModBlocks;
-import com.suntide_20210418.dimensiontech.block.entity.LootAnalysisFingerprintGameTests;
 import com.suntide_20210418.dimensiontech.block.entity.ModBlockEntities;
-import com.suntide_20210418.dimensiontech.block.entity.StructureMinerMarkerAnalysisCacheGameTests;
-import com.suntide_20210418.dimensiontech.block.entity.StructureMinerTierGameTests;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
-import com.suntide_20210418.dimensiontech.gametest.EquipmentDismantleGameTests;
-import com.suntide_20210418.dimensiontech.gametest.LootExpectationGameTests;
-import com.suntide_20210418.dimensiontech.gametest.StructureReactorFluidContainerGameTests;
-import com.suntide_20210418.dimensiontech.gametest.StructureReactorGameTests;
-import com.suntide_20210418.dimensiontech.gametest.StructureReactorTankControlGameTests;
-import com.suntide_20210418.dimensiontech.gametest.StructureReactorTransactionGameTests;
-import com.suntide_20210418.dimensiontech.gametest.StructureMinerJadeGameTests;
-import com.suntide_20210418.dimensiontech.gametest.StructureMinerTickContractGameTests;
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
-import com.suntide_20210418.dimensiontech.structureminer.output.StructureMinerLootMergeGameTests;
-import com.suntide_20210418.dimensiontech.structureminer.output.StructureMinerOutputRouterGameTests;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
-import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculatorGameTests;
-import com.suntide_20210418.dimensiontech.structure.analysis.VirtualStructureSamplerGameTests;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -68,23 +53,5 @@ public class DimensionTechMod {
                     StructureReactorRecipes.resetDefaults();
                     ModNetwork.register();
                 });
-    }
-
-    private static void registerGameTests(RegisterGameTestsEvent event) {
-        event.register(LootExpectationGameTests.class);
-        event.register(EquipmentDismantleGameTests.class);
-        event.register(StructureMinerTickContractGameTests.class);
-        event.register(StructureReactorGameTests.class);
-        event.register(StructureReactorTransactionGameTests.class);
-        event.register(StructureReactorFluidContainerGameTests.class);
-        event.register(StructureReactorTankControlGameTests.class);
-        event.register(StructureMinerJadeGameTests.class);
-        event.register(StructureMinerLootMergeGameTests.class);
-        event.register(StructureMinerMarkerAnalysisCacheGameTests.class);
-        event.register(StructureMinerOutputRouterGameTests.class);
-        event.register(StructureMinerTierGameTests.class);
-        event.register(LootAnalysisFingerprintGameTests.class);
-        event.register(StructureValueCalculatorGameTests.class);
-        event.register(VirtualStructureSamplerGameTests.class);
     }
 }

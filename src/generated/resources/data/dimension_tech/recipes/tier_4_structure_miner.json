@@ -2,9 +2,6 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": {
-      "item": "dimension_tech:dimension_focus_tier_4"
-    },
     "F": {
       "item": "dimension_tech:dimension_fragment_tier_3"
     },
@@ -20,8 +17,8 @@
   },
   "pattern": [
     "SFS",
-    "CMC",
-    "STS"
+    "TMT",
+    "SFS"
   ],
   "result": {
     "item": "dimension_tech:tier_4_structure_miner"

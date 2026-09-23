@@ -6,75 +6,128 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** Coordinate-faithful structure adapted from the supplied Modular Machinery definition. */
+/**
+ * Drum-style rig: one 5x5 flange plate hangs under the head, a 3x3 glazed waist carries the
+ * upgrade bays, and a matching 5x5 flange closes the bottom.
+ *
+ * <p>The head keeps its four side neighbours and the block above it free, so automation can attach
+ * to any of those five faces without routing around the frame. Nothing in the pattern reaches
+ * beyond the 3x3 waist horizontally except the two flange plates, so the silhouette stays a square
+ * from every side instead of sprouting arms.
+ *
+ * <p>The layout is deliberately tier-independent: every block is one of the shared frame parts, so
+ * the four {@code Set} fields below are the single source of truth for the shape, the material
+ * plan and the projection overlay.
+ */
 public class StructureMinerMultiblock {
+    /**
+     * Each flange plate is a 5x5 perimeter ring plus the four spokes that reach the waist columns.
+     * Without the spokes the plates would only touch air: the waist sits at radius 1, the ring at
+     * radius 2, and nothing in between.
+     */
     private static final Set<String> CASING =
             Set.of(
-                    "-2,0,2",
-                    "-3,0,0",
-                    "-2,0,-2",
-                    "3,0,0",
-                    "2,0,2",
-                    "3,-1,0",
-                    "2,-1,-2",
-                    "1,-1,-2",
-                    "-3,-1,1",
-                    "-2,-1,1",
-                    "-1,-1,-2",
-                    "-3,-1,0",
                     "-2,-1,-2",
-                    "-1,-1,3",
-                    "2,-1,1",
-                    "3,-1,-1",
-                    "2,-1,-1",
-                    "1,-1,-3",
-                    "0,-1,-3",
                     "-2,-1,-1",
+                    "-2,-1,0",
+                    "-2,-1,1",
                     "-2,-1,2",
-                    "1,-1,2",
-                    "2,-1,2",
-                    "0,-1,3",
-                    "3,-1,1",
-                    "1,-1,3",
-                    "0,0,-3",
-                    "0,0,3",
-                    "-1,-1,-3",
-                    "-3,-1,-1",
+                    "-1,-1,-2",
+                    "-1,-1,0",
                     "-1,-1,2",
-                    "2,0,-2");
-    private static final Set<String> FOCUS =
-            Set.of("-3,1,0", "3,1,0", "-2,1,2", "2,1,2", "0,1,-3", "2,1,-2", "0,1,3", "-2,1,-2");
-    private static final Set<String> STRUCTURE = Set.of("0,-1,0");
+                    "0,-1,-2",
+                    "0,-1,-1",
+                    "0,-1,1",
+                    "0,-1,2",
+                    "1,-1,-2",
+                    "1,-1,0",
+                    "1,-1,2",
+                    "2,-1,-2",
+                    "2,-1,-1",
+                    "2,-1,0",
+                    "2,-1,1",
+                    "2,-1,2",
+                    "-2,-5,-2",
+                    "-2,-5,-1",
+                    "-2,-5,0",
+                    "-2,-5,1",
+                    "-2,-5,2",
+                    "-1,-5,-2",
+                    "-1,-5,0",
+                    "-1,-5,2",
+                    "0,-5,-2",
+                    "0,-5,-1",
+                    "0,-5,1",
+                    "0,-5,2",
+                    "1,-5,-2",
+                    "1,-5,0",
+                    "1,-5,2",
+                    "2,-5,-2",
+                    "2,-5,-1",
+                    "2,-5,0",
+                    "2,-5,1",
+                    "2,-5,2");
 
     /**
-     * The twelve non-frame, non-focus parts from the source definition. Each accepts either a miner
-     * upgrade block or a plain casing, so a fresh player can complete the multiblock out of the
-     * casing recipe alone without needing any tier-gated machine product.
+     * The four corner posts of the waist (y = -2, -3, -4). Glass replaces the eight focus blocks
+     * the old layout needed, and it runs the full height of the bay section, so each corner reads
+     * as a window strip between the two flanges.
+     */
+    private static final Set<String> GLASS =
+            Set.of(
+                    "-1,-2,-1",
+                    "-1,-2,1",
+                    "1,-2,-1",
+                    "1,-2,1",
+                    "-1,-3,-1",
+                    "-1,-3,1",
+                    "1,-3,-1",
+                    "1,-3,1",
+                    "-1,-4,-1",
+                    "-1,-4,1",
+                    "1,-4,-1",
+                    "1,-4,1");
+
+    /** The two structure blocks: the hard contract below the head, plus the drill point. */
+    private static final Set<String> STRUCTURE = Set.of("0,-1,0", "0,-5,0");
+
+    /**
+     * The twelve module bays: four face-centred columns of three stacked slots (y = -2, -3, -4),
+     * each seated on a flange spoke below and capped by a flange spoke above. A slot accepts a
+     * miner upgrade block or the structure block, and the build button fills empty ones with the
+     * structure block, so a fresh player can complete the multiblock out of the shared structure
+     * recipe alone without needing any tier-gated machine product.
      */
     private static final Set<String> UPGRADE =
             Set.of(
-                    "2,-1,0",
-                    "1,-1,0",
-                    "-1,-1,0",
-                    "0,-1,-2",
-                    "-2,-1,0",
-                    "-1,-1,1",
-                    "0,-1,1",
-                    "1,-1,1",
-                    "1,-1,-1",
-                    "0,-1,-1",
-                    "-1,-1,-1",
-                    "0,-1,2");
+                    "0,-2,-1",
+                    "0,-2,1",
+                    "-1,-2,0",
+                    "1,-2,0",
+                    "0,-3,-1",
+                    "0,-3,1",
+                    "-1,-3,0",
+                    "1,-3,0",
+                    "0,-4,-1",
+                    "0,-4,1",
+                    "-1,-4,0",
+                    "1,-4,0");
 
     private StructureMinerMultiblock() {}
 
     public enum ProjectionKind {
         CASING,
-        FOCUS,
+        GLASS,
         STRUCTURE,
         UPGRADE
     }
@@ -96,18 +149,15 @@ public class StructureMinerMultiblock {
         }
     }
 
-    public static List<ProjectionBlock> projection(int tier) {
+    public static List<ProjectionBlock> projection() {
         BlockState casing = ModBlocks.STRUCTURE_MINER_CASING.get().defaultBlockState();
+        BlockState glass = ModBlocks.STRUCTURE_MINER_GLASS.get().defaultBlockState();
         BlockState structure = ModBlocks.STRUCTURE_MINER_STRUCTURE.get().defaultBlockState();
-        BlockState focus =
-                ModBlocks.DIMENSION_FOCUS[Math.max(0, Math.min(5, tier - 1))]
-                        .get()
-                        .defaultBlockState();
-        List<ProjectionBlock> blocks = new ArrayList<>(53);
+        List<ProjectionBlock> blocks = new ArrayList<>(66);
         addProjection(blocks, CASING, casing, ProjectionKind.CASING);
-        addProjection(blocks, FOCUS, focus, ProjectionKind.FOCUS);
+        addProjection(blocks, GLASS, glass, ProjectionKind.GLASS);
         addProjection(blocks, STRUCTURE, structure, ProjectionKind.STRUCTURE);
-        addProjection(blocks, UPGRADE, casing, ProjectionKind.UPGRADE);
+        addProjection(blocks, UPGRADE, structure, ProjectionKind.UPGRADE);
         return List.copyOf(blocks);
     }
 
@@ -117,28 +167,42 @@ public class StructureMinerMultiblock {
             BlockState state,
             ProjectionKind kind) {
         for (String coordinate : coordinates) {
-            String[] components = coordinate.split(",");
+            int[] components = parse(coordinate);
             blocks.add(
                     new ProjectionBlock(
-                            new BlockPos(
-                                    Integer.parseInt(components[0]),
-                                    Integer.parseInt(components[1]),
-                                    Integer.parseInt(components[2])),
-                            state,
-                            kind));
+                            new BlockPos(components[0], components[1], components[2]), state, kind));
         }
+    }
+
+    /**
+     * How many blocks of each kind the pattern needs, indexed by {@link ProjectionKind#ordinal()}.
+     * Read straight off the coordinate sets, so the shift-tooltip material list can never drift
+     * from the geometry.
+     */
+    public static int[] projectionCounts() {
+        int[] counts = new int[ProjectionKind.values().length];
+        counts[ProjectionKind.CASING.ordinal()] = CASING.size();
+        counts[ProjectionKind.GLASS.ordinal()] = GLASS.size();
+        counts[ProjectionKind.STRUCTURE.ordinal()] = STRUCTURE.size();
+        counts[ProjectionKind.UPGRADE.ordinal()] = UPGRADE.size();
+        return counts;
+    }
+
+    /** Splits one {@code "x,y,z"} key into its three ints. */
+    private static int[] parse(String coordinate) {
+        String[] components = coordinate.split(",");
+        return new int[] {
+            Integer.parseInt(components[0]),
+            Integer.parseInt(components[1]),
+            Integer.parseInt(components[2])
+        };
     }
 
     public static List<StructureMinerUpgradeBlock> upgrades(ServerLevel level, BlockPos center) {
         List<StructureMinerUpgradeBlock> blocks = new ArrayList<>(UPGRADE.size());
         for (String coordinate : UPGRADE) {
-            String[] components = coordinate.split(",");
-            BlockPos offset =
-                    new BlockPos(
-                            Integer.parseInt(components[0]),
-                            Integer.parseInt(components[1]),
-                            Integer.parseInt(components[2]));
-            if (level.getBlockState(center.offset(offset)).getBlock()
+            int[] offset = parse(coordinate);
+            if (level.getBlockState(center.offset(offset[0], offset[1], offset[2])).getBlock()
                     instanceof StructureMinerUpgradeBlock upgrade) {
                 blocks.add(upgrade);
             }
@@ -147,10 +211,10 @@ public class StructureMinerMultiblock {
     }
 
     /** Read-only material plan for the build button; never mutates the level. */
-    public static BuildPlan planMaterials(ServerLevel level, BlockPos center, int tier) {
+    public static BuildPlan planMaterials(ServerLevel level, BlockPos center) {
         Map<Block, Integer> required = new LinkedHashMap<>();
         List<BlockPos> blocked = new ArrayList<>();
-        for (ProjectionBlock projected : projection(tier)) {
+        for (ProjectionBlock projected : projection()) {
             BlockPos target = center.offset(projected.offset());
             BlockState actual = level.getBlockState(target);
             Block wanted = projected.state().getBlock();
@@ -170,20 +234,17 @@ public class StructureMinerMultiblock {
                 || state.is(ModBlocks.STRUCTURE_MINER_STRUCTURE.get());
     }
 
-    public static boolean isComplete(ServerLevel level, BlockPos center, int tier) {
+    public static boolean isComplete(ServerLevel level, BlockPos center) {
         BlockState casing = ModBlocks.STRUCTURE_MINER_CASING.get().defaultBlockState();
+        BlockState glass = ModBlocks.STRUCTURE_MINER_GLASS.get().defaultBlockState();
         BlockState structure = ModBlocks.STRUCTURE_MINER_STRUCTURE.get().defaultBlockState();
-        BlockState focus =
-                ModBlocks.DIMENSION_FOCUS[Math.max(0, Math.min(5, tier - 1))]
-                        .get()
-                        .defaultBlockState();
-        for (int x = -3; x <= 3; x++)
-            for (int y = -1; y <= 1; y++)
-                for (int z = -3; z <= 3; z++) {
+        for (int x = -2; x <= 2; x++)
+            for (int y = -5; y <= -1; y++)
+                for (int z = -2; z <= 2; z++) {
                     String key = x + "," + y + "," + z;
                     BlockState actual = level.getBlockState(center.offset(x, y, z));
                     if (CASING.contains(key) && !actual.is(casing.getBlock())) return false;
-                    if (FOCUS.contains(key) && !actual.is(focus.getBlock())) return false;
+                    if (GLASS.contains(key) && !actual.is(glass.getBlock())) return false;
                     if (STRUCTURE.contains(key) && !actual.is(structure.getBlock())) return false;
                     if (UPGRADE.contains(key) && !acceptsUpgradeSlot(actual)) return false;
                 }
@@ -191,13 +252,95 @@ public class StructureMinerMultiblock {
     }
 
     public static void place(ServerLevel level, BlockPos center) {
-        place(level, center, 1);
-    }
-
-    public static void place(ServerLevel level, BlockPos center, int tier) {
-        for (ProjectionBlock projected : projection(tier)) {
+        for (ProjectionBlock projected : projection()) {
             level.setBlock(
                     center.offset(projected.offset()), projected.state(), Block.UPDATE_ALL);
         }
+    }
+
+    /**
+     * Builds the full multiblock, charging the player for whatever it places. Nothing is mutated
+     * until the whole plan validates, so an obstructed or understocked attempt leaves the world
+     * untouched rather than producing a half-built structure. Positions that already hold the right
+     * block are not charged again, which makes a repeated press free.
+     *
+     * @return a message to show the player, or {@code null} when the build succeeded or had nothing
+     *     left to place
+     */
+    public static Component buildFromInventory(
+            ServerLevel level, BlockPos center, Player player) {
+        BuildPlan plan = planMaterials(level, center);
+        if (!plan.isClear()) {
+            return Component.translatable(
+                    "message.dimension_tech.structure_miner.build_blocked", plan.blocked().size());
+        }
+        if (plan.isSatisfied()) return null;
+
+        // Creative players place for free; only survival pays out of the inventory.
+        if (!player.getAbilities().instabuild) {
+            Map<Block, Integer> shortfall = missingFromInventory(player, plan.required());
+            if (!shortfall.isEmpty()) {
+                return shortfallMessage(shortfall);
+            }
+            consumeFromInventory(player, plan.required());
+        }
+        place(level, center);
+        return null;
+    }
+
+    /** Compares a plan against the player's carried blocks; empty when they can pay in full. */
+    private static Map<Block, Integer> missingFromInventory(
+            Player player, Map<Block, Integer> required) {
+        Map<Block, Integer> shortfall = new LinkedHashMap<>();
+        for (Map.Entry<Block, Integer> entry : required.entrySet()) {
+            int available = countInInventory(player, entry.getKey());
+            if (available < entry.getValue()) {
+                shortfall.put(entry.getKey(), entry.getValue() - available);
+            }
+        }
+        return shortfall;
+    }
+
+    private static int countInInventory(Player player, Block block) {
+        Item item = block.asItem();
+        Inventory inventory = player.getInventory();
+        int total = 0;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.is(item)) total += stack.getCount();
+        }
+        return total;
+    }
+
+    private static void consumeFromInventory(Player player, Map<Block, Integer> required) {
+        Inventory inventory = player.getInventory();
+        for (Map.Entry<Block, Integer> entry : required.entrySet()) {
+            Item item = entry.getKey().asItem();
+            int remaining = entry.getValue();
+            for (int slot = 0; slot < inventory.getContainerSize() && remaining > 0; slot++) {
+                ItemStack stack = inventory.getItem(slot);
+                if (!stack.is(item)) continue;
+                int taken = Math.min(remaining, stack.getCount());
+                stack.shrink(taken);
+                remaining -= taken;
+            }
+        }
+        inventory.setChanged();
+    }
+
+    private static Component shortfallMessage(Map<Block, Integer> shortfall) {
+        MutableComponent entries = Component.empty();
+        boolean first = true;
+        for (Map.Entry<Block, Integer> entry : shortfall.entrySet()) {
+            if (!first) entries.append(Component.literal(", "));
+            first = false;
+            entries.append(
+                    Component.translatable(
+                            "message.dimension_tech.structure_miner.build_missing_entry",
+                            entry.getKey().getName(),
+                            entry.getValue()));
+        }
+        return Component.translatable(
+                "message.dimension_tech.structure_miner.build_missing", entries);
     }
 }

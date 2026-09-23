@@ -15,7 +15,7 @@ public final class ModRecipes {
     private ModRecipes() {}
 
     public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, path);
+        return new ResourceLocation(DimensionTechMod.MOD_ID, path);
     }
 
     public static void register(IEventBus eventBus) {

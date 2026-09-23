@@ -1,10 +1,12 @@
 package com.suntide_20210418.dimensiontech.network;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
-import com.suntide_20210418.dimensiontech.block.entity.StructureMinerAnalysisSnapshot;
 import com.suntide_20210418.dimensiontech.block.entity.StructureDataOperatorBlockEntity;
-import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
+import com.suntide_20210418.dimensiontech.block.entity.StructureMinerAnalysisSnapshot;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
+import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
+import com.suntide_20210418.dimensiontech.item.ChestMarkerItem;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
@@ -30,10 +32,10 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "6";
+    private static final String VERSION = "10";
     private static final SimpleChannel CHANNEL =
             NetworkRegistry.newSimpleChannel(
-                    ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, "main"),
+                    new ResourceLocation(DimensionTechMod.MOD_ID, "main"),
                     () -> VERSION,
                     VERSION::equals,
                     VERSION::equals);
@@ -82,20 +84,35 @@ public final class ModNetwork {
                 .decoder(StructureReactorTooltipPacket::decode)
                 .consumerMainThread(StructureReactorTooltipPacket::handle)
                 .add();
-        CHANNEL.messageBuilder(StructureOperatorActionPacket.class, nextId++)
-                .encoder(StructureOperatorActionPacket::encode)
-                .decoder(StructureOperatorActionPacket::decode)
-                .consumerMainThread(StructureOperatorActionPacket::handle)
+        CHANNEL.messageBuilder(OperatorCatalogueRequestPacket.class, nextId++)
+                .encoder(OperatorCatalogueRequestPacket::encode)
+                .decoder(OperatorCatalogueRequestPacket::decode)
+                .consumerMainThread(OperatorCatalogueRequestPacket::handle)
                 .add();
-        CHANNEL.messageBuilder(StructureOperatorCataloguePacket.class, nextId++)
-                .encoder(StructureOperatorCataloguePacket::encode)
-                .decoder(StructureOperatorCataloguePacket::decode)
-                .consumerMainThread(StructureOperatorCataloguePacket::handle)
+        CHANNEL.messageBuilder(OperatorCataloguePacket.class, nextId++)
+                .encoder(OperatorCataloguePacket::encode)
+                .decoder(OperatorCataloguePacket::decode)
+                .consumerMainThread(OperatorCataloguePacket::handle)
                 .add();
-        CHANNEL.messageBuilder(StructureOperatorDetailPacket.class, nextId++)
-                .encoder(StructureOperatorDetailPacket::encode)
-                .decoder(StructureOperatorDetailPacket::decode)
-                .consumerMainThread(StructureOperatorDetailPacket::handle)
+        CHANNEL.messageBuilder(OperatorAnalysisRequestPacket.class, nextId++)
+                .encoder(OperatorAnalysisRequestPacket::encode)
+                .decoder(OperatorAnalysisRequestPacket::decode)
+                .consumerMainThread(OperatorAnalysisRequestPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(OperatorAnalysisPacket.class, nextId++)
+                .encoder(OperatorAnalysisPacket::encode)
+                .decoder(OperatorAnalysisPacket::decode)
+                .consumerMainThread(OperatorAnalysisPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(OperatorActionPacket.class, nextId++)
+                .encoder(OperatorActionPacket::encode)
+                .decoder(OperatorActionPacket::decode)
+                .consumerMainThread(OperatorActionPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ChestAnalysisRequestPacket.class, nextId++)
+                .encoder(ChestAnalysisRequestPacket::encode)
+                .decoder(ChestAnalysisRequestPacket::decode)
+                .consumerMainThread(ChestAnalysisRequestPacket::handle)
                 .add();
     }
 
@@ -115,6 +132,11 @@ public final class ModNetwork {
     public static void clear(InteractionHand hand) {
         CHANNEL.sendToServer(
                 new StructMarkerActionPacket(hand, MarkerAction.CLEAR, BlockPos.ZERO, -1));
+    }
+
+    /** Asks the server to analyse the given position with the chest marker in {@code hand}. */
+    public static void requestChestAnalysis(InteractionHand hand, BlockPos position) {
+        CHANNEL.sendToServer(new ChestAnalysisRequestPacket(hand, position));
     }
 
     public static void requestStructureMinerAnalysis(int containerId, int slot) {
@@ -137,255 +159,73 @@ public final class ModNetwork {
                 new StructureReactorTooltipPacket(containerId, snapshot));
     }
 
-    public static void structureOperatorCopy(int containerId) {
-        CHANNEL.sendToServer(
-                new StructureOperatorActionPacket(
-                        containerId, StructureOperatorAction.COPY, null, null));
-    }
-
-    public static void structureOperatorClearOperands(int containerId) {
-        CHANNEL.sendToServer(
-                new StructureOperatorActionPacket(
-                        containerId, StructureOperatorAction.CLEAR_OPERANDS, null, null));
-    }
-
-    public static void structureOperatorLoadCatalogue(int containerId, boolean interpreter) {
-        CHANNEL.sendToServer(
-                new StructureOperatorActionPacket(
-                        containerId,
-                        interpreter
-                                ? StructureOperatorAction.LOAD_INTERPRETER
-                                : StructureOperatorAction.LOAD_INTEGRATOR,
-                        null,
-                        null));
-    }
-
-    public static void structureOperatorRequestDetail(
-            int containerId, ResourceLocation dimension, ResourceLocation structure) {
-        CHANNEL.sendToServer(
-                new StructureOperatorActionPacket(
-                        containerId, StructureOperatorAction.REQUEST_DETAIL, dimension, structure));
-    }
-
-    public static void structureOperatorRefreshDetail(
-            int containerId, ResourceLocation dimension, ResourceLocation structure) {
-        CHANNEL.sendToServer(
-                new StructureOperatorActionPacket(
-                        containerId, StructureOperatorAction.REFRESH_DETAIL, dimension, structure));
-    }
-
-    public static void structureOperatorWrite(
-            int containerId, ResourceLocation dimension, ResourceLocation structure) {
-        CHANNEL.sendToServer(
-                new StructureOperatorActionPacket(
-                        containerId, StructureOperatorAction.WRITE, dimension, structure));
-    }
-
-    private enum StructureOperatorAction {
-        COPY,
-        CLEAR_OPERANDS,
-        LOAD_INTEGRATOR,
-        LOAD_INTERPRETER,
-        REQUEST_DETAIL,
-        REFRESH_DETAIL,
-        WRITE
-    }
-
-    private record StructureOperatorActionPacket(
-            int containerId,
-            StructureOperatorAction action,
-            ResourceLocation dimension,
-            ResourceLocation structure) {
-        void encode(FriendlyByteBuf b) {
-            b.writeVarInt(containerId);
-            b.writeEnum(action);
-            b.writeBoolean(dimension != null);
-            if (dimension != null) b.writeResourceLocation(dimension);
-            b.writeBoolean(structure != null);
-            if (structure != null) b.writeResourceLocation(structure);
-        }
-
-        static StructureOperatorActionPacket decode(FriendlyByteBuf b) {
-            return new StructureOperatorActionPacket(
-                    b.readVarInt(),
-                    b.readEnum(StructureOperatorAction.class),
-                    b.readBoolean() ? b.readResourceLocation() : null,
-                    b.readBoolean() ? b.readResourceLocation() : null);
-        }
-
-        static void handle(StructureOperatorActionPacket p, Supplier<NetworkEvent.Context> s) {
-            NetworkEvent.Context c = s.get();
-            ServerPlayer player = c.getSender();
-            if (player != null
-                    && player.containerMenu instanceof StructureDataOperatorMenu menu
-                    && menu.containerId == p.containerId
-                    && menu.stillValid(player)) {
-                StructureDataOperatorBlockEntity be = menu.blockEntity();
-                switch (p.action) {
-                    case COPY -> be.copyData();
-                    case CLEAR_OPERANDS -> be.clearOperandData();
-                    case LOAD_INTEGRATOR -> {
-                        if (be.hasIntegrator()) {
-                            be.refreshCatalogue(player, false);
-                            sendCatalogue(player, be.catalogue());
-                        }
-                    }
-                    case LOAD_INTERPRETER -> {
-                        if (be.hasIntegrator() && be.hasInterpreter()) {
-                            be.refreshCatalogue(player, true);
-                            sendCatalogue(player, be.catalogue());
-                        }
-                    }
-                    case REQUEST_DETAIL -> {
-                        if (p.dimension != null && p.structure != null)
-                            sendDetail(player, be, p.dimension, p.structure);
-                    }
-                    case REFRESH_DETAIL -> {
-                        if (p.dimension != null && p.structure != null) {
-                            be.refreshCatalogueAnalysis(p.dimension, p.structure);
-                            sendDetail(player, be, p.dimension, p.structure);
-                        }
-                    }
-                    case WRITE -> {
-                        if (p.dimension != null && p.structure != null)
-                            be.writeCatalogueEntry(p.dimension, p.structure);
-                    }
-                }
-                player.containerMenu.broadcastChanges();
-            }
-            c.setPacketHandled(true);
-        }
-    }
-
-    private static void sendCatalogue(
-            ServerPlayer player,
-            List<StructureDataOperatorBlockEntity.StructureCatalogueEntry> entries) {
-        CHANNEL.send(
-                PacketDistributor.PLAYER.with(() -> player),
-                new StructureOperatorCataloguePacket(entries));
-    }
-
-    private static void sendDetail(
-            ServerPlayer player,
-            StructureDataOperatorBlockEntity be,
-            ResourceLocation dimension,
-            ResourceLocation structure) {
-        be.catalogue().stream()
-                .filter(
-                        entry ->
-                                entry.dimension().equals(dimension)
-                                        && entry.structure().equals(structure))
-                .findFirst()
-                .ifPresent(
-                        entry -> {
-                            ItemStack analysisMarker =
-                                    be.analyseCatalogueEntry(entry.dimension(), entry.structure());
-                            CHANNEL.send(
-                                    PacketDistributor.PLAYER.with(() -> player),
-                                    new StructureOperatorDetailPacket(
-                                            entry.dimension(),
-                                            entry.structure(),
-                                            analysisMarker,
-                                            be.catalogueAnalysisState(
-                                                            entry.dimension(), entry.structure())
-                                                    .completedSamples(),
-                                            be.catalogueAnalysisState(
-                                                            entry.dimension(), entry.structure())
-                                                    .totalSamples()));
-                        });
-    }
-
-    private record StructureOperatorCataloguePacket(
-            List<StructureDataOperatorBlockEntity.StructureCatalogueEntry> entries) {
-        void encode(FriendlyByteBuf b) {
-            b.writeVarInt(Math.min(1024, entries.size()));
-            entries.stream()
-                    .limit(1024)
-                    .forEach(
-                            entry -> {
-                                b.writeResourceLocation(entry.dimension());
-                                b.writeResourceLocation(entry.structure());
-                            });
-        }
-
-        static StructureOperatorCataloguePacket decode(FriendlyByteBuf b) {
-            int n = Math.min(1024, Math.max(0, b.readVarInt()));
-            List<StructureDataOperatorBlockEntity.StructureCatalogueEntry> r = new ArrayList<>();
-            for (int i = 0; i < n; i++)
-                r.add(
-                        new StructureDataOperatorBlockEntity.StructureCatalogueEntry(
-                                b.readResourceLocation(),
-                                b.readResourceLocation(),
-                                ItemStack.EMPTY));
-            return new StructureOperatorCataloguePacket(List.copyOf(r));
-        }
-
-        static void handle(StructureOperatorCataloguePacket p, Supplier<NetworkEvent.Context> s) {
-            NetworkEvent.Context c = s.get();
-            net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
-                    Dist.CLIENT,
-                    () ->
-                            () -> {
-                                if (net.minecraft.client.Minecraft.getInstance().screen
-                                        instanceof
-                                        com.suntide_20210418.dimensiontech.client.gui.screen
-                                                        .StructureDataOperatorScreen
-                                                screen) screen.receiveCatalogue(p.entries());
-                            });
-            c.setPacketHandled(true);
-        }
-    }
-
-    private record StructureOperatorDetailPacket(
-            ResourceLocation dimension,
-            ResourceLocation structure,
-            ItemStack marker,
-            int completedSamples,
-            int totalSamples) {
-        void encode(FriendlyByteBuf b) {
-            b.writeResourceLocation(dimension);
-            b.writeResourceLocation(structure);
-            b.writeItem(marker);
-            b.writeVarInt(completedSamples);
-            b.writeVarInt(totalSamples);
-        }
-
-        static StructureOperatorDetailPacket decode(FriendlyByteBuf b) {
-            return new StructureOperatorDetailPacket(
-                    b.readResourceLocation(),
-                    b.readResourceLocation(),
-                    b.readItem(),
-                    b.readVarInt(),
-                    b.readVarInt());
-        }
-
-        static void handle(StructureOperatorDetailPacket p, Supplier<NetworkEvent.Context> s) {
-            NetworkEvent.Context c = s.get();
-            net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
-                    Dist.CLIENT,
-                    () ->
-                            () -> {
-                                if (net.minecraft.client.Minecraft.getInstance().screen
-                                        instanceof
-                                        com.suntide_20210418.dimensiontech.client.gui.screen
-                                                        .StructureDataOperatorScreen
-                                                screen)
-                                    screen.receiveDetail(
-                                            p.dimension(),
-                                            p.structure(),
-                                            p.marker(),
-                                            p.completedSamples(),
-                                            p.totalSamples());
-                            });
-            c.setPacketHandled(true);
-        }
-    }
-
     public static void openRefreshedMarker(
             ServerPlayer player, ItemStack marker, InteractionHand hand) {
         CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
                 new RefreshedMarkerPacket(marker.copy(), hand));
+    }
+
+    // ------------------------------------------------- structure data operator
+
+    /** Copies the read slot's marker data onto every filled write slot. */
+    public static void structureOperatorCopy(int containerId) {
+        CHANNEL.sendToServer(
+                new OperatorActionPacket(containerId, OperatorAction.COPY_TO_OPERANDS, null, null));
+    }
+
+    /** Strips marker data from every write slot. */
+    public static void structureOperatorClearOperands(int containerId) {
+        CHANNEL.sendToServer(
+                new OperatorActionPacket(containerId, OperatorAction.CLEAR_OPERANDS, null, null));
+    }
+
+    /**
+     * Rebuilds the operator's structure catalogue.
+     *
+     * @param interpreter false loads the explored catalogue (Data Integrator), true loads every
+     *     structure the level generator can place (Structure Interpreter).
+     */
+    public static void structureOperatorLoadCatalogue(int containerId, boolean interpreter) {
+        CHANNEL.sendToServer(new OperatorCatalogueRequestPacket(containerId, interpreter));
+    }
+
+    /**
+     * Asks for one catalogue entry's snapshot, reusing whatever the block entity has cached.
+     *
+     * <p>Analysis is asynchronous, so the first answer can come back empty. The screen re-asks on a
+     * tick timer until the snapshot lands; the block entity deduplicates and caches, so the repeats
+     * are cheap.
+     */
+    public static void structureOperatorRequestDetail(
+            int containerId, ResourceLocation dimension, ResourceLocation structure) {
+        CHANNEL.sendToServer(
+                new OperatorAnalysisRequestPacket(containerId, dimension, structure, false));
+    }
+
+    /** The same request, but discarding the cached snapshot first. */
+    public static void structureOperatorRefreshDetail(
+            int containerId, ResourceLocation dimension, ResourceLocation structure) {
+        CHANNEL.sendToServer(
+                new OperatorAnalysisRequestPacket(containerId, dimension, structure, true));
+    }
+
+    /** Writes the selected catalogue entry's snapshot onto the read slot's marker. */
+    public static void structureOperatorWrite(
+            int containerId, ResourceLocation dimension, ResourceLocation structure) {
+        CHANNEL.sendToServer(
+                new OperatorActionPacket(
+                        containerId, OperatorAction.WRITE_TO_READ_SLOT, dimension, structure));
+    }
+
+    /** What the structure data operator's action buttons ask the server to do. */
+    public enum OperatorAction {
+        /** Copy the read slot's marker data onto every filled write slot. */
+        COPY_TO_OPERANDS,
+        /** Strip marker data from every write slot. */
+        CLEAR_OPERANDS,
+        /** Write the selected catalogue entry's snapshot onto the read slot's marker. */
+        WRITE_TO_READ_SLOT
     }
 
     private enum MarkerAction {
@@ -420,22 +260,28 @@ public final class ModNetwork {
             ServerPlayer player = context.getSender();
             if (player != null) {
                 ItemStack stack = player.getItemInHand(packet.hand());
-                if (stack.is(ModItems.STRUCTURE_MARKER.get())) {
+                boolean structureMarker = stack.is(ModItems.STRUCTURE_MARKER.get());
+                boolean chestMarker = stack.is(ModItems.CHEST_MARKER.get());
+                if (structureMarker || chestMarker) {
                     switch (packet.action()) {
                         case CLEAR -> {
-                            StructMarkerItem.clearMarker(stack);
+                            if (structureMarker) StructMarkerItem.clearMarker(stack);
+                            else ChestMarkerItem.clearMarker(stack);
                             openRefreshedMarker(player, stack, packet.hand());
                         }
-                        case REQUEST_SELECTION -> requestChoices(player, stack, packet.hand());
+                        case REQUEST_SELECTION -> {
+                            if (structureMarker) requestChoices(player, stack, packet.hand());
+                        }
                         case SELECT -> {
-                            if (player.blockPosition().equals(packet.selectionPosition())
+                            if (structureMarker
+                                    && player.blockPosition().equals(packet.selectionPosition())
                                     && StructMarkerItem.markAt(
                                             player.serverLevel(),
                                             stack,
                                             packet.selectionPosition(),
                                             packet.selectionIndex())) {
                                 openRefreshedMarker(player, stack, packet.hand());
-                            } else {
+                            } else if (structureMarker) {
                                 player.displayClientMessage(
                                         net.minecraft.network.chat.Component.translatable(
                                                 "message.dimension_tech.struct_marker.selection_invalid"),
@@ -487,9 +333,15 @@ public final class ModNetwork {
             net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
                     Dist.CLIENT,
                     () ->
-                            () ->
+                            () -> {
+                                if (packet.marker().is(ModItems.CHEST_MARKER.get())) {
+                                    com.suntide_20210418.dimensiontech.client.ChestMarkerClient
+                                            .open(packet.marker(), packet.hand());
+                                } else {
                                     com.suntide_20210418.dimensiontech.client.StructMarkerClient
-                                            .open(packet.marker(), packet.hand()));
+                                            .open(packet.marker(), packet.hand());
+                                }
+                            });
             context.setPacketHandled(true);
         }
     }
@@ -854,6 +706,269 @@ public final class ModNetwork {
             if (id < 0) return Fluids.EMPTY;
             Fluid fluid = BuiltInRegistries.FLUID.byId(id);
             return fluid == null ? Fluids.EMPTY : fluid;
+        }
+    }
+
+    // ------------------------------------------------------- operator packets
+
+    /** One catalogue row on the wire. Deliberately not the block entity's own record type. */
+    private record CatalogueRow(ResourceLocation dimension, ResourceLocation structure) {}
+
+    private record OperatorCatalogueRequestPacket(int containerId, boolean allStructures) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeBoolean(allStructures);
+        }
+
+        private static OperatorCatalogueRequestPacket decode(FriendlyByteBuf buffer) {
+            return new OperatorCatalogueRequestPacket(buffer.readVarInt(), buffer.readBoolean());
+        }
+
+        private static void handle(
+                OperatorCatalogueRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            ServerPlayer player = context.getSender();
+            if (player != null
+                    && player.containerMenu instanceof StructureDataOperatorMenu menu
+                    && menu.containerId == packet.containerId()
+                    && menu.stillValid(player)) {
+                StructureDataOperatorBlockEntity blockEntity = menu.blockEntity();
+                blockEntity.refreshCatalogue(player, packet.allStructures());
+                List<CatalogueRow> rows = new ArrayList<>();
+                for (StructureDataOperatorBlockEntity.StructureCatalogueEntry entry :
+                        blockEntity.catalogue()) {
+                    rows.add(new CatalogueRow(entry.dimension(), entry.structure()));
+                }
+                CHANNEL.send(
+                        PacketDistributor.PLAYER.with(() -> player),
+                        new OperatorCataloguePacket(
+                                packet.containerId(), packet.allStructures(), rows));
+            }
+            context.setPacketHandled(true);
+        }
+    }
+
+    private record OperatorCataloguePacket(
+            int containerId, boolean allStructures, List<CatalogueRow> rows) {
+        private static final int MAX_ROWS = 8192;
+
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeBoolean(allStructures);
+            int count = Math.min(MAX_ROWS, rows.size());
+            buffer.writeVarInt(count);
+            for (int index = 0; index < count; index++) {
+                buffer.writeResourceLocation(rows.get(index).dimension());
+                buffer.writeResourceLocation(rows.get(index).structure());
+            }
+        }
+
+        private static OperatorCataloguePacket decode(FriendlyByteBuf buffer) {
+            int containerId = buffer.readVarInt();
+            boolean all = buffer.readBoolean();
+            int count = Math.max(0, Math.min(MAX_ROWS, buffer.readVarInt()));
+            List<CatalogueRow> rows = new ArrayList<>(count);
+            for (int index = 0; index < count; index++) {
+                rows.add(
+                        new CatalogueRow(
+                                buffer.readResourceLocation(), buffer.readResourceLocation()));
+            }
+            return new OperatorCataloguePacket(containerId, all, List.copyOf(rows));
+        }
+
+        private static void handle(
+                OperatorCataloguePacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                    Dist.CLIENT,
+                    () ->
+                            () -> {
+                                if (net.minecraft.client.Minecraft.getInstance().screen
+                                        instanceof StructureDataOperatorScreen screen) {
+                                    List<StructureDataOperatorBlockEntity.StructureCatalogueEntry>
+                                            entries = new ArrayList<>(packet.rows().size());
+                                    for (CatalogueRow row : packet.rows()) {
+                                        entries.add(
+                                                new StructureDataOperatorBlockEntity
+                                                        .StructureCatalogueEntry(
+                                                        row.dimension(), row.structure()));
+                                    }
+                                    screen.receiveCatalogue(entries);
+                                }
+                            });
+            context.setPacketHandled(true);
+        }
+    }
+
+    private record OperatorAnalysisRequestPacket(
+            int containerId, ResourceLocation dimension, ResourceLocation structure, boolean force) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeResourceLocation(dimension);
+            buffer.writeResourceLocation(structure);
+            buffer.writeBoolean(force);
+        }
+
+        private static OperatorAnalysisRequestPacket decode(FriendlyByteBuf buffer) {
+            return new OperatorAnalysisRequestPacket(
+                    buffer.readVarInt(),
+                    buffer.readResourceLocation(),
+                    buffer.readResourceLocation(),
+                    buffer.readBoolean());
+        }
+
+        private static void handle(
+                OperatorAnalysisRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            ServerPlayer player = context.getSender();
+            if (player != null
+                    && player.containerMenu instanceof StructureDataOperatorMenu menu
+                    && menu.containerId == packet.containerId()
+                    && menu.stillValid(player)) {
+                StructureDataOperatorBlockEntity blockEntity = menu.blockEntity();
+                if (packet.force()) {
+                    blockEntity.refreshCatalogueAnalysis(packet.dimension(), packet.structure());
+                }
+                ItemStack marker =
+                        blockEntity.analyseCatalogueEntry(packet.dimension(), packet.structure());
+                CHANNEL.send(
+                        PacketDistributor.PLAYER.with(() -> player),
+                        new OperatorAnalysisPacket(
+                                packet.containerId(),
+                                packet.dimension(),
+                                packet.structure(),
+                                marker));
+            }
+            context.setPacketHandled(true);
+        }
+    }
+
+    private record OperatorAnalysisPacket(
+            int containerId,
+            ResourceLocation dimension,
+            ResourceLocation structure,
+            ItemStack marker) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeResourceLocation(dimension);
+            buffer.writeResourceLocation(structure);
+            buffer.writeItem(marker);
+        }
+
+        private static OperatorAnalysisPacket decode(FriendlyByteBuf buffer) {
+            return new OperatorAnalysisPacket(
+                    buffer.readVarInt(),
+                    buffer.readResourceLocation(),
+                    buffer.readResourceLocation(),
+                    buffer.readItem());
+        }
+
+        private static void handle(
+                OperatorAnalysisPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                    Dist.CLIENT,
+                    () ->
+                            () -> {
+                                if (net.minecraft.client.Minecraft.getInstance().screen
+                                        instanceof StructureDataOperatorScreen screen) {
+                                    screen.receiveDetail(
+                                            packet.dimension(),
+                                            packet.structure(),
+                                            packet.marker());
+                                }
+                            });
+            context.setPacketHandled(true);
+        }
+    }
+
+    private record OperatorActionPacket(
+            int containerId,
+            OperatorAction action,
+            ResourceLocation dimension,
+            ResourceLocation structure) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeEnum(action);
+            buffer.writeNullable(dimension, FriendlyByteBuf::writeResourceLocation);
+            buffer.writeNullable(structure, FriendlyByteBuf::writeResourceLocation);
+        }
+
+        private static OperatorActionPacket decode(FriendlyByteBuf buffer) {
+            return new OperatorActionPacket(
+                    buffer.readVarInt(),
+                    buffer.readEnum(OperatorAction.class),
+                    buffer.readNullable(FriendlyByteBuf::readResourceLocation),
+                    buffer.readNullable(FriendlyByteBuf::readResourceLocation));
+        }
+
+        private static void handle(
+                OperatorActionPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            ServerPlayer player = context.getSender();
+            if (player != null
+                    && player.containerMenu instanceof StructureDataOperatorMenu menu
+                    && menu.containerId == packet.containerId()
+                    && menu.stillValid(player)) {
+                StructureDataOperatorBlockEntity blockEntity = menu.blockEntity();
+                switch (packet.action()) {
+                    case COPY_TO_OPERANDS -> blockEntity.copyData();
+                    case CLEAR_OPERANDS -> blockEntity.clearOperandData();
+                    case WRITE_TO_READ_SLOT -> {
+                        if (packet.dimension() != null && packet.structure() != null) {
+                            blockEntity.writeCatalogueEntry(packet.dimension(), packet.structure());
+                        }
+                    }
+                }
+            }
+            context.setPacketHandled(true);
+        }
+    }
+
+    // ------------------------------------------------------- chest analysis
+
+    /**
+     * The chest marker's analyse-key request: which block the client's crosshair is pointing at and
+     * which hand holds the marker. The server re-validates the position against the player before
+     * marking, so a stale or spoofed target cannot mark an out-of-reach chest.
+     */
+    private record ChestAnalysisRequestPacket(InteractionHand hand, BlockPos position) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeEnum(hand);
+            buffer.writeBlockPos(position);
+        }
+
+        private static ChestAnalysisRequestPacket decode(FriendlyByteBuf buffer) {
+            return new ChestAnalysisRequestPacket(
+                    buffer.readEnum(InteractionHand.class), buffer.readBlockPos());
+        }
+
+        private static void handle(
+                ChestAnalysisRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            ServerPlayer player = context.getSender();
+            if (player != null) {
+                ItemStack stack = player.getItemInHand(packet.hand());
+                if (stack.is(ModItems.CHEST_MARKER.get())) {
+                    net.minecraft.server.level.ServerLevel serverLevel = player.serverLevel();
+                    BlockPos position = packet.position();
+                    if (player.blockPosition().distSqr(position) <= 64.0D) {
+                        ResourceLocation lootTable =
+                                ChestMarkerItem.lootTableAt(serverLevel, position);
+                        if (lootTable != null) {
+                            ChestMarkerItem.markChest(serverLevel, stack, position, lootTable);
+                            openRefreshedMarker(player, stack, packet.hand());
+                            context.setPacketHandled(true);
+                            return;
+                        }
+                    }
+                    player.displayClientMessage(
+                            net.minecraft.network.chat.Component.translatable(
+                                    "message.dimension_tech.chest_marker.no_target"),
+                            true);
+                }
+            }
+            context.setPacketHandled(true);
         }
     }
 }

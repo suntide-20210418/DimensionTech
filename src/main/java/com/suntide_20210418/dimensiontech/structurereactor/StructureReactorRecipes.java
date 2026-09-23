@@ -55,9 +55,9 @@ public final class StructureReactorRecipes {
         add(
                 new StructureReactorRecipe(
                         DimensionTechMod.MOD_ID.equals("dimension_tech")
-                                ? ResourceLocation.fromNamespaceAndPath(
+                                ? new ResourceLocation(
                                         DimensionTechMod.MOD_ID, "fractal_closure")
-                                : ResourceLocation.parse("dimension_tech:fractal_closure"),
+                                : new ResourceLocation("dimension_tech", "fractal_closure"),
                         ModFluids.SURGING_RECURSIVE_ESSENCE.source().get(),
                         ModFluids.FRACTAL_ESSENCE.source().get(),
                         Ingredient.of(ModItems.DIMENSION_FRAGMENTS[4].get()),
@@ -75,7 +75,7 @@ public final class StructureReactorRecipes {
             int fragmentTier,
             String dsl) {
         return new StructureReactorRecipe(
-                ResourceLocation.fromNamespaceAndPath(DimensionTechMod.MOD_ID, path),
+                new ResourceLocation(DimensionTechMod.MOD_ID, path),
                 input,
                 output,
                 Ingredient.of(ModItems.DIMENSION_FRAGMENTS[fragmentTier - 1].get()),

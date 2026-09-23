@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.fluid;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fluids.FluidType;
@@ -27,6 +28,7 @@ public final class ModFluids {
 
     public static Fluid forMinerTier(int tier) {
         return switch (tier) {
+            case 1 -> Fluids.WATER;
             case 2 -> STRUCTURE_ESSENCE.source().get();
             case 3 -> SURGING_STRUCTURE_ESSENCE.source().get();
             case 4 -> RECURSIVE_ESSENCE.source().get();

@@ -26,6 +26,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -41,6 +43,7 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.items.IItemHandler;
@@ -134,7 +137,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public boolean requiresFluidInput() {
         MinerScriptConfig c = scriptConfig();
-        return c != null && c.requiresFluid() != null ? c.requiresFluid() : getMinerTier() >= 2;
+        return c != null && c.requiresFluid() != null ? c.requiresFluid() : getMinerTier() >= 1;
     }
 
     public Fluid getRequiredFluid() {
@@ -147,6 +150,70 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public FluidTank getFluidTank() {
         return fluidTank;
+    }
+
+    /**
+     * Moves fluid between a held fluid container and this miner's single tank on direct interaction.
+     * A filled container pours into the tank when the tank is empty or already holds that fluid;
+     * failing that, an empty (or matching) container draws the stored fluid back out.
+     *
+     * @return true when any fluid actually moved, so the caller knows to re-place the container
+     */
+    public boolean exchangeWithFluidContainer(IFluidHandlerItem container) {
+        if (container.getTanks() < 1) return false;
+        FluidStack held = container.getFluidInTank(0);
+        boolean input = !held.isEmpty() && pourIntoFrom(container, held);
+        boolean output = !input && scoopIntoContainer(container);
+        if (input || output) {
+            setChanged();
+            playFluidTransferSound(input);
+        }
+        return input || output;
+    }
+
+    /** Pours a filled container into the tank, up to the tank's remaining room. */
+    private boolean pourIntoFrom(IFluidHandlerItem container, FluidStack held) {
+        if (!fluidTank.isEmpty() && !fluidTank.getFluid().isFluidEqual(held)) return false;
+        int wanted = Math.min(fluidTank.getCapacity() - fluidTank.getFluidAmount(), held.getAmount());
+        if (wanted <= 0 || !fluidTank.isFluidValid(held)) return false;
+        FluidStack drained = container.drain(wanted, IFluidHandler.FluidAction.EXECUTE);
+        if (drained.isEmpty()) return false;
+        int accepted = fluidTank.fill(drained, IFluidHandler.FluidAction.EXECUTE);
+        if (accepted < drained.getAmount()) {
+            FluidStack refund = drained.copy();
+            refund.setAmount(drained.getAmount() - accepted);
+            container.fill(refund, IFluidHandler.FluidAction.EXECUTE);
+        }
+        return accepted > 0;
+    }
+
+    /** Draws the tank into a container that has room and will not end up with a mixture. */
+    private boolean scoopIntoContainer(IFluidHandlerItem container) {
+        if (fluidTank.isEmpty()) return false;
+        FluidStack stored = fluidTank.getFluid();
+        FluidStack held = container.getFluidInTank(0);
+        if (!held.isEmpty() && !held.isFluidEqual(stored)) return false;
+        int room = container.getTankCapacity(0) - held.getAmount();
+        if (room <= 0) return false;
+        FluidStack offered =
+                fluidTank.drain(Math.min(room, stored.getAmount()), IFluidHandler.FluidAction.SIMULATE);
+        if (offered.isEmpty()) return false;
+        int accepted = container.fill(offered, IFluidHandler.FluidAction.EXECUTE);
+        if (accepted <= 0) return false;
+        fluidTank.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
+        return true;
+    }
+
+    /** Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills. */
+    private void playFluidTransferSound(boolean pouringIn) {
+        if (level == null) return;
+        level.playSound(
+                null,
+                worldPosition,
+                pouringIn ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL,
+                SoundSource.BLOCKS,
+                1.0F,
+                1.0F);
     }
 
     public FluidFaceMode getFluidFaceMode(Direction worldDirection) {
@@ -413,9 +480,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public void toggleRedstoneControl() {
         redstoneMode =
-                redstoneMode == RedstoneMode.NO_SIGNAL
+                redstoneMode == RedstoneMode.SIGNAL
                         ? RedstoneMode.ALWAYS
-                        : RedstoneMode.NO_SIGNAL;
+                        : RedstoneMode.SIGNAL;
         redstoneThreshold = 8;
         setChanged();
     }
@@ -709,7 +776,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private boolean isStructureComplete(ServerLevel serverLevel) {
-        return StructureMinerMultiblock.isComplete(serverLevel, worldPosition, getMinerTier());
+        return StructureMinerMultiblock.isComplete(serverLevel, worldPosition);
     }
 
     private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
@@ -720,8 +787,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private boolean hasValidMarker() {
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             ItemStack marker = itemHandler.getStackInSlot(slot);
-            if (marker.is(ModItems.STRUCTURE_MARKER.get())
-                    && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
+            if (ModItems.isMarker(marker) && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
                 return true;
             }
         }
@@ -734,22 +800,22 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     private long slotAverageParallelHundredths(int slot) {
+        // Same formula as ProcessingMath.totalParallel, in hundredths of parallel.
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
-                        * accelerationController.currentParallelHundredths(slot)
-                        * upgradeController.state().parallelMultiplierHundredths()
-                        / 100L;
+                                * upgradeController.state().parallelMultiplierHundredths()
+                        + (accelerationController.currentParallelHundredths(slot) - 100L);
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
                 machineParallelHundredths + accelerationController.previousExtraParallel(slot));
     }
 
     private long slotDisplayParallelHundredths(int slot) {
+        // Same formula as ProcessingMath.totalParallel, in hundredths of parallel.
         long machineParallelHundredths =
                 (long) getBaseParallelCount()
-                        * accelerationController.currentParallelHundredths(slot)
-                        * upgradeController.state().parallelMultiplierHundredths()
-                        / 100L;
+                                * upgradeController.state().parallelMultiplierHundredths()
+                        + (accelerationController.currentParallelHundredths(slot) - 100L);
         return Math.min(
                 (long) Integer.MAX_VALUE * 100L,
                 machineParallelHundredths + accelerationController.currentExtraParallel(slot));
@@ -935,15 +1001,14 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return new ItemStackHandler(slotCount) {
             @Override
             public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-                return stack.is(ModItems.STRUCTURE_MARKER.get());
+                return ModItems.isMarker(stack);
             }
 
             @Override
             protected void onContentsChanged(int slot) {
                 if (analysisController != null) analysisController.invalidateIfInputsChanged();
                 ItemStack marker = getStackInSlot(slot);
-                if (!marker.is(ModItems.STRUCTURE_MARKER.get())
-                        || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
+                if (!ModItems.isMarker(marker) || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
                     resetSlotState(slot);
                 }
                 setChanged();

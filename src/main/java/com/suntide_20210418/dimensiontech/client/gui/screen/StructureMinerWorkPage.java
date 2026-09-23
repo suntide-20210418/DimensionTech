@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerTelemetrySnapshot;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.structureminer.processing.ExternalTickAcceleration;
 import java.util.Locale;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -131,8 +132,20 @@ final class StructureMinerWorkPage {
         }
 
         StructureMinerTelemetrySnapshot.Marker marker = t.markers().get(slot);
-        int filled =
-                StructureMinerProgressStrip.pixels(marker.progress(), marker.processingTime(), width);
+        long value;
+        long total;
+        if (marker.waitingForNaturalWindow()) {
+            // The cycle's accelerated ticks are done but the 400-natural-tick observation window is
+            // still settling, so track that window instead of a clamped-full actual bar.
+            value = marker.naturalTicks();
+            total = ExternalTickAcceleration.MINIMUM_NATURAL_TICKS;
+        } else {
+            // Otherwise the strip follows the machine's real progress: actual ticks against the
+            // real cycle length (never shorter than the natural observation window).
+            value = marker.actualTicks();
+            total = marker.realProcessingTime();
+        }
+        int filled = StructureMinerProgressStrip.pixels(value, total, width);
         StructureMinerSpriteRenderer.progressStrip(g, barX, barY, width, enabled ? filled : 0);
 
         if (!enabled) {

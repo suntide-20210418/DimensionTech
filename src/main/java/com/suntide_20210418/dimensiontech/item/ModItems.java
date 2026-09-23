@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -18,8 +19,11 @@ import net.minecraftforge.registries.RegistryObject;
 public final class ModItems {
     public static final ResourceLocation STRUCTURE_MARKER_ID =
             ResourceLocationHelper.item("structure_marker");
+    public static final ResourceLocation CHEST_MARKER_ID =
+            ResourceLocationHelper.item("chest_marker");
     public static final ResourceLocation DIMENSION_DECONSTRUCTION_CORE_ID =
             ResourceLocationHelper.item("dimension_deconstruction_core");
+    public static final ResourceLocation WRENCH_ID = ResourceLocationHelper.item("wrench");
 
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, DimensionTechMod.MOD_ID);
@@ -29,10 +33,24 @@ public final class ModItems {
                     ResourceLocationHelper.getPath(STRUCTURE_MARKER_ID),
                     () -> new StructMarkerItem(new Item.Properties().stacksTo(1)));
 
+    public static final RegistryObject<Item> CHEST_MARKER =
+            ITEMS.register(
+                    ResourceLocationHelper.getPath(CHEST_MARKER_ID),
+                    () -> new ChestMarkerItem(new Item.Properties().stacksTo(1)));
+
+    /**
+     * Whether a stack is a marker the miner/operator can consume. Structure and chest markers share
+     * the same {@code StructureMarkerData} NBT, so both flow through the same copy and production
+     * chains.
+     */
+    public static boolean isMarker(ItemStack stack) {
+        return stack.is(STRUCTURE_MARKER.get()) || stack.is(CHEST_MARKER.get());
+    }
+
     public static final RegistryObject<Item> DIMENSION_DECONSTRUCTION_CORE =
             ITEMS.register(
                     ResourceLocationHelper.getPath(DIMENSION_DECONSTRUCTION_CORE_ID),
-                    () -> new Item(new Item.Properties().stacksTo(64)));
+                    () -> new DimensionDeconstructionCoreItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item>[] DIMENSION_FRAGMENTS =
             tieredItems("dimension_fragment");
     public static final RegistryObject<Item>[] MINING_TOKENS = tieredItems("mining_token");
@@ -41,6 +59,17 @@ public final class ModItems {
     public static final RegistryObject<Item> STRUCTURE_INTERPRETER =
             ITEMS.register(
                     "structure_interpreter", () -> new Item(new Item.Properties().stacksTo(1)));
+
+
+    /**
+     * The projection wrench: toggles the multiblock projection on a structure miner, and on
+     * shift+right-click builds it out of the player's inventory. It replaces the ad-hoc wooden-stick
+     * trigger in {@code BaseMinerBlock}.
+     */
+    public static final RegistryObject<Item> WRENCH =
+            ITEMS.register(
+                    ResourceLocationHelper.getPath(WRENCH_ID),
+                    () -> new WrenchItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> STRUCTURE_DATA_OPERATOR =
             blockItem("structure_data_operator", ModBlocks.STRUCTURE_DATA_OPERATOR);
     public static final RegistryObject<Item> STRUCTURE_REACTOR =
@@ -78,6 +107,8 @@ public final class ModItems {
             blockItem("structure_miner_casing", ModBlocks.STRUCTURE_MINER_CASING);
     public static final RegistryObject<Item> STRUCTURE_MINER_STRUCTURE =
             blockItem("structure_miner_structure", ModBlocks.STRUCTURE_MINER_STRUCTURE);
+    public static final RegistryObject<Item> STRUCTURE_MINER_GLASS =
+            blockItem("structure_miner_glass", ModBlocks.STRUCTURE_MINER_GLASS);
     public static final RegistryObject<Item> UPGRADE_PARALLEL =
             blockItem("structure_miner_upgrade_parallel", ModBlocks.UPGRADE_PARALLEL);
     public static final RegistryObject<Item> UPGRADE_LUCK =
@@ -98,21 +129,6 @@ public final class ModItems {
             upgradeItems("efficiency", ModBlocks.UPGRADE_EFFICIENCY_TIERS, UPGRADE_EFFICIENCY);
     public static final RegistryObject<Item>[] UPGRADE_AGGREGATE_TIERS =
             upgradeItems("aggregate", ModBlocks.UPGRADE_AGGREGATE_TIERS, UPGRADE_AGGREGATE);
-    public static final RegistryObject<Item>[] DIMENSION_FOCUS = new RegistryObject[6];
-
-    static {
-        for (int tier = 1; tier <= 6; tier++) {
-            final int level = tier;
-            DIMENSION_FOCUS[tier - 1] =
-                    ITEMS.register(
-                            "dimension_focus_tier_" + tier,
-                            () ->
-                                    new BlockItem(
-                                            ModBlocks.DIMENSION_FOCUS[level - 1].get(),
-                                            new Item.Properties()));
-        }
-    }
-
     private static RegistryObject<Item> blockItem(String name, RegistryObject<Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }

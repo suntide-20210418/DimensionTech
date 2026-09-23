@@ -63,6 +63,25 @@ final class GuiPalette {
     /** Zebra striping on data rows that sit inside a recessed well. */
     static final int STRIPE_WELL = 0xFF969696;
 
+    // --- the machine canvas itself ----------------------------------------
+    /*
+     * These four are sampled off the machine textures, not chosen: they are the greens the artwork is
+     * actually painted in. Anything drawn *on* the canvas has to come from this family, or it reads
+     * as a foreign panel dropped onto the recess.
+     */
+
+    /** The recessed canvas face — what a page is painted on. */
+    static final int RECESS = 0xFF97B6A4;
+
+    /** One step up from the canvas: the textures' raised slot face. Used to lift a hovered row. */
+    static final int RECESS_LIT = 0xFFACC5B6;
+
+    /** One step down: the textures' shaded recess edge. Used to press a selected row in. */
+    static final int RECESS_PRESSED = 0xFF83A893;
+
+    /** The textures' outer contour — rails and outlines drawn on the recess family. */
+    static final int RECESS_EDGE = 0xFF3C5647;
+
     /** The empty track of a horizontal progress bar laid on the face. */
     static final int PROGRESS_TRACK = 0xFF555555;
 

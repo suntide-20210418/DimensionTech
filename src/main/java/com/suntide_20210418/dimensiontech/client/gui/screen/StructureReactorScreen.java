@@ -9,7 +9,6 @@ import com.suntide_20210418.dimensiontech.structurereactor.StateId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.StringJoiner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -152,7 +151,12 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
 
     @Override
     protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        g.fill(0, 0, width, height, StructureMinerTheme.BACKDROP);
+        /*
+         * No dim is painted here. AbstractContainerScreen#render already called renderBackground
+         * before this hook, and that is the half-transparent gradient the other machine screens
+         * show. An opaque fill on top of it — 0xFF141618 was the one used here — replaced the
+         * gradient outright and blacked the whole world out instead of dimming it.
+         */
         g.blit(
                 StructureReactorLayout.TEXTURE,
                 leftPos,

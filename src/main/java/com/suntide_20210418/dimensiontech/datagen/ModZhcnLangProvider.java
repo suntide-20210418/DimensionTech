@@ -25,8 +25,14 @@ public class ModZhcnLangProvider extends LanguageProvider {
         }
         add(TranslateHelper.item("data_integrator"), "数据整合器");
         add(TranslateHelper.item("structure_interpreter"), "结构阐释器");
+        add(TranslateHelper.item("wrench"), "扳手");
+        add(
+                "tooltip.dimension_tech.wrench.projection",
+                "右键采掘器：显示/隐藏多方块结构投影");
+        add(
+                "tooltip.dimension_tech.wrench.build",
+                "Shift+右键：用背包中的方块一键搭建多方块结构");
         add("block.dimension_tech.structure_data_operator", "结构数据操作仪");
-        add("container.dimension_tech.structure_data_operator", "结构数据操作仪");
         add("block.dimension_tech.structure_reactor", "结构反应堆");
         add("container.dimension_tech.structure_reactor", "结构反应堆");
         add("screen.dimension_tech.structure_reactor.title", "结构反应堆");
@@ -200,6 +206,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.io", "输入 %s mB → 输出 %s mB");
         add("jei.dimension_tech.structure_reactor.branch", "分支 %s · 目标递归 %s 层");
         add("jei.dimension_tech.structure_reactor.branch.alternate", "每次提交后 A/B 分支交替");
+        add(
+                "jei.dimension_tech.structure_reactor.comparator",
+                "比较器信号：%s 空闲 · %s 空闲受阻 · %s 提交受阻 · %s 炼制中");
         add("jei.dimension_tech.structure_reactor.sequence", "仪式状态序列");
         add("jei.dimension_tech.structure_reactor.row", "%s · %s");
         add("jei.dimension_tech.structure_reactor.row.unknown", "未指定");
@@ -207,6 +216,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.step", "第 %s 步：%s");
         add("jei.dimension_tech.structure_reactor.step.requires", "需要：%s（每步消耗 1 个）");
         add("jei.dimension_tech.structure_reactor.step.requires.unknown", "需要：未指定的操作物品");
+        add("jei.dimension_tech.structure_reactor.step.signal", "比较器信号：%s（奖励窗口内 %s）");
         add("jei.dimension_tech.structure_reactor.step.timeout", "超过 %s tick 未结算：时间 +%s tick");
         add("jei.dimension_tech.structure_reactor.reward.window", "奖励窗口：第 %s-%s tick 内结算");
         add("jei.dimension_tech.structure_reactor.reward.branch", "奖励：结算时间 -%s tick");
@@ -221,52 +231,61 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.range.fluid", "流体消耗：%s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.output", "产出：%s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.fragments", "碎片：%s 个（上限 %s 个）");
-        add("screen.dimension_tech.structure_operator.copy", "↓复制↓");
-        add("screen.dimension_tech.structure_operator.clear", "清除");
-        add("screen.dimension_tech.structure_operator.refresh", "已探索结构");
-        add("screen.dimension_tech.structure_operator.all", "全部结构");
-        add("screen.dimension_tech.structure_operator.slots", "目标 / 待操作 / 插件");
-        add("screen.dimension_tech.structure_operator.tab.operation", "操作");
-        add("screen.dimension_tech.structure_operator.tab.integrator", "数据整合器");
-        add("screen.dimension_tech.structure_operator.tab.interpreter", "结构阐释器");
-        add("screen.dimension_tech.structure_operator.target", "目标标记器");
-        add("screen.dimension_tech.structure_operator.destination", "待操作标记器");
-        add("screen.dimension_tech.structure_operator.source_status", "来源数据");
-        add("screen.dimension_tech.structure_operator.destination_status", "写入目标");
-        add("screen.dimension_tech.structure_operator.integrator", "数据整合器");
-        add("screen.dimension_tech.structure_operator.interpreter", "结构阐释器");
-        add("screen.dimension_tech.structure_operator.inventory", "玩家背包");
-        add("screen.dimension_tech.structure_operator.page.integrator", "数据整合器");
-        add("screen.dimension_tech.structure_operator.page.interpreter", "结构阐释器");
-        add("screen.dimension_tech.structure_operator.source.explored", "来源：玩家已探索结构（%s 个）");
-        add("screen.dimension_tech.structure_operator.source.all", "来源：游戏中全部结构（%s 个）");
-        add("screen.dimension_tech.structure_operator.search", "搜索结构 ID");
-        add("screen.dimension_tech.structure_operator.write", "写入");
-        add("screen.dimension_tech.structure_operator.refresh_short", "刷新");
-        add("screen.dimension_tech.structure_operator.write_short", "写入");
-        add("screen.dimension_tech.structure_operator.operands", "待操作标记器：%s");
-        add("screen.dimension_tech.structure_operator.empty", "没有可用结构");
-        add("screen.dimension_tech.structure_operator.empty_marker", "未安装");
-        add("screen.dimension_tech.structure_operator.no_data", "没有结构数据");
-        add("screen.dimension_tech.structure_operator.confirm.copy", "确认复制结构数据");
-        add("screen.dimension_tech.structure_operator.confirm.write", "确认写入结构数据");
-        add("screen.dimension_tech.structure_operator.preview.source", "来源：%s");
-        add("screen.dimension_tech.structure_operator.preview.target", "目标：%s");
-        add("screen.dimension_tech.structure_operator.preview.overwrite", "目标已有数据，将被覆盖");
-        add("screen.dimension_tech.structure_operator.preview.empty", "目标当前为空");
-        add("screen.dimension_tech.structure_operator.cancel", "取消");
-        add("screen.dimension_tech.structure_operator.confirm", "确认");
-        add("screen.dimension_tech.structure_operator.status.copied", "结构数据已复制");
-        add("screen.dimension_tech.structure_operator.status.written", "结构数据已写入");
-        add("screen.dimension_tech.structure_operator.status.cleared", "结构数据已清除");
-        add("screen.dimension_tech.structure_operator.catalogue_marker", "目录写入标记器");
-        add("screen.dimension_tech.structure_operator.catalogue_analysis", "目录分析");
-        add("screen.dimension_tech.structure_operator.dimension", "维度：%s");
-        add("screen.dimension_tech.structure_operator.structure", "结构：%s");
-        add("screen.dimension_tech.structure_operator.select_entry", "选择一个有战利品的结构");
-        add("screen.dimension_tech.structure_operator.loading", "正在读取分析数据");
-        add("screen.dimension_tech.structure_operator.virtual_progress", "虚拟采样：%s/%s");
-        add("screen.dimension_tech.structure_operator.virtual_approximate", "近似结果（样本 %s）");
+        add("jei.dimension_tech.structure_miner.marker", "已标记的结构标记器");
+        add(
+                "jei.dimension_tech.structure_miner.marker.tip",
+                "放入一个已标记目标结构的结构标记器");
+        add("jei.dimension_tech.structure_miner.loot", "结构中的战利品");
+        add(
+                "jei.dimension_tech.structure_miner.loot.tip",
+                "该结构原有的战利品，按采掘器总并行抽取");
+        add(
+                "jei.dimension_tech.structure_miner.requirement",
+                "需求流体：每工作周期 %s mB（储罐 %s mB）");
+        add(
+                "jei.dimension_tech.structure_miner.product",
+                "每周期产出该物品 × %s（受基础并行上限约束）");
+        add(
+                "jei.dimension_tech.structure_miner.core.chance",
+                "采掘：每周期最多 %s 次判定，每次 %s%% 概率");
+        add(
+                "jei.dimension_tech.structure_miner.core.at_least_one",
+                "周期内至少获得一个核心的概率 ≈ %s%%");
+        add(
+                "jei.dimension_tech.structure_miner.core.pity",
+                "保底：战利品箱每箱基础 %s%%，最多 %s 箱内必出");
+        add(
+                "jei.dimension_tech.structure_miner.reward.note",
+                "实际产出随并行升级与外部加速而提升");
+        add(
+                "jei.dimension_tech.structure_miner.not_consumed",
+                "不消耗：标记器保留在采掘器中，不会被消耗");
+        add("jei.dimension_tech.chest_miner.chest_marker", "已标记的宝箱标记器");
+        add(
+                "jei.dimension_tech.chest_miner.chest_marker.tip",
+                "放入一个已标记宝箱的宝箱标记器");
+        add("jei.dimension_tech.chest_miner.loot", "宝箱中的战利品");
+        add(
+                "jei.dimension_tech.chest_miner.loot.tip",
+                "被标记宝箱的 LootTable 期望物品，按采掘器总并行抽取");
+        add(
+                "jei.dimension_tech.structure_miner.time.step",
+                "耗时：结构价值 ÷ 有效效率（向上取整，tick）");
+        add(
+                "jei.dimension_tech.structure_miner.time.efficiency",
+                "有效效率：基础效率 × 效率升级倍率");
+        add(
+                "jei.dimension_tech.structure_miner.time.minimum",
+                "低于 %s tick 最短周期时，维持最短周期并差值转为并行");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.chance",
+                "采掘掉落：单次判定 %s%%～%s%%（随采掘器等级提升）");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.first",
+                "尚未拥有第一阶采掘器前，亦可从战利品箱获得");
+        add(
+                "jei.dimension_tech.deconstruction_core.line.use",
+                "用于合成第 1 阶结构采掘器");
         add(TranslateHelper.block("tier_1_structure_miner"), "第1阶虚空结构资源采掘器");
         add(TranslateHelper.container("tier_1_structure_miner"), "第1阶虚空结构资源采掘器");
         for (int tier = 2; tier <= 5; tier++) {
@@ -281,6 +300,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("container.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("block.dimension_tech.structure_miner_casing", "采掘器外壳");
         add("block.dimension_tech.structure_miner_structure", "采掘器结构方块");
+        add("block.dimension_tech.structure_miner_glass", "结构采掘器玻璃");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "1级并行升级方块");
         add("block.dimension_tech.structure_miner_upgrade_luck", "1级幸运升级方块");
         add("block.dimension_tech.structure_miner_upgrade_energy", "1级能量升级方块");
@@ -299,8 +319,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_aggregate_tier_" + tier,
                     tier + "级聚合升级方块");
         }
-        for (int tier = 1; tier <= 6; tier++)
-            add("block.dimension_tech.dimension_focus_tier_" + tier, "维度聚焦方块 " + tier);
         add("screen.dimension_tech.structure_miner.place_structure", "一键搭建");
         add("screen.dimension_tech.structure_miner.place_structure_short", "一键搭建");
         add("screen.dimension_tech.structure_miner.overview.working", "工作中：%s / %s");
@@ -333,7 +351,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.materials", "多方块搭建材料");
         add("tooltip.dimension_tech.structure_miner.material.casing", "采掘器外壳 x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "采掘器结构方块 x%s");
-        add("tooltip.dimension_tech.structure_miner.material.focus", "%s 级维度聚焦方块 x%s");
+        add("tooltip.dimension_tech.structure_miner.material.glass", "结构采掘器玻璃 x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
                 "任意升级方块或采掘器结构方块 x%s");
@@ -348,6 +366,53 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.upgrade.parallel", "并行提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.luck", "幸运提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.none", "无属性加成");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.acquire",
+                "采掘时按工作周期有概率掉落，爆率随采掘器等级提升");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.first",
+                "首次获取：尚未拥有第一阶采掘器时，可从战利品箱获得");
+        add(
+                "tooltip.dimension_tech.dimension_deconstruction_core.use",
+                "用于合成第 1 阶结构采掘器");
+        add("tooltip.dimension_tech.structure_reactor.comparator", "比较器可读取仪式状态（%s-%s）");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.steps",
+                "操作阶段 %s-%s（奖励窗口内 %s-%s）");
+        add(
+                "tooltip.dimension_tech.structure_reactor.comparator.levels",
+                "空闲 %s · 空闲受阻 %s · 提交受阻 %s · 炼制中 %s");
+        add("tooltip.dimension_tech.structure_reactor.hold_shift", "按住 Shift 查看比较器信号等级");
+        add("screen.dimension_tech.structure_operator.title", "结构数据操作仪");
+        add("screen.dimension_tech.structure_operator.tab.operation", "操作");
+        add("screen.dimension_tech.structure_operator.tab.integrator", "已探索结构");
+        add("screen.dimension_tech.structure_operator.tab.interpreter", "所有结构");
+        add("screen.dimension_tech.structure_operator.section.write_slots", "标记器写入槽");
+        add("screen.dimension_tech.structure_operator.section.inventory", "物品栏");
+        add("screen.dimension_tech.structure_operator.page.integrator", "已探索结构");
+        add("screen.dimension_tech.structure_operator.page.interpreter", "所有结构");
+        add("screen.dimension_tech.structure_operator.slot.target", "放入结构标记器");
+        add("screen.dimension_tech.structure_operator.slot.target.func", "让操作仪读取并分析该结构");
+        add("screen.dimension_tech.structure_operator.slot.integrator", "放入数据整合器");
+        add("screen.dimension_tech.structure_operator.slot.integrator.func", "可解锁已探索结构页面");
+        add("screen.dimension_tech.structure_operator.slot.interpreter", "放入结构阐释器");
+        add("screen.dimension_tech.structure_operator.slot.interpreter.func", "可解锁所有结构页面（需先安装数据整合器）");
+        add("screen.dimension_tech.structure_operator.search", "搜索结构…");
+        add("screen.dimension_tech.structure_operator.copy", "复制");
+        add("screen.dimension_tech.structure_operator.clear", "清空");
+        add("screen.dimension_tech.structure_operator.refresh_short", "重算");
+        add("screen.dimension_tech.structure_operator.write_short", "写入");
+        add("screen.dimension_tech.structure_operator.no_data", "未记录结构数据");
+        add("screen.dimension_tech.structure_operator.empty", "没有可选结构");
+        add("screen.dimension_tech.structure_operator.loading", "正在解析…");
+        add("screen.dimension_tech.structure_operator.no_loot", "该结构无战利品");
+        add("screen.dimension_tech.structure_operator.select_entry", "从左侧选择一个结构");
+        add("screen.dimension_tech.structure_operator.dimension", "维度");
+        add("screen.dimension_tech.structure_operator.structure", "结构");
+        add("screen.dimension_tech.structure_operator.virtual_approximate", "近似解析");
+        add("screen.dimension_tech.structure_operator.status.cleared", "已清空写入槽");
+        add("screen.dimension_tech.structure_operator.status.copied", "已拷贝至写入槽");
+        add("screen.dimension_tech.structure_operator.status.written", "已写入读取槽");
         add("screen.dimension_tech.struct_marker.title", "结构标记器分析");
         add("screen.dimension_tech.struct_marker.subtitle", "战利品期望与价值概览");
         add("screen.dimension_tech.struct_marker.dimension", "维度：%s");
@@ -357,11 +422,14 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.structures", "已索引 %s 个结构");
         add("screen.dimension_tech.struct_marker.item", "物品");
         add("screen.dimension_tech.struct_marker.expected", "期望数量");
+        add("screen.dimension_tech.struct_marker.items_heading", "物品期望");
+        add("screen.dimension_tech.struct_marker.item_count", "%s 项");
         add("screen.dimension_tech.struct_marker.multiplier_header", "倍率");
         add("screen.dimension_tech.struct_marker.multiplier", "倍率：%s");
         add("screen.dimension_tech.struct_marker.no_items", "没有可用的期望物品");
+        add("screen.dimension_tech.struct_marker.mark", "标记结构");
         add("screen.dimension_tech.struct_marker.select", "选择结构");
-        add("screen.dimension_tech.struct_marker.clear", "清除结构");
+        add("screen.dimension_tech.struct_marker.clear", "清除数据");
         add("screen.dimension_tech.struct_marker.select_prompt", "当前位置属于多个结构，请选择");
         add("screen.dimension_tech.struct_marker.selection.selected", "已选择结构");
         add("screen.dimension_tech.struct_marker.selection.empty", "未选择结构");
@@ -529,6 +597,19 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.legacy"), "旧版价值已隐藏，请重新标记结构");
         add(TranslateHelper.tooltip("struct_marker.structure"), "结构：%s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "结构：无");
+        add(TranslateHelper.item("chest_marker"), "宝箱分析器");
+        add("screen.dimension_tech.chest_marker.title", "宝箱分析器分析");
+        add("screen.dimension_tech.chest_marker.selection.selected", "已标记宝箱");
+        add("screen.dimension_tech.chest_marker.selection.empty", "未标记宝箱");
+        add("screen.dimension_tech.chest_marker.calculation_method", "计算方式：%s");
+        add("screen.dimension_tech.chest_marker.chest_value", "宝箱价值");
+        add("dimension_tech.structure.dimension_tech.chest_marker", "宝箱");
+        add(TranslateHelper.tooltip("chest_marker.empty"), "按 V 键分析准星指向的宝箱");
+        add(TranslateHelper.tooltip("chest_marker.chest_value"), "宝箱价值：%s");
+        add(TranslateHelper.tooltip("chest_marker.chest"), "宝箱：%s");
+        add(TranslateHelper.tooltip("chest_marker.no_chest"), "宝箱：无");
+        add("key.dimension_tech.chest_analyse", "分析准星指向的宝箱");
+        add("message.dimension_tech.chest_marker.no_target", "准星指向的不是可分析的宝箱");
         add("config.jade.plugin_dimension_tech.structure_miner_status", "结构采掘器状态");
         add("jade.dimension_tech.status.idle", "空闲");
         add("jade.dimension_tech.status.running", "运行中");

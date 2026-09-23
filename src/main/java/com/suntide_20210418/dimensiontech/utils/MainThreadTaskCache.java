@@ -1,5 +1,6 @@
 package com.suntide_20210418.dimensiontech.utils;
 
+import com.mojang.logging.LogUtils;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,9 +9,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
 
 /** Bounded discovery work pumped by the owning server thread, including completion callbacks. */
 public final class MainThreadTaskCache<K, T> implements AutoCloseable {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private final int capacity;
     private final Map<K, T> results = new HashMap<>();
     private final Map<K, CompletableFuture<T>> inFlight = new HashMap<>();
@@ -54,6 +57,7 @@ public final class MainThreadTaskCache<K, T> implements AutoCloseable {
         while (!closed && executed < budget && !queue.isEmpty()) {
             Pending<K, T> task = queue.removeFirst();
             executed++;
+            long start = System.nanoTime();
             try {
                 T value = java.util.Objects.requireNonNull(task.computation().get());
                 if (!closed) results.put(task.key(), value);
@@ -62,6 +66,14 @@ public final class MainThreadTaskCache<K, T> implements AutoCloseable {
                 task.future().completeExceptionally(error);
             } finally {
                 inFlight.remove(task.key(), task.future());
+            }
+            long millis = (System.nanoTime() - start) / 1_000_000L;
+            if (millis > 50) {
+                LOGGER.warn(
+                        "[TEMP PROBE] MainThreadTaskCache task {} took {}ms on {}",
+                        task.key(),
+                        millis,
+                        java.lang.Thread.currentThread().getName());
             }
         }
         return executed;

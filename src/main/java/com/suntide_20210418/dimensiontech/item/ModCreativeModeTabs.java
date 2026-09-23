@@ -31,6 +31,7 @@ public final class ModCreativeModeTabs {
                                     .displayItems(
                                             (parameters, output) -> {
                                                 output.accept(ModItems.STRUCTURE_MARKER.get());
+                                                output.accept(ModItems.CHEST_MARKER.get());
                                                 output.accept(
                                                         ModItems.DIMENSION_DECONSTRUCTION_CORE
                                                                 .get());
@@ -42,6 +43,7 @@ public final class ModCreativeModeTabs {
                                                     output.accept(item.get());
                                                 output.accept(ModItems.DATA_INTEGRATOR.get());
                                                 output.accept(ModItems.STRUCTURE_INTERPRETER.get());
+                                                output.accept(ModItems.WRENCH.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_DATA_OPERATOR.get());
                                                 output.accept(ModItems.STRUCTURE_REACTOR.get());
@@ -65,6 +67,7 @@ public final class ModCreativeModeTabs {
                                                 output.accept(ModItems.STRUCTURE_MINER_CASING.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_MINER_STRUCTURE.get());
+                                                output.accept(ModItems.STRUCTURE_MINER_GLASS.get());
                                                 for (RegistryObject<Item> upgrade :
                                                         ModItems.UPGRADE_EFFICIENCY_TIERS)
                                                     output.accept(upgrade.get());
@@ -80,9 +83,6 @@ public final class ModCreativeModeTabs {
                                                 for (RegistryObject<Item> upgrade :
                                                         ModItems.UPGRADE_AGGREGATE_TIERS)
                                                     output.accept(upgrade.get());
-                                                for (RegistryObject<Item> focus :
-                                                        ModItems.DIMENSION_FOCUS)
-                                                    output.accept(focus.get());
                                             })
                                     .build());
 

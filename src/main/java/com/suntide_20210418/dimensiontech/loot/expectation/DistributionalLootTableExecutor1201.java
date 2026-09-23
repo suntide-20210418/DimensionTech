@@ -628,6 +628,7 @@ public final class DistributionalLootTableExecutor1201 {
         JsonArray tableFunctions = functionArray(tableFunctionsElement);
 
         if (allowTerminalCompression
+                && ExactEnchantmentSemantics1201.ENABLED
                 && poolFunctions.isEmpty()
                 && tableFunctions.isEmpty()
                 && isTerminalEnchantWithLevels(entryFunctions)) {

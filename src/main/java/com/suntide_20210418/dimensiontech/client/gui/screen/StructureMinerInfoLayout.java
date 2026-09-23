@@ -193,9 +193,9 @@ final class StructureMinerInfoLayout {
      * True when a point is inside the scrollbar's grab zone, {@link #SCROLLBAR_GRAB_W} wide and
      * centred on the {@link #SCROLLBAR_W}-wide drawn bar.
      *
-     * <p>Used for grabbing the bar, not for deciding whether the wheel applies — see
-     * {@code StructureMinerPageRenderer#mouseScrolled} for why the wheel deliberately has no
-     * position gate.
+     * <p>Used for grabbing the bar, not for deciding whether the wheel applies — the wheel is gated
+     * to the page canvas by the screen, which is wider than the viewport but still clear of the
+     * player inventory.
      */
     static boolean scrollColumnContains(double localX, double localY, int viewportY, int viewportH) {
         int pad = (SCROLLBAR_GRAB_W - SCROLLBAR_W) / 2;

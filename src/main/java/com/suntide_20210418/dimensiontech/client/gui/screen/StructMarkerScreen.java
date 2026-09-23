@@ -1,6 +1,6 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
-import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructMarkerLayout;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
@@ -9,6 +9,7 @@ import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -19,41 +20,60 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Rarity;
 
-/** Opaque structure dossier showing the persisted loot expectation snapshot. */
+/**
+ * The structure marker terminal: the handheld console that reads and writes one marker's dossier.
+ *
+ * <p><b>Fixed frame, one viewport.</b> The texture carries the whole frame — contour, inner rule,
+ * face and the recessed expectation viewport — so this screen only blits it and then draws text,
+ * icons and controls on top. Every coordinate comes from {@link StructMarkerLayout}, which was
+ * measured off the texture. Nothing here re-derives geometry from the panel size, because a marker
+ * screen that resized itself would need a second set of slot coordinates and the authored art does
+ * not support one.
+ *
+ * <p><b>Two states, one overlay.</b> Normally the screen shows the marker's readings down the left
+ * column and its loot expectation in the right viewport. When the server answers a mark request
+ * with several overlapping structures, a choice overlay covers the screen instead of opening a
+ * second window — the choices arrive asynchronously, and a modal would have to keep two selections
+ * in sync where an overlay needs only one index.
+ *
+ * <p><b>No container.</b> This is a {@link Screen}, not an {@code AbstractContainerScreen}: the
+ * marker is held in the player's hand and the terminal has no slots, so there is no menu to attach.
+ */
 public final class StructMarkerScreen extends Screen {
-    /** Maximum panel dimensions in GUI pixels. */
-    private static final int WIDTH = 320;
+    /**
+     * Row hover tone, sampled off the texture as {@code #9BB49A} — the viewport's own top shadow
+     * row. A hovered expectation row is pressed in with it rather than lifted with a lighter tone,
+     * because every lighter candidate in the recess family is within a couple of points of the
+     * {@code #ADC4AE} fill and would not read at all.
+     */
+    private static final int ROW_HOVER = 0xFF9BB49A;
 
-    private static final int HEIGHT = 320;
-    private static final int PANEL = 0xFF171B20;
-    private static final int PANEL_RAISED = 0xFF20262D;
-    private static final int PANEL_INSET = 0xFF101419;
-    private static final int TEXT = 0xFFE6E9EC;
-    private static final int MUTED = 0xFF98A2AD;
-    private static final int CYAN = 0xFF48C6D1;
-    private static final int AMBER = 0xFFF1B24A;
-    private static final int DANGER = 0xFFD86262;
-    private static final int SORT_MARKER_GAP = 5;
-    private static final int ACTION_Y = 47;
-    private static final int ACTION_WIDTH = 92;
-    private static final int ACTION_HEIGHT = 18;
-    private static final int MAX_VISIBLE_CHOICES = 8;
+    /** Rows the choice overlay will show before it starts scrolling. */
+    private static final int CHOICE_MAX_VISIBLE = 8;
 
-    private final ItemStack marker;
+    private static final int CHOICE_ROW_H = 20;
+    private static final int CHOICE_BOX_W = 224;
+
+    /** Blank face rows between the overlay's title band and its first choice. */
+    private static final int CHOICE_TOP_PAD = 6;
+
+    /** Blank face rows below the last choice. */
+    private static final int CHOICE_BOTTOM_PAD = 8;
+
     private final InteractionHand hand;
+
+    private ItemStack marker;
     private final List<Row> rows = new ArrayList<>();
-    private List<StructMarkerItem.MarkedStructure> structureChoices = List.of();
+
+    private List<StructMarkerItem.MarkedStructure> choices = List.of();
     private BlockPos choicePosition = BlockPos.ZERO;
+    private int choiceScroll;
+
     private int left;
     private int top;
-    private int panelWidth;
-    private int panelHeight;
     private int scroll;
-    private int choiceScroll;
-    private SortColumn sortColumn = SortColumn.ITEM;
-    private boolean ascending = true;
+    private int hoveredRow = -1;
 
     public StructMarkerScreen(ItemStack marker, InteractionHand hand) {
         super(Component.translatable("screen.dimension_tech.struct_marker.title"));
@@ -61,435 +81,565 @@ public final class StructMarkerScreen extends Screen {
         this.hand = hand;
     }
 
+    /** True when this screen is already showing the given hand, i.e. it can be reused in place. */
+    public boolean holds(InteractionHand requestedHand) {
+        return requestedHand == hand;
+    }
+
+    /**
+     * Re-reads a marker the server has just pushed.
+     *
+     * <p>Refreshing beats replacing the screen: marking a structure round-trips through the server
+     * and comes back as a fresh stack, and rebuilding the screen for it would throw away the scroll
+     * position and flash the background on every press of the action button.
+     */
+    public void refresh(ItemStack updated) {
+        marker = updated;
+        rebuildRows();
+        scroll = Math.max(0, Math.min(maxScroll(), scroll));
+    }
+
     @Override
     protected void init() {
-        panelWidth = Math.min(WIDTH, Math.max(1, width - 24));
-        panelHeight = Math.min(HEIGHT, Math.max(1, height - 24));
-        left = (width - panelWidth) / 2;
-        top = (height - panelHeight) / 2;
+        left = (width - StructMarkerLayout.WIDTH) / 2;
+        top = (height - StructMarkerLayout.HEIGHT) / 2;
+        rebuildRows();
+    }
+
+    /**
+     * The expectation rows, heaviest first.
+     *
+     * <p>This screen has no sortable header — the design puts the viewport straight under its
+     * caption, with no room for a column row — so the order it ships with is the only order the
+     * player will see. Expected yield descending is the useful one: the question being asked of a
+     * structure is what it drops most of, and answer is the first line rather than a hunt.
+     */
+    private void rebuildRows() {
         rows.clear();
         for (Map.Entry<ResourceLocation, ExactProbability> entry :
                 StructMarkerItem.getExpectedItemCounts(marker).entrySet()) {
             Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
             if (item != null) rows.add(new Row(item, entry.getValue()));
         }
-        sortRows();
+        rows.sort(
+                Comparator.comparingDouble((Row row) -> row.expected.finiteDoubleValue())
+                        .reversed()
+                        .thenComparing(row -> BuiltInRegistries.ITEM.getKey(row.item).toString()));
     }
+
+    /**
+     * This screen does not pause the game.
+     *
+     * <p>It reads the marker in the player's hand and writes back to it, so it is a console rather
+     * than a menu — the same stance the miner and the operator console take, both of which are
+     * container screens and therefore never paused either.
+     */
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
+    // ---------------------------------------------------------------- render
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xFF0B0E12);
-        drawPanel(graphics, left, top, panelWidth, panelHeight);
-        drawHeader(graphics, left);
-        drawActions(graphics, mouseX, mouseY);
-        drawSummary(graphics, left);
-        drawRows(graphics, left, mouseX, mouseY);
-        super.render(graphics, mouseX, mouseY, partialTick);
-        if (!structureChoices.isEmpty()) {
-            drawStructureChoices(graphics, mouseX, mouseY);
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        /*
+         * Screen#render only walks the child widgets, it does not paint a background — that is
+         * AbstractContainerScreen#render's job, not this one's. So the dim has to be asked for
+         * explicitly here; without it this screen stayed fully transparent and the world showed
+         * straight through the panel. It is drawn before super.render so the widgets land on top
+         * of it, and the panel is drawn after so it lands on top of both.
+         */
+        renderBackground(g);
+        super.render(g, mouseX, mouseY, partialTick);
+
+        int windowX = mouseX - left;
+        int windowY = mouseY - top;
+        hoveredRow = choices.isEmpty() ? rowAt(mouseX, mouseY) : -1;
+
+        g.pose().pushPose();
+        g.pose().translate(left, top, 0.0D);
+        drawFace(g);
+        drawCaption(g);
+        drawLeftColumn(g);
+        drawExpectationSection(g, windowX, windowY);
+        drawActions(g, windowX, windowY);
+        g.pose().popPose();
+
+        /*
+         * The hover pass runs here, after the pose is back to identity and every scissor has been
+         * closed, because renderTooltip draws under the current pose and leaves the scissor alone:
+         * calling it from inside the viewport draw would offset the box by the canvas origin and
+         * crop it at the viewport edge.
+         */
+        if (choices.isEmpty() && hoveredRow >= 0) {
+            g.renderTooltip(font, new ItemStack(rows.get(hoveredRow).item), mouseX, mouseY);
         }
+        if (!choices.isEmpty()) drawChoices(g, mouseX, mouseY);
     }
 
-    private void drawPanel(GuiGraphics graphics, int left, int y, int width, int height) {
-        graphics.fill(left, y, left + width, y + height, PANEL);
-        graphics.fill(left + 1, y + 1, left + width - 1, y + 2, CYAN);
-        graphics.fill(left + 1, y + height - 2, left + width - 1, y + height - 1, 0xFF343D46);
-        graphics.fill(left + 1, y + 1, left + 2, y + height - 1, 0xFF343D46);
+    private void drawFace(GuiGraphics g) {
+        g.blit(
+                StructMarkerLayout.TEXTURE,
+                0,
+                0,
+                0,
+                0,
+                StructMarkerLayout.WIDTH,
+                StructMarkerLayout.HEIGHT,
+                StructMarkerLayout.TEXTURE_WIDTH,
+                StructMarkerLayout.TEXTURE_HEIGHT);
     }
 
-    private void drawHeader(GuiGraphics graphics, int left) {
-        graphics.drawString(font, title, left + 20, top + 10, TEXT, false);
-        graphics.drawString(
+    /**
+     * The caption and the analysis-state chip.
+     *
+     * <p>The caption is ink on the face, not light text on a band: this texture has no band, which
+     * is the same arrangement the reactor and the operator console use.
+     */
+    private void drawCaption(GuiGraphics g) {
+        g.drawString(
                 font,
-                Component.translatable("screen.dimension_tech.struct_marker.subtitle"),
-                left + 20,
-                top + 24,
-                MUTED,
+                Component.translatable("screen.dimension_tech.struct_marker.title"),
+                StructMarkerLayout.TITLE_X,
+                StructMarkerLayout.TITLE_Y,
+                StructureMinerTheme.INK,
                 false);
-        StructMarkerItem.getMarkerInfo(marker)
-                .ifPresent(
-                        info -> {
-                            int metadataX = left + panelWidth / 2;
-                            graphics.drawString(
-                                    font,
-                                    Component.translatable(
-                                            "screen.dimension_tech.struct_marker.dimension",
-                                            TranslateHelper.dimensionName(info.dimension())),
-                                    metadataX,
-                                    top + 10,
-                                    CYAN,
-                                    false);
-                            String structures =
-                                    TranslateHelper.structureName(info.structure().id())
-                                            .getString();
-                            String clipped =
-                                    font.plainSubstrByWidth(
-                                            structures, Math.max(1, panelWidth / 2 - 25));
-                            graphics.drawString(
-                                    font,
-                                    Component.translatable(
-                                            "screen.dimension_tech.struct_marker.structure",
-                                            clipped),
-                                    metadataX,
-                                    top + 24,
-                                    MUTED,
-                                    false);
-                        });
-        graphics.fill(left + 18, top + 42, left + panelWidth - 18, top + 43, 0xFF303942);
+
+        /*
+         * The chip's width follows its label: the state names are not the same length in every
+         * language, and a fixed width would push the longest one past the chip's own edges.
+         */
+        AnalysisStatus status = StructMarkerItem.getAnalysisStatus(marker);
+        Component label = statusLabel(status);
+        int chipWidth =
+                Math.max(
+                        StructMarkerLayout.CHIP_W,
+                        font.width(label) + 2 * StructMarkerLayout.CHIP_PAD);
+        StructureMinerTheme.statusChip(
+                g,
+                font,
+                StructMarkerLayout.WIDTH
+                        - 2
+                        - StructMarkerLayout.FACE_MARGIN
+                        - chipWidth,
+                StructMarkerLayout.CHIP_Y,
+                chipWidth,
+                label,
+                stateAccent(status));
     }
 
-    private void drawSummary(GuiGraphics graphics, int left) {
-        int y = top + 72;
-        int metricWidth = Math.max(1, (panelWidth - 60) / 2);
-        drawMetric(
-                graphics,
-                left + 20,
-                y,
-                metricWidth,
-                "screen.dimension_tech.struct_marker.dimension_value",
-                StructMarkerItem.getDimensionValue(marker),
-                CYAN);
-        drawMetric(
-                graphics,
-                left + 30 + metricWidth,
-                y,
-                metricWidth,
-                "screen.dimension_tech.struct_marker.structure_value",
-                StructMarkerItem.getStructureValue(marker),
-                AMBER);
-        boolean structureSelected = StructMarkerItem.getMarkerInfo(marker).isPresent();
+    /** The four readings, the rule under them, and the three state lines below it. */
+    private void drawLeftColumn(GuiGraphics g) {
+        StructMarkerItem.MarkerInfo info = StructMarkerItem.getMarkerInfo(marker).orElse(null);
+        StructureDataOperatorReadings.draw(
+                g,
+                font,
+                StructMarkerLayout.LEFT_X,
+                StructMarkerLayout.READING_Y,
+                StructMarkerLayout.LEFT_W,
+                StructMarkerLayout.READING_ROW_H,
+                marker,
+                info == null ? null : info.dimension(),
+                info == null ? null : info.structure().id());
+
+        g.fill(
+                StructMarkerLayout.LEFT_X,
+                StructMarkerLayout.STATE_RULE_Y,
+                StructMarkerLayout.LEFT_X + StructMarkerLayout.LEFT_W,
+                StructMarkerLayout.STATE_RULE_Y + 1,
+                StructureMinerTheme.SHADE);
+
         AnalysisStatus status = StructMarkerItem.getAnalysisStatus(marker);
-        Component structures =
+        g.drawString(
+                font,
                 Component.translatable(
-                        structureSelected
-                                ? "screen.dimension_tech.struct_marker.selection.selected"
-                                : "screen.dimension_tech.struct_marker.selection.empty");
-        Component calculationMethod =
+                        info == null
+                                ? "screen.dimension_tech.struct_marker.selection.empty"
+                                : "screen.dimension_tech.struct_marker.selection.selected"),
+                StructMarkerLayout.LEFT_X,
+                StructMarkerLayout.STATE_LINE_1_Y,
+                info == null ? StructureMinerTheme.DIM : StructureMinerTheme.SUCCESS,
+                false);
+
+        g.drawString(
+                font,
                 Component.translatable(
                         "screen.dimension_tech.struct_marker.calculation_method",
-                        Component.translatable(
-                                "screen.dimension_tech.struct_marker.analysis_status."
-                                        + status.name().toLowerCase(java.util.Locale.ROOT)));
-        graphics.drawString(font, structures, left + 20, y + 49, MUTED, false);
-        graphics.drawString(
+                        statusLabel(status)),
+                StructMarkerLayout.LEFT_X,
+                StructMarkerLayout.STATE_LINE_2_Y,
+                stateAccent(status),
+                false);
+
+        /*
+         * The coordinates are printed raw. There is no translation for an "x, y, z" triplet because
+         * there is nothing to translate: the separator and the sign are the whole format, and the
+         * player reads them the same way in every language.
+         */
+        if (info != null) {
+            BlockPos position = info.position();
+            g.drawString(
+                    font,
+                    position.getX() + ", " + position.getY() + ", " + position.getZ(),
+                    StructMarkerLayout.LEFT_X,
+                    StructMarkerLayout.STATE_LINE_3_Y,
+                    StructureMinerTheme.DIM,
+                    false);
+        }
+    }
+
+    /**
+     * The section caption, its rule, and the scrolling expectation viewport.
+     *
+     * <p>{@code sectionHeader} draws the caption and underlines it in a single call — the text lands
+     * on {@code SECTION_Y + 1} and the rule on {@code SECTION_Y + 11} — so nothing here paints a
+     * second rule one row under the first.
+     */
+    private void drawExpectationSection(GuiGraphics g, int windowX, int windowY) {
+        StructureMinerTheme.sectionHeader(
+                g,
                 font,
-                calculationMethod,
-                left + panelWidth - 20 - font.width(calculationMethod),
-                y + 49,
-                status == AnalysisStatus.EXACT ? CYAN : AMBER,
+                StructMarkerLayout.SECTION_X,
+                StructMarkerLayout.SECTION_Y,
+                StructMarkerLayout.SECTION_W,
+                Component.translatable("screen.dimension_tech.struct_marker.items_heading"),
+                StructureMinerTheme.FLUIX);
+
+        /* The count shares the caption's own line, one row below the header's origin. */
+        String count =
+                Component.translatable(
+                                "screen.dimension_tech.struct_marker.item_count", rows.size())
+                        .getString();
+        g.drawString(
+                font,
+                count,
+                StructMarkerLayout.SECTION_X + StructMarkerLayout.SECTION_W - font.width(count),
+                StructMarkerLayout.SECTION_Y + 1,
+                StructureMinerTheme.INK,
+                false);
+
+        drawViewport(g);
+    }
+
+    /**
+     * Clips to the viewport, translates to its origin, and draws the rows.
+     *
+     * <p>{@code enableScissor} takes GUI-logical coordinates and applies the window's GUI scale
+     * itself, so the rectangle is handed over in absolute logical pixels — the panel origin plus the
+     * viewport's own offset — and never multiplied by a scale first. This screen does not scale its
+     * pose at all: the frame is a fixed 300x176, which fits the 480x270 minimum, so there is no
+     * second scale to fold in.
+     */
+    private void drawViewport(GuiGraphics g) {
+        g.enableScissor(
+                left + StructMarkerLayout.VIEWPORT.x(),
+                top + StructMarkerLayout.VIEWPORT.y(),
+                left + StructMarkerLayout.VIEWPORT.right(),
+                top + StructMarkerLayout.VIEWPORT.bottom());
+        g.pose().pushPose();
+        g.pose()
+                .translate(
+                        StructMarkerLayout.VIEWPORT.x(), StructMarkerLayout.VIEWPORT.y(), 0.0D);
+
+        if (rows.isEmpty()) {
+            StructureMinerTheme.emptyState(
+                    g,
+                    font,
+                    0,
+                    0,
+                    StructMarkerLayout.VIEWPORT_W,
+                    StructMarkerLayout.VIEWPORT_H,
+                    Component.translatable("screen.dimension_tech.struct_marker.no_items"));
+        } else {
+            int visible = Math.min(scroll, Math.max(0, rows.size() - StructMarkerLayout.visibleRows()));
+            for (int index = visible; index < rows.size(); index++) {
+                int y = StructMarkerLayout.rowY(index - visible);
+                if (y >= StructMarkerLayout.VIEWPORT_H) break;
+                drawRow(g, index, y);
+            }
+        }
+
+        g.pose().popPose();
+        g.disableScissor();
+
+        StructureMinerTheme.scrollbar(
+                g,
+                StructMarkerLayout.VIEWPORT.x() + StructMarkerLayout.SCROLLBAR_X,
+                StructMarkerLayout.VIEWPORT.y(),
+                StructMarkerLayout.VIEWPORT_H,
+                rows.size() * StructMarkerLayout.ROW_H,
+                StructMarkerLayout.VIEWPORT_H,
+                scroll * StructMarkerLayout.ROW_H);
+    }
+
+    /** One expectation row: item icon, name, and the expected count right-aligned against it. */
+    private void drawRow(GuiGraphics g, int index, int y) {
+        Row row = rows.get(index);
+        if (index == hoveredRow) {
+            g.fill(0, y, StructMarkerLayout.VIEWPORT_W, y + StructMarkerLayout.ROW_H, ROW_HOVER);
+        }
+
+        ItemStack stack = new ItemStack(row.item);
+        g.renderItem(stack, StructMarkerLayout.ROW_PAD, y + 1);
+
+        String expected = ReadingFormat.reading(row.expected.finiteDoubleValue());
+        int expectedWidth = font.width(expected);
+        String name =
+                font.plainSubstrByWidth(
+                        stack.getHoverName().getString(),
+                        Math.max(
+                                1,
+                                StructMarkerLayout.CONTENT_RIGHT
+                                        - StructMarkerLayout.ROW_NAME_X
+                                        - expectedWidth
+                                        - 6));
+        g.drawString(
+                font,
+                name,
+                StructMarkerLayout.ROW_NAME_X,
+                y + 4,
+                StructureMinerTheme.INK,
+                false);
+        g.drawString(
+                font,
+                expected,
+                StructMarkerLayout.CONTENT_RIGHT - expectedWidth,
+                y + 4,
+                StructureMinerTheme.FLUIX,
                 false);
     }
 
-    private void drawMetric(
-            GuiGraphics graphics, int x, int y, int width, String key, double value, int accent) {
-        graphics.fill(x, y, x + width, y + 40, PANEL_RAISED);
-        graphics.fill(x, y, x + 3, y + 40, accent);
-        graphics.drawString(font, Component.translatable(key), x + 12, y + 7, MUTED, false);
-        String formatted = String.format(java.util.Locale.ROOT, "%.3f", value);
-        graphics.drawString(font, formatted, x + 12, y + 21, TEXT, false);
+    /**
+     * The action pair, centred across the bottom of the face.
+     *
+     * <p>Both labels are four characters, which is why these are the 48x16 long buttons rather than
+     * the 32x16 ones: the short sprite's face is 32 pixels wide and "标记结构" measures 36, so
+     * {@code plainSubstrByWidth} would drop the last glyph instead of shrinking it.
+     */
+    private void drawActions(GuiGraphics g, int windowX, int windowY) {
+        boolean marked = StructMarkerItem.getMarkerInfo(marker).isPresent();
+        actionButton(
+                g,
+                StructMarkerLayout.ACTION_FIRST_X,
+                windowX,
+                windowY,
+                true,
+                Component.translatable("screen.dimension_tech.struct_marker.mark"));
+        actionButton(
+                g,
+                StructMarkerLayout.ACTION_SECOND_X,
+                windowX,
+                windowY,
+                marked,
+                Component.translatable("screen.dimension_tech.struct_marker.clear"));
     }
 
-    private void drawRows(GuiGraphics graphics, int left, int mouseX, int mouseY) {
-        int listX = left + 20;
-        int listY = top + 160;
-        int listW = Math.max(1, panelWidth - 40);
-        int listH = Math.max(40, panelHeight - 176);
-        graphics.fill(listX, listY, listX + listW, listY + listH, PANEL_INSET);
-        graphics.fill(listX, listY, listX + listW, listY + 1, 0xFF303942);
-        drawTableHeader(graphics, listX, listY - 25, listW);
-        if (rows.isEmpty()) {
-            graphics.drawCenteredString(
-                    font,
-                    Component.translatable("screen.dimension_tech.struct_marker.no_items"),
-                    left + panelWidth / 2,
-                    listY + 42,
-                    MUTED);
-            return;
+    /**
+     * One 48x16 sprite button.
+     *
+     * <p>The sheet has an idle sprite and a lit one and nothing between, so the pointer lights the
+     * button rather than tinting it. A disabled button keeps the idle sprite and takes the overlay,
+     * which is how every other disabled control in this mod reads.
+     */
+    private void actionButton(
+            GuiGraphics g, int x, int windowX, int windowY, boolean enabled, Component label) {
+        boolean hovered =
+                inside(
+                        windowX,
+                        windowY,
+                        x,
+                        StructMarkerLayout.ACTION_Y,
+                        StructMarkerLayout.ACTION_W,
+                        StructMarkerLayout.ACTION_H);
+        StructureMinerSpriteRenderer.longButton(
+                g, x, StructMarkerLayout.ACTION_Y, enabled && hovered);
+        if (!enabled) {
+            g.fill(
+                    x,
+                    StructMarkerLayout.ACTION_Y,
+                    x + StructMarkerLayout.ACTION_W,
+                    StructMarkerLayout.ACTION_Y + StructMarkerLayout.ACTION_H,
+                    StructureMinerTheme.DISABLED_OVERLAY);
         }
-        int rowHeight = 30;
-        int visible = listH / rowHeight;
-        int first = Math.min(scroll, Math.max(0, rows.size() - visible));
-        for (int index = first; index < Math.min(rows.size(), first + visible + 1); index++) {
-            int y = listY + 6 + (index - first) * rowHeight;
-            Row row = rows.get(index);
-            ItemStack stack = new ItemStack(row.item);
-            graphics.renderItem(stack, listX + 8, y);
-            graphics.drawString(font, stack.getHoverName(), listX + 34, y + 2, TEXT, false);
-            String amount =
-                    String.format(java.util.Locale.ROOT, "%.4f", row.expected.finiteDoubleValue());
-            graphics.drawString(font, amount, expectedColumnX(listX, listW), y + 2, CYAN, false);
-            Rarity rarity = stack.getRarity();
-            double multiplier = ModConfigs.STRUCTURE_VALUE.itemMultiplier(stack.getItem(), rarity);
-            graphics.drawString(
-                    font,
-                    Component.translatable(
-                            "screen.dimension_tech.struct_marker.multiplier", multiplier),
-                    multiplierColumnX(listX, listW),
-                    y + 2,
-                    rarityColor(rarity),
-                    false);
-            graphics.fill(listX + 34, y + 19, listX + listW - 10, y + 20, 0xFF252D35);
-            if (mouseX >= listX + 4
-                    && mouseX < listX + listW - 4
-                    && mouseY >= y
-                    && mouseY < y + 24) {
-                graphics.fill(listX + 4, y - 1, listX + listW - 4, y + 25, 0x223FC2CE);
-                graphics.renderTooltip(font, stack, mouseX, mouseY);
-            }
-        }
-        if (rows.size() > visible) {
-            int barH = Math.max(12, listH * visible / rows.size());
-            int barY = listY + (listH - barH) * first / Math.max(1, rows.size() - visible);
-            graphics.fill(
-                    listX + listW - 5,
-                    listY + barY - listY,
-                    listX + listW - 2,
-                    listY + barY - listY + barH,
-                    AMBER);
-        }
+        GuiText.centered(
+                g,
+                font,
+                label,
+                x + StructMarkerLayout.ACTION_W / 2,
+                StructMarkerLayout.ACTION_Y + 4,
+                StructureMinerTheme.INK);
     }
 
-    private void drawActions(GuiGraphics graphics, int mouseX, int mouseY) {
-        drawActionButton(
-                graphics,
-                selectButtonX(),
-                top + ACTION_Y,
-                Component.translatable("screen.dimension_tech.struct_marker.select"),
-                CYAN,
-                mouseX,
-                mouseY);
-        drawActionButton(
-                graphics,
-                clearButtonX(),
-                top + ACTION_Y,
-                Component.translatable("screen.dimension_tech.struct_marker.clear"),
-                DANGER,
-                mouseX,
-                mouseY);
-    }
+    // ---------------------------------------------------------- choice overlay
 
-    private void drawActionButton(
-            GuiGraphics graphics,
-            int x,
-            int y,
-            Component label,
-            int accent,
-            int mouseX,
-            int mouseY) {
-        boolean hovered = inside(mouseX, mouseY, x, y, ACTION_WIDTH, ACTION_HEIGHT);
-        graphics.fill(x, y, x + ACTION_WIDTH, y + ACTION_HEIGHT, PANEL_RAISED);
-        graphics.fill(x, y, x + 2, y + ACTION_HEIGHT, accent);
-        if (hovered) graphics.fill(x + 2, y, x + ACTION_WIDTH, y + ACTION_HEIGHT, 0x223FC2CE);
-        graphics.drawCenteredString(
-                font, label, x + ACTION_WIDTH / 2, y + 5, hovered ? TEXT : MUTED);
-    }
-
-    private void drawStructureChoices(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.fill(0, 0, width, height, 0x99000000);
-        int visible = Math.min(MAX_VISIBLE_CHOICES, structureChoices.size());
-        int boxWidth = Math.min(280, Math.max(180, panelWidth - 40));
-        int boxHeight = 45 + visible * 22;
-        int boxX = (width - boxWidth) / 2;
-        int boxY = (height - boxHeight) / 2;
-        graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, PANEL);
-        graphics.fill(boxX, boxY, boxX + boxWidth, boxY + 2, CYAN);
-        graphics.drawCenteredString(
+    /**
+     * The overlapping-structure picker, painted over everything else.
+     *
+     * <p>It is a window in its own right — same contour, same dark band, same accent rail — so the
+     * player reads it as the terminal asking a question rather than as a second interface.
+     */
+    private void drawChoices(GuiGraphics g, int mouseX, int mouseY) {
+        ChoiceBox box = choiceBox();
+        g.fill(0, 0, width, height, 0x99000000);
+        StructureMinerTheme.panel(g, box.x(), box.y(), box.width(), box.height(), GuiPalette.FLUIX);
+        g.drawString(
                 font,
                 Component.translatable("screen.dimension_tech.struct_marker.select_prompt"),
-                width / 2,
-                boxY + 12,
-                TEXT);
-        int first = Math.min(choiceScroll, Math.max(0, structureChoices.size() - visible));
+                box.x() + 2 + 6,
+                box.y() + 1 + 3,
+                StructureMinerTheme.TEXT,
+                false);
+
+        int visible = Math.min(CHOICE_MAX_VISIBLE, choices.size());
+        int first = Math.min(choiceScroll, Math.max(0, choices.size() - visible));
         for (int row = 0; row < visible; row++) {
             int index = first + row;
-            int y = boxY + 34 + row * 22;
-            boolean hovered = inside(mouseX, mouseY, boxX + 10, y, boxWidth - 20, 18);
-            graphics.fill(
-                    boxX + 10,
+            int y = box.firstRowY() + row * CHOICE_ROW_H;
+            /*
+             * The listRow primitive is told this row is "selected" when the pointer is on it: its
+             * three states are pressed-in / lifted / untouched, and the overlay sits on a light face
+             * where only the pressed-in tone is far enough from the fill to read as feedback.
+             */
+            StructureMinerTheme.listRow(
+                    g,
+                    font,
+                    box.rowX(),
                     y,
-                    boxX + boxWidth - 10,
-                    y + 18,
-                    hovered ? 0xFF2C4249 : PANEL_RAISED);
-            String label =
-                    font.plainSubstrByWidth(
-                            choiceLabel(structureChoices.get(index)), boxWidth - 32);
-            graphics.drawString(font, label, boxX + 16, y + 5, hovered ? CYAN : TEXT, false);
+                    box.rowWidth(),
+                    CHOICE_ROW_H,
+                    Component.literal(choiceLabel(choices.get(index))),
+                    inside(mouseX, mouseY, box.rowX(), y, box.rowWidth(), CHOICE_ROW_H),
+                    false,
+                    StructureMinerTheme.FLUIX);
         }
     }
 
+    private ChoiceBox choiceBox() {
+        int visible = Math.min(CHOICE_MAX_VISIBLE, choices.size());
+        /*
+         * The band is 14 rows and carries the prompt; GuiChrome#window returns the first row below
+         * it, so the padding terms are measured from there rather than from the box top.
+         */
+        int bandHeight = GuiChrome.BAND_HEIGHT + 1;
+        int height =
+                bandHeight + CHOICE_TOP_PAD + visible * CHOICE_ROW_H + CHOICE_BOTTOM_PAD;
+        int x = (width - CHOICE_BOX_W) / 2;
+        int y = (this.height - height) / 2;
+        return new ChoiceBox(x, y, CHOICE_BOX_W, height, bandHeight + CHOICE_TOP_PAD);
+    }
+
+    /** Shows the structures the server found under the player, replacing any previous list. */
     public void showStructureChoices(
             InteractionHand requestedHand,
             BlockPos position,
-            List<StructMarkerItem.MarkedStructure> choices) {
-        if (requestedHand != hand || choices.isEmpty()) return;
-        structureChoices = List.copyOf(choices);
+            List<StructMarkerItem.MarkedStructure> structures) {
+        if (!holds(requestedHand) || structures.isEmpty()) return;
+        choices = List.copyOf(structures);
         choicePosition = position.immutable();
         choiceScroll = 0;
     }
 
-    private void drawTableHeader(GuiGraphics graphics, int x, int y, int width) {
-        graphics.fill(x, y, x + width, y + 20, PANEL_RAISED);
-        graphics.fill(x, y + 19, x + width, y + 20, AMBER);
-        Component itemLabel = Component.translatable("screen.dimension_tech.struct_marker.item");
-        Component expectedLabel =
-                Component.translatable("screen.dimension_tech.struct_marker.expected");
-        Component multiplierLabel =
-                Component.translatable("screen.dimension_tech.struct_marker.multiplier_header");
-        int itemLabelX = x + 12;
-        int expectedLabelX = expectedColumnX(x, width);
-        int multiplierLabelX = multiplierColumnX(x, width);
-        graphics.drawString(font, itemLabel, itemLabelX, y + 6, TEXT, false);
-        graphics.drawString(font, expectedLabel, expectedLabelX, y + 6, TEXT, false);
-        graphics.drawString(font, multiplierLabel, multiplierLabelX, y + 6, TEXT, false);
-        drawSortMarker(graphics, y, SortColumn.ITEM, itemLabelX, itemLabel);
-        drawSortMarker(graphics, y, SortColumn.EXPECTED, expectedLabelX, expectedLabel);
-        drawSortMarker(graphics, y, SortColumn.MULTIPLIER, multiplierLabelX, multiplierLabel);
-    }
-
-    private void drawSortMarker(
-            GuiGraphics graphics, int y, SortColumn column, int labelX, Component label) {
-        if (sortColumn != column) return;
-        int markerX = labelX + font.width(label) + SORT_MARKER_GAP;
-        graphics.drawString(font, ascending ? "↑" : "↓", markerX, y + 6, AMBER, false);
-    }
-
-    private int expectedColumnX(int x, int width) {
-        return x + width * 64 / 100;
-    }
-
-    private int multiplierColumnX(int x, int width) {
-        return x + width * 79 / 100;
-    }
-
-    private void sortRows() {
-        Comparator<Row> comparator =
-                switch (sortColumn) {
-                    case ITEM ->
-                            Comparator.comparing(
-                                    row -> BuiltInRegistries.ITEM.getKey(row.item).toString());
-                    case EXPECTED -> Comparator.comparing(row -> row.expected.finiteDoubleValue());
-                    case MULTIPLIER -> Comparator.comparing(row -> multiplier(row.item));
-                };
-        if (!ascending) comparator = comparator.reversed();
-        rows.sort(
-                comparator.thenComparing(
-                        row -> BuiltInRegistries.ITEM.getKey(row.item).toString()));
-    }
-
-    private double multiplier(Item item) {
-        return ModConfigs.STRUCTURE_VALUE.itemMultiplier(item, new ItemStack(item).getRarity());
-    }
+    // ------------------------------------------------------------------ input
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && !structureChoices.isEmpty()) {
-            int visible = Math.min(MAX_VISIBLE_CHOICES, structureChoices.size());
-            int boxWidth = Math.min(280, Math.max(180, panelWidth - 40));
-            int boxHeight = 45 + visible * 22;
-            int boxX = (width - boxWidth) / 2;
-            int boxY = (height - boxHeight) / 2;
-            int first = Math.min(choiceScroll, Math.max(0, structureChoices.size() - visible));
+        if (button != 0) return super.mouseClicked(mouseX, mouseY, button);
+
+        if (!choices.isEmpty()) {
+            ChoiceBox box = choiceBox();
+            int visible = Math.min(CHOICE_MAX_VISIBLE, choices.size());
+            int first = Math.min(choiceScroll, Math.max(0, choices.size() - visible));
             for (int row = 0; row < visible; row++) {
-                int y = boxY + 34 + row * 22;
-                if (inside(mouseX, mouseY, boxX + 10, y, boxWidth - 20, 18)) {
+                int y = box.firstRowY() + row * CHOICE_ROW_H;
+                if (inside(mouseX, mouseY, box.rowX(), y, box.rowWidth(), CHOICE_ROW_H)) {
                     ModNetwork.selectStructure(hand, choicePosition, first + row);
-                    structureChoices = List.of();
+                    choices = List.of();
                     return true;
                 }
             }
+            /* The overlay is modal: a click that misses a row must not fall through to the panel. */
             return true;
         }
-        if (button == 0
-                && inside(
-                        mouseX,
-                        mouseY,
-                        selectButtonX(),
-                        top + ACTION_Y,
-                        ACTION_WIDTH,
-                        ACTION_HEIGHT)) {
+
+        int windowX = (int) mouseX - left;
+        int windowY = (int) mouseY - top;
+        if (hitAction(windowX, windowY, StructMarkerLayout.ACTION_FIRST_X)) {
             ModNetwork.requestStructureSelection(hand);
             return true;
         }
-        if (button == 0
-                && inside(
-                        mouseX,
-                        mouseY,
-                        clearButtonX(),
-                        top + ACTION_Y,
-                        ACTION_WIDTH,
-                        ACTION_HEIGHT)) {
+        if (hitAction(windowX, windowY, StructMarkerLayout.ACTION_SECOND_X)
+                && StructMarkerItem.getMarkerInfo(marker).isPresent()) {
             ModNetwork.clear(hand);
-            return true;
-        }
-        int headerY = top + 135;
-        if (button == 0
-                && mouseX >= left + 20
-                && mouseX < left + panelWidth - 20
-                && mouseY >= headerY
-                && mouseY < headerY + 20) {
-            int relative = (int) mouseX - (left + 20);
-            int listW = Math.max(1, panelWidth - 40);
-            SortColumn selected =
-                    relative >= listW * 79 / 100
-                            ? SortColumn.MULTIPLIER
-                            : relative >= listW * 64 / 100 ? SortColumn.EXPECTED : SortColumn.ITEM;
-            if (selected == sortColumn) {
-                ascending = !ascending;
-            } else {
-                sortColumn = selected;
-                ascending = true;
-            }
-            sortRows();
-            scroll = 0;
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private int rarityColor(Rarity rarity) {
-        return switch (rarity) {
-            case COMMON -> TEXT;
-            case UNCOMMON -> 0xFF55FF55;
-            case RARE -> 0xFF55AAFF;
-            case EPIC -> 0xFFFF55FF;
-        };
-    }
-
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (!structureChoices.isEmpty()) {
-            int visible = Math.min(MAX_VISIBLE_CHOICES, structureChoices.size());
+        int step = (int) Math.signum(delta);
+        if (!choices.isEmpty()) {
+            int visible = Math.min(CHOICE_MAX_VISIBLE, choices.size());
             choiceScroll =
                     Math.max(
                             0,
                             Math.min(
-                                    Math.max(0, structureChoices.size() - visible),
-                                    choiceScroll - (int) Math.signum(delta)));
+                                    Math.max(0, choices.size() - visible), choiceScroll - step));
             return true;
         }
-        int visible = Math.max(1, (panelHeight - 176) / 30);
-        scroll =
-                Math.max(
-                        0,
-                        Math.min(
-                                Math.max(0, rows.size() - visible),
-                                scroll - (int) Math.signum(delta)));
+        scroll = Math.max(0, Math.min(maxScroll(), scroll - step));
         return true;
     }
 
-    private int selectButtonX() {
-        return left + 20;
+    private boolean hitAction(int windowX, int windowY, int x) {
+        return inside(
+                windowX,
+                windowY,
+                x,
+                StructMarkerLayout.ACTION_Y,
+                StructMarkerLayout.ACTION_W,
+                StructMarkerLayout.ACTION_H);
     }
 
-    private int clearButtonX() {
-        return left + panelWidth - 20 - ACTION_WIDTH;
+    private int maxScroll() {
+        return Math.max(0, rows.size() - StructMarkerLayout.visibleRows());
     }
 
-    private static boolean inside(
-            double mouseX, double mouseY, int x, int y, int width, int height) {
-        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    /** Expectation-row index under a screen point, or {@code -1}. */
+    private int rowAt(double mouseX, double mouseY) {
+        int viewportX = (int) mouseX - left - StructMarkerLayout.VIEWPORT.x();
+        int viewportY = (int) mouseY - top - StructMarkerLayout.VIEWPORT.y();
+        if (viewportX < 0 || viewportX >= StructMarkerLayout.VIEWPORT_W) return -1;
+        if (viewportY < 0 || viewportY >= StructMarkerLayout.VIEWPORT_H) return -1;
+        int index = scroll + viewportY / StructMarkerLayout.ROW_H;
+        return index >= 0 && index < rows.size() ? index : -1;
     }
 
+    // ----------------------------------------------------------------- helpers
+
+    private static Component statusLabel(AnalysisStatus status) {
+        return Component.translatable(
+                "screen.dimension_tech.struct_marker.analysis_status."
+                        + status.name().toLowerCase(Locale.ROOT));
+    }
+
+    /** The accent a state announces with, on the chip and on the calculation-method line. */
+    private static int stateAccent(AnalysisStatus status) {
+        return switch (status) {
+            case EXACT -> StructureMinerTheme.SUCCESS;
+            case APPROXIMATE -> StructureMinerTheme.AMBER;
+            case UNSUPPORTED -> StructureMinerTheme.ERROR;
+            case LEGACY -> StructureMinerTheme.MUTED;
+        };
+    }
+
+    /**
+     * A choice's display text: the structure's translated name, then where its box starts.
+     *
+     * <p>Two overlapping structures of the same kind differ only by position, so the name alone
+     * could not tell them apart.
+     */
     private static String choiceLabel(StructMarkerItem.MarkedStructure structure) {
         return TranslateHelper.structureName(structure.id()).getString()
                 + " ["
@@ -501,11 +651,25 @@ public final class StructMarkerScreen extends Screen {
                 + "]";
     }
 
-    private enum SortColumn {
-        ITEM,
-        EXPECTED,
-        MULTIPLIER
+    private static boolean inside(
+            double x, double y, int left, int top, int width, int height) {
+        return x >= left && x < left + width && y >= top && y < top + height;
     }
 
     private record Row(Item item, ExactProbability expected) {}
+
+    /** Geometry of the choice overlay, derived once per frame from how many choices there are. */
+    private record ChoiceBox(int x, int y, int width, int height, int firstRowOffset) {
+        int firstRowY() {
+            return y + firstRowOffset;
+        }
+
+        int rowX() {
+            return x + 6;
+        }
+
+        int rowWidth() {
+            return width - 12;
+        }
+    }
 }

@@ -2,15 +2,18 @@ package com.suntide_20210418.dimensiontech.block.entity;
 
 import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.item.ChestMarkerItem;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.EnchantmentMarginal;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
 import com.suntide_20210418.dimensiontech.loot.fingerprint.LootAnalysisFingerprint;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureAnalysisService;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
@@ -30,6 +33,7 @@ import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraftforge.items.ItemStackHandler;
 import org.slf4j.Logger;
 
@@ -88,7 +92,7 @@ final class StructureMinerMarkerAnalysisCache {
         List<CachedMarkerLoot> refreshed = new ArrayList<>();
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack marker = inventory.getStackInSlot(slot);
-            if (!marker.is(ModItems.STRUCTURE_MARKER.get())) {
+            if (!ModItems.isMarker(marker)) {
                 invalidate(slot, invalidatedSlots);
                 continue;
             }
@@ -175,7 +179,7 @@ final class StructureMinerMarkerAnalysisCache {
         }
         ItemStack requestedMarker = marker.copy();
         CompletableFuture<StructureValueCalculator.StructureValue> future =
-                analysisStarter.start(server, analysisLevel, info, luck);
+                analysisStarter.start(server, analysisLevel, info, luck, requestedMarker);
         pending.put(slot, future);
         tasks.put(slot, AnalysisLifecycle.TaskStatus.RUNNING);
         future.whenComplete(
@@ -256,7 +260,11 @@ final class StructureMinerMarkerAnalysisCache {
     }
 
     private static CompletableFuture<StructureValueCalculator.StructureValue> startAnalysis(
-            MinecraftServer server, ServerLevel analysisLevel, MarkerInfo info, float luck) {
+            MinecraftServer server,
+            ServerLevel analysisLevel,
+            MarkerInfo info,
+            float luck,
+            ItemStack marker) {
         String input = info.dimension() + "|" + info.position() + "|" + info.structure().id();
         String config = ModConfigs.STRUCTURE_VALUE.calculationFingerprint() + "|luck=" + luck;
         return StructureAnalysisService.forServer(server)
@@ -276,18 +284,12 @@ final class StructureMinerMarkerAnalysisCache {
                             server.execute(
                                     () -> {
                                         try {
-                                            StructureAnalysisService.forServer(server)
-                                                    .discover(
-                                                            analysisLevel,
-                                                            info.structure().id())
-                                                    .whenComplete(
-                                                            (result, error) -> {
-                                                                if (error != null)
-                                                                    discoveryStage
-                                                                            .completeExceptionally(
-                                                                                    error);
-                                                                else discoveryStage.complete(result);
-                                                            });
+                                            startDiscovery(
+                                                    server,
+                                                    analysisLevel,
+                                                    info,
+                                                    marker,
+                                                    discoveryStage);
                                         } catch (Throwable error) {
                                             discoveryStage.completeExceptionally(error);
                                         }
@@ -311,10 +313,91 @@ final class StructureMinerMarkerAnalysisCache {
                         });
     }
 
+    /**
+     * Starts the discovery stage of a marker analysis.
+     *
+     * <p>Chest markers carry a virtual structure id that has no templates and no registered
+     * structure, so the structure-id discovery pipeline would fail them. Their profile is instead
+     * built from the loot table recorded in the marker NBT, which is also why the discovery stage
+     * needs the marker stack itself.
+     *
+     * <p>In-world markers carry the generated structure's real bounding box, so the loaded world is
+     * the most authoritative loot source: scan the marker's containers before falling back to the
+     * detached static discovery pipeline. Detached catalogue markers (degenerate all-zero box) and
+     * filtered structures skip the world scan.
+     */
+    private static void startDiscovery(
+            MinecraftServer server,
+            ServerLevel analysisLevel,
+            MarkerInfo info,
+            ItemStack marker,
+            CompletableFuture<DiscoveryResult> discoveryStage) {
+        if (info.structure().id().equals(ChestMarkerItem.CHEST_MARKER_ID)) {
+            DiscoveryResult discovery =
+                    ChestMarkerItem.getChestInfo(marker)
+                            .map(
+                                    chest ->
+                                            StructureLootAnalyzer.discoverFixedForValue(
+                                                    analysisLevel,
+                                                    info.structure().id(),
+                                                    List.of(chest.lootTable()),
+                                                    List.of()))
+                            .orElseGet(
+                                    () ->
+                                            new DiscoveryResult(
+                                                    AnalysisStatus.UNSUPPORTED,
+                                                    List.of(),
+                                                    List.of(
+                                                            new Diagnostic(
+                                                                    "CHEST_MARKER_INVALID",
+                                                                    "Chest marker carries no"
+                                                                            + " chest data"))));
+            discoveryStage.complete(discovery);
+            return;
+        }
+        if (!isDetachedCatalogueMarker(info)
+                && ModConfigs.STRUCTURE_VALUE.allowsDimension(info.dimension())
+                && ModConfigs.STRUCTURE_VALUE.allowsStructure(info.structure().id())) {
+            DiscoveryResult worldResult =
+                    StructureLootAnalyzer.discoverForValue(analysisLevel, info);
+            if (worldResult.status() == AnalysisStatus.EXACT
+                    || worldResult.status() == AnalysisStatus.APPROXIMATE) {
+                discoveryStage.complete(worldResult);
+                return;
+            }
+        }
+        StructureAnalysisService.forServer(server)
+                .discover(analysisLevel, info.structure().id())
+                .whenComplete(
+                        (result, error) -> {
+                            if (error != null) discoveryStage.completeExceptionally(error);
+                            else discoveryStage.complete(result);
+                        });
+    }
+
+    /**
+     * A detached catalogue marker carries a degenerate all-zero bounding box; real markers carry
+     * the generated structure's bounds. The box is the only client-visible discriminator between
+     * the two creation paths, so it decides whether the loaded world is scanned for loot.
+     */
+    private static boolean isDetachedCatalogueMarker(MarkerInfo info) {
+        BoundingBox bounds = info.structure().bounds();
+        return bounds.minX() == 0
+                && bounds.minY() == 0
+                && bounds.minZ() == 0
+                && bounds.maxX() == 0
+                && bounds.maxY() == 0
+                && bounds.maxZ() == 0;
+    }
+
     @FunctionalInterface
     interface AnalysisStarter {
         CompletableFuture<StructureValueCalculator.StructureValue> start(
-                MinecraftServer server, ServerLevel level, MarkerInfo info, float luck);
+                MinecraftServer server,
+                ServerLevel level,
+                MarkerInfo info,
+                float luck,
+                ItemStack marker);
     }
 
     private void replace(

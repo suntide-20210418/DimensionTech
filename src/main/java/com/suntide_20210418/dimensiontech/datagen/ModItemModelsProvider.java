@@ -21,20 +21,29 @@ public class ModItemModelsProvider extends ItemModelProvider {
         withExistingParent(markerName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.itemModelTexture(markerName));
 
+        String chestMarkerName = ResourceLocationHelper.getPath(ModItems.CHEST_MARKER_ID);
+        withExistingParent(chestMarkerName, ResourceLocationHelper.vanilla("item/generated"))
+                .texture("layer0", ResourceLocationHelper.itemModelTexture(chestMarkerName));
+
         String coreName = ResourceLocationHelper.getPath(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
         withExistingParent(coreName, ResourceLocationHelper.vanilla("item/generated"))
                 .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
+
+        String wrenchName = ResourceLocationHelper.getPath(ModItems.WRENCH_ID);
+        withExistingParent(wrenchName, ResourceLocationHelper.vanilla("item/generated"))
+                .texture("layer0", ResourceLocationHelper.itemModelTexture(wrenchName));
         for (int tier = 1; tier <= 6; tier++) {
-            for (String name :
-                    new String[] {"dimension_fragment_tier_" + tier, "mining_token_tier_" + tier}) {
-                withExistingParent(name, ResourceLocationHelper.vanilla("item/generated"))
-                        .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
-            }
+            String fragmentName = "dimension_fragment_tier_" + tier;
+            withExistingParent(fragmentName, ResourceLocationHelper.vanilla("item/generated"))
+                    .texture("layer0", ResourceLocationHelper.itemModelTexture(fragmentName));
+
+            String tokenName = "mining_token_tier_" + tier;
+            withExistingParent(tokenName, ResourceLocationHelper.vanilla("item/generated"))
+                    .texture("layer0", ResourceLocationHelper.itemModelTexture(tokenName));
         }
         for (String name : new String[] {"data_integrator", "structure_interpreter"})
             withExistingParent(name, ResourceLocationHelper.vanilla("item/generated"))
-                    // Reuse the existing core texture until dedicated plugin artwork is added.
-                    .texture("layer0", ResourceLocationHelper.itemModelTexture(coreName));
+                    .texture("layer0", ResourceLocationHelper.itemModelTexture(name));
 
         String[] fluidBuckets = {
             "structure_essence_bucket",
@@ -53,7 +62,7 @@ public class ModItemModelsProvider extends ItemModelProvider {
         for (int i = 0; i < fluidBuckets.length; i++) {
             withExistingParent(
                             fluidBuckets[i],
-                            ResourceLocation.fromNamespaceAndPath("forge", "item/bucket"))
+                            new ResourceLocation("forge", "item/bucket"))
                     .customLoader(DynamicFluidContainerModelBuilder::begin)
                     .fluid(fluids[i].source().get());
         }
