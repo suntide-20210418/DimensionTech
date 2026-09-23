@@ -137,6 +137,10 @@ public final class EquipmentDismantler {
                 case CHESTPLATE -> materialCount(EquipmentPattern.CHESTPLATE);
                 case LEGGINGS -> materialCount(EquipmentPattern.LEGGINGS);
                 case BOOTS -> materialCount(EquipmentPattern.BOOTS);
+                // 1.21 新增的 ArmorItem.Type.BODY（狼铠）。它在 1.20.1 没有对应物，所以这里没有
+                // "忠实移植"的答案，只有等价映射：BODY 与 CHESTPLATE 的耐久系数都是 16，故沿用
+                // 胸甲的材料数作为当前口径。狼铠的产出量属于平衡决策，未定稿。
+                case BODY -> materialCount(EquipmentPattern.CHESTPLATE);
             };
         }
         if (equipment.getItem() instanceof SwordItem) return materialCount(EquipmentPattern.SWORD);

@@ -138,7 +138,7 @@ public final class ResourceLocationHelper {
      * @return 配方文件的ResourceLocation
      */
     public static ResourceLocation recipe(String recipeName) {
-        return modLoc("recipes/" + recipeName);
+        return modLoc("recipe/" + recipeName);
     }
 
     /**
@@ -148,7 +148,7 @@ public final class ResourceLocationHelper {
      * @return 战利品表的ResourceLocation
      */
     public static ResourceLocation lootTable(String lootTablePath) {
-        return modLoc("loot_tables/" + lootTablePath);
+        return modLoc("loot_table/" + lootTablePath);
     }
 
     /**

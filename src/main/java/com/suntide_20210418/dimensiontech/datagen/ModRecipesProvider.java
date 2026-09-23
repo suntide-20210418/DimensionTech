@@ -1,10 +1,11 @@
 package com.suntide_20210418.dimensiontech.datagen;
 
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
@@ -28,12 +29,12 @@ import org.jetbrains.annotations.NotNull;
 public class ModRecipesProvider extends RecipeProvider implements IConditionBuilder {
     private static final String[] SPECIALIZATIONS = {"efficiency", "parallel", "luck", "energy"};
 
-    public ModRecipesProvider(PackOutput pOutput) {
-        super(pOutput);
+    public ModRecipesProvider(PackOutput pOutput, CompletableFuture<HolderLookup.Provider> registries) {
+        super(pOutput, registries);
     }
 
     @Override
-    protected void buildRecipes(@NotNull Consumer<FinishedRecipe> writer) {
+    protected void buildRecipes(@NotNull RecipeOutput writer) {
         amethystDecomposition(writer);
         entryTools(writer);
         frameParts(writer);
@@ -42,7 +43,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
     }
 
     /** Tools that depend on no machine product, so the loop can be entered at all. */
-    private void entryTools(Consumer<FinishedRecipe> writer) {
+    private void entryTools(RecipeOutput writer) {
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MARKER.get())
                 .pattern("IQI")
                 .pattern("AGA")
@@ -110,7 +111,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
      * amethyst awkward in a mod that spends it on every tier. The conversion is deliberately lossy
      * (four shards back from nine) so it cannot be looped for free.
      */
-    private void amethystDecomposition(Consumer<FinishedRecipe> writer) {
+    private void amethystDecomposition(RecipeOutput writer) {
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, Items.AMETHYST_SHARD, 4)
                 .requires(Items.AMETHYST_BLOCK)
                 .unlockedBy("has_amethyst_block", has(Items.AMETHYST_BLOCK))
@@ -120,7 +121,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
     /**
      * Mass-produced frame parts; one machine eats 44 casings, so the yield is deliberately high.
      */
-    private void frameParts(Consumer<FinishedRecipe> writer) {
+    private void frameParts(RecipeOutput writer) {
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MINER_CASING.get())
                 .pattern("INI")
                 .pattern("RDR")
@@ -153,7 +154,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .save(writer);
     }
 
-    private void machines(Consumer<FinishedRecipe> writer) {
+    private void machines(RecipeOutput writer) {
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_DATA_OPERATOR.get())
                 .pattern("SGS")
                 .pattern("AIA")
@@ -216,7 +217,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
      * twelve upgrade slots also accept plain casings, which are pure vanilla, so a first machine
      * never depends on a machine product.
      */
-    private void upgradeBlocks(Consumer<FinishedRecipe> writer) {
+    private void upgradeBlocks(RecipeOutput writer) {
         for (String type : SPECIALIZATIONS) {
             for (int tier = 1; tier <= 6; tier++) {
                 ItemLike token = ModItems.MINING_TOKENS[tier - 1].get();

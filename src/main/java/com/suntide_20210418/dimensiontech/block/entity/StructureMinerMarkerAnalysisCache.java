@@ -101,7 +101,7 @@ final class StructureMinerMarkerAnalysisCache {
                 continue;
             }
             CachedMarkerLoot previous = cachedLootForSlot(slot);
-            if (previous == null || !ItemStack.isSameItemSameTags(previous.marker(), marker)) {
+            if (previous == null || !ItemStack.isSameItemSameComponents(previous.marker(), marker)) {
                 invalidate(slot, invalidatedSlots);
                 previous = null;
             }
@@ -253,7 +253,7 @@ final class StructureMinerMarkerAnalysisCache {
     private boolean markerStillPresent(int slot, ItemStack marker) {
         return slot >= 0
                 && slot < inventory.getSlots()
-                && ItemStack.isSameItemSameTags(inventory.getStackInSlot(slot), marker);
+                && ItemStack.isSameItemSameComponents(inventory.getStackInSlot(slot), marker);
     }
 
     private CachedMarkerLoot cachedLootForSlot(int slot) {

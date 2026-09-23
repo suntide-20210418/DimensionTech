@@ -60,9 +60,10 @@ public class ModItemModelsProvider extends ItemModelProvider {
             ModFluids.FRACTAL_ESSENCE
         };
         for (int i = 0; i < fluidBuckets.length; i++) {
+            // 1.21 的桶模型父层级由 forge 命名空间迁到 neoforge，模型本体仍是 neoforge:item/bucket。
             withExistingParent(
                             fluidBuckets[i],
-                            ResourceLocation.fromNamespaceAndPath("forge", "item/bucket"))
+                            ResourceLocation.fromNamespaceAndPath("neoforge", "item/bucket"))
                     .customLoader(DynamicFluidContainerModelBuilder::begin)
                     .fluid(fluids[i].source().get());
         }

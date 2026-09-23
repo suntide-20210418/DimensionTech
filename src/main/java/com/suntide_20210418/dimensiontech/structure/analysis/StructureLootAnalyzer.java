@@ -377,7 +377,7 @@ public final class StructureLootAnalyzer {
         Set<ResourceLocation> targeted = new HashSet<>();
         List<ResourceLocation> entries = new ArrayList<>();
         ResourceLocation listId =
-                ResourceLocationHelper.loc("forge", "loot_modifiers/global_loot_modifiers.json");
+                ResourceLocationHelper.loc("neoforge", "loot_modifiers/global_loot_modifiers.json");
         for (Resource resource : resources.getResourceStack(listId)) {
             try (Reader reader = resource.openAsReader()) {
                 JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
@@ -464,7 +464,7 @@ public final class StructureLootAnalyzer {
 
         ResourceLocation resourceId =
                 ResourceLocationHelper.loc(
-                        lootTable.getNamespace(), "loot_tables/" + lootTable.getPath() + ".json");
+                        lootTable.getNamespace(), "loot_table/" + lootTable.getPath() + ".json");
         Optional<Resource> resource = resourceManager.getResource(resourceId);
         if (resource.isEmpty()) {
             return;

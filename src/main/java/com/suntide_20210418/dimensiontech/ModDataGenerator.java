@@ -3,6 +3,8 @@ package com.suntide_20210418.dimensiontech;
 import com.suntide_20210418.dimensiontech.datagen.*;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.loot.LootTableProvider;
@@ -23,8 +25,10 @@ public final class ModDataGenerator {
         DataGenerator generator = event.getGenerator();
         PackOutput packOutput = generator.getPackOutput();
         ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
+        // 1.21 起 RecipeProvider / BlockLootSubProvider 都需要一个 HolderLookup.Provider，由事件提供。
+        CompletableFuture<HolderLookup.Provider> registries = event.getLookupProvider();
 
-        generator.addProvider(event.includeServer(), new ModRecipesProvider(packOutput));
+        generator.addProvider(event.includeServer(), new ModRecipesProvider(packOutput, registries));
         generator.addProvider(
                 event.includeServer(),
                 new LootTableProvider(
@@ -33,7 +37,8 @@ public final class ModDataGenerator {
                         List.of(
                                 new LootTableProvider.SubProviderEntry(
                                         ModBlockLootTablesProvider::new,
-                                        LootContextParamSets.BLOCK))));
+                                        LootContextParamSets.BLOCK)),
+                        registries));
 
         generator.addProvider(
                 event.includeClient(), new ModItemModelsProvider(packOutput, existingFileHelper));

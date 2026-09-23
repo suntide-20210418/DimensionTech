@@ -18,7 +18,6 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 
 @Mod(DimensionTechMod.MOD_ID)
@@ -41,8 +40,10 @@ public class DimensionTechMod {
         ModRecipes.register(modEventBus);
         ModDataComponents.register(modEventBus);
 
-        // Game event listeners.
-        NeoForge.EVENT_BUS.register(this);
+        // Game event listeners are owned by the classes annotated with @EventBusSubscriber.
+        // 1.20.1 tolerated NeoForge.EVENT_BUS.register(this) on a listener-less instance; NeoForge
+        // 21.1 throws IllegalArgumentException("has no @SubscribeEvent methods"), so the old
+        // self-registration is gone.
         ModMenu.MENU_TYPES.register(modEventBus);
 
         modEventBus.addListener(DimensionTechMod::commonSetup);
