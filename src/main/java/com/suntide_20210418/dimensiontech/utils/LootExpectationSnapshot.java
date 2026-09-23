@@ -1,0 +1,53 @@
+package com.suntide_20210418.dimensiontech.utils;
+
+import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
+import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
+import com.suntide_20210418.dimensiontech.loot.expectation.EnchantmentMarginal;
+import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
+import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueSnapshot;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Immutable expectation-layer output, including optional complete stack data for legacy adapters.
+ */
+public record LootExpectationSnapshot(
+        AnalysisStatus status,
+        StructureValueSnapshot.Expectation terminal,
+        Map<StackData, ExactProbability> stacks,
+        boolean fullStackMeasureAvailable,
+        EnchantmentMarginal enchantmentMarginal,
+        List<Diagnostic> diagnostics) {
+    public LootExpectationSnapshot {
+        Objects.requireNonNull(status, "status");
+        Objects.requireNonNull(terminal, "terminal");
+        stacks = Map.copyOf(stacks);
+        enchantmentMarginal =
+                enchantmentMarginal == null ? EnchantmentMarginal.EMPTY : enchantmentMarginal;
+        diagnostics = List.copyOf(diagnostics);
+    }
+
+    public LootExpectationSnapshot(
+            AnalysisStatus status,
+            StructureValueSnapshot.Expectation terminal,
+            Map<StackData, ExactProbability> stacks,
+            boolean fullStackMeasureAvailable,
+            List<Diagnostic> diagnostics) {
+        this(
+                status,
+                terminal,
+                stacks,
+                fullStackMeasureAvailable,
+                EnchantmentMarginal.EMPTY,
+                diagnostics);
+    }
+
+    /** NBT is serialized on the runtime side; no mutable tag is retained by a background task. */
+    public record StackData(String itemId, int count, String serializedNbt) {
+        public StackData {
+            Objects.requireNonNull(itemId, "itemId");
+            Objects.requireNonNull(serializedNbt, "serializedNbt");
+        }
+    }
+}

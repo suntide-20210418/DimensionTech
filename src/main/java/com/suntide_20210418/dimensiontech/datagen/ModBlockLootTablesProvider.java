@@ -1,0 +1,27 @@
+package com.suntide_20210418.dimensiontech.datagen;
+
+import com.suntide_20210418.dimensiontech.block.ModBlocks;
+import java.util.Set;
+import net.minecraft.data.loot.BlockLootSubProvider;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.level.block.Block;
+import net.neoforged.neoforge.registries.DeferredHolder;
+
+public class ModBlockLootTablesProvider extends BlockLootSubProvider {
+
+    public ModBlockLootTablesProvider() {
+        super(Set.of(), FeatureFlags.REGISTRY.allFlags());
+    }
+
+    @Override
+    public void generate() {
+        // Every registered block has a corresponding BlockItem, so generate a
+        // self-drop table for the complete registry (including tiered miners).
+        ModBlocks.BLOCKS.getEntries().forEach(entry -> dropSelf(entry.get()));
+    }
+
+    @Override
+    public Iterable<Block> getKnownBlocks() {
+        return ModBlocks.BLOCKS.getEntries().stream().map(DeferredHolder::get)::iterator;
+    }
+}

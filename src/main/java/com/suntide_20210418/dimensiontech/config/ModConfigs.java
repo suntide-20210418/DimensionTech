@@ -1,0 +1,547 @@
+package com.suntide_20210418.dimensiontech.config;
+
+import com.suntide_20210418.dimensiontech.loot.expectation.FrozenJson;
+import com.suntide_20210418.dimensiontech.loot.expectation.TerminalStackKey;
+import com.suntide_20210418.dimensiontech.utils.StructureScriptConfigService;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
+import net.neoforged.neoforge.common.ModConfigSpec;
+
+public final class ModConfigs {
+    public enum ItemExpectationMethod {
+        EXACT_THEN_SAMPLING,
+        SAMPLING
+    }
+
+    public static final ModConfigSpec COMMON_SPEC;
+    public static final StructureMinerTierConfig[] TIERS;
+    public static final StructureMinerUpgradeTierConfig[] UPGRADE_TIERS;
+    public static final StructureMinerUpgradeTierConfig[] AGGREGATE_UPGRADE_TIERS;
+    public static final StructureValueConfig STRUCTURE_VALUE;
+
+    static {
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        builder.comment("Structure miner settings by tier").push("structureMiner");
+        TIERS =
+                new StructureMinerTierConfig[] {
+                    new StructureMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100000, 1024, 1.0D),
+                    new StructureMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 400000, 4096, 2.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier3", 5, 2.0D, 3, 1600000, 16384, 3.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier4", 7, 4.0D, 4, 6400000, 65536, 4.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier5", 9, 8.0D, 6, 25600000, 262144, 5.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier6", 11, 16.0D, 9, 102400000, 1048576, 6.0D)
+                };
+        builder.pop();
+        builder.comment("Structure miner upgrade values by tier").push("structureMinerUpgrades");
+        UPGRADE_TIERS =
+                new StructureMinerUpgradeTierConfig[] {
+                    new StructureMinerUpgradeTierConfig(builder, "tier1", 20, 20, 5, 20, 50),
+                    new StructureMinerUpgradeTierConfig(builder, "tier2", 40, 40, 10, 40, 100),
+                    new StructureMinerUpgradeTierConfig(builder, "tier3", 60, 60, 15, 60, 150),
+                    new StructureMinerUpgradeTierConfig(builder, "tier4", 80, 80, 20, 80, 200),
+                    new StructureMinerUpgradeTierConfig(builder, "tier5", 100, 100, 25, 100, 250),
+                    new StructureMinerUpgradeTierConfig(builder, "tier6", 120, 120, 30, 120, 300)
+                };
+        builder.pop();
+        builder.comment("Structure miner aggregate upgrade values by tier")
+                .push("structureMinerAggregateUpgrades");
+        AGGREGATE_UPGRADE_TIERS =
+                new StructureMinerUpgradeTierConfig[] {
+                    new StructureMinerUpgradeTierConfig(builder, "tier1", 15, 15, 2, 15, 25),
+                    new StructureMinerUpgradeTierConfig(builder, "tier2", 30, 30, 3, 30, 50),
+                    new StructureMinerUpgradeTierConfig(builder, "tier3", 45, 45, 4, 45, 75),
+                    new StructureMinerUpgradeTierConfig(builder, "tier4", 60, 60, 5, 60, 100),
+                    new StructureMinerUpgradeTierConfig(builder, "tier5", 75, 75, 6, 75, 125),
+                    new StructureMinerUpgradeTierConfig(builder, "tier6", 90, 90, 7, 90, 150)
+                };
+        builder.pop();
+        STRUCTURE_VALUE = new StructureValueConfig(builder);
+        COMMON_SPEC = builder.build();
+    }
+
+    private ModConfigs() {}
+
+    public static final class StructureValueConfig {
+        private final ModConfigSpec.DoubleValue commonMultiplier;
+        private final ModConfigSpec.DoubleValue uncommonMultiplier;
+        private final ModConfigSpec.DoubleValue rareMultiplier;
+        private final ModConfigSpec.DoubleValue epicMultiplier;
+        private final ModConfigSpec.EnumValue<ItemExpectationMethod> itemExpectationMethod;
+        private final ModConfigSpec.IntValue samplingCount;
+        private final ModConfigSpec.IntValue glmSupplementSamples;
+        private final ModConfigSpec.IntValue virtualStructureSamples;
+        private final ModConfigSpec.IntValue virtualStructureStepsPerTick;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> dimensionValues;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> itemMultipliers;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> dimensionWhitelist;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> dimensionBlacklist;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> structureWhitelist;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> structureBlacklist;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> itemWhitelist;
+        private final ModConfigSpec.ConfigValue<List<? extends String>> itemBlacklist;
+
+        private StructureValueConfig(ModConfigSpec.Builder builder) {
+            builder.comment("Structure marker value calculation").push("structureValue");
+            commonMultiplier = multiplier(builder, "commonRarityMultiplier", 1.0D);
+            uncommonMultiplier = multiplier(builder, "uncommonRarityMultiplier", 5.0D);
+            rareMultiplier = multiplier(builder, "rareRarityMultiplier", 10.0D);
+            epicMultiplier = multiplier(builder, "epicRarityMultiplier", 50.0D);
+            itemExpectationMethod =
+                    builder.comment(
+                                    "Per-item expectation method",
+                                    "EXACT_THEN_SAMPLING prefers exact analysis and falls back to"
+                                            + " Monte Carlo",
+                                    "SAMPLING always uses Monte Carlo")
+                            .defineEnum(
+                                    "itemExpectationMethod",
+                                    ItemExpectationMethod.EXACT_THEN_SAMPLING);
+            samplingCount =
+                    builder.comment("Monte Carlo samples per loot table")
+                            .defineInRange("samplingCount", 1000, 1, 1_000_000);
+            glmSupplementSamples =
+                    builder.comment(
+                                    "Supplemental Monte Carlo draws used to observe items injected",
+                                    "by Forge global loot modifiers into an otherwise exactly",
+                                    "analyzed table. Only runs when a modifier targets the table",
+                                    "or a runtime probe detects an injection.")
+                            .defineInRange("glmSupplementSamples", 64, 1, 1_000_000);
+            virtualStructureSamples =
+                    builder.comment(
+                                    "Detached structure-generation samples used by catalogue"
+                                            + " analysis")
+                            .defineInRange("virtualStructureSamples", 8, 1, 64);
+            virtualStructureStepsPerTick =
+                    builder.comment(
+                                    "Maximum catalogue-analysis work units processed each server"
+                                            + " tick")
+                            .defineInRange("virtualStructureStepsPerTick", 1, 1, 64);
+            dimensionValues =
+                    builder.comment(
+                                    "Dimension value entries in dimension_id=value format",
+                                    "Dimensions not listed here use 1.0")
+                            .defineListAllowEmpty(
+                                    "dimensionValues",
+                                    List.of(
+                                            "minecraft:overworld=1.0",
+                                            "minecraft:the_nether=10.0",
+                                            "minecraft:the_end=20.0",
+                                            "allthemodium:the_other=100.0",
+                                            "bloodmagic:dungeon=100.0"),
+                                    StructureValueConfig::isDimensionValueEntry);
+            itemMultipliers =
+                    builder.comment(
+                                    "Per-item rarity multiplier overrides in regex=value format",
+                                    "Regexes are matched against the complete item ID",
+                                    "Items not matched here use their rarity multiplier above")
+                            .defineListAllowEmpty(
+                                    "itemMultipliers",
+                                    List.of(
+                                            "iron=2.0",
+                                            "gold=5.0",
+                                            "diamond=10.0",
+                                            "netherite=20.0",
+                                            "allthemodium_=50.0",
+                                            "vibranium_=100.0",
+                                            "unobtainium_=500.0",
+                                            "upgrade_smithing_template=50.0"),
+                                    StructureValueConfig::isItemMultiplierEntry);
+            dimensionWhitelist =
+                    regexList(builder, "dimensionWhitelist", "Allowed dimension ID regexes");
+            dimensionBlacklist =
+                    regexList(builder, "dimensionBlacklist", "Denied dimension ID regexes");
+            structureWhitelist =
+                    regexList(builder, "structureWhitelist", "Allowed structure ID regexes");
+            structureBlacklist =
+                    regexList(builder, "structureBlacklist", "Denied structure ID regexes");
+            itemWhitelist = regexList(builder, "itemWhitelist", "Allowed item ID regexes");
+            itemBlacklist = regexList(builder, "itemBlacklist", "Denied item ID regexes");
+            builder.pop();
+        }
+
+        private static ModConfigSpec.ConfigValue<List<? extends String>> regexList(
+                ModConfigSpec.Builder builder, String name, String comment) {
+            return builder.comment(
+                            comment, "Entries are regular expressions matched against complete IDs")
+                    .defineListAllowEmpty(name, List.of(), StructureValueConfig::isRegex);
+        }
+
+        private static boolean isRegex(Object value) {
+            if (!(value instanceof String regex)) return false;
+            try {
+                Pattern.compile(regex);
+                return true;
+            } catch (PatternSyntaxException exception) {
+                return false;
+            }
+        }
+
+        private static ModConfigSpec.DoubleValue multiplier(
+                ModConfigSpec.Builder builder, String name, double defaultValue) {
+            return builder.defineInRange(name, defaultValue, 0.0D, Double.MAX_VALUE);
+        }
+
+        private static boolean isDimensionValueEntry(Object value) {
+            if (!(value instanceof String entry)) {
+                return false;
+            }
+            int separator = entry.lastIndexOf('=');
+            if (separator <= 0 || separator == entry.length() - 1) {
+                return false;
+            }
+            try {
+                double dimensionValue = Double.parseDouble(entry.substring(separator + 1).trim());
+                return ResourceLocation.tryParse(entry.substring(0, separator).trim()) != null
+                        && Double.isFinite(dimensionValue)
+                        && dimensionValue >= 0.0D;
+            } catch (NumberFormatException exception) {
+                return false;
+            }
+        }
+
+        private static boolean isItemMultiplierEntry(Object value) {
+            if (!(value instanceof String entry)) return false;
+            int separator = entry.lastIndexOf('=');
+            if (separator <= 0 || separator == entry.length() - 1) return false;
+            try {
+                double multiplier = Double.parseDouble(entry.substring(separator + 1).trim());
+                Pattern.compile(entry.substring(0, separator).trim());
+                return Double.isFinite(multiplier) && multiplier >= 0.0D;
+            } catch (NumberFormatException | PatternSyntaxException exception) {
+                return false;
+            }
+        }
+
+        public double rarityMultiplier(Rarity rarity) {
+            Double override = StructureScriptConfigService.rarityMultiplier(rarity.name());
+            if (override != null) return override;
+            return switch (rarity) {
+                case COMMON -> commonMultiplier.get();
+                case UNCOMMON -> uncommonMultiplier.get();
+                case RARE -> rareMultiplier.get();
+                case EPIC -> epicMultiplier.get();
+            };
+        }
+
+        public double itemMultiplier(Item item, Rarity rarity) {
+            ResourceLocation itemId =
+                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
+            if (itemId == null) return rarityMultiplier(rarity);
+            Double scriptOverride = StructureScriptConfigService.itemMultiplier(itemId.toString());
+            if (scriptOverride != null) return scriptOverride;
+            for (String entry : itemMultipliers.get()) {
+                int separator = entry.lastIndexOf('=');
+                Pattern matcher = Pattern.compile(entry.substring(0, separator).trim());
+                if (matcher.matcher(itemId.toString()).find()) {
+                    return Double.parseDouble(entry.substring(separator + 1).trim());
+                }
+            }
+            return rarityMultiplier(rarity);
+        }
+
+        public double itemMultiplier(TerminalStackKey key) {
+            return itemMultiplier(key.item(), key.rarity());
+        }
+
+        public String calculationFingerprint() {
+            return commonMultiplier.get()
+                    + "|"
+                    + uncommonMultiplier.get()
+                    + "|"
+                    + rareMultiplier.get()
+                    + "|"
+                    + epicMultiplier.get()
+                    + "|"
+                    + itemExpectationMethod.get()
+                    + "|"
+                    + samplingCount.get()
+                    + "|"
+                    + virtualStructureSamples.get()
+                    + "|"
+                    + dimensionValues.get()
+                    + "|"
+                    + itemMultipliers.get()
+                    + "|"
+                    + dimensionWhitelist.get()
+                    + "|"
+                    + dimensionBlacklist.get()
+                    + "|"
+                    + structureWhitelist.get()
+                    + "|"
+                    + structureBlacklist.get()
+                    + "|"
+                    + itemWhitelist.get()
+                    + "|"
+                    + itemBlacklist.get()
+                    + "|script="
+                    + StructureScriptConfigService.fingerprint();
+        }
+
+        /**
+         * Fingerprint for structure discovery only; loot/value and machine settings are excluded.
+         */
+        public String discoveryFingerprint() {
+            com.google.gson.JsonObject config = new com.google.gson.JsonObject();
+            config.addProperty("algorithmVersion", 1);
+            addFilterFingerprint(
+                    config,
+                    "dimension",
+                    merged("dimension", dimensionWhitelist.get(), dimensionBlacklist.get()));
+            addFilterFingerprint(
+                    config,
+                    "structure",
+                    merged("structure", structureWhitelist.get(), structureBlacklist.get()));
+            return FrozenJson.freeze(config).fingerprint();
+        }
+
+        public String generationFingerprint() {
+            return discoveryFingerprint() + "|samples=" + virtualStructureSamples();
+        }
+
+        public String expectationFingerprint() {
+            return "algorithm=1|method="
+                    + itemExpectationMethod()
+                    + "|samples="
+                    + samplingCount()
+                    + "|glmSamples="
+                    + glmSupplementSamples();
+        }
+
+        private static void addFilterFingerprint(
+                com.google.gson.JsonObject config, String name, List<? extends String>[] filters) {
+            com.google.gson.JsonArray white = new com.google.gson.JsonArray();
+            com.google.gson.JsonArray black = new com.google.gson.JsonArray();
+            filters[0].forEach(white::add);
+            filters[1].forEach(black::add);
+            config.add(name + "Whitelist", white);
+            config.add(name + "Blacklist", black);
+        }
+
+        public ItemExpectationMethod itemExpectationMethod() {
+            String value = StructureScriptConfigService.expectationMethod();
+            return value == null
+                    ? itemExpectationMethod.get()
+                    : ItemExpectationMethod.valueOf(value);
+        }
+
+        public int samplingCount() {
+            return StructureScriptConfigService.samplingCount() != null
+                    ? StructureScriptConfigService.samplingCount()
+                    : samplingCount.get();
+        }
+
+        public int glmSupplementSamples() {
+            return glmSupplementSamples.get();
+        }
+
+        public int virtualStructureSamples() {
+            return StructureScriptConfigService.virtualSamples() != null
+                    ? StructureScriptConfigService.virtualSamples()
+                    : virtualStructureSamples.get();
+        }
+
+        public int virtualStructureStepsPerTick() {
+            return StructureScriptConfigService.stepsPerTick() != null
+                    ? StructureScriptConfigService.stepsPerTick()
+                    : virtualStructureStepsPerTick.get();
+        }
+
+        public double dimensionValue(ResourceLocation dimension) {
+            Double override = StructureScriptConfigService.dimensionValue(dimension);
+            if (override != null) return override;
+            for (String entry : dimensionValues.get()) {
+                int separator = entry.lastIndexOf('=');
+                ResourceLocation configuredDimension =
+                        ResourceLocation.tryParse(entry.substring(0, separator).trim());
+                if (dimension.equals(configuredDimension)) {
+                    return Double.parseDouble(entry.substring(separator + 1).trim());
+                }
+            }
+            return 1.0D;
+        }
+
+        public boolean allowsDimension(ResourceLocation id) {
+            return allows(
+                    id.toString(),
+                    merged("dimension", dimensionWhitelist.get(), dimensionBlacklist.get()));
+        }
+
+        public boolean allowsStructure(ResourceLocation id) {
+            return allows(
+                    id.toString(),
+                    merged("structure", structureWhitelist.get(), structureBlacklist.get()));
+        }
+
+        public boolean allowsItem(ResourceLocation id) {
+            return allows(id.toString(), merged("item", itemWhitelist.get(), itemBlacklist.get()));
+        }
+
+        private static boolean allows(String value, List<? extends String>[] lists) {
+            if (lists[1].stream().anyMatch(regex -> Pattern.compile(regex).matcher(value).find()))
+                return false;
+            return lists[0].isEmpty()
+                    || lists[0].stream()
+                            .anyMatch(regex -> Pattern.compile(regex).matcher(value).find());
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<? extends String>[] merged(
+                String kind, List<? extends String> white, List<? extends String> black) {
+            List<String> sw = StructureScriptConfigService.filters(kind, true),
+                    sb = StructureScriptConfigService.filters(kind, false);
+            return new List[] {sw.isEmpty() ? white : sw, sb.isEmpty() ? black : sb};
+        }
+
+        private static boolean allows(
+                String value, List<? extends String> whitelist, List<? extends String> blacklist) {
+            if (blacklist.stream().anyMatch(regex -> Pattern.compile(regex).matcher(value).find()))
+                return false;
+            return whitelist.isEmpty()
+                    || whitelist.stream()
+                            .anyMatch(regex -> Pattern.compile(regex).matcher(value).find());
+        }
+    }
+
+    public static final class StructureMinerTierConfig {
+        private final ModConfigSpec.IntValue baseParallel;
+        private final ModConfigSpec.DoubleValue baseLuck;
+        private final ModConfigSpec.IntValue slotCount;
+        private final ModConfigSpec.IntValue energyCapacity;
+        private final ModConfigSpec.IntValue energyConsumption;
+        private final ModConfigSpec.DoubleValue efficiency;
+        private final ModConfigSpec.DoubleValue quantityReference;
+
+        private StructureMinerTierConfig(
+                ModConfigSpec.Builder builder,
+                String tier,
+                int defaultParallel,
+                double defaultLuck,
+                int defaultSlotCount,
+                int defaultEnergyCapacity,
+                int defaultEnergyConsumption,
+                double defaultEfficiency) {
+            builder.push(tier);
+            baseParallel =
+                    builder.comment("Base number of loot draws per loot table")
+                            .defineInRange("baseParallel", defaultParallel, 1, 1024);
+            baseLuck =
+                    builder.comment("Luck applied when calculating structure loot expectations")
+                            .defineInRange("baseLuck", defaultLuck, -1024.0D, 1024.0D);
+            slotCount =
+                    builder.comment("Number of structure marker slots")
+                            .defineInRange("slotCount", defaultSlotCount, 1, 54);
+            energyCapacity =
+                    builder.comment("Internal energy capacity in FE")
+                            .defineInRange(
+                                    "energyCapacity", defaultEnergyCapacity, 1, Integer.MAX_VALUE);
+            energyConsumption =
+                    builder.comment("Energy consumed per processing tick in FE")
+                            .defineInRange(
+                                    "energyConsumption",
+                                    defaultEnergyConsumption,
+                                    1,
+                                    Integer.MAX_VALUE);
+            efficiency =
+                    builder.comment("Machine efficiency used to convert structure value to ticks")
+                            .defineInRange(
+                                    "efficiency", defaultEfficiency, 0.000001D, Double.MAX_VALUE);
+            quantityReference =
+                    builder.comment("Reference expected item quantity for output scaling")
+                            .defineInRange("quantityReference", 16.0D, 0.000001D, Double.MAX_VALUE);
+            builder.pop();
+        }
+
+        public int baseParallel() {
+            return baseParallel.get();
+        }
+
+        public float baseLuck() {
+            return baseLuck.get().floatValue();
+        }
+
+        public int slotCount() {
+            return slotCount.get();
+        }
+
+        public int energyCapacity() {
+            return energyCapacity.get();
+        }
+
+        public int energyConsumption() {
+            return energyConsumption.get();
+        }
+
+        public double efficiency() {
+            return efficiency.get();
+        }
+
+        public double quantityReference() {
+            return quantityReference.get();
+        }
+    }
+
+    public static final class StructureMinerUpgradeTierConfig {
+        private final ModConfigSpec.DoubleValue efficiencyIncreasePercent;
+        private final ModConfigSpec.DoubleValue energyCapacityIncreasePercent;
+        private final ModConfigSpec.DoubleValue energyConsumptionReductionPercent;
+        private final ModConfigSpec.DoubleValue parallelIncreasePercent;
+        private final ModConfigSpec.DoubleValue luckIncreasePercent;
+
+        private StructureMinerUpgradeTierConfig(
+                ModConfigSpec.Builder builder,
+                String tier,
+                double efficiency,
+                double capacity,
+                double consumptionReduction,
+                double parallel,
+                double luck) {
+            builder.push(tier);
+            efficiencyIncreasePercent =
+                    percent(builder, "efficiencyIncreasePercent", efficiency, 10_000.0D);
+            energyCapacityIncreasePercent =
+                    percent(builder, "energyCapacityIncreasePercent", capacity, 10_000.0D);
+            energyConsumptionReductionPercent =
+                    percent(
+                            builder,
+                            "energyConsumptionReductionPercent",
+                            consumptionReduction,
+                            99.0D);
+            parallelIncreasePercent =
+                    percent(builder, "parallelIncreasePercent", parallel, 10_000.0D);
+            luckIncreasePercent = percent(builder, "luckIncreasePercent", luck, 10_000.0D);
+            builder.pop();
+        }
+
+        private static ModConfigSpec.DoubleValue percent(
+                ModConfigSpec.Builder builder, String name, double value, double maximum) {
+            return builder.defineInRange(name, value, 0.0D, maximum);
+        }
+
+        public double efficiencyIncreasePercent() {
+            return efficiencyIncreasePercent.get();
+        }
+
+        public double energyCapacityIncreasePercent() {
+            return energyCapacityIncreasePercent.get();
+        }
+
+        public double energyConsumptionReductionPercent() {
+            return energyConsumptionReductionPercent.get();
+        }
+
+        public double parallelIncreasePercent() {
+            return parallelIncreasePercent.get();
+        }
+
+        public double luckIncreasePercent() {
+            return luckIncreasePercent.get();
+        }
+    }
+}
