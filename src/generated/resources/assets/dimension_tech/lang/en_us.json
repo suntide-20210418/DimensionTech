@@ -224,6 +224,7 @@
   "message.dimension_tech.structure_miner.build_missing_entry": "%s x%s",
   "message.dimension_tech.structure_miner.projection_off": "Multiblock projection hidden",
   "message.dimension_tech.structure_miner.projection_on": "Multiblock projection shown",
+  "message.dimension_tech.structure_miner.structure_complete": "Structure already complete, no projection needed",
   "screen.dimension_tech.chest_marker.calculation_method": "Calculation method: %s",
   "screen.dimension_tech.chest_marker.chest_value": "Chest Value",
   "screen.dimension_tech.chest_marker.selection.empty": "No chest marked",
