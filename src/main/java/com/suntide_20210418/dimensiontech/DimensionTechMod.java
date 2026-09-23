@@ -12,7 +12,6 @@ import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecip
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -44,7 +43,6 @@ public class DimensionTechMod {
         ModMenu.MENU_TYPES.register(modEventBus);
 
         modEventBus.addListener(DimensionTechMod::commonSetup);
-        modEventBus.addListener(DimensionTechMod::registerGameTests);
     }
 
     private static void commonSetup(final FMLCommonSetupEvent event) {
