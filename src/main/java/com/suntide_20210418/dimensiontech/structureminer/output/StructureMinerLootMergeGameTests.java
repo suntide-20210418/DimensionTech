@@ -3,14 +3,24 @@ package com.suntide_20210418.dimensiontech.structureminer.output;
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-/** Behavioral baseline for miner loot aggregation before any performance optimization. */
+/**
+ * Behavioral baseline for miner loot aggregation before any performance optimization.
+ *
+ * <p>1.20.1 用一层临时 NBT（"Marker" / "BenchmarkVariant"）区分产出物品以断言合并结果与顺序。1.21 没有 ItemStack NBT，这里改用
+ * vanilla 自带的 {@code DataComponents.CUSTOM_DATA} 承载同一层临时数据：它本身就是「给第三方存任意
+ * NBT」的组件，参与组件相等性比较（合并判等依赖的正是它），语义与旧写法一一对应 —— 同一个物品、不同数据就不合并、不重排 —— 而且不必为本测试新增注册一个组件类型。这些临时标记与结构标记的
+ * {@code STRUCTURE_MARKER} 组件无关。
+ */
 @GameTestHolder(DimensionTechMod.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class StructureMinerLootMergeGameTests {
@@ -42,10 +52,8 @@ public final class StructureMinerLootMergeGameTests {
     @GameTest(templateNamespace = "minecraft", template = "empty")
     public static void stacksWithDifferentNbtRemainSeparate(GameTestHelper helper) {
         List<ItemStack> merged = new ArrayList<>();
-        ItemStack first = new ItemStack(Items.STONE, 2);
-        first.getOrCreateTag().putString("Marker", "first");
-        ItemStack second = new ItemStack(Items.STONE, 3);
-        second.getOrCreateTag().putString("Marker", "second");
+        ItemStack first = markedStack(2, "Marker", "first");
+        ItemStack second = markedStack(3, "Marker", "second");
 
         ExpectationRewardGenerator.mergeEquivalent(merged, first);
         ExpectationRewardGenerator.mergeEquivalent(merged, second);
@@ -53,8 +61,8 @@ public final class StructureMinerLootMergeGameTests {
         if (merged.size() != 2
                 || merged.get(0).getCount() != 2
                 || merged.get(1).getCount() != 3
-                || !"first".equals(merged.get(0).getTag().getString("Marker"))
-                || !"second".equals(merged.get(1).getTag().getString("Marker"))) {
+                || !"first".equals(customDataString(merged.get(0), "Marker"))
+                || !"second".equals(customDataString(merged.get(1), "Marker"))) {
             helper.fail("Stacks with different NBT were merged or reordered: " + merged);
             return;
         }
@@ -98,9 +106,7 @@ public final class StructureMinerLootMergeGameTests {
     private static List<ItemStack> templates(int size) {
         List<ItemStack> templates = new ArrayList<>(size);
         for (int index = 0; index < size; index++) {
-            ItemStack stack = new ItemStack(Items.STONE, 1);
-            stack.getOrCreateTag().putInt("BenchmarkVariant", index);
-            templates.add(stack);
+            templates.add(markedStack(1, "BenchmarkVariant", index));
         }
         return templates;
     }
@@ -123,9 +129,30 @@ public final class StructureMinerLootMergeGameTests {
     private static ItemStack candidate(List<ItemStack> templates, MergeCase mergeCase) {
         if (mergeCase == MergeCase.FIRST_HIT) return templates.get(0).copy();
         if (mergeCase == MergeCase.LAST_HIT) return templates.get(templates.size() - 1).copy();
-        ItemStack stack = new ItemStack(Items.STONE, 1);
-        stack.getOrCreateTag().putInt("BenchmarkVariant", -1);
+        return markedStack(1, "BenchmarkVariant", -1);
+    }
+
+    /** 临时标记物品栈：用 custom_data 承载一个 int 标记，替代旧写法的临时 NBT。 */
+    private static ItemStack markedStack(int count, String key, int marker) {
+        ItemStack stack = new ItemStack(Items.STONE, count);
+        CompoundTag data = new CompoundTag();
+        data.putInt(key, marker);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(data));
         return stack;
+    }
+
+    /** 同上，标记值换成字符串。 */
+    private static ItemStack markedStack(int count, String key, String marker) {
+        ItemStack stack = new ItemStack(Items.STONE, count);
+        CompoundTag data = new CompoundTag();
+        data.putString(key, marker);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(data));
+        return stack;
+    }
+
+    private static String customDataString(ItemStack stack, String key) {
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data == null ? null : data.copyTag().getString(key);
     }
 
     private enum MergeCase {

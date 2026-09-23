@@ -114,7 +114,9 @@ public final class ExpectationRewardGenerator {
     public static void mergeEquivalent(List<ItemStack> mergedLoot, ItemStack stack) {
         if (stack.isEmpty()) return;
         for (ItemStack merged : mergedLoot) {
-            if (net.neoforged.neoforge.items.ItemHandlerHelper.canItemStacksStack(merged, stack)) {
+            // 1.20.1 用 ItemHandlerHelper.canItemStacksStack，即 isSameItemSameTags + 能力兼容。
+            // NeoForge 21.1 已删除该方法，且 1.21 的能力不再是逐 stack 概念；组件相等是等价判据。
+            if (ItemStack.isSameItemSameComponents(merged, stack)) {
                 merged.grow(stack.getCount());
                 return;
             }

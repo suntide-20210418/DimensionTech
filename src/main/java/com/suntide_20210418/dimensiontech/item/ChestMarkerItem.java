@@ -11,9 +11,9 @@ import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -44,15 +44,6 @@ public class ChestMarkerItem extends Item {
     public static final ResourceLocation CHEST_MARKER_ID =
             ResourceLocationHelper.item("chest_marker");
 
-    private static final String MARKER_DATA_TAG = "StructureMarkerData";
-    private static final String DIMENSION_TAG = "Dimension";
-    private static final String POSITION_TAG = "Position";
-    private static final String STRUCTURE_TAG = "Structure";
-    private static final String CHEST_DATA_TAG = "ChestData";
-    private static final String LOOT_TABLE_TAG = "LootTable";
-    private static final String LOOT_TABLE_SEED_TAG = "LootTableSeed";
-    private static final String ANALYSIS_FINGERPRINT_TAG = "AnalysisFingerprint";
-
     public ChestMarkerItem(Properties properties) {
         super(properties);
     }
@@ -74,7 +65,7 @@ public class ChestMarkerItem extends Item {
      * <p>分析动作由绑定按键（默认 V）触发：客户端把准星指向的方块位置发给服务端，服务端在这里 验证并标记。不用右键方块交互，因为右键一个宝箱会优先打开它而不是分析它。
      */
     public static ResourceLocation lootTableAt(ServerLevel level, BlockPos position) {
-        return containerLootTable(level.getBlockEntity(position));
+        return containerLootTable(level.getBlockEntity(position), level.registryAccess());
     }
 
     private static void openScreen(
@@ -87,69 +78,69 @@ public class ChestMarkerItem extends Item {
 
     /** 读取标记的宝箱信息；未标记或数据损坏时为空。 */
     public static Optional<ChestInfo> getChestInfo(ItemStack itemStack) {
-        CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
-        if (markerData == null || !markerData.contains(CHEST_DATA_TAG, Tag.TAG_COMPOUND)) {
-            return Optional.empty();
-        }
-        CompoundTag chestData = markerData.getCompound(CHEST_DATA_TAG);
-        ResourceLocation lootTable = ResourceLocation.tryParse(chestData.getString(LOOT_TABLE_TAG));
-        if (lootTable == null || !markerData.contains(POSITION_TAG, Tag.TAG_COMPOUND)) {
-            return Optional.empty();
-        }
-        CompoundTag positionData = markerData.getCompound(POSITION_TAG);
-        return Optional.of(
-                new ChestInfo(
-                        new BlockPos(
-                                positionData.getInt("X"),
-                                positionData.getInt("Y"),
-                                positionData.getInt("Z")),
-                        lootTable,
-                        chestData.getLong(LOOT_TABLE_SEED_TAG)));
+        return StructMarkerItem.getMarkerData(itemStack)
+                .flatMap(
+                        data ->
+                                data.chestData()
+                                        .map(
+                                                chest ->
+                                                        new ChestInfo(
+                                                                data.position(),
+                                                                chest.lootTable(),
+                                                                chest.lootTableSeed())));
     }
 
     /** 直接标记指定位置的宝箱并立即分析。 */
     public static boolean markChest(
             ServerLevel level, ItemStack itemStack, BlockPos position, ResourceLocation lootTable) {
-        Optional<CompoundTag> markerData = createMarkerData(level, position, lootTable);
-        markerData.ifPresent(data -> itemStack.getOrCreateTag().put(MARKER_DATA_TAG, data));
+        Optional<StructureMarkerData> markerData = createMarkerData(level, position, lootTable);
+        markerData.ifPresent(data -> itemStack.set(ModDataComponents.STRUCTURE_MARKER, data));
         return markerData.isPresent();
     }
 
     public static void clearMarker(ItemStack itemStack) {
-        itemStack.removeTagKey(MARKER_DATA_TAG);
+        itemStack.remove(ModDataComponents.STRUCTURE_MARKER);
     }
 
     /** 用当前世界数据和配置重算已标记宝箱的分析结果。 */
     public static void refreshAnalysis(ServerLevel level, ItemStack itemStack) {
         getChestInfo(itemStack)
                 .ifPresent(
-                        chest -> {
-                            CompoundTag markerData =
-                                    itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
-                            writeAnalysis(level, markerData, chest);
-                        });
+                        chest ->
+                                StructMarkerItem.getMarkerData(itemStack)
+                                        .ifPresent(
+                                                existing ->
+                                                        itemStack.set(
+                                                                ModDataComponents.STRUCTURE_MARKER,
+                                                                analysisOf(
+                                                                        level, existing, chest))));
     }
 
     private static void refreshAnalysisIfNeeded(ServerLevel level, ItemStack itemStack) {
         getChestInfo(itemStack)
                 .ifPresent(
-                        chest -> {
-                            CompoundTag markerData =
-                                    itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
-                            String fingerprint = analysisFingerprint(level, chest);
-                            if (!fingerprint.equals(
-                                    markerData.getString(ANALYSIS_FINGERPRINT_TAG))) {
-                                writeAnalysis(level, markerData, chest);
-                            }
-                        });
+                        chest ->
+                                StructMarkerItem.getMarkerData(itemStack)
+                                        .ifPresent(
+                                                existing -> {
+                                                    String fingerprint =
+                                                            analysisFingerprint(level, chest);
+                                                    if (!fingerprint.equals(
+                                                            existing.analysisFingerprint())) {
+                                                        itemStack.set(
+                                                                ModDataComponents.STRUCTURE_MARKER,
+                                                                analysisOf(level, existing, chest));
+                                                    }
+                                                }));
     }
 
-    private static void writeAnalysis(ServerLevel level, CompoundTag markerData, ChestInfo chest) {
+    /** Re-runs the chest analysis and merges it into the existing payload. */
+    private static StructureMarkerData analysisOf(
+            ServerLevel level, StructureMarkerData existing, ChestInfo chest) {
         StructureValue value =
                 StructureValueCalculator.calculate(
                         level, markerInfo(level, chest.position()), 0.0F, discover(level, chest));
-        StructMarkerItem.writeAnalysisResult(markerData, value);
-        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(level, chest));
+        return StructMarkerItem.withAnalysis(existing, value, analysisFingerprint(level, chest));
     }
 
     /** 宝箱的分析 profile：只用 NBT 里记录的 LootTable，不查结构模板、不依赖世界加载。 */
@@ -169,48 +160,45 @@ public class ChestMarkerItem extends Item {
 
     @Override
     public void appendHoverText(
-            ItemStack itemStack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(itemStack, level, tooltip, flag);
+            ItemStack itemStack,
+            Item.TooltipContext context,
+            List<Component> tooltip,
+            TooltipFlag flag) {
+        super.appendHoverText(itemStack, context, tooltip, flag);
 
-        CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
-        if (markerData == null) {
+        Optional<StructureMarkerData> markerData = StructMarkerItem.getMarkerData(itemStack);
+        if (markerData.isEmpty()) {
             tooltip.add(
                     TranslateHelper.translate(TranslateHelper.tooltip("chest_marker.empty"))
                             .withStyle(ChatFormatting.DARK_GRAY));
             return;
         }
+        StructureMarkerData data = markerData.get();
 
-        ResourceLocation dimensionId =
-                ResourceLocation.tryParse(markerData.getString(DIMENSION_TAG));
         Component dimension =
-                (dimensionId == null
-                                ? Component.literal(markerData.getString(DIMENSION_TAG))
-                                : TranslateHelper.dimensionName(dimensionId))
-                        .withStyle(ChatFormatting.AQUA);
+                TranslateHelper.dimensionName(data.dimension()).withStyle(ChatFormatting.AQUA);
         tooltip.add(
                 TranslateHelper.translate(
                                 TranslateHelper.tooltip("struct_marker.dimension"), dimension)
                         .withStyle(ChatFormatting.GRAY));
-        if (hasFiniteNumber(markerData, "DimensionValue")) {
+        if (Double.isFinite(data.dimensionValue())) {
             tooltip.add(
                     TranslateHelper.translate(
                                     TranslateHelper.tooltip("struct_marker.dimension_value"),
                                     String.format(
-                                            java.util.Locale.ROOT,
-                                            "%.2f",
-                                            markerData.getDouble("DimensionValue")))
+                                            java.util.Locale.ROOT, "%.2f", data.dimensionValue()))
                             .withStyle(ChatFormatting.GRAY));
         }
-        AnalysisStatus analysisStatus = StructMarkerItem.analysisStatus(markerData);
+        AnalysisStatus analysisStatus = data.status();
         if ((analysisStatus == AnalysisStatus.EXACT || analysisStatus == AnalysisStatus.APPROXIMATE)
-                && markerData.contains("StructureValue", Tag.TAG_ANY_NUMERIC)) {
+                && data.structureValue().isPresent()) {
             tooltip.add(
                     TranslateHelper.translate(
                                     TranslateHelper.tooltip("chest_marker.chest_value"),
                                     String.format(
                                             java.util.Locale.ROOT,
                                             "%.2f",
-                                            markerData.getDouble("StructureValue")))
+                                            data.structureValue().get()))
                             .withStyle(ChatFormatting.GOLD));
         }
         tooltip.add(
@@ -245,40 +233,19 @@ public class ChestMarkerItem extends Item {
                                                 .withStyle(ChatFormatting.DARK_GRAY)));
     }
 
-    private static Optional<CompoundTag> createMarkerData(
+    private static Optional<StructureMarkerData> createMarkerData(
             ServerLevel level, BlockPos position, ResourceLocation lootTable) {
-        CompoundTag markerData = new CompoundTag();
-        markerData.putString(DIMENSION_TAG, level.dimension().location().toString());
-
-        CompoundTag positionData = new CompoundTag();
-        positionData.putInt("X", position.getX());
-        positionData.putInt("Y", position.getY());
-        positionData.putInt("Z", position.getZ());
-        markerData.put(POSITION_TAG, positionData);
-
-        markerData.put(STRUCTURE_TAG, createStructureData(position));
-
-        CompoundTag chestData = new CompoundTag();
-        chestData.putString(LOOT_TABLE_TAG, lootTable.toString());
-        chestData.putLong(LOOT_TABLE_SEED_TAG, 0L);
-        markerData.put(CHEST_DATA_TAG, chestData);
-
-        writeAnalysis(level, markerData, new ChestInfo(position, lootTable, 0L));
-        return Optional.of(markerData);
-    }
-
-    private static CompoundTag createStructureData(BlockPos position) {
-        CompoundTag structureData = new CompoundTag();
-        structureData.putString("Id", CHEST_MARKER_ID.toString());
-        CompoundTag boundsData = new CompoundTag();
-        boundsData.putInt("MinX", position.getX());
-        boundsData.putInt("MinY", position.getY());
-        boundsData.putInt("MinZ", position.getZ());
-        boundsData.putInt("MaxX", position.getX());
-        boundsData.putInt("MaxY", position.getY());
-        boundsData.putInt("MaxZ", position.getZ());
-        structureData.put("Bounds", boundsData);
-        return structureData;
+        ChestInfo chest = new ChestInfo(position, lootTable, 0L);
+        StructureMarkerData base =
+                StructMarkerItem.baseMarkerData(
+                        markerInfo(level, position),
+                        false,
+                        Optional.of(new StructureMarkerData.ChestData(lootTable, 0L)));
+        StructureValue value =
+                StructureValueCalculator.calculate(
+                        level, markerInfo(level, position), 0.0F, discover(level, chest));
+        return Optional.of(
+                StructMarkerItem.withAnalysis(base, value, analysisFingerprint(level, chest)));
     }
 
     private static MarkerInfo markerInfo(ServerLevel level, BlockPos position) {
@@ -297,15 +264,13 @@ public class ChestMarkerItem extends Item {
     }
 
     /** 通用容器探测：任何 BlockEntity，只要保存数据里带 LootTable 引用即可标记。 */
-    private static ResourceLocation containerLootTable(BlockEntity blockEntity) {
+    private static ResourceLocation containerLootTable(
+            BlockEntity blockEntity, HolderLookup.Provider registries) {
         if (blockEntity == null) return null;
-        CompoundTag data = blockEntity.saveWithoutMetadata();
+        // 1.21 requires the registry lookup for block entity serialization.
+        CompoundTag data = blockEntity.saveWithoutMetadata(registries);
         if (!data.contains("LootTable", Tag.TAG_STRING)) return null;
         return ResourceLocation.tryParse(data.getString("LootTable"));
-    }
-
-    private static boolean hasFiniteNumber(CompoundTag tag, String key) {
-        return tag.contains(key, Tag.TAG_ANY_NUMERIC) && Double.isFinite(tag.getDouble(key));
     }
 
     /** 已标记宝箱的持久信息。 */

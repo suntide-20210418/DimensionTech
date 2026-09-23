@@ -2,21 +2,17 @@ package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
-import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
@@ -24,8 +20,6 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -43,72 +37,39 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 public class StructMarkerItem extends Item {
-    private static final String MARKER_DATA_TAG = "StructureMarkerData";
-    private static final String DIMENSION_TAG = "Dimension";
-    private static final String POSITION_TAG = "Position";
-    private static final String STRUCTURE_TAG = "Structure";
-    private static final String LEGACY_STRUCTURES_TAG = "Structures";
-    private static final String DIMENSION_VALUE_TAG = "DimensionValue";
-    private static final String STRUCTURE_VALUE_TAG = "StructureValue";
-    private static final String EXPECTED_ITEM_COUNTS_TAG = "ExpectedItemCounts";
-    private static final String ANALYSIS_STATUS_TAG = "AnalysisStatus";
-    private static final String DIAGNOSTICS_TAG = "AnalysisDiagnostics";
-    private static final String ALGORITHM_VERSION_TAG = "StructureValueAlgorithmVersion";
-    private static final String RANDOM_PROBABILITY_SPACE_TAG = "RandomProbabilitySpace";
-    private static final String ANALYSIS_FINGERPRINT_TAG = "AnalysisFingerprint";
+    /**
+     * Schema version of the persisted analysis payload. A payload carrying a different version is
+     * treated as legacy and recomputed, which is how a semantics change invalidates old markers
+     * without a migration step.
+     */
+    public static final int ALGORITHM_VERSION = 5;
+
+    /**
+     * Discovered-structure ids live on the player, not on the item stack, so this is unrelated to
+     * the marker payload component.
+     */
     private static final String DISCOVERED_STRUCTURES_TAG = "DimensionTechDiscoveredStructures";
-    private static final int ALGORITHM_VERSION = 5;
 
     public StructMarkerItem(Properties properties) {
         super(properties);
     }
 
+    /** The marker payload, or empty when this stack carries no marker data. */
+    public static Optional<StructureMarkerData> getMarkerData(ItemStack itemStack) {
+        return Optional.ofNullable(itemStack.get(ModDataComponents.STRUCTURE_MARKER));
+    }
+
     public static Optional<MarkerInfo> getMarkerInfo(ItemStack itemStack) {
-        CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
-        if (markerData == null) {
-            return Optional.empty();
-        }
-
-        ResourceLocation dimension = ResourceLocation.tryParse(markerData.getString(DIMENSION_TAG));
-        if (dimension == null || !markerData.contains(POSITION_TAG, Tag.TAG_COMPOUND)) {
-            return Optional.empty();
-        }
-
-        CompoundTag positionData = markerData.getCompound(POSITION_TAG);
-        BlockPos position =
-                new BlockPos(
-                        positionData.getInt("X"),
-                        positionData.getInt("Y"),
-                        positionData.getInt("Z"));
-        return readMarkedStructure(markerData)
-                .map(structure -> new MarkerInfo(dimension, position, structure));
+        return getMarkerData(itemStack)
+                .map(data -> new MarkerInfo(data.dimension(), data.position(), data.structure()));
     }
 
     /** Reads the per-item expectations persisted by the last successful analysis. */
     public static Map<ResourceLocation, ExactProbability> getExpectedItemCounts(
             ItemStack itemStack) {
-        CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
-        if (markerData == null || !markerData.contains(EXPECTED_ITEM_COUNTS_TAG, Tag.TAG_LIST)) {
-            return Map.of();
-        }
-        LinkedHashMap<ResourceLocation, ExactProbability> result = new LinkedHashMap<>();
-        ListTag entries = markerData.getList(EXPECTED_ITEM_COUNTS_TAG, Tag.TAG_COMPOUND);
-        for (int index = 0; index < entries.size(); index++) {
-            CompoundTag entry = entries.getCompound(index);
-            ResourceLocation item = ResourceLocation.tryParse(entry.getString("Item"));
-            if (item == null) continue;
-            try {
-                ExactProbability expected =
-                        ExactProbability.of(
-                                new BigInteger(entry.getString("Numerator")),
-                                new BigInteger(entry.getString("Denominator")));
-                result.merge(item, expected, ExactProbability::add);
-            } catch (IllegalArgumentException exception) {
-                // Ignore malformed entries so a damaged optional payload cannot invalidate a
-                // marker.
-            }
-        }
-        return Map.copyOf(result);
+        return getMarkerData(itemStack)
+                .map(StructureMarkerData::expectedItemCountsById)
+                .orElseGet(Map::of);
     }
 
     @Override
@@ -149,45 +110,48 @@ public class StructMarkerItem extends Item {
             ServerLevel level, ItemStack itemStack, BlockPos position, int selectionIndex) {
         List<MarkedStructure> structures = findStructuresAt(level, position);
         if (selectionIndex < 0 || selectionIndex >= structures.size()) return false;
-        Optional<CompoundTag> markerData =
+        Optional<StructureMarkerData> markerData =
                 createMarkerData(level, position, structures.get(selectionIndex));
-        markerData.ifPresent(data -> itemStack.getOrCreateTag().put(MARKER_DATA_TAG, data));
+        markerData.ifPresent(data -> itemStack.set(ModDataComponents.STRUCTURE_MARKER, data));
         return markerData.isPresent();
     }
 
     public static void clearMarker(ItemStack itemStack) {
-        itemStack.removeTagKey(MARKER_DATA_TAG);
+        itemStack.remove(ModDataComponents.STRUCTURE_MARKER);
     }
 
     public static AnalysisStatus getAnalysisStatus(ItemStack itemStack) {
-        CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
-        return markerData == null ? AnalysisStatus.LEGACY : analysisStatus(markerData);
+        return getMarkerData(itemStack)
+                .map(StructureMarkerData::status)
+                .orElse(AnalysisStatus.LEGACY);
     }
 
     /** Recomputes the persisted value using the current world data and configuration. */
     public static void refreshAnalysis(ServerLevel level, ItemStack itemStack) {
-        getMarkerInfo(itemStack)
+        getMarkerData(itemStack)
                 .ifPresent(
-                        markerInfo -> {
-                            CompoundTag markerData =
-                                    itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
-                            markerData.put(
-                                    STRUCTURE_TAG, createStructureData(markerInfo.structure()));
-                            markerData.remove(LEGACY_STRUCTURES_TAG);
-                            writeAnalysisResult(
-                                    markerData,
-                                    StructureValueCalculator.calculate(level, markerInfo));
-                            markerData.putString(
-                                    ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(markerInfo));
+                        existing -> {
+                            MarkerInfo markerInfo =
+                                    new MarkerInfo(
+                                            existing.dimension(),
+                                            existing.position(),
+                                            existing.structure());
+                            itemStack.set(
+                                    ModDataComponents.STRUCTURE_MARKER,
+                                    withAnalysis(
+                                            existing,
+                                            StructureValueCalculator.calculate(level, markerInfo),
+                                            analysisFingerprint(markerInfo)));
                         });
     }
 
     private static void refreshAnalysisIfNeeded(ServerLevel level, ItemStack itemStack) {
         Optional<MarkerInfo> markerInfo = getMarkerInfo(itemStack);
         if (markerInfo.isEmpty()) return;
-        CompoundTag markerData = itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
         String fingerprint = analysisFingerprint(markerInfo.get());
-        if (!fingerprint.equals(markerData.getString(ANALYSIS_FINGERPRINT_TAG))) {
+        String stored =
+                getMarkerData(itemStack).map(StructureMarkerData::analysisFingerprint).orElse(null);
+        if (!fingerprint.equals(stored)) {
             refreshAnalysis(level, itemStack);
         }
     }
@@ -204,34 +168,24 @@ public class StructMarkerItem extends Item {
     }
 
     public static double getDimensionValue(ItemStack itemStack) {
-        CompoundTag data = itemStack.getTagElement(MARKER_DATA_TAG);
-        return data != null && hasFiniteNumber(data, DIMENSION_VALUE_TAG)
-                ? data.getDouble(DIMENSION_VALUE_TAG)
-                : 0.0D;
+        return getMarkerData(itemStack)
+                .map(StructureMarkerData::dimensionValue)
+                .filter(Double::isFinite)
+                .orElse(0.0D);
     }
 
     public static double getStructureValue(ItemStack itemStack) {
-        CompoundTag data = itemStack.getTagElement(MARKER_DATA_TAG);
-        return data != null && hasFiniteNumber(data, STRUCTURE_VALUE_TAG)
-                ? data.getDouble(STRUCTURE_VALUE_TAG)
-                : 0.0D;
+        return getMarkerData(itemStack).map(StructureMarkerData::structureValueOrZero).orElse(0.0D);
     }
 
     public static Optional<String> filterDiagnostic(ItemStack itemStack) {
-        CompoundTag data = itemStack.getTagElement(MARKER_DATA_TAG);
-        if (data == null) return Optional.empty();
-        for (Tag tag : data.getList(DIAGNOSTICS_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag entry = (CompoundTag) tag;
-            if (entry.getString("Code").endsWith("_FILTERED"))
-                return Optional.of(entry.getString("Message"));
-        }
-        return Optional.empty();
+        return getMarkerData(itemStack).flatMap(StructureMarkerData::filteredDiagnostic);
     }
 
     /**
      * Creates analysis data for a catalogue entry that is not tied to a generated structure start.
      */
-    public static CompoundTag createCatalogueMarkerData(
+    public static StructureMarkerData createCatalogueMarkerData(
             ServerLevel level, ResourceLocation structureId) {
         return createCatalogueMarkerData(
                 level,
@@ -242,89 +196,103 @@ public class StructMarkerItem extends Item {
     }
 
     /**
-     * Writes catalogue marker data from an analysis-service profile without querying world chunks.
+     * Builds catalogue marker data from an analysis-service profile without querying world chunks.
      */
-    public static CompoundTag createCatalogueMarkerData(
+    public static StructureMarkerData createCatalogueMarkerData(
             ServerLevel level, ResourceLocation structureId, DiscoveryResult discovery) {
-        MarkedStructure structure =
-                new MarkedStructure(structureId, new BoundingBox(0, 0, 0, 0, 0, 0));
-        MarkerInfo info = new MarkerInfo(level.dimension().location(), BlockPos.ZERO, structure);
-        CompoundTag markerData = new CompoundTag();
-        markerData.putString(DIMENSION_TAG, info.dimension().toString());
-        CompoundTag position = new CompoundTag();
-        position.putInt("X", 0);
-        position.putInt("Y", 0);
-        position.putInt("Z", 0);
-        markerData.put(POSITION_TAG, position);
-        markerData.put(STRUCTURE_TAG, createStructureData(structure));
-        writeAnalysisResult(
-                markerData, StructureValueCalculator.calculate(level, info, 0.0F, discovery));
-        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(info));
-        markerData.putBoolean("DimensionTechCatalogueEntry", true);
-        return markerData;
+        MarkerInfo info = catalogueInfo(level, structureId);
+        return withAnalysis(
+                baseMarkerData(info, true),
+                StructureValueCalculator.calculate(level, info, 0.0F, discovery),
+                analysisFingerprint(info));
     }
 
     /** Builds catalogue data from a precomputed value without re-running loot analysis. */
-    public static CompoundTag createCatalogueMarkerData(
+    public static StructureMarkerData createCatalogueMarkerData(
             ServerLevel level,
             ResourceLocation structureId,
             DiscoveryResult discovery,
             StructureValueCalculator.StructureValue value) {
-        MarkedStructure structure =
-                new MarkedStructure(structureId, new BoundingBox(0, 0, 0, 0, 0, 0));
-        MarkerInfo info = new MarkerInfo(level.dimension().location(), BlockPos.ZERO, structure);
-        CompoundTag markerData = new CompoundTag();
-        markerData.putString(DIMENSION_TAG, info.dimension().toString());
-        CompoundTag position = new CompoundTag();
-        position.putInt("X", 0);
-        position.putInt("Y", 0);
-        position.putInt("Z", 0);
-        markerData.put(POSITION_TAG, position);
-        markerData.put(STRUCTURE_TAG, createStructureData(structure));
-        writeAnalysisResult(markerData, value);
-        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(info));
-        markerData.putBoolean("DimensionTechCatalogueEntry", true);
-        return markerData;
+        MarkerInfo info = catalogueInfo(level, structureId);
+        return withAnalysis(baseMarkerData(info, true), value, analysisFingerprint(info));
+    }
+
+    /**
+     * A catalogue entry has no generated structure start, so it anchors at the origin with an empty
+     * box; only its id carries meaning.
+     */
+    private static MarkerInfo catalogueInfo(ServerLevel level, ResourceLocation structureId) {
+        return new MarkerInfo(
+                level.dimension().location(),
+                BlockPos.ZERO,
+                new MarkedStructure(structureId, new BoundingBox(0, 0, 0, 0, 0, 0)));
+    }
+
+    /** A payload carrying identity only, before any analysis result is merged in. */
+    private static StructureMarkerData baseMarkerData(MarkerInfo info, boolean catalogueEntry) {
+        return baseMarkerData(info, catalogueEntry, Optional.empty());
+    }
+
+    /** The same, for a payload that also names a chest loot source. */
+    static StructureMarkerData baseMarkerData(
+            MarkerInfo info,
+            boolean catalogueEntry,
+            Optional<StructureMarkerData.ChestData> chestData) {
+        return new StructureMarkerData(
+                info.dimension(),
+                info.position(),
+                info.structure(),
+                chestData,
+                ALGORITHM_VERSION,
+                IdealRandomProbabilitySpace1201.ID,
+                0.0D,
+                Optional.empty(),
+                AnalysisStatus.LEGACY,
+                List.of(),
+                List.of(),
+                analysisFingerprint(info),
+                catalogueEntry);
     }
 
     @Override
     public void appendHoverText(
-            ItemStack itemStack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(itemStack, level, tooltip, flag);
+            ItemStack itemStack,
+            Item.TooltipContext context,
+            List<Component> tooltip,
+            TooltipFlag flag) {
+        super.appendHoverText(itemStack, context, tooltip, flag);
 
-        CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
-        if (markerData == null) {
+        Optional<StructureMarkerData> markerData = getMarkerData(itemStack);
+        if (markerData.isEmpty()) {
             return;
         }
+        StructureMarkerData data = markerData.get();
 
-        ResourceLocation dimensionId =
-                ResourceLocation.tryParse(markerData.getString(DIMENSION_TAG));
+        // The payload's dimension is a parsed ResourceLocation by construction, so the 1.20.1
+        // fallback that printed an unparseable id verbatim is unreachable.
         Component dimension =
-                (dimensionId == null
-                                ? Component.literal(markerData.getString(DIMENSION_TAG))
-                                : TranslateHelper.dimensionName(dimensionId))
-                        .withStyle(ChatFormatting.AQUA);
+                TranslateHelper.dimensionName(data.dimension()).withStyle(ChatFormatting.AQUA);
         tooltip.add(
                 TranslateHelper.translate(
                                 TranslateHelper.tooltip("struct_marker.dimension"), dimension)
                         .withStyle(ChatFormatting.GRAY));
-        if (hasFiniteNumber(markerData, DIMENSION_VALUE_TAG)) {
+        if (Double.isFinite(data.dimensionValue())) {
             tooltip.add(
                     TranslateHelper.translate(
                                     TranslateHelper.tooltip("struct_marker.dimension_value"),
-                                    formatValue(markerData.getDouble(DIMENSION_VALUE_TAG)))
+                                    formatValue(data.dimensionValue()))
                             .withStyle(ChatFormatting.GRAY));
         }
-        AnalysisStatus analysisStatus = analysisStatus(markerData);
-        boolean currentAlgorithm = markerData.getInt(ALGORITHM_VERSION_TAG) == ALGORITHM_VERSION;
+        AnalysisStatus analysisStatus = data.status();
+        boolean currentAlgorithm = data.algorithmVersion() == ALGORITHM_VERSION;
         if (currentAlgorithm
                 && (analysisStatus == AnalysisStatus.EXACT
                         || analysisStatus == AnalysisStatus.APPROXIMATE)
-                && markerData.contains(STRUCTURE_VALUE_TAG, Tag.TAG_ANY_NUMERIC)) {
+                && data.structureValue().isPresent()) {
             tooltip.add(
                     TranslateHelper.translate(
                                     TranslateHelper.tooltip("struct_marker.structure_value"),
-                                    formatValue(markerData.getDouble(STRUCTURE_VALUE_TAG)))
+                                    formatValue(data.structureValue().get()))
                             .withStyle(ChatFormatting.GOLD));
         }
         tooltip.add(
@@ -332,23 +300,11 @@ public class StructMarkerItem extends Item {
                                 TranslateHelper.tooltip("struct_marker.analysis_status"),
                                 Component.literal(analysisStatus.name()))
                         .withStyle(ChatFormatting.DARK_GRAY));
-        CompoundTag diagnostics =
-                markerData.getList(DIAGNOSTICS_TAG, Tag.TAG_COMPOUND).isEmpty() ? null : markerData;
-        if (diagnostics != null) {
-            markerData
-                    .getList(DIAGNOSTICS_TAG, Tag.TAG_COMPOUND)
-                    .forEach(
-                            entry -> {
-                                String code = ((CompoundTag) entry).getString("Code");
-                                if (code.endsWith("_FILTERED")) {
-                                    tooltip.add(
-                                            Component.literal(
-                                                            ((CompoundTag) entry)
-                                                                    .getString("Message"))
-                                                    .withStyle(ChatFormatting.RED));
-                                }
-                            });
-        }
+        data.filteredDiagnostic()
+                .ifPresent(
+                        message ->
+                                tooltip.add(
+                                        Component.literal(message).withStyle(ChatFormatting.RED)));
         if (!currentAlgorithm) {
             tooltip.add(
                     TranslateHelper.translate(TranslateHelper.tooltip("struct_marker.legacy"))
@@ -376,120 +332,60 @@ public class StructMarkerItem extends Item {
                                                 .withStyle(ChatFormatting.DARK_GRAY)));
     }
 
-    private static Optional<CompoundTag> createMarkerData(
+    private static Optional<StructureMarkerData> createMarkerData(
             ServerLevel level, BlockPos position, MarkedStructure selectedStructure) {
-        CompoundTag markerData = new CompoundTag();
-        markerData.putString(DIMENSION_TAG, level.dimension().location().toString());
-
-        CompoundTag positionData = new CompoundTag();
-        positionData.putInt("X", position.getX());
-        positionData.putInt("Y", position.getY());
-        positionData.putInt("Z", position.getZ());
-        markerData.put(POSITION_TAG, positionData);
-
-        markerData.put(STRUCTURE_TAG, createStructureData(selectedStructure));
         MarkerInfo markerInfo =
                 new MarkerInfo(level.dimension().location(), position, selectedStructure);
-        StructureValue value = StructureValueCalculator.calculate(level, markerInfo);
-        writeAnalysisResult(markerData, value);
-        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(markerInfo));
-        return Optional.of(markerData);
+        return Optional.of(
+                withAnalysis(
+                        baseMarkerData(markerInfo, false),
+                        StructureValueCalculator.calculate(level, markerInfo),
+                        analysisFingerprint(markerInfo)));
     }
 
     /**
-     * Writes the versioned exact-analysis payload while keeping unsupported values non-readable.
+     * Merges a freshly computed analysis result into a marker payload, keeping the identity fields
+     * (dimension, position, structure, chest source, catalogue flag) and re-stamping the algorithm
+     * version.
+     *
+     * <p>An unsupported analysis deliberately persists no structure value and no per-item
+     * expectations, which is what keeps an unusable payload non-readable downstream.
+     *
+     * <p>The fingerprint is passed in because structure markers and chest markers fingerprint
+     * different inputs (a structure id versus a container loot table).
      */
-    static void writeAnalysisResult(CompoundTag markerData, StructureValue value) {
-        markerData.putInt(ALGORITHM_VERSION_TAG, ALGORITHM_VERSION);
-        markerData.putString(RANDOM_PROBABILITY_SPACE_TAG, IdealRandomProbabilitySpace1201.ID);
-        markerData.putDouble(DIMENSION_VALUE_TAG, value.dimensionValue());
-        markerData.putString(ANALYSIS_STATUS_TAG, value.status().name());
-        markerData.remove("AnalysisLuck");
-        ListTag diagnostics = new ListTag();
-        for (Diagnostic diagnostic : value.diagnostics()) {
-            CompoundTag entry = new CompoundTag();
-            entry.putString("Code", diagnostic.code());
-            entry.putString("Message", diagnostic.message());
-            if (diagnostic.lootTableId() != null) {
-                entry.putString("LootTable", diagnostic.lootTableId().toString());
-            }
-            if (!diagnostic.jsonPointer().isEmpty()) {
-                entry.putString("JsonPointer", diagnostic.jsonPointer());
-            }
-            ListTag callPath = new ListTag();
-            diagnostic
-                    .callPath()
-                    .forEach(pathElement -> callPath.add(StringTag.valueOf(pathElement)));
-            entry.put("CallPath", callPath);
-            diagnostics.add(entry);
-        }
-        markerData.put(DIAGNOSTICS_TAG, diagnostics);
-        if (value.status() == AnalysisStatus.EXACT
-                || value.status() == AnalysisStatus.APPROXIMATE) {
-            markerData.putDouble(STRUCTURE_VALUE_TAG, value.structureValue());
-            ListTag itemCounts = new ListTag();
+    static StructureMarkerData withAnalysis(
+            StructureMarkerData base, StructureValue value, String fingerprint) {
+        boolean usable =
+                value.status() == AnalysisStatus.EXACT
+                        || value.status() == AnalysisStatus.APPROXIMATE;
+        List<StructureMarkerData.ItemExpectation> itemCounts = new ArrayList<>();
+        if (usable) {
             for (Map.Entry<Item, ExactProbability> entry : value.itemCounts().entrySet()) {
                 ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(entry.getKey());
                 if (itemId == null) {
                     continue;
                 }
                 ExactProbability expected = entry.getValue();
-                CompoundTag itemCount = new CompoundTag();
-                itemCount.putString("Item", itemId.toString());
-                itemCount.putString("Numerator", expected.numerator().toString());
-                itemCount.putString("Denominator", expected.denominator().toString());
-                itemCounts.add(itemCount);
+                itemCounts.add(
+                        new StructureMarkerData.ItemExpectation(
+                                itemId, expected.numerator(), expected.denominator()));
             }
-            markerData.put(EXPECTED_ITEM_COUNTS_TAG, itemCounts);
-        } else {
-            markerData.remove(STRUCTURE_VALUE_TAG);
-            markerData.remove(EXPECTED_ITEM_COUNTS_TAG);
         }
-    }
-
-    static AnalysisStatus analysisStatus(CompoundTag markerData) {
-        if (!markerData.contains(ALGORITHM_VERSION_TAG, Tag.TAG_ANY_NUMERIC)
-                || markerData.getInt(ALGORITHM_VERSION_TAG) != ALGORITHM_VERSION) {
-            return AnalysisStatus.LEGACY;
-        }
-        try {
-            AnalysisStatus status =
-                    AnalysisStatus.valueOf(markerData.getString(ANALYSIS_STATUS_TAG));
-            if (!markerData.contains(RANDOM_PROBABILITY_SPACE_TAG, Tag.TAG_STRING)
-                    || !IdealRandomProbabilitySpace1201.ID.equals(
-                            markerData.getString(RANDOM_PROBABILITY_SPACE_TAG))
-                    || !hasFiniteNumber(markerData, DIMENSION_VALUE_TAG)
-                    || markerData.getDouble(DIMENSION_VALUE_TAG) < 0.0D
-                    || !markerData.contains(DIAGNOSTICS_TAG, Tag.TAG_LIST)
-                    || status == AnalysisStatus.LEGACY) {
-                return AnalysisStatus.UNSUPPORTED;
-            }
-            if ((status == AnalysisStatus.EXACT || status == AnalysisStatus.APPROXIMATE)
-                    && (!hasFiniteNumber(markerData, STRUCTURE_VALUE_TAG)
-                            || markerData.getDouble(STRUCTURE_VALUE_TAG) < 0.0D)) {
-                return AnalysisStatus.UNSUPPORTED;
-            }
-            return status;
-        } catch (IllegalArgumentException exception) {
-            return AnalysisStatus.UNSUPPORTED;
-        }
-    }
-
-    private static boolean hasFiniteNumber(CompoundTag tag, String key) {
-        return tag.contains(key, Tag.TAG_ANY_NUMERIC) && Double.isFinite(tag.getDouble(key));
-    }
-
-    private static Optional<MarkedStructure> readMarkedStructure(CompoundTag markerData) {
-        if (markerData.contains(STRUCTURE_TAG, Tag.TAG_COMPOUND)) {
-            return readStructure(markerData.getCompound(STRUCTURE_TAG));
-        }
-        ListTag legacyStructures = markerData.getList(LEGACY_STRUCTURES_TAG, Tag.TAG_COMPOUND);
-        return legacyStructures.stream()
-                .filter(CompoundTag.class::isInstance)
-                .map(CompoundTag.class::cast)
-                .map(StructMarkerItem::readStructure)
-                .flatMap(Optional::stream)
-                .min(MARKED_STRUCTURE_ORDER);
+        return new StructureMarkerData(
+                base.dimension(),
+                base.position(),
+                base.structure(),
+                base.chestData(),
+                ALGORITHM_VERSION,
+                IdealRandomProbabilitySpace1201.ID,
+                value.dimensionValue(),
+                usable ? Optional.of(value.structureValue()) : Optional.empty(),
+                value.status(),
+                value.diagnostics(),
+                itemCounts,
+                fingerprint,
+                base.catalogueEntry());
     }
 
     private static Optional<MarkedStructure> readStructure(CompoundTag structureData) {
@@ -561,21 +457,6 @@ public class StructMarkerItem extends Item {
         return structureData;
     }
 
-    private static CompoundTag createStructureData(MarkedStructure structure) {
-        CompoundTag structureData = new CompoundTag();
-        structureData.putString("Id", structure.id().toString());
-        BoundingBox boundingBox = structure.bounds();
-        CompoundTag boundsData = new CompoundTag();
-        boundsData.putInt("MinX", boundingBox.minX());
-        boundsData.putInt("MinY", boundingBox.minY());
-        boundsData.putInt("MinZ", boundingBox.minZ());
-        boundsData.putInt("MaxX", boundingBox.maxX());
-        boundsData.putInt("MaxY", boundingBox.maxY());
-        boundsData.putInt("MaxZ", boundingBox.maxZ());
-        structureData.put("Bounds", boundsData);
-        return structureData;
-    }
-
     private static final Comparator<CompoundTag> STRUCTURE_DATA_ORDER =
             Comparator.comparing((CompoundTag tag) -> tag.getString("Id"))
                     .thenComparingInt(tag -> tag.getInt("StartChunkX"))
@@ -586,15 +467,6 @@ public class StructMarkerItem extends Item {
                     .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxX"))
                     .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxY"))
                     .thenComparingInt(tag -> tag.getCompound("Bounds").getInt("MaxZ"));
-
-    private static final Comparator<MarkedStructure> MARKED_STRUCTURE_ORDER =
-            Comparator.comparing((MarkedStructure structure) -> structure.id().toString())
-                    .thenComparingInt(structure -> structure.bounds().minX())
-                    .thenComparingInt(structure -> structure.bounds().minY())
-                    .thenComparingInt(structure -> structure.bounds().minZ())
-                    .thenComparingInt(structure -> structure.bounds().maxX())
-                    .thenComparingInt(structure -> structure.bounds().maxY())
-                    .thenComparingInt(structure -> structure.bounds().maxZ());
 
     public record MarkerInfo(
             ResourceLocation dimension, BlockPos position, MarkedStructure structure) {}

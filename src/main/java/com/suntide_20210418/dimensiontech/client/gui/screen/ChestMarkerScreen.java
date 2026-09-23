@@ -4,6 +4,7 @@ import com.suntide_20210418.dimensiontech.client.gui.menu.StructMarkerLayout;
 import com.suntide_20210418.dimensiontech.item.ChestMarkerItem;
 import com.suntide_20210418.dimensiontech.item.ChestMarkerItem.ChestInfo;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.item.StructureMarkerData;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
@@ -29,7 +30,8 @@ import net.minecraft.world.item.ItemStack;
  * difference is the interaction contract: a chest is marked by clicking it in the world with the
  * item, so this screen has no "mark" button and no choice overlay, just the readings, the
  * expectation viewport and a clear button. Expectation rows, the analysis-status chip and the four
- * readings all come from the same {@code StructureMarkerData} NBT the structure marker writes.
+ * readings all come from the same {@code StructureMarkerData} component the structure marker
+ * writes.
  */
 public final class ChestMarkerScreen extends Screen {
     private static final int ROW_HOVER = 0xFF9BB49A;
@@ -92,7 +94,7 @@ public final class ChestMarkerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+        renderBackground(g, mouseX, mouseY, partialTick);
         super.render(g, mouseX, mouseY, partialTick);
 
         int windowX = mouseX - left;
@@ -208,9 +210,9 @@ public final class ChestMarkerScreen extends Screen {
     }
 
     private ResourceLocation markerDim() {
-        net.minecraft.nbt.CompoundTag data = marker.getTagElement("StructureMarkerData");
-        if (data == null) return null;
-        return ResourceLocation.tryParse(data.getString("Dimension"));
+        return StructMarkerItem.getMarkerData(marker)
+                .map(StructureMarkerData::dimension)
+                .orElse(null);
     }
 
     /** The section caption, its rule, and the scrolling expectation viewport. */
@@ -367,8 +369,9 @@ public final class ChestMarkerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int step = (int) Math.signum(delta);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // 鼠标滚轮只产生纵向滚动量。
+        int step = (int) Math.signum(scrollY);
         scroll = Math.max(0, Math.min(maxScroll(), scroll - step));
         return true;
     }

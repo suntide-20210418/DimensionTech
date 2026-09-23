@@ -7,6 +7,7 @@ import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.item.ModCreativeModeTabs;
+import com.suntide_20210418.dimensiontech.item.ModDataComponents;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.network.ModNetwork;
 import com.suntide_20210418.dimensiontech.recipe.ModRecipes;
@@ -37,6 +38,7 @@ public class DimensionTechMod {
         ModBlockEntities.register(modEventBus);
         ModCreativeModeTabs.register(modEventBus);
         ModRecipes.register(modEventBus);
+        ModDataComponents.register(modEventBus);
 
         // Game event listeners.
         NeoForge.EVENT_BUS.register(this);

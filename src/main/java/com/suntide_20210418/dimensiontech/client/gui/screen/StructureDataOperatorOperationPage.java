@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorLayout;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.item.ModDataComponents;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import java.util.ArrayList;
@@ -21,13 +22,14 @@ import net.minecraft.world.item.Rarity;
 /**
  * The operate page: the read marker's six readings, and the one-to-many copy workflow.
  *
- * <p>Readings are derived entirely client-side — a marker carries its snapshot in item NBT and the
- * vanilla slot pass synchronises it — so this page needs no round trip. The dimension and structure
- * are text; dimension value, structure value and the per-item multiplier are numbers; the item
- * expectation list carries the remaining two readings as its row count and its multiplier column.
+ * <p>Readings are derived entirely client-side — a marker carries its snapshot in a data component
+ * and the vanilla slot pass synchronises it — so this page needs no round trip. The dimension and
+ * structure are text; dimension value, structure value and the per-item multiplier are numbers; the
+ * item expectation list carries the remaining two readings as its row count and its multiplier
+ * column.
  *
  * <p>Table state is static because the screen owns exactly one operate page and a page renderer has
- * no instance to hang it on. Rows are re-derived only when the marker's compound tag changes.
+ * no instance to hang it on. Rows are re-derived only when the marker's payload component changes.
  */
 final class StructureDataOperatorOperationPage {
     private static final int PAD = 4;
@@ -299,7 +301,7 @@ final class StructureDataOperatorOperationPage {
 
     private static void refresh(StructureDataOperatorScreen s) {
         ItemStack marker = s.readMarker();
-        int hash = marker.isEmpty() ? 0 : Objects.hashCode(marker.getTag());
+        int hash = Objects.hashCode(marker.get(ModDataComponents.STRUCTURE_MARKER));
         if (hasRows && hash == rowsHash) return;
         hasRows = true;
         rowsHash = hash;

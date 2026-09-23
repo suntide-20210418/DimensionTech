@@ -3,8 +3,10 @@ package com.suntide_20210418.dimensiontech.block.entity;
 import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
+import com.suntide_20210418.dimensiontech.item.ModDataComponents;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
+import com.suntide_20210418.dimensiontech.item.StructureMarkerData;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
@@ -21,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -65,8 +68,8 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
     private final ItemStackHandler inventory =
             new ItemStackHandler(INVENTORY_SIZE) {
                 @Override
-                public void deserializeNBT(CompoundTag tag) {
-                    super.deserializeNBT(migrateInventory(tag));
+                public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
+                    super.deserializeNBT(registries, migrateInventory(tag));
                 }
 
                 @Override
@@ -158,18 +161,15 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
 
     public boolean copyData() {
         ItemStack source = inventory.getStackInSlot(TARGET);
-        if (source.isEmpty() || StructMarkerItem.getMarkerInfo(source).isEmpty()) return false;
-        CompoundTag sourceTag = source.getTag();
-        if (sourceTag == null || !sourceTag.contains("StructureMarkerData", Tag.TAG_COMPOUND))
-            return false;
+        if (source.isEmpty()) return false;
+        StructureMarkerData sourceData = source.get(ModDataComponents.STRUCTURE_MARKER);
+        if (sourceData == null) return false;
         boolean copied = false;
         for (int slot = OPERAND_START; slot < OPERAND_START + OPERAND_COUNT; slot++) {
             ItemStack destination = inventory.getStackInSlot(slot);
             if (destination.isEmpty()) continue;
-            CompoundTag destinationTag = destination.getOrCreateTag();
-            destinationTag.remove("StructureMarkerData");
-            destinationTag.put(
-                    "StructureMarkerData", sourceTag.getCompound("StructureMarkerData").copy());
+            // 组件值是不可变 record，直接共享同一实例即可，不需要深拷贝。
+            destination.set(ModDataComponents.STRUCTURE_MARKER, sourceData);
             inventory.setStackInSlot(slot, destination);
             copied = true;
         }
@@ -191,10 +191,9 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         if (analysisMarker == null) return false;
         ItemStack marker = inventory.getStackInSlot(TARGET);
         if (marker.isEmpty()) return false;
-        CompoundTag markerTag = marker.getOrCreateTag();
-        markerTag.remove("StructureMarkerData");
-        markerTag.put(
-                "StructureMarkerData", analysisMarker.getTagElement("StructureMarkerData").copy());
+        StructureMarkerData entryData = analysisMarker.get(ModDataComponents.STRUCTURE_MARKER);
+        if (entryData == null) return false;
+        marker.set(ModDataComponents.STRUCTURE_MARKER, entryData);
         inventory.setStackInSlot(TARGET, marker);
         setChanged();
         return true;
@@ -324,15 +323,14 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                             new ItemStack(
                                                                     ModItems.STRUCTURE_MARKER
                                                                             .get());
-                                                    marker.getOrCreateTag()
-                                                            .put(
-                                                                    "StructureMarkerData",
-                                                                    StructMarkerItem
-                                                                            .createCatalogueMarkerData(
-                                                                                    level,
-                                                                                    id,
-                                                                                    resultDiscovery,
-                                                                                    resultValue));
+                                                    marker.set(
+                                                            ModDataComponents.STRUCTURE_MARKER,
+                                                            StructMarkerItem
+                                                                    .createCatalogueMarkerData(
+                                                                            level,
+                                                                            id,
+                                                                            resultDiscovery,
+                                                                            resultValue));
                                                     analysedCatalogueEntries.put(key, marker);
                                                     catalogueValueConfigs.put(key, config);
                                                 }));
@@ -361,10 +359,8 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         boolean cleared = false;
         for (int slot = OPERAND_START; slot < OPERAND_START + OPERAND_COUNT; slot++) {
             ItemStack marker = inventory.getStackInSlot(slot);
-            if (marker.isEmpty()
-                    || marker.getTag() == null
-                    || !marker.getTag().contains("StructureMarkerData", Tag.TAG_COMPOUND)) continue;
-            marker.getTag().remove("StructureMarkerData");
+            if (marker.isEmpty() || !marker.has(ModDataComponents.STRUCTURE_MARKER)) continue;
+            marker.remove(ModDataComponents.STRUCTURE_MARKER);
             inventory.setStackInSlot(slot, marker);
             cleared = true;
         }
@@ -430,15 +426,15 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
-        tag.put("Inventory", inventory.serializeNBT());
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.put("Inventory", inventory.serializeNBT(registries));
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        inventory.deserializeNBT(tag.getCompound("Inventory"));
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
     }
 
     /**
