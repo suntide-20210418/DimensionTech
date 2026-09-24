@@ -426,6 +426,9 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "message.dimension_tech.structure_miner.projection_off",
                 "Multiblock projection hidden");
         add(
+                "message.dimension_tech.structure_miner.structure_complete",
+                "Structure already complete, no projection needed");
+        add(
                 "message.dimension_tech.structure_miner.build_blocked",
                 "%s multiblock position(s) are obstructed");
         add("message.dimension_tech.structure_miner.build_missing", "Not enough materials: %s");

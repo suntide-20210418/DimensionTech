@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -209,13 +210,12 @@ public class StructureMinerMultiblock {
         for (ProjectionBlock projected : projection()) {
             BlockPos target = center.offset(projected.offset());
             BlockState actual = level.getBlockState(target);
-            Block wanted = projected.state().getBlock();
-            if (actual.is(wanted)) continue;
+            if (isFilled(projected, actual)) continue;
             if (!actual.isAir() && !actual.canBeReplaced()) {
                 blocked.add(target);
                 continue;
             }
-            required.merge(wanted, 1, Integer::sum);
+            required.merge(projected.state().getBlock(), 1, Integer::sum);
         }
         return new BuildPlan(Map.copyOf(required), List.copyOf(blocked));
     }
@@ -226,20 +226,33 @@ public class StructureMinerMultiblock {
                 || state.is(ModBlocks.STRUCTURE_MINER_STRUCTURE.get());
     }
 
-    public static boolean isComplete(ServerLevel level, BlockPos center) {
-        BlockState casing = ModBlocks.STRUCTURE_MINER_CASING.get().defaultBlockState();
-        BlockState glass = ModBlocks.STRUCTURE_MINER_GLASS.get().defaultBlockState();
-        BlockState structure = ModBlocks.STRUCTURE_MINER_STRUCTURE.get().defaultBlockState();
-        for (int x = -2; x <= 2; x++)
-            for (int y = -5; y <= -1; y++)
-                for (int z = -2; z <= 2; z++) {
-                    String key = x + "," + y + "," + z;
-                    BlockState actual = level.getBlockState(center.offset(x, y, z));
-                    if (CASING.contains(key) && !actual.is(casing.getBlock())) return false;
-                    if (GLASS.contains(key) && !actual.is(glass.getBlock())) return false;
-                    if (STRUCTURE.contains(key) && !actual.is(structure.getBlock())) return false;
-                    if (UPGRADE.contains(key) && !acceptsUpgradeSlot(actual)) return false;
-                }
+    /**
+     * Whether {@code actual} already satisfies the slot {@code projected} points at. The bays are
+     * modelled from the structure block but accept any upgrade block, so they cannot be compared
+     * block-for-block; every other slot has to match its projected block exactly.
+     *
+     * <p>This is the only place that rule lives: the planner, the completeness test and the
+     * client-side overlay all ask it, so a bay full of upgrades can never read as "missing" to one
+     * of them and "filled" to another.
+     */
+    public static boolean isFilled(ProjectionBlock projected, BlockState actual) {
+        return projected.kind() == ProjectionKind.UPGRADE
+                ? acceptsUpgradeSlot(actual)
+                : actual.is(projected.state().getBlock());
+    }
+
+    /**
+     * The one completeness test, shared by the block entity and the client-side projection: it only
+     * reads block states, so both a {@link ServerLevel} and a {@code ClientLevel} can call it.
+     * Walks the projection rather than the bounding box, so it asks {@link #isFilled} about the same
+     * slots the planner and the overlay see, in the same order.
+     */
+    public static boolean isComplete(LevelReader level, BlockPos center) {
+        for (ProjectionBlock projected : projection()) {
+            if (!isFilled(projected, level.getBlockState(center.offset(projected.offset())))) {
+                return false;
+            }
+        }
         return true;
     }
 

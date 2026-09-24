@@ -23,7 +23,8 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 @EventBusSubscriber(modid = DimensionTechMod.MOD_ID, value = Dist.CLIENT)
 public final class StructureMinerProjectionClient {
-    private static final double MAX_DISTANCE_SQUARED = 96.0D * 96.0D;
+    /** Past this the ghost is neither readable nor worth the draw calls, so the overlay drops. */
+    private static final double MAX_DISTANCE_SQUARED = 16.0D * 16.0D;
     private static Projection projection;
 
     private StructureMinerProjectionClient() {}
@@ -38,6 +39,15 @@ public final class StructureMinerProjectionClient {
             projection = null;
             minecraft.player.displayClientMessage(
                     Component.translatable("message.dimension_tech.structure_miner.projection_off"),
+                    true);
+            return;
+        }
+        // A finished build has no missing slot to point at, so the overlay would only lie about
+        // being on: refuse it here instead of letting the render pass clear it a frame later.
+        if (StructureMinerMultiblock.isComplete(minecraft.level, center)) {
+            minecraft.player.displayClientMessage(
+                    Component.translatable(
+                            "message.dimension_tech.structure_miner.structure_complete"),
                     true);
             return;
         }
@@ -58,7 +68,9 @@ public final class StructureMinerProjectionClient {
                 || minecraft.player == null
                 || !minecraft.level.dimension().equals(projection.dimension())
                 || minecraft.player.distanceToSqr(Vec3.atCenterOf(projection.center()))
-                        > MAX_DISTANCE_SQUARED) {
+                        > MAX_DISTANCE_SQUARED
+                // Finishing the build leaves nothing to project, so the overlay retires itself.
+                || StructureMinerMultiblock.isComplete(minecraft.level, projection.center())) {
             projection = null;
             return;
         }
@@ -75,8 +87,8 @@ public final class StructureMinerProjectionClient {
         for (ProjectionBlock block : projection.blocks()) {
             BlockPos worldPos = projection.center().offset(block.offset());
             BlockState actual = minecraft.level.getBlockState(worldPos);
-            // Already carries the right block: nothing left to place here, so it drops out.
-            if (actual.is(block.state().getBlock())) continue;
+            // Already carries whatever this slot accepts: nothing left to place here, so it drops out.
+            if (StructureMinerMultiblock.isFilled(block, actual)) continue;
             float[] tint = color(block);
             if (!actual.isAir() && !actual.canBeReplaced()) {
                 // Occupied by an unrelated, non-replaceable block: flag it red instead of hiding
