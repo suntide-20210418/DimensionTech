@@ -2,11 +2,7 @@
 
 [English](README.en.md) | [代码 Wiki](docs/code-wiki.md) | [KubeJS 文档](docs/kubejs.md) | [许可证](LICENSE.txt)
 
-Dimension Tech 是一个面向 Minecraft Forge 1.20.1 的技术模组。它围绕“结构的价值”构建自动化：将世界中的结构转化为可分析的结构标记，再由神话采掘器按结构的战利品期望持续产出资源。
-
-当前版本：`1.0.0-1.20.1`
-
-运行环境：Minecraft `1.20.1`、Forge `47.4.10` 或兼容版本
+Dimension Tech 是一个科技模组。它围绕“结构的价值”构建自动化：将世界中的结构转化为可分析的结构标记，再由神话采掘器按结构的战利品期望持续产出资源。
 
 许可证：GPL-3.0
 
