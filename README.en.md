@@ -2,10 +2,8 @@
 
 [中文文档](README.md) | [Code wiki](docs/code-wiki.md) | [KubeJS documentation](docs/kubejs.md) | [License](LICENSE.txt)
 
-Dimension Tech is a technology mod for Minecraft Forge 1.20.1. Its automation loop is built around the value of generated structures: analyse a structure into a marker, then let a Mythic Miner produce resources from that structure's loot expectations.
+Dimension Tech is a technology mod. Its automation loop is built around the value of generated structures: analyse a structure into a marker, then let a Mythic Miner produce resources from that structure's loot expectations.
 
-Current version: `1.0.0-1.20.1`
-Runtime: Minecraft `1.20.1`, Forge `47.4.10` or a compatible version
 License: GPL-3.0
 
 ## Player Guide
