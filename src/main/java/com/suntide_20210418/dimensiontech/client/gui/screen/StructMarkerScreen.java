@@ -553,7 +553,7 @@ public final class StructMarkerScreen extends Screen {
             for (int row = 0; row < visible; row++) {
                 int y = box.firstRowY() + row * CHOICE_ROW_H;
                 if (inside(mouseX, mouseY, box.rowX(), y, box.rowWidth(), CHOICE_ROW_H)) {
-                    ModNetwork.selectStructure(hand, choicePosition, first + row);
+                    ModNetwork.selectStructure(hand, choicePosition, choices.get(first + row));
                     choices = List.of();
                     return true;
                 }

@@ -145,12 +145,21 @@ public class StructMarkerItem extends Item {
         data.putIntArray(DISCOVERED_STRUCTURES_TAG, updated);
     }
 
+    /**
+     * Writes {@code selectedStructure} into the marker and analyses it on the spot, so a selection
+     * confirmed through the picker is complete the moment it lands.
+     *
+     * <p>The caller hands over the structure it offered rather than an index into a fresh query.
+     * With two overlapping structures the candidate list is rebuilt on every request, and an index
+     * would silently resolve to whichever structure now happens to sit at that position. Passing
+     * the identity keeps the confirmation tied to what the player actually picked.
+     */
     public static boolean markAt(
-            ServerLevel level, ItemStack itemStack, BlockPos position, int selectionIndex) {
-        List<MarkedStructure> structures = findStructuresAt(level, position);
-        if (selectionIndex < 0 || selectionIndex >= structures.size()) return false;
-        Optional<CompoundTag> markerData =
-                createMarkerData(level, position, structures.get(selectionIndex));
+            ServerLevel level,
+            ItemStack itemStack,
+            BlockPos position,
+            MarkedStructure selectedStructure) {
+        Optional<CompoundTag> markerData = createMarkerData(level, position, selectedStructure);
         markerData.ifPresent(data -> itemStack.getOrCreateTag().put(MARKER_DATA_TAG, data));
         return markerData.isPresent();
     }
