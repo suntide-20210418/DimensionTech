@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:loot_table",
-          "name": "dimension_tech:gametest/does_not_exist"
+          "value": "dimension_tech:gametest/does_not_exist"
         }
       ]
     }

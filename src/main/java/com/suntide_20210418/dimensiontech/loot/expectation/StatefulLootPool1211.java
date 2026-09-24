@@ -262,14 +262,26 @@ public final class StatefulLootPool1211 {
             return Expansion.unsupported(
                     conditions.randomState(), pointer, "Entry type is not a string");
         }
-        if (type.equals("minecraft:item")
-                || type.equals("minecraft:empty")
-                || type.equals("minecraft:loot_table")) {
+        if (type.equals("minecraft:item") || type.equals("minecraft:empty")) {
             if (!type.equals("minecraft:empty") && !validName(entry)) {
                 return Expansion.unsupported(
                         conditions.randomState(),
                         pointer + "/name",
                         "Entry name is missing or not a string");
+            }
+            return Expansion.exact(
+                    List.of(new Candidate(entry, entryWeight.value(), pointer)),
+                    conditions.randomState(),
+                    true);
+        }
+        if (NestedLootTableEntry1211.TYPE.equals(type)) {
+            if (NestedLootTableEntry1211.reference(entry) == null) {
+                return Expansion.unsupported(
+                        conditions.randomState(),
+                        pointer + "/" + NestedLootTableEntry1211.FIELD,
+                        NestedLootTableEntry1211.isInline(entry)
+                                ? NestedLootTableEntry1211.INLINE_TABLE_MESSAGE
+                                : NestedLootTableEntry1211.MISSING_REFERENCE_MESSAGE);
             }
             return Expansion.exact(
                     List.of(new Candidate(entry, entryWeight.value(), pointer)),

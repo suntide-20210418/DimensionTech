@@ -261,11 +261,15 @@ public final class StatefulLootTableExecutor1211 {
                     BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, tagId))) {
                 generated.add(new ItemStack(item));
             }
-        } else if (type.equals("minecraft:loot_table")) {
-            ResourceLocation nestedId = resourceLocationField(entry, "name");
+        } else if (type.equals(NestedLootTableEntry1211.TYPE)) {
+            ResourceLocation nestedId = NestedLootTableEntry1211.reference(entry);
             if (nestedId == null) {
                 return unsupportedSelection(
-                        state, entryPointer + "/name", "Invalid nested table reference");
+                        state,
+                        entryPointer + "/" + NestedLootTableEntry1211.FIELD,
+                        NestedLootTableEntry1211.isInline(entry)
+                                ? NestedLootTableEntry1211.INLINE_TABLE_MESSAGE
+                                : NestedLootTableEntry1211.MISSING_REFERENCE_MESSAGE);
             }
             ArrayList<String> nestedPath = new ArrayList<>(callPath);
             nestedPath.add(nestedId.toString());
