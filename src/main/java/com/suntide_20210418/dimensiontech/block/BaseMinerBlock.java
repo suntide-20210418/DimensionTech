@@ -230,6 +230,27 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
         }
     }
 
+    /**
+     * Returns the machine's contents to the world when the block itself goes away.
+     *
+     * <p>The guard mirrors {@code StructureReactorBlock}: a replacement that is the same block (a
+     * facing change, for instance) must not spill the inventory, because the block entity survives
+     * that transition.
+     */
+    @Override
+    public void onRemove(
+            BlockState state,
+            Level level,
+            BlockPos position,
+            BlockState replacement,
+            boolean moving) {
+        if (!state.is(replacement.getBlock())
+                && level.getBlockEntity(position) instanceof BaseMinerBlockEntity miner) {
+            miner.dropContents();
+        }
+        super.onRemove(state, level, position, replacement, moving);
+    }
+
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
             Level level, BlockState blockState, BlockEntityType<T> blockEntityType) {

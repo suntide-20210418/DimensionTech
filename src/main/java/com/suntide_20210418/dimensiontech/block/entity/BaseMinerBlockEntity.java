@@ -29,6 +29,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -538,6 +539,34 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public IItemHandler getItemHandler() {
         return itemHandler;
+    }
+
+    /**
+     * Drops the markers loaded into the machine and any reward that finished generating but has not
+     * reached an output target yet, so breaking the machine never destroys player property.
+     *
+     * <p>Called from {@code BaseMinerBlock#onRemove}, which only runs server side ({@code
+     * LevelChunk#setBlockState} guards the hook with {@code !level.isClientSide}) and still has the
+     * block entity registered at that point. Each slot is emptied as it is dropped so a repeated
+     * removal cannot duplicate the contents. The tank is intentionally left alone: it holds a
+     * working fluid consumed by the cycle, the same stance {@code StructureReactorBlockEntity}
+     * takes for its own tanks.
+     */
+    public void dropContents() {
+        if (level == null) return;
+        for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
+            ItemStack stack = itemHandler.getStackInSlot(slot);
+            if (stack.isEmpty()) continue;
+            itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
+            Containers.dropItemStack(
+                    level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
+        }
+        for (ItemStack stack : outputController.pendingItems()) {
+            if (stack.isEmpty()) continue;
+            Containers.dropItemStack(
+                    level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
+        }
+        outputController.setPending(List.of());
     }
 
     /** Fill-only view of the single tank, used as the block capability on input faces. */

@@ -28,20 +28,16 @@ public final class ModNetwork {
 
     public static void requestStructureSelection(InteractionHand hand) {
         PacketDistributor.sendToServer(
-                new StructMarkerActionPacket(
-                        hand, MarkerAction.REQUEST_SELECTION, BlockPos.ZERO, -1));
+                new StructMarkerActionPacket(hand, MarkerAction.REQUEST_SELECTION, -1));
     }
 
-    public static void selectStructure(
-            InteractionHand hand, BlockPos selectionPosition, int selectionIndex) {
+    public static void selectStructure(InteractionHand hand, int selectionIndex) {
         PacketDistributor.sendToServer(
-                new StructMarkerActionPacket(
-                        hand, MarkerAction.SELECT, selectionPosition, selectionIndex));
+                new StructMarkerActionPacket(hand, MarkerAction.SELECT, selectionIndex));
     }
 
     public static void clear(InteractionHand hand) {
-        PacketDistributor.sendToServer(
-                new StructMarkerActionPacket(hand, MarkerAction.CLEAR, BlockPos.ZERO, -1));
+        PacketDistributor.sendToServer(new StructMarkerActionPacket(hand, MarkerAction.CLEAR, -1));
     }
 
     /** Asks the server to analyse the given position with the chest marker in {@code hand}. */

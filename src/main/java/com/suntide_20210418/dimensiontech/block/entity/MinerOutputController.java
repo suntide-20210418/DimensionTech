@@ -91,6 +91,11 @@ final class MinerOutputController {
         return pending.stream().mapToInt(ItemStack::getCount).sum();
     }
 
+    /** The rewards still waiting for an output target, in routing order. */
+    List<ItemStack> pendingItems() {
+        return pending;
+    }
+
     BaseMinerBlockEntity.OutputState outputState() {
         return outputState;
     }
