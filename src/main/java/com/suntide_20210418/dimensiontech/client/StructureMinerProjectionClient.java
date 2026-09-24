@@ -25,6 +25,7 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 public final class StructureMinerProjectionClient {
     /** Past this the ghost is neither readable nor worth the draw calls, so the overlay drops. */
     private static final double MAX_DISTANCE_SQUARED = 16.0D * 16.0D;
+
     private static Projection projection;
 
     private StructureMinerProjectionClient() {}
@@ -87,7 +88,8 @@ public final class StructureMinerProjectionClient {
         for (ProjectionBlock block : projection.blocks()) {
             BlockPos worldPos = projection.center().offset(block.offset());
             BlockState actual = minecraft.level.getBlockState(worldPos);
-            // Already carries whatever this slot accepts: nothing left to place here, so it drops out.
+            // Already carries whatever this slot accepts: nothing left to place here, so it drops
+            // out.
             if (StructureMinerMultiblock.isFilled(block, actual)) continue;
             float[] tint = color(block);
             if (!actual.isAir() && !actual.canBeReplaced()) {

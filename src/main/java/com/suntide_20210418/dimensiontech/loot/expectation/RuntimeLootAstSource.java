@@ -165,7 +165,8 @@ public class RuntimeLootAstSource {
         // 1.21 spells this entry {"type": "minecraft:loot_table", "value": <id|inline table>}; see
         // NestedLootTableEntry1211. Missing it here silently drops the referenced table from the
         // snapshot, and the frozen engine would then report the reference as missing instead of
-        // resolving it. Inline tables are not collected (they have no id) but their contents are still
+        // resolving it. Inline tables are not collected (they have no id) but their contents are
+        // still
         // walked, so references nested inside them are found.
         ResourceLocation nested = NestedLootTableEntry1211.reference(object);
         if (nested != null) output.add(nested);

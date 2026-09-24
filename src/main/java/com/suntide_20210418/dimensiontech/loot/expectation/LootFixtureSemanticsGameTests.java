@@ -29,37 +29,37 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  *
  * <p>这 15 张表加上两个被引用的自引用定义（{@code item_modifier/gametest/recursive_function} 与 {@code
  * predicate/gametest/recursive_predicate}）在移植收尾时**没有任何 Java 消费者**：源 1.20.1 工程与目标 1.21.1
- * 工程都不曾有测试读它们（{@code docs/code-wiki.md} §13 曾把「18 个 fixture 由这些测试消费」写成事实，实际只有
- * {@code loot_table/test/layered_equivalence.json} 被 {@code StructureValueCalculatorGameTests} 使用）。本类把它们接回精确引擎。
+ * 工程都不曾有测试读它们（{@code docs/code-wiki.md} §13 曾把「18 个 fixture 由这些测试消费」写成事实，实际只有 {@code
+ * loot_table/test/layered_equivalence.json} 被 {@code StructureValueCalculatorGameTests}
+ * 使用）。本类把它们接回精确引擎。
  *
  * <p>接回来的第一件事就是查出两处 1.21 数据包格式断层 —— 两者都是「没人消费所以没人发现」的遗留：
  *
  * <ul>
  *   <li><b>fixture 自己是 1.20.1 语法</b>：{@code minecraft:loot_table} 条目写 {@code "name"}、{@code
- *       set_lore} 缺必填的 {@code mode}。在 1.21.1 上这些表**整个加载失败**（{@code Couldn't parse element
- *       ... No key value in MapLike[...]}），于是分析只会看到一张「不存在的表」。受影响 5 张：{@code
- *       missing_table} / {@code recursive_table} / {@code nested_terminal_root} / {@code
- *       nested_unsupported_function} / {@code unsupported_function}。其中 {@code missing_table} 的旧断言曾
- *       **假通过** —— 根表没加载时同样会报 {@code MISSING_REFERENCE}，与「根表存在、被引用表缺失」的
- *       语义撞车。
+ *       set_lore} 缺必填的 {@code mode}。在 1.21.1 上这些表**整个加载失败**（{@code Couldn't parse element ... No
+ *       key value in MapLike[...]}），于是分析只会看到一张「不存在的表」。受影响 5 张：{@code missing_table} / {@code
+ *       recursive_table} / {@code nested_terminal_root} / {@code nested_unsupported_function} /
+ *       {@code unsupported_function}。其中 {@code missing_table} 的旧断言曾 **假通过** —— 根表没加载时同样会报 {@code
+ *       MISSING_REFERENCE}，与「根表存在、被引用表缺失」的 语义撞车。
  *   <li><b>引擎自己也在按 1.20.1 的字段名解析嵌套表引用</b>（1.21 改成了 {@code value}，见 {@link
- *       NestedLootTableEntry1211}）。后果分两种：条目派发处把嵌套引用判成 UNSUPPORTED（至少不撒谎），
- *       而 {@link RuntimeLootAstSource#snapshotTables} 的递归抓取漏掉被引用表后，冻结路径会把引用当成
- *       缺失表 —— **静默少算期望值**，正是本模组最不能接受的失效方式。
+ *       NestedLootTableEntry1211}）。后果分两种：条目派发处把嵌套引用判成 UNSUPPORTED（至少不撒谎）， 而 {@link
+ *       RuntimeLootAstSource#snapshotTables} 的递归抓取漏掉被引用表后，冻结路径会把引用当成 缺失表 ——
+ *       **静默少算期望值**，正是本模组最不能接受的失效方式。
  * </ul>
  *
  * <p>每一条断言都对应源码里的确定语义，手算值优先：
  *
  * <ul>
- *   <li>缺失 / 递归引用**不是** UNSUPPORTED —— {@link ReferenceSemantics1211} 规定缺失表输出为空、缺失条件为
- *       {@code false}、缺失函数为 {@code identity}，递归同理，并各自留下一条 warning 诊断。
+ *   <li>缺失 / 递归引用**不是** UNSUPPORTED —— {@link ReferenceSemantics1211} 规定缺失表输出为空、缺失条件为 {@code
+ *       false}、缺失函数为 {@code identity}，递归同理，并各自留下一条 warning 诊断。
  *   <li>未登记的战利品函数（{@code minecraft:set_lore}）落到「不支持」分支，且沿嵌套表级联。
  *   <li>{@code set_count} 会把数量夹到 {@code [0, maxStackSize]}，函数按 入口 → 池 → 表 的顺序叠加。
- *   <li>附魔枚举整体关闭时（{@code ExactEnchantmentSemantics1211.ENABLED == false}），
- *       {@code enchant_with_levels} 是 no-op，产出保持未附魔。
+ *   <li>附魔枚举整体关闭时（{@code ExactEnchantmentSemantics1211.ENABLED == false}）， {@code
+ *       enchant_with_levels} 是 no-op，产出保持未附魔。
  *   <li>冻结源引擎与实时引擎必须**同判**，因为它俩共用同一套语义，只有输入来源不同。
- *   <li>引擎判 UNSUPPORTED 时，{@code StructureValueCalculator} 还会再退化为采样兜底（{@code APPROXIMATE}
- *       + 诊断码 {@code SAMPLING_APPROXIMATION}）—— 「不做近似 fallback」只对引擎成立，计算器是有降级阶梯的。
+ *   <li>引擎判 UNSUPPORTED 时，{@code StructureValueCalculator} 还会再退化为采样兜底（{@code APPROXIMATE} + 诊断码
+ *       {@code SAMPLING_APPROXIMATION}）—— 「不做近似 fallback」只对引擎成立，计算器是有降级阶梯的。
  * </ul>
  *
  * <p>凡实测与手算不符，按移植计划 §6.4 一律当 bug 处理，不允许为了让测试变绿而改写断言。
@@ -118,8 +118,7 @@ public final class LootFixtureSemanticsGameTests {
 
         StructureValue recursivePredicate = analyze(helper, "recursive_predicate");
         requireStatus(helper, "recursive_predicate", recursivePredicate, AnalysisStatus.EXACT);
-        requireDiagnostic(
-                helper, "recursive_predicate", recursivePredicate, "RECURSIVE_REFERENCE");
+        requireDiagnostic(helper, "recursive_predicate", recursivePredicate, "RECURSIVE_REFERENCE");
         requireCount(helper, "recursive_predicate", recursivePredicate, Items.STONE, 0);
 
         StructureValue recursiveFunction = analyze(helper, "recursive_function");
@@ -327,8 +326,8 @@ public final class LootFixtureSemanticsGameTests {
      * 把一张 fixture 表当成「只含这一张表的结构」跑一次同步分析。
      *
      * @param cacheKey 合成结构 id 的后半段；同一张表在不同断言场景下要用不同 key，避免任何按标记指纹的缓存串味
-     * @param requireFrozenAgreement 是否同时要求冻结源路径与实时路径同判；读取活体状态（计分板）的 fixture 必须传
-     *     {@code false}，因为冻结上下文按设计没有 level/计分板
+     * @param requireFrozenAgreement 是否同时要求冻结源路径与实时路径同判；读取活体状态（计分板）的 fixture 必须传 {@code
+     *     false}，因为冻结上下文按设计没有 level/计分板
      */
     private static StructureValue analyze(
             GameTestHelper helper,
@@ -368,9 +367,8 @@ public final class LootFixtureSemanticsGameTests {
      * <p>这一条专门盯住 {@link RuntimeLootAstSource#snapshotTables} 的递归抓取：漏抓被引用表时不会抛错，冻结
      * 引擎只会把引用当作缺失表并返回空产出，于是期望值**静默偏低**。
      *
-     * <p>比较的是两个引擎而不是「计算器的结果 vs 引擎的结果」：{@code StructureValueCalculator} 在引擎判
-     * UNSUPPORTED 时还会再退化为采样兜底（见 {@code StructureValueCalculator:887-896}），那是它自己的策略层，
-     * 与「两条数据来源是否同判」无关。
+     * <p>比较的是两个引擎而不是「计算器的结果 vs 引擎的结果」：{@code StructureValueCalculator} 在引擎判 UNSUPPORTED
+     * 时还会再退化为采样兜底（见 {@code StructureValueCalculator:887-896}），那是它自己的策略层， 与「两条数据来源是否同判」无关。
      */
     private static void requireEnginesAgree(
             GameTestHelper helper,
@@ -391,8 +389,7 @@ public final class LootFixtureSemanticsGameTests {
                 DistributionalLootTableExecutor1211.evaluate(
                         source,
                         table,
-                        LootAnalysisContext.snapshot(
-                                marker.position(), 0.0F, source.registries()),
+                        LootAnalysisContext.snapshot(marker.position(), 0.0F, source.registries()),
                         MAX_STATES);
         if (liveEngine.status() != frozenEngine.status()
                 || !liveEngine
@@ -401,7 +398,8 @@ public final class LootFixtureSemanticsGameTests {
                         .equals(frozenEngine.terminalMeasure().exactItemCounts())) {
             helper.fail(
                     fixture
-                            + ": the frozen source engine disagrees with the live engine (live status="
+                            + ": the frozen source engine disagrees with the live engine (live"
+                            + " status="
                             + liveEngine.status()
                             + ", terminal="
                             + liveEngine.terminalMeasure().exactItemCounts()
@@ -413,8 +411,7 @@ public final class LootFixtureSemanticsGameTests {
                             + frozenEngine.diagnostics()
                             + ")");
         }
-        if (live.status() == AnalysisStatus.EXACT
-                && liveEngine.status() != AnalysisStatus.EXACT) {
+        if (live.status() == AnalysisStatus.EXACT && liveEngine.status() != AnalysisStatus.EXACT) {
             helper.fail(
                     fixture
                             + ": an exact calculator result must come from an exact engine result,"
@@ -491,8 +488,8 @@ public final class LootFixtureSemanticsGameTests {
     /**
      * 附魔枚举关闭时，任何产出物品都不得带附魔。
      *
-     * <p>终局压缩后的 {@link TerminalStackKey} 只保留 (item, count, rarity)，附魔身份已被丢弃，因此这一条只在完整
-     * StackMeasure 仍然可用时才能判定；这种情况下数量断言依然生效。
+     * <p>终局压缩后的 {@link TerminalStackKey} 只保留 (item, count, rarity)，附魔身份已被丢弃，因此这一条只在完整 StackMeasure
+     * 仍然可用时才能判定；这种情况下数量断言依然生效。
      */
     private static void requireNoEnchantedOutput(
             GameTestHelper helper, String fixture, StructureValue value) {

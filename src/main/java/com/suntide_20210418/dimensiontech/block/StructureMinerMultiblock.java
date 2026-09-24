@@ -244,8 +244,8 @@ public class StructureMinerMultiblock {
     /**
      * The one completeness test, shared by the block entity and the client-side projection: it only
      * reads block states, so both a {@link ServerLevel} and a {@code ClientLevel} can call it.
-     * Walks the projection rather than the bounding box, so it asks {@link #isFilled} about the same
-     * slots the planner and the overlay see, in the same order.
+     * Walks the projection rather than the bounding box, so it asks {@link #isFilled} about the
+     * same slots the planner and the overlay see, in the same order.
      */
     public static boolean isComplete(LevelReader level, BlockPos center) {
         for (ProjectionBlock projected : projection()) {

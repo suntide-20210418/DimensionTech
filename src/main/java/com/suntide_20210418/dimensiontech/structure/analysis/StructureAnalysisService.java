@@ -139,6 +139,10 @@ public final class StructureAnalysisService {
     private final MainThreadTaskCache<StaticKey, DiscoveryResult> templateTasks =
             new MainThreadTaskCache<>(32);
     private final Map<Key, CompletableFuture<DiscoveryResult>> discoveryFutures = new HashMap<>();
+
+    /** In-flight detached samples; each one spans as many ticks as its slice needs. */
+    private final Map<Key, VirtualStructureSampler.Session> sessions = new HashMap<>();
+
     private final Map<Key, DiscoveryResult> staticDiscoveries = new HashMap<>();
     private final Map<Key, Map<ResourceLocation, Integer>> observedTables = new HashMap<>();
     private final Map<Key, Integer> failedSamples = new HashMap<>();
@@ -212,6 +216,10 @@ public final class StructureAnalysisService {
         tasks.close();
         runtimeCaptures.close();
         templateTasks.close();
+        for (VirtualStructureSampler.Session session : sessions.values()) {
+            session.interrupt();
+        }
+        sessions.clear();
         for (CompletableFuture<DiscoveryResult> future :
                 new ArrayList<>(discoveryFutures.values())) {
             future.completeExceptionally(
@@ -312,6 +320,13 @@ public final class StructureAnalysisService {
     }
 
     private void failDiscovery(Key key, Throwable error) {
+        // 采样被预算中止或被取消时用它们自己的诊断键，其余失败沿用 DISCOVERY_FAILED。
+        String code = "DISCOVERY_FAILED";
+        String detail = error.toString();
+        if (error instanceof VirtualStructureSampler.SampleAbortedException aborted) {
+            code = aborted.code();
+            detail = aborted.getMessage();
+        }
         State old = states.get(key);
         if (old != null)
             publishState(
@@ -321,11 +336,11 @@ public final class StructureAnalysisService {
                             old.completedSamples(),
                             old.totalSamples(),
                             old.result(),
-                            List.of(new Diagnostic("DISCOVERY_FAILED", error.toString())),
+                            List.of(new Diagnostic(code, detail)),
                             false,
                             AnalysisLifecycle.TaskStatus.FAILED,
                             System.currentTimeMillis(),
-                            error.toString()));
+                            detail));
         CompletableFuture<DiscoveryResult> future = discoveryFutures.get(key);
         if (future != null) future.completeExceptionally(error);
     }
@@ -375,22 +390,42 @@ public final class StructureAnalysisService {
         if (staticResult.status() == AnalysisStatus.EXACT) {
             return staticResult;
         }
-        // Vanilla jigsaw pieces often assign fixed chest tables during placement, so the table
-        // cannot be recovered from the template NBT. Use the authoritative vanilla locations
-        // before paying the cost of detached generation. Mod namespaces deliberately skip this
-        // resolver and continue to the virtual sampler.
+        // 25 of the 34 vanilla structures carry no start_pool, so the template graph does not
+        // contain them at all and the placement code fixes their tables instead: template NBT for
+        // ruined_portal, data markers for shipwreck/igloo/ocean_ruin/mansion/end_city, direct
+        // createChest calls for the rest. Use that authoritative map before paying the cost of
+        // detached generation. Mod namespaces deliberately skip this resolver and continue to the
+        // virtual sampler.
         if (!mayUseVirtualAnalysis(structure)) {
-            var fixedTables = VanillaStructureLootResolver.resolve(structure);
-            if (fixedTables.isPresent()) {
+            var resolution = VanillaStructureLootResolver.resolve(structure);
+            // A structure that provably places no container has an exact answer of "nothing", not a
+            // gap in the analysis: reporting UNSUPPORTED here would tell the player the machine
+            // cannot read a structure that simply has nothing to read.
+            if (resolution.isPresent() && !resolution.get().hasContainers()) {
+                List<Diagnostic> emptyDiagnostics = new ArrayList<>(staticResult.diagnostics());
+                emptyDiagnostics.add(
+                        new Diagnostic(
+                                "VANILLA_NO_CONTAINER",
+                                "Structure places no loot container: "
+                                        + resolution.get().evidence()));
+                return new DiscoveryResult(
+                        AnalysisStatus.EXACT,
+                        List.of(
+                                new StructureLootAnalyzer.StructureLoot(
+                                        structure, List.of(), List.of(), List.of(), Map.of())),
+                        emptyDiagnostics);
+            }
+            if (resolution.isPresent()) {
                 List<Diagnostic> fixedDiagnostics = new ArrayList<>(staticResult.diagnostics());
                 fixedDiagnostics.add(
                         new Diagnostic(
                                 "VANILLA_FIXED_LOOT_TABLE",
                                 "Resolved vanilla structure loot from fixed container table"
-                                        + " locations."));
+                                        + " locations: "
+                                        + resolution.get().evidence()));
                 DiscoveryResult fixedResult =
                         StructureLootAnalyzer.discoverFixedForValue(
-                                level, structure, fixedTables.get(), fixedDiagnostics);
+                                level, structure, resolution.get().tables(), fixedDiagnostics);
                 if (fixedResult.status() == AnalysisStatus.EXACT) {
                     return fixedResult;
                 }
@@ -438,34 +473,66 @@ public final class StructureAnalysisService {
         templateTasks.tick(allocated.templates());
         runtimeCaptures.tick(allocated.runtimeCaptures());
         int virtualBudget = allocated.virtualSamples();
+        // 一个 tick 内所有 sample 共用同一条时间线：无论 stepsPerTick 调到多大，本 tick 在虚拟
+        // 采样上花费的时间都不会超过这个时间片。
+        long sliceDeadlineNanos =
+                System.nanoTime() + ModConfigs.STRUCTURE_VALUE.virtualStructureSampleSliceNanos();
         while (virtualBudget-- > 0 && !queue.isEmpty()) {
             Key key = queue.removeFirst();
             State state = states.get(key);
             ServerLevel level = server.getLevel(key.dimension());
-            if (state == null || state.complete()) continue;
+            if (state == null || state.complete()) {
+                discardSample(key);
+                continue;
+            }
             if (level == null) {
+                discardSample(key);
                 failDiscovery(key, new IllegalStateException("Discovery dimension is unavailable"));
                 continue;
             }
             try {
-                int attempt = attemptedCandidates.merge(key, 1, Integer::sum) - 1;
                 int next = state.completedSamples() + 1;
-                // Origin derivation is intentionally separate from placement. A placement adapter
-                // must
-                // write only to an in-memory WorldGenLevel; do not substitute ServerLevel here.
-                BlockPos origin = sampleOrigin(level, key.structure(), attempt);
                 Structure structure =
                         level.registryAccess()
                                 .registryOrThrow(Registries.STRUCTURE)
                                 .get(key.structure());
-                if (structure != null) {
+                if (structure == null) {
+                    // 与旧行为一致：注册表里没有这个结构时按“一次没有产出的采样”计数。
+                    sessions.remove(key);
+                } else {
                     try {
-                        VirtualStructureSampler.Sample sample =
-                                VirtualStructureSampler.sample(level, structure, origin);
+                        VirtualStructureSampler.Session session = sessions.get(key);
+                        if (session == null) {
+                            /*
+                             * Origin derivation is intentionally separate from placement. A
+                             * placement adapter must write only to an in-memory WorldGenLevel; do
+                             * not substitute ServerLevel here.
+                             */
+                            int attempt = attemptedCandidates.merge(key, 1, Integer::sum) - 1;
+                            BlockPos origin = sampleOrigin(level, key.structure(), attempt);
+                            session =
+                                    VirtualStructureSampler.begin(
+                                            level,
+                                            structure,
+                                            origin,
+                                            new VirtualStructureSampler.SamplingControl(
+                                                    ModConfigs.STRUCTURE_VALUE
+                                                            .virtualStructureSampleBudgetMillis()));
+                            sessions.put(key, session);
+                        }
+                        if (!session.advance(sliceDeadlineNanos)) {
+                            // 时间片用完：本 tick 不再推进它，下一个 tick 接着放剩下的 chunk。
+                            queue.addLast(key);
+                            continue;
+                        }
+                        sessions.remove(key);
+                        VirtualStructureSampler.Sample sample = session.result();
                         if (!sample.generated()) {
                             // Placement gave us a candidate, but biome/terrain/structure-specific
                             // generation conditions rejected it. It is not a statistical sample.
-                            if (attempt < state.totalSamples() * 32) {
+                            // attemptedCandidates 在创建 session 时 +1，所以当前候选序号是 get()-1。
+                            if (attemptedCandidates.getOrDefault(key, 1) - 1
+                                    < state.totalSamples() * 32) {
                                 queue.addLast(key);
                                 continue;
                             }
@@ -479,9 +546,15 @@ public final class StructureAnalysisService {
                                                                 key, ignored -> new HashMap<>())
                                                         .merge(table, count, Integer::sum));
                     } catch (RuntimeException exception) {
+                        if (exception
+                                instanceof VirtualStructureSampler.SampleAbortedException aborted) {
+                            // 预算耗尽或被取消：交给外层，整个结构判为不可分析，不再重试。
+                            throw aborted;
+                        }
                         // A modded structure may require generation services outside WorldGenLevel.
                         // Keep processing the other deterministic samples and report the final
                         // count.
+                        sessions.remove(key);
                         failedSamples.merge(key, 1, Integer::sum);
                     }
                 }
@@ -552,14 +625,45 @@ public final class StructureAnalysisService {
                 publishState(key, state.complete(next, result));
                 CompletableFuture<DiscoveryResult> future = discoveryFutures.get(key);
                 if (future != null) future.complete(result);
+            } catch (VirtualStructureSampler.SampleAbortedException aborted) {
+                // 预算耗尽或被取消：整个结构直接判为不可分析，不再重试同一个 sample。
+                discardSample(key);
+                failDiscovery(key, aborted);
             } catch (RuntimeException error) {
-                observedTables.remove(key);
-                failedSamples.remove(key);
-                attemptedCandidates.remove(key);
-                staticDiscoveries.remove(key);
+                // A modded structure may require generation services outside WorldGenLevel. The
+                // failed sample is dropped and the structure is reported with the error diagnostic.
+                discardSample(key);
                 failDiscovery(key, error);
             }
         }
+    }
+
+    /**
+     * Stops detached sampling still running for one structure and fails its discovery future. The
+     * caller is gone (for example the operator block entity was removed), so nothing should keep
+     * burning server time on it.
+     */
+    public synchronized void cancel(
+            ResourceKey<net.minecraft.world.level.Level> dimension, ResourceLocation structure) {
+        for (Key key : List.copyOf(discoveryFutures.keySet())) {
+            if (!key.dimension().equals(dimension) || !key.structure().equals(structure)) continue;
+            discardSample(key);
+            failDiscovery(
+                    key,
+                    new java.util.concurrent.CancellationException(
+                            "Virtual structure sampling was cancelled"));
+        }
+    }
+
+    /** Drops every bookkeeping entry belonging to an in-flight virtual sample. */
+    private void discardSample(Key key) {
+        VirtualStructureSampler.Session session = sessions.remove(key);
+        if (session != null) session.interrupt();
+        queue.remove(key);
+        observedTables.remove(key);
+        failedSamples.remove(key);
+        attemptedCandidates.remove(key);
+        staticDiscoveries.remove(key);
     }
 
     public static ExecutionBudget allocateExecutionBudget(

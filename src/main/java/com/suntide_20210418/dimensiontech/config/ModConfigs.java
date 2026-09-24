@@ -79,6 +79,8 @@ public final class ModConfigs {
         private final ModConfigSpec.IntValue glmSupplementSamples;
         private final ModConfigSpec.IntValue virtualStructureSamples;
         private final ModConfigSpec.IntValue virtualStructureStepsPerTick;
+        private final ModConfigSpec.IntValue virtualStructureSampleSliceMillis;
+        private final ModConfigSpec.IntValue virtualStructureSampleBudgetMillis;
         private final ModConfigSpec.ConfigValue<List<? extends String>> dimensionValues;
         private final ModConfigSpec.ConfigValue<List<? extends String>> itemMultipliers;
         private final ModConfigSpec.ConfigValue<List<? extends String>> dimensionWhitelist;
@@ -123,6 +125,27 @@ public final class ModConfigs {
                                     "Maximum catalogue-analysis work units processed each server"
                                             + " tick")
                             .defineInRange("virtualStructureStepsPerTick", 1, 1, 64);
+            virtualStructureSampleSliceMillis =
+                    builder.comment(
+                                    "Wall-clock slice detached structure sampling may use per"
+                                        + " server tick before it yields and is resumed on the next"
+                                        + " tick; this is the knob that bounds tick latency",
+                                    "The slice is checked between structure chunks, so one tick can"
+                                            + " overshoot by the cost of a single chunk;"
+                                            + " virtualStructureSampleBudgetMillis caps that"
+                                            + " overshoot. Raising this trades tick latency for"
+                                            + " faster analysis.")
+                            .defineInRange("virtualStructureSampleSliceMillis", 20, 1, 1000);
+            virtualStructureSampleBudgetMillis =
+                    builder.comment(
+                                    "Total work budget for one detached structure sample (time"
+                                            + " spent inside the sample, not wall-clock)",
+                                    "A sample that needs more is reported as UNSUPPORTED with a"
+                                            + " VIRTUAL_SAMPLE_BUDGET diagnostic instead of running"
+                                            + " away; raise this to analyse very large modded"
+                                            + " structures, lower it to tighten the worst-case"
+                                            + " single-chunk overshoot.")
+                            .defineInRange("virtualStructureSampleBudgetMillis", 5000, 10, 600_000);
             dimensionValues =
                     builder.comment(
                                     "Dimension value entries in dimension_id=value format",
@@ -265,6 +288,8 @@ public final class ModConfigs {
                     + "|"
                     + virtualStructureSamples.get()
                     + "|"
+                    + virtualStructureSampleBudgetMillis.get()
+                    + "|"
                     + dimensionValues.get()
                     + "|"
                     + itemMultipliers.get()
@@ -302,7 +327,13 @@ public final class ModConfigs {
         }
 
         public String generationFingerprint() {
-            return discoveryFingerprint() + "|samples=" + virtualStructureSamples();
+            // 预算会决定一个 sample 是跑完还是被判定为超出预算，因此它是生成输入的一部分；
+            // 时间片只影响调度，不参与指纹。
+            return discoveryFingerprint()
+                    + "|samples="
+                    + virtualStructureSamples()
+                    + "|sampleBudgetMs="
+                    + virtualStructureSampleBudgetMillis();
         }
 
         public String expectationFingerprint() {
@@ -351,6 +382,14 @@ public final class ModConfigs {
             return StructureScriptConfigService.stepsPerTick() != null
                     ? StructureScriptConfigService.stepsPerTick()
                     : virtualStructureStepsPerTick.get();
+        }
+
+        public long virtualStructureSampleSliceNanos() {
+            return Math.max(1, virtualStructureSampleSliceMillis.get()) * 1_000_000L;
+        }
+
+        public int virtualStructureSampleBudgetMillis() {
+            return virtualStructureSampleBudgetMillis.get();
         }
 
         public double dimensionValue(ResourceLocation dimension) {

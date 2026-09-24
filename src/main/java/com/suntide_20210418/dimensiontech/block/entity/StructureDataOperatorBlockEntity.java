@@ -431,6 +431,23 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
         tag.put("Inventory", inventory.serializeNBT(registries));
     }
 
+    /** 方块实体被移除后没人再需要这些分析结果，正在跑的虚拟采样应当立刻停下。采样器在每个 chunk 之间检查中断标志，所以最多再跑完当前那一片，不会继续占着服务端线程。 */
+    @Override
+    public void setRemoved() {
+        if (level != null && level.getServer() != null && !pendingCatalogueValues.isEmpty()) {
+            StructureAnalysisService service =
+                    StructureAnalysisService.forServer(level.getServer());
+            for (CatalogueKey key : pendingCatalogueValues.keySet()) {
+                service.cancel(
+                        net.minecraft.resources.ResourceKey.create(
+                                Registries.DIMENSION, key.dimension()),
+                        key.structure());
+            }
+        }
+        pendingCatalogueValues.clear();
+        super.setRemoved();
+    }
+
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
