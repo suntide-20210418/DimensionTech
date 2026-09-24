@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -37,10 +36,8 @@ public final class ClientPayloadHandlers {
     }
 
     public static void showStructureChoices(
-            InteractionHand hand,
-            BlockPos position,
-            List<StructMarkerItem.MarkedStructure> structures) {
-        StructMarkerClient.showStructureChoices(hand, position, structures);
+            InteractionHand hand, List<StructMarkerItem.MarkedStructure> structures) {
+        StructMarkerClient.showStructureChoices(hand, structures);
     }
 
     public static void receiveMinerAnalysis(

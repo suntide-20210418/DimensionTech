@@ -14,7 +14,8 @@
                 {
                   "text": "reachable"
                 }
-              ]
+              ],
+              "mode": "append"
             }
           ]
         }

@@ -12,7 +12,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -206,6 +208,29 @@ public final class StructMarkerItemGameTests {
             StructureMarkerData data, int algorithmVersion) {
         return withPayload(
                 data, data.randomProbabilitySpace(), data.structureValue(), algorithmVersion);
+    }
+
+    /**
+     * 候选枚举的原点由服务端记录，而不是信任客户端回传的位置。
+     *
+     * <p>标记器终端不暂停游戏，玩家看完候选列表再点击时位置可能已经变了：用实时位置校验会把一次 合法选择丢掉（这正是「选中某个结构后无法立即被分析」的成因），而信任客户端回传的位置又会
+     * 让改过的客户端标记它从未站进去过的结构。
+     */
+    @GameTest(templateNamespace = "minecraft", template = "empty")
+    public static void selectionOriginIsRecordedServerSideAndConsumedOnce(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer(GameType.CREATIVE);
+        BlockPos origin = new BlockPos(4, 64, 4);
+        StructMarkerItem.rememberSelectionOrigin(player, origin);
+        player.moveTo(player.getX() + 16.0D, player.getY(), player.getZ() + 16.0D);
+        Optional<BlockPos> taken = StructMarkerItem.consumeSelectionOrigin(player);
+        if (taken.isEmpty() || !taken.get().equals(origin)) {
+            helper.fail("Selection origin did not survive player movement: " + taken);
+        }
+        if (StructMarkerItem.consumeSelectionOrigin(player).isPresent()) {
+            helper.fail(
+                    "Selection origin was not consumed, so one enumeration authorises two picks");
+        }
+        helper.succeed();
     }
 
     /** 重建负载，改掉校验闸门会读的那三个字段。 */

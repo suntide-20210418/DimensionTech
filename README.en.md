@@ -21,7 +21,11 @@ License: GPL-3.0
 
 Structure analysis reads a structure's loot tables and calculates expected item counts and structure value. Analysis can complete asynchronously; a marker is not advanced into a processing job until its result is ready.
 
+Every vanilla structure now has an authoritative loot-table map: all 34 vanilla structures resolve to a known table set, and 4 of them are confirmed to place no loot container at all (Ocean Monument `ocean_monument`, Swamp Hut `swamp_hut`, Nether Fossil `nether_fossil`, Trail Ruins `trail_ruins`). Those report an exact zero instead of "unsupported". Trial Chambers `trial_chambers` counts its vaults (including the ominous vault) and trial-spawner payouts, and Ruined Portal `ruined_portal` and Shipwreck `shipwreck` chests are covered as well.
+
 Miner output uses expectation-preserving reward generation from analysed item expectations. It preserves long-run expectations, but does not replay Vanilla LootTable joint distributions, pool selection, function chains, or random sequences.
+
+Breaking the **Structure Miner** or the **Structure Data Operator** drops the markers, write slots and any reward that has not finished routing out, instead of discarding them with the block (the working fluid in the tank is not returned).
 
 ### Mythic Miners
 
@@ -69,6 +73,8 @@ The operator **cannot browse structures on its own**: the catalogue needs a **Da
 The **Chest Marker** handles loose containers: hold it and press the analyse key (default `V`) to run an expectation analysis on the container under the crosshair — if that container references a loot table, that table becomes the source and the container gets marked. The action is key-bound rather than right-click, because right-clicking a chest opens it first; right-clicking the Chest Marker only opens the analysis screen for the marked contents (chest value and calculation method).
 
 The Chest Marker and the Structure Marker share the same marker NBT (`StructureMarkerData`; a chest adds a nested `ChestData` tag holding the loot table and seed). Downstream only reads the NBT structure and never the item type, so the operator's copy mode and the miner's production chain consume both. The only difference is the analysis profile: a chest registers no structure, so its profile uses the recorded loot table alone and never touches structure templates or level loading.
+
+Expected counts come first from an **exact expectation of the loot table**: when the whole table can be modelled as a finite probability space, the number shown is exact (status "exact"). The few mechanisms that cannot be modelled exactly today (enchantment enumeration being off, unsupported loot functions, and so on) fall back to a **sampled estimate** and are labelled "approximate" rather than being passed off as exact; the "unsupported" label is reserved for the cases where not even an estimate is possible. **Enchantment output is currently excluded from the expectation**: enchantment enumeration is switched off, so `enchant_with_levels` is treated as yielding an un-enchanted item, which makes any table that enchants read slightly lower than what it can actually produce (reasoning and impact: [docs/code-wiki.md](docs/code-wiki.md) §13).
 
 Server configuration or KubeJS can change the value rules for structures, dimensions, and items. A rule change invalidates relevant analysis caches and causes recalculation on the next use.
 
@@ -144,7 +150,7 @@ See [docs/code-wiki.md](docs/code-wiki.md) for the full module responsibilities,
 
 Asynchronous marker analysis uses a fingerprint of its inputs. The fingerprint includes algorithm version, active markers, dimension, position, structure and bounds, luck, and analysis configuration. It ignores stack count and non-analysis derived payload. Results from a stale, replaced, cleared, or removed block entity must never be committed.
 
-Before touching the multiblock coordinates, run `python docs/tools/multiblock_geometry_check.py`: it verifies counts, overlap, envelope coverage, D4 symmetry, face connectivity, and the controller contract.
+Touching the multiblock coordinates means re-verifying counts, overlap, envelope coverage, D4 symmetry, face connectivity, and the controller contract; the four collections in `StructureMinerMultiblock` and `projectionCounts()` are the only source of truth, so do not count cells by hand. The original project verified these invariants with `docs/tools/multiblock_geometry_check.py`, but that script was **not carried over**, so verification is manual for now (see [docs/code-wiki.md](docs/code-wiki.md) §13).
 
 ### KubeJS Extension
 

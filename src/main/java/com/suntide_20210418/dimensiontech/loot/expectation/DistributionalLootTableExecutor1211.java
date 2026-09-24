@@ -544,14 +544,14 @@ public final class DistributionalLootTableExecutor1211 {
                 generated.add(new StackState(new ItemStack(item)), ExactProbability.ONE);
             }
             maxOutputs = generated.values().isEmpty() ? 0 : generated.values().size() == 1 ? 1 : 2;
-        } else if (type.equals("minecraft:loot_table")) {
-            ResourceLocation nestedId =
-                    entry.has("name")
-                            ? ResourceLocation.tryParse(entry.get("name").getAsString())
-                            : null;
+        } else if (type.equals(NestedLootTableEntry1211.TYPE)) {
+            ResourceLocation nestedId = NestedLootTableEntry1211.reference(entry);
             if (nestedId == null) {
                 return DistributionalLootPool1211.ExpectedSelectionEvaluation.unsupported(
-                        pointer + "/name", "Invalid nested table reference");
+                        pointer + "/" + NestedLootTableEntry1211.FIELD,
+                        NestedLootTableEntry1211.isInline(entry)
+                                ? NestedLootTableEntry1211.INLINE_TABLE_MESSAGE
+                                : NestedLootTableEntry1211.MISSING_REFERENCE_MESSAGE);
             }
             ArrayList<String> nestedPath = new ArrayList<>(callPath);
             nestedPath.add(nestedId.toString());
@@ -1049,14 +1049,14 @@ public final class DistributionalLootTableExecutor1211 {
             }
             generated =
                     TableEvaluation.exact(RandomTraceDistribution.singleton(List.copyOf(stacks)));
-        } else if (type.equals("minecraft:loot_table")) {
-            ResourceLocation nestedId =
-                    entry.has("name")
-                            ? ResourceLocation.tryParse(entry.get("name").getAsString())
-                            : null;
+        } else if (type.equals(NestedLootTableEntry1211.TYPE)) {
+            ResourceLocation nestedId = NestedLootTableEntry1211.reference(entry);
             if (nestedId == null) {
                 return DistributionalLootPool1211.SelectionEvaluation.unsupported(
-                        pointer + "/name", "Invalid nested table reference");
+                        pointer + "/" + NestedLootTableEntry1211.FIELD,
+                        NestedLootTableEntry1211.isInline(entry)
+                                ? NestedLootTableEntry1211.INLINE_TABLE_MESSAGE
+                                : NestedLootTableEntry1211.MISSING_REFERENCE_MESSAGE);
             }
             ArrayList<String> nestedPath = new ArrayList<>(callPath);
             nestedPath.add(nestedId.toString());

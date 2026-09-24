@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:loot_table",
-          "name": "dimension_tech:gametest/nested_terminal_child"
+          "value": "dimension_tech:gametest/nested_terminal_child"
         }
       ]
     }

@@ -21,20 +21,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.random.WeightedEntry;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerConfig;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 public final class StructureLootAnalyzer {
 
@@ -128,12 +135,14 @@ public final class StructureLootAnalyzer {
             if (template.isEmpty()) {
                 continue;
             }
+            StructureTemplate structureTemplate = template.get();
             Set<ResourceLocation> referencedPools = new HashSet<>();
             scanTemplateNbt(
-                    template.get().save(new CompoundTag()),
+                    structureTemplate.save(new CompoundTag()),
                     templateId,
                     lootTables,
                     referencedPools);
+            collectTrialSpawnerTables(structureTemplate, lootTables);
             for (ResourceLocation referencedPool : sorted(referencedPools)) {
                 collectTemplatePool(
                         server.getResourceManager(), referencedPool, visitedPools, templateIds);
@@ -343,6 +352,9 @@ public final class StructureLootAnalyzer {
                         referencedPools.add(poolId);
                     }
                 } else {
+                    if ("config".equals(key) && child.getId() == Tag.TAG_COMPOUND) {
+                        collectVaultTable((CompoundTag) child, lootTables);
+                    }
                     scanTemplateNbt(child, templateId, lootTables, referencedPools);
                 }
             }
@@ -350,6 +362,78 @@ public final class StructureLootAnalyzer {
             listTag.forEach(
                     child -> scanTemplateNbt(child, templateId, lootTables, referencedPools));
         }
+    }
+
+    /**
+     * A vault keeps its table inside the block entity's own config object ({@code
+     * config.loot_table}); the container style {@code LootTable} key does not exist on it. Both
+     * vanilla vault templates use exactly this shape, so without this branch the ominous variant
+     * {@code chests/trial_chambers/reward_ominous} is dropped from the structure entirely.
+     */
+    private static void collectVaultTable(CompoundTag config, Set<ResourceLocation> lootTables) {
+        Tag lootTable = config.get("loot_table");
+        if (lootTable == null || lootTable.getId() != Tag.TAG_STRING) {
+            return;
+        }
+        ResourceLocation table = ResourceLocation.tryParse(lootTable.getAsString());
+        if (table != null) {
+            lootTables.add(table);
+        }
+    }
+
+    /**
+     * Trial spawners carry no {@code LootTable} either: they eject a weighted list held in the
+     * block entity's own config. Every vanilla template omits {@code loot_tables_to_eject} from
+     * {@code normal_config}, so it falls back to {@link TrialSpawnerConfig#DEFAULT} — the default
+     * is read here rather than copied as constants, so the two cannot drift apart. {@code
+     * TrialSpawnerBlockEntity#loadAdditional} merges the normal config into the ominous one, so an
+     * ominous config without an explicit list inherits the normal one.
+     *
+     * <p>{@code items_to_drop_when_ominous} is deliberately not collected: it is an extra drop that
+     * only appears for players carrying Trial Omen, not part of the spawner's regular payout.
+     */
+    private static void collectTrialSpawnerTables(
+            StructureTemplate template, Set<ResourceLocation> lootTables) {
+        for (StructureTemplate.StructureBlockInfo spawner :
+                template.filterBlocks(
+                        BlockPos.ZERO, new StructurePlaceSettings(), Blocks.TRIAL_SPAWNER)) {
+            CompoundTag data = spawner.nbt();
+            if (data == null) {
+                continue;
+            }
+            List<ResourceLocation> normal = ejectTables(data.getCompound("normal_config"));
+            if (normal.isEmpty()) {
+                normal = defaultEjectTables();
+            }
+            lootTables.addAll(normal);
+            List<ResourceLocation> ominous = ejectTables(data.getCompound("ominous_config"));
+            lootTables.addAll(ominous.isEmpty() ? normal : ominous);
+        }
+    }
+
+    private static List<ResourceLocation> ejectTables(CompoundTag config) {
+        ListTag eject = config.getList("loot_tables_to_eject", Tag.TAG_COMPOUND);
+        List<ResourceLocation> tables = new ArrayList<>();
+        for (int index = 0; index < eject.size(); index++) {
+            Tag entry = eject.getCompound(index).get("data");
+            if (entry == null || entry.getId() != Tag.TAG_STRING) {
+                continue;
+            }
+            ResourceLocation table = ResourceLocation.tryParse(entry.getAsString());
+            if (table != null) {
+                tables.add(table);
+            }
+        }
+        return tables;
+    }
+
+    private static List<ResourceLocation> defaultEjectTables() {
+        List<ResourceLocation> tables = new ArrayList<>();
+        for (WeightedEntry.Wrapper<ResourceKey<LootTable>> entry :
+                TrialSpawnerConfig.DEFAULT.lootTablesToEject().unwrap()) {
+            tables.add(entry.data().location());
+        }
+        return tables;
     }
 
     private static Optional<JsonElement> readJson(
