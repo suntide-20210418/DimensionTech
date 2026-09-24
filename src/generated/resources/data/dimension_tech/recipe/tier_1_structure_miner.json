@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "dimension_tech:dimension_deconstruction_core"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "E": {
+      "item": "minecraft:ender_pearl"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "dimension_tech:structure_miner_casing"
+    }
+  },
+  "pattern": [
+    "IDI",
+    "ECE",
+    "SDS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dimension_tech:tier_1_structure_miner"
+  }
+}

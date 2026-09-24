@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "G": {
+      "item": "minecraft:glass"
+    }
+  },
+  "pattern": [
+    "GGG",
+    "GAG",
+    "GGG"
+  ],
+  "result": {
+    "count": 8,
+    "id": "dimension_tech:structure_miner_glass"
+  }
+}

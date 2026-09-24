@@ -1,0 +1,160 @@
+package com.suntide_20210418.dimensiontech.loot.expectation;
+
+import java.util.Map;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.phys.Vec3;
+
+/** Immutable runtime snapshot required by context-sensitive loot semantics. */
+public record LootAnalysisContext(
+        Level level,
+        Vec3 origin,
+        Entity entity,
+        float luck,
+        Map<String, Integer> scores,
+        Boolean killedByPlayer,
+        Float explosionRadius,
+        ItemStack tool,
+        Map<LootContext.EntityTarget, Entity> entityTargets,
+        int lootingModifier,
+        boolean fullDurability,
+        RegistryAccess registries) {
+    public LootAnalysisContext {
+        scores = Map.copyOf(scores == null ? Map.of() : scores);
+        entityTargets = Map.copyOf(entityTargets == null ? Map.of() : entityTargets);
+    }
+
+    public LootAnalysisContext(
+            Level level,
+            Vec3 origin,
+            Entity entity,
+            float luck,
+            Map<String, Integer> scores,
+            Boolean killedByPlayer,
+            Float explosionRadius,
+            ItemStack tool,
+            Map<LootContext.EntityTarget, Entity> entityTargets) {
+        this(
+                level,
+                origin,
+                entity,
+                luck,
+                scores,
+                killedByPlayer,
+                explosionRadius,
+                tool,
+                entityTargets,
+                0,
+                false,
+                registriesOf(level));
+    }
+
+    public LootAnalysisContext(
+            Level level,
+            Vec3 origin,
+            Entity entity,
+            float luck,
+            Map<String, Integer> scores,
+            Boolean killedByPlayer,
+            Float explosionRadius,
+            ItemStack tool,
+            Map<LootContext.EntityTarget, Entity> entityTargets,
+            int lootingModifier) {
+        this(
+                level,
+                origin,
+                entity,
+                luck,
+                scores,
+                killedByPlayer,
+                explosionRadius,
+                tool,
+                entityTargets,
+                lootingModifier,
+                false,
+                registriesOf(level));
+    }
+
+    public static LootAnalysisContext at(Level level, BlockPos origin, float luck) {
+        return new LootAnalysisContext(
+                level,
+                Vec3.atCenterOf(origin),
+                null,
+                luck,
+                Map.of(),
+                null,
+                null,
+                ItemStack.EMPTY,
+                Map.of(),
+                0,
+                false,
+                registriesOf(level));
+    }
+
+    /**
+     * Thread-safe context snapshot for pure analysis; it deliberately has no live Level/entity but
+     * still carries the registry snapshot, which 1.21 needs for registry-backed component values
+     * and for resolving enchantment candidates.
+     */
+    public static LootAnalysisContext snapshot(
+            BlockPos origin, float luck, RegistryAccess registries) {
+        return new LootAnalysisContext(
+                null,
+                Vec3.atCenterOf(origin),
+                null,
+                luck,
+                Map.of(),
+                null,
+                null,
+                ItemStack.EMPTY.copy(),
+                Map.of(),
+                0,
+                false,
+                registries);
+    }
+
+    public LootAnalysisContext withLootingModifier(int value) {
+        return new LootAnalysisContext(
+                level,
+                origin,
+                entity,
+                luck,
+                scores,
+                killedByPlayer,
+                explosionRadius,
+                tool,
+                entityTargets,
+                value,
+                fullDurability,
+                registries);
+    }
+
+    public LootAnalysisContext withFullDurability() {
+        return new LootAnalysisContext(
+                level,
+                origin,
+                entity,
+                luck,
+                scores,
+                killedByPlayer,
+                explosionRadius,
+                tool,
+                entityTargets,
+                lootingModifier,
+                true,
+                registries);
+    }
+
+    public Entity entity(LootContext.EntityTarget target) {
+        Entity resolved = entityTargets.get(target);
+        return resolved != null || target != LootContext.EntityTarget.THIS ? resolved : entity;
+    }
+
+    private static RegistryAccess registriesOf(Level level) {
+        return level == null ? null : level.registryAccess();
+    }
+}

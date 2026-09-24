@@ -1,4 +1,3 @@
-
 modLoader="javafml" #mandatory
 
 loaderVersion="${loader_version_range}" #mandatory
@@ -44,10 +43,41 @@ This is a mod for strcture processing.
 
 [[dependencies.${mod_id}]]
     modId="minecraft"
-    type="required"
+    type="required" #mandatory
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+# Optional integrations. Dimension Tech stays loadable without any of them; the integration classes
+# are only reached when the corresponding mod is present.
+
+[[dependencies.${mod_id}]]
+    modId="ae2"
+    type="optional"
+    versionRange="[19.2.17,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="jade"
+    type="optional"
+    versionRange="[15.10.6,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="jei"
+    type="optional"
+    # AbstractRecipeCategory and the recipe-extras text widget are both used by the category
+    # renderers, and 19.25.0.322 is the floor KubeJS itself pins for 1.21.1.
+    versionRange="[19.25.0.322,)"
+    ordering="AFTER"
+    side="BOTH"
+
+#[[dependencies.${mod_id}]]
+    # KubeJS is reached exclusively through kubejs.plugins.txt, so it is deliberately left
+    # undeclared here: declaring it would make the loader order the two mods against each other for
+    # a bridge that is entirely optional at runtime.
 
 #[features.${mod_id}]
 #openGLVersion="[3.2,)"

@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "F": {
+      "item": "dimension_tech:dimension_fragment_tier_5"
+    },
+    "M": {
+      "item": "dimension_tech:tier_5_structure_miner"
+    },
+    "S": {
+      "item": "dimension_tech:structure_miner_casing"
+    },
+    "T": {
+      "item": "dimension_tech:mining_token_tier_5"
+    }
+  },
+  "pattern": [
+    "SFS",
+    "TMT",
+    "SFS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dimension_tech:tier_6_structure_miner"
+  }
+}

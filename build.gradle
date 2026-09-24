@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.147'
     id 'idea'
+    id 'com.diffplug.spotless' version '8.0.0'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -12,11 +13,43 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
+base {
+    archivesName = mod_id
+}
+
+// The vanilla loot-corpus gate must not inherit enchantments or loot hooks from optional
+// development mods. Invoke it with -PvanillaLootRuntime=true.
+def vanillaLootRuntime = providers.gradleProperty('vanillaLootRuntime')
+        .map { it.toBoolean() }
+        .getOrElse(false)
+
+// Data generation must run with only the project and NeoForge on the runtime classpath. Optional
+// mods can pollute the generated output, and at least one of them (KubeJS) owns a non-daemon thread
+// that keeps the data-generation JVM alive after the providers finish. Keep them available for
+// client/game-test runs.
+//
+// This switch only covers Gradle-launched runs: an IDE "runData" run configuration is of type
+// Application, so it starts the module classpath directly and always sees the optional mods.
+// DatagenExitWatchdog covers that case from inside the process.
+def dataGenerationRun = gradle.startParameter.taskNames.any {
+    it == 'runData'
+            || it.endsWith(':runData')
+            || it == 'prepareRunData'
+            || it.endsWith(':prepareRunData')
+            || it == 'prepareRunDataCompile'
+            || it.endsWith(':prepareRunDataCompile')
+}
+def optionalModConfiguration = (vanillaLootRuntime || dataGenerationRun)
+        ? 'compileOnly'
+        : 'implementation'
+
 sourceSets.main.resources {
     srcDir('src/generated/resources')
 
     exclude("**/*.bbmodel")
-    exclude("src/generated/**/.cache")
+    // The data generator's hash cache lives at the root of the generated source set. Pattern is
+    // relative to the source dir root, so it must not carry the src/generated prefix.
+    exclude(".cache/**")
 }
 
 repositories {
@@ -30,10 +63,13 @@ repositories {
             includeGroup "curse.maven"
         }
     }
-}
-
-base {
-    archivesName = mod_id
+    maven {
+        url "https://api.modrinth.com/maven"
+        content { includeGroup "maven.modrinth" }
+    }
+    maven {
+        url 'https://maven.blamejared.com'
+    }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -49,22 +85,31 @@ neoForge {
     runs {
         client {
             client()
+            gameDirectory = project.file('run/client')
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
         server {
             server()
             programArgument '--nogui'
+            gameDirectory = project.file('run/server')
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
         gameTestServer {
             type = "gameTestServer"
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            // Game tests instantiate the vanilla "empty" template, so the minecraft namespace has
+            // to stay enabled alongside the mod's own.
+            systemProperty 'neoforge.enabledGameTestNamespaces', "${mod_id},minecraft"
+            systemProperty 'dimension_tech.vanilla_loot_runtime', vanillaLootRuntime.toString()
+            gameDirectory = project.file(vanillaLootRuntime
+                    ? 'run/vanilla-loot-gametest'
+                    : 'run/gametest')
         }
 
         data {
             data()
+            gameDirectory = project.file('run/data')
             programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
         }
 
@@ -87,19 +132,30 @@ configurations {
 }
 
 dependencies {
-    implementation "curse.maven:kubejs-238086:8843626"
-    implementation "curse.maven:jade-324717:8591319"
-    implementation "curse.maven:guideme-1173950:8897145"
-    implementation "curse.maven:applied-energistics-2-223794:7027323"
-    implementation "curse.maven:architectury-api-419699:8492726"
-    implementation "curse.maven:rhino-416294:8218748"
-    implementation "curse.maven:mouse-tweaks-60089:5637846"
-    implementation "curse.maven:jei-238222:8759217"
-    implementation "curse.maven:allthemodium-364466:8946075"
-    implementation "curse.maven:geckolib-388172:8893490"
-    implementation "curse.maven:ato-405593:7825464"
-    implementation "curse.maven:time-in-a-bottle-895919:7555622"
-    implementation "curse.maven:mekanism-268560:7904058"
+    // KubeJS and its scripting bridge. Both are optional at runtime; classes are only loaded
+    // through kubejs.plugins.txt when KubeJS is present.
+    add(optionalModConfiguration, "curse.maven:kubejs-238086:${kubejs_version}")
+    add(optionalModConfiguration, "curse.maven:rhino-416294:${rhino_version}")
+
+    add(optionalModConfiguration, "curse.maven:jade-324717:${jade_version}")
+    add(optionalModConfiguration, "curse.maven:applied-energistics-2-223794:${ae2_version}")
+    // AE2 19.2.17 declares guideme as a REQUIRED dependency ([21.1.1,)). Dimension Tech's own code
+    // never imports GuideME, but without it on the runtime classpath AE2 fails to load - which takes
+    // the AE2 integration and the AE2 game test down with it. This is a runtime requirement of a mod
+    // we integrate with, not a source-level import.
+    add(optionalModConfiguration, "curse.maven:guideme-1173950:${guideme_version}")
+    add(optionalModConfiguration, "curse.maven:allthemodium-364466:${allthemodium_version}")
+    // Allthemodium loads GeckoLib classes (software.bernie.geckolib.animatable.GeoEntity) without
+    // declaring it in its own mods.toml, so omitting GeckoLib from the dev runtime makes
+    // Allthemodium fail with NoClassDefFoundError and take the whole launch down. Undeclared, but
+    // real.
+    add(optionalModConfiguration, "curse.maven:geckolib-388172:${geckolib_version}")
+    add(optionalModConfiguration, "curse.maven:jei-238222:${jei_version}")
+    add(optionalModConfiguration, "curse.maven:mekanism-268560:7904058")
+
+    // Mouse Tweaks is a client-only convenience mod. Keeping it off the dev runtime prevents
+    // runData/server launches from constructing it.
+    compileOnly "curse.maven:mouse-tweaks-60089:${mouse_tweaks_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -121,6 +177,47 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
+tasks.register('syncGameTestStructures', Sync) {
+    from 'src/test/resources/gameteststructures'
+    into(vanillaLootRuntime
+            ? 'run/vanilla-loot-gametest/gameteststructures'
+            : 'run/gametest/gameteststructures')
+}
+
+// ModDevGradle names run tasks "prepare<RunName>Run" (ForgeGradle used "prepareRun<RunName>"), so the
+// dependency has to hang off prepareGameTestServerRun. Without it the structure copy never runs and
+// every game test dies with "Missing test structure: minecraft:empty", because vanilla ships no such
+// template - the game directory's gameteststructures/ folder is what StructureTemplateManager falls
+// back to.
+tasks.matching { it.name == 'prepareGameTestServerRun' }.configureEach {
+    dependsOn tasks.named('syncGameTestStructures')
+}
+
+spotless {
+    // Eclipse formatter is deliberately disabled so no XML config is looked up.
+    enforceCheck = false
+
+    java {
+        target 'src/main/java/**/*.java'
+        googleJavaFormat().aosp().reflowLongStrings()
+        removeUnusedImports()
+        endWithNewline()
+    }
+
+    format 'gradle', {
+        target '*.gradle'
+        trimTrailingWhitespace()
+        leadingTabsToSpaces(4)
+        endWithNewline()
+    }
+
+    format 'misc', {
+        target '**/*.md', '.gitignore'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
@@ -135,7 +232,7 @@ publishing {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' 
+    options.encoding = 'UTF-8'
 }
 
 idea {
