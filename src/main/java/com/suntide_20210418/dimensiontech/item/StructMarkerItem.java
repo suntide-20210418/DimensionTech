@@ -5,6 +5,7 @@ import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
 import com.suntide_20210418.dimensiontech.loot.expectation.IdealRandomProbabilitySpace1201;
+import com.suntide_20210418.dimensiontech.loot.expectation.StackMeasure;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.DiscoveryResult;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator.StructureValue;
@@ -183,11 +184,7 @@ public class StructMarkerItem extends Item {
                             markerData.put(
                                     STRUCTURE_TAG, createStructureData(markerInfo.structure()));
                             markerData.remove(LEGACY_STRUCTURES_TAG);
-                            writeAnalysisResult(
-                                    markerData,
-                                    StructureValueCalculator.calculate(level, markerInfo));
-                            markerData.putString(
-                                    ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(markerInfo));
+                            writeAnalysedResult(level, markerData, markerInfo);
                         });
     }
 
@@ -385,6 +382,50 @@ public class StructMarkerItem extends Item {
                                                 .withStyle(ChatFormatting.DARK_GRAY)));
     }
 
+    /**
+     * Runs the expectation engine and persists whatever comes back.
+     *
+     * <p>A verdict the engine actually reached is fingerprinted, so re-opening the marker does not
+     * recompute it. That includes {@code UNSUPPORTED}: it is a property of the structure and a
+     * second run would only arrive at the same answer.
+     *
+     * <p>A crash is the opposite case — it says nothing about the structure. It is recorded as an
+     * unsupported result that carries the failure, and it is deliberately left <em>without</em> a
+     * fingerprint, so the marker reads as unsupported rather than silently empty, and the next
+     * attempt (a right-click, another selection) really does run the analysis again instead of
+     * being turned away by a cached failure that no retry could ever clear.
+     */
+    private static void writeAnalysedResult(
+            ServerLevel level, CompoundTag markerData, MarkerInfo markerInfo) {
+        StructureValue value;
+        boolean retryable = false;
+        try {
+            value = StructureValueCalculator.calculate(level, markerInfo);
+        } catch (RuntimeException failure) {
+            value =
+                    new StructureValue(
+                            AnalysisStatus.UNSUPPORTED,
+                            ModConfigs.STRUCTURE_VALUE.dimensionValue(markerInfo.dimension()),
+                            0.0D,
+                            new StackMeasure(),
+                            List.of(new Diagnostic("ANALYSIS_FAILED", describeFailure(failure))));
+            retryable = true;
+        }
+        writeAnalysisResult(markerData, value);
+        if (retryable) {
+            markerData.remove(ANALYSIS_FINGERPRINT_TAG);
+        } else {
+            markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(markerInfo));
+        }
+    }
+
+    private static String describeFailure(RuntimeException failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank()
+                ? failure.getClass().getSimpleName()
+                : failure.getClass().getSimpleName() + ": " + message;
+    }
+
     private static Optional<CompoundTag> createMarkerData(
             ServerLevel level, BlockPos position, MarkedStructure selectedStructure) {
         CompoundTag markerData = new CompoundTag();
@@ -399,9 +440,7 @@ public class StructMarkerItem extends Item {
         markerData.put(STRUCTURE_TAG, createStructureData(selectedStructure));
         MarkerInfo markerInfo =
                 new MarkerInfo(level.dimension().location(), position, selectedStructure);
-        StructureValue value = StructureValueCalculator.calculate(level, markerInfo);
-        writeAnalysisResult(markerData, value);
-        markerData.putString(ANALYSIS_FINGERPRINT_TAG, analysisFingerprint(markerInfo));
+        writeAnalysedResult(level, markerData, markerInfo);
         return Optional.of(markerData);
     }
 
