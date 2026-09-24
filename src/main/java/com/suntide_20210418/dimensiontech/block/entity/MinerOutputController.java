@@ -178,6 +178,17 @@ final class MinerOutputController {
         pending = List.copyOf(output);
     }
 
+    /**
+     * Hands over everything still waiting to be routed and clears the buffer. Used when the block
+     * is removed: the reward was already paid for by a completed cycle, so it must reach the world
+     * instead of vanishing with the block entity.
+     */
+    List<ItemStack> drainPending() {
+        List<ItemStack> output = pending;
+        pending = List.of();
+        return output;
+    }
+
     void save(CompoundTag tag, String equipmentTag, String pendingTag) {
         tag.putInt("ConfiguredOutputState", outputState.ordinal());
         tag.putInt("OutputFaceMask", outputFaceMask);

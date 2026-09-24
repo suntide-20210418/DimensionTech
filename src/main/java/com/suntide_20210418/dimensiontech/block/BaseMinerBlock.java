@@ -237,4 +237,19 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             }
         };
     }
+
+    /**
+     * The miner stores its contents in a Forge {@code ItemStackHandler}, not in a vanilla
+     * {@code Container}, so nothing drops on its own. Markers and unrouted output are returned to
+     * the world here, matching what the structure reactor already does on removal.
+     */
+    @Override
+    public void onRemove(
+            BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
+        if (!state.is(replacement.getBlock())
+                && level.getBlockEntity(pos) instanceof BaseMinerBlockEntity miner) {
+            miner.dropContents();
+        }
+        super.onRemove(state, level, pos, replacement, moving);
+    }
 }

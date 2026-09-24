@@ -23,6 +23,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.api.distmarker.Dist;
@@ -119,19 +120,30 @@ public final class ModNetwork {
     public static void requestStructureSelection(InteractionHand hand) {
         CHANNEL.sendToServer(
                 new StructMarkerActionPacket(
-                        hand, MarkerAction.REQUEST_SELECTION, BlockPos.ZERO, -1));
+                        hand, MarkerAction.REQUEST_SELECTION, BlockPos.ZERO, null, null));
     }
 
+    /**
+     * Confirms a pick from the overlapping-structure list. The structure itself travels with the
+     * packet instead of its list index, because the server rebuilds the candidate list to validate
+     * the answer and that list makes no promise about the order of overlapping structures.
+     */
     public static void selectStructure(
-            InteractionHand hand, BlockPos selectionPosition, int selectionIndex) {
+            InteractionHand hand,
+            BlockPos selectionPosition,
+            StructMarkerItem.MarkedStructure selection) {
         CHANNEL.sendToServer(
                 new StructMarkerActionPacket(
-                        hand, MarkerAction.SELECT, selectionPosition, selectionIndex));
+                        hand,
+                        MarkerAction.SELECT,
+                        selectionPosition,
+                        selection.id(),
+                        selection.bounds()));
     }
 
     public static void clear(InteractionHand hand) {
         CHANNEL.sendToServer(
-                new StructMarkerActionPacket(hand, MarkerAction.CLEAR, BlockPos.ZERO, -1));
+                new StructMarkerActionPacket(hand, MarkerAction.CLEAR, BlockPos.ZERO, null, null));
     }
 
     /** Asks the server to analyse the given position with the chest marker in {@code hand}. */
@@ -234,24 +246,51 @@ public final class ModNetwork {
         CLEAR
     }
 
+    /**
+     * The structure marker's action packet. {@code selectionId} and {@code selectionBounds} carry
+     * the picker's answer for a select action and stay null for the rest.
+     */
     private record StructMarkerActionPacket(
             InteractionHand hand,
             MarkerAction action,
             BlockPos selectionPosition,
-            int selectionIndex) {
+            ResourceLocation selectionId,
+            BoundingBox selectionBounds) {
         private void encode(FriendlyByteBuf buffer) {
             buffer.writeEnum(hand);
             buffer.writeEnum(action);
             buffer.writeBlockPos(selectionPosition);
-            buffer.writeVarInt(selectionIndex);
+            boolean selected = selectionId != null && selectionBounds != null;
+            buffer.writeBoolean(selected);
+            if (selected) {
+                buffer.writeResourceLocation(selectionId);
+                buffer.writeInt(selectionBounds.minX());
+                buffer.writeInt(selectionBounds.minY());
+                buffer.writeInt(selectionBounds.minZ());
+                buffer.writeInt(selectionBounds.maxX());
+                buffer.writeInt(selectionBounds.maxY());
+                buffer.writeInt(selectionBounds.maxZ());
+            }
         }
 
         private static StructMarkerActionPacket decode(FriendlyByteBuf buffer) {
+            InteractionHand hand = buffer.readEnum(InteractionHand.class);
+            MarkerAction action = buffer.readEnum(MarkerAction.class);
+            BlockPos selectionPosition = buffer.readBlockPos();
+            if (!buffer.readBoolean()) {
+                return new StructMarkerActionPacket(hand, action, selectionPosition, null, null);
+            }
+            ResourceLocation selectionId = buffer.readResourceLocation();
+            BoundingBox selectionBounds =
+                    new BoundingBox(
+                            buffer.readInt(),
+                            buffer.readInt(),
+                            buffer.readInt(),
+                            buffer.readInt(),
+                            buffer.readInt(),
+                            buffer.readInt());
             return new StructMarkerActionPacket(
-                    buffer.readEnum(InteractionHand.class),
-                    buffer.readEnum(MarkerAction.class),
-                    buffer.readBlockPos(),
-                    buffer.readVarInt());
+                    hand, action, selectionPosition, selectionId, selectionBounds);
         }
 
         private static void handle(
@@ -273,19 +312,33 @@ public final class ModNetwork {
                             if (structureMarker) requestChoices(player, stack, packet.hand());
                         }
                         case SELECT -> {
+                            /*
+                             * The answer is validated against the candidate list rather than against
+                             * where the player is standing. The marker is written for the position
+                             * that offered the choices, so drifting a block mid-interaction must not
+                             * discard the pick — but a structure that is no longer in that list must
+                             * be refused, which is what the message below says.
+                             */
                             if (structureMarker
-                                    && player.blockPosition().equals(packet.selectionPosition())
-                                    && StructMarkerItem.markAt(
-                                            player.serverLevel(),
-                                            stack,
-                                            packet.selectionPosition(),
-                                            packet.selectionIndex())) {
-                                openRefreshedMarker(player, stack, packet.hand());
-                            } else if (structureMarker) {
-                                player.displayClientMessage(
-                                        net.minecraft.network.chat.Component.translatable(
-                                                "message.dimension_tech.struct_marker.selection_invalid"),
-                                        true);
+                                    && packet.selectionId() != null
+                                    && packet.selectionBounds() != null) {
+                                StructMarkerItem.MarkedStructure selection =
+                                        new StructMarkerItem.MarkedStructure(
+                                                packet.selectionId(), packet.selectionBounds());
+                                if (!StructMarkerItem.findStructuresAt(
+                                                player.serverLevel(), packet.selectionPosition())
+                                        .contains(selection)) {
+                                    player.displayClientMessage(
+                                            net.minecraft.network.chat.Component.translatable(
+                                                    "message.dimension_tech.struct_marker.selection_invalid"),
+                                            false);
+                                } else if (StructMarkerItem.markAt(
+                                        player.serverLevel(),
+                                        stack,
+                                        packet.selectionPosition(),
+                                        selection)) {
+                                    openRefreshedMarker(player, stack, packet.hand());
+                                }
                             }
                         }
                     }
@@ -307,7 +360,8 @@ public final class ModNetwork {
             return;
         }
         if (structures.size() == 1) {
-            StructMarkerItem.markAt(player.serverLevel(), marker, player.blockPosition(), 0);
+            StructMarkerItem.markAt(
+                    player.serverLevel(), marker, player.blockPosition(), structures.get(0));
             openRefreshedMarker(player, marker, hand);
             return;
         }

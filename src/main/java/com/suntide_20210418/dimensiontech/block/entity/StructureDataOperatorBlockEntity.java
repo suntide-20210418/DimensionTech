@@ -31,6 +31,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -112,6 +113,26 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
 
     public IItemHandler inventory() {
         return inventory;
+    }
+
+    /**
+     * Drops every slot when the block is removed: the target marker, the operand slots and both
+     * plugin slots. The catalogue and the cached per-entry analysis results are not dropped on
+     * purpose — they are derived data the player can regenerate, not items that were inserted.
+     */
+    public void dropContents() {
+        if (level == null || level.isClientSide) return;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (stack.isEmpty()) continue;
+            Containers.dropItemStack(
+                    level,
+                    worldPosition.getX(),
+                    worldPosition.getY(),
+                    worldPosition.getZ(),
+                    stack);
+            inventory.setStackInSlot(slot, ItemStack.EMPTY);
+        }
     }
 
     public List<StructureCatalogueEntry> catalogue() {

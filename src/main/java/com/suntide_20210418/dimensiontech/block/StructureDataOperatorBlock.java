@@ -93,4 +93,19 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
+
+    /**
+     * The console keeps its slots in a Forge {@code ItemStackHandler} rather than a vanilla
+     * {@code Container}, so vanilla drops nothing by itself: every marker, integrator and
+     * interpreter in the block is returned to the world here.
+     */
+    @Override
+    public void onRemove(
+            BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
+        if (!state.is(replacement.getBlock())
+                && level.getBlockEntity(pos) instanceof StructureDataOperatorBlockEntity operator) {
+            operator.dropContents();
+        }
+        super.onRemove(state, level, pos, replacement, moving);
+    }
 }
