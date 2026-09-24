@@ -50,6 +50,12 @@ public class StructMarkerItem extends Item {
      */
     private static final String DISCOVERED_STRUCTURES_TAG = "DimensionTechDiscoveredStructures";
 
+    /**
+     * Where the server enumerated the candidates for an overlapping-structure pick. Recorded and
+     * consumed server side only; see {@link #rememberSelectionOrigin}.
+     */
+    private static final String SELECTION_ORIGIN_TAG = "DimensionTechStructureSelectionOrigin";
+
     public StructMarkerItem(Properties properties) {
         super(properties);
     }
@@ -104,6 +110,31 @@ public class StructMarkerItem extends Item {
         int[] updated = java.util.Arrays.copyOf(ids, ids.length + 1);
         updated[ids.length] = structureId;
         data.putIntArray(DISCOVERED_STRUCTURES_TAG, updated);
+    }
+
+    /**
+     * Records where the server enumerated the overlapping candidates, so a later pick can be
+     * resolved without asking the client where it thinks the player is.
+     *
+     * <p>The marker terminal does not pause the game, so the player may walk while the candidate
+     * list is open: resolving a pick against the player's live position would discard a valid
+     * selection, and trusting a position sent back by the client would let a modified client mark a
+     * structure it never stood inside.
+     */
+    public static void rememberSelectionOrigin(Player player, BlockPos origin) {
+        player.getPersistentData().putLong(SELECTION_ORIGIN_TAG, origin.asLong());
+    }
+
+    /**
+     * Reads and clears the pending selection origin, so one enumeration authorises exactly one
+     * pick.
+     */
+    public static Optional<BlockPos> consumeSelectionOrigin(Player player) {
+        CompoundTag data = player.getPersistentData();
+        if (!data.contains(SELECTION_ORIGIN_TAG)) return Optional.empty();
+        BlockPos origin = BlockPos.of(data.getLong(SELECTION_ORIGIN_TAG));
+        data.remove(SELECTION_ORIGIN_TAG);
+        return Optional.of(origin);
     }
 
     public static boolean markAt(

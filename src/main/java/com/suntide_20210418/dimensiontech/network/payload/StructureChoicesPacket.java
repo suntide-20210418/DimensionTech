@@ -5,7 +5,6 @@ import com.suntide_20210418.dimensiontech.client.ClientPayloadHandlers;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -15,9 +14,13 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** 同一位置命中多条结构时的候选列表。服务端 → 客户端。 */
+/**
+ * 同一位置命中多条结构时的候选列表。服务端 → 客户端。
+ *
+ * <p>候选枚举的原点留在服务端：客户端只回报选中行的序号，见 {@link StructMarkerActionPacket}。
+ */
 public record StructureChoicesPacket(
-        InteractionHand hand, BlockPos position, List<StructMarkerItem.MarkedStructure> structures)
+        InteractionHand hand, List<StructMarkerItem.MarkedStructure> structures)
         implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StructureChoicesPacket> TYPE =
@@ -35,7 +38,6 @@ public record StructureChoicesPacket(
 
     public static void encode(RegistryFriendlyByteBuf buffer, StructureChoicesPacket payload) {
         buffer.writeEnum(payload.hand());
-        buffer.writeBlockPos(payload.position());
         buffer.writeVarInt(payload.structures().size());
         for (StructMarkerItem.MarkedStructure structure : payload.structures()) {
             buffer.writeResourceLocation(structure.id());
@@ -50,7 +52,6 @@ public record StructureChoicesPacket(
 
     public static StructureChoicesPacket decode(RegistryFriendlyByteBuf buffer) {
         InteractionHand hand = buffer.readEnum(InteractionHand.class);
-        BlockPos position = buffer.readBlockPos();
         int count = Math.min(128, Math.max(0, buffer.readVarInt()));
         List<StructMarkerItem.MarkedStructure> structures = new ArrayList<>(count);
         for (int index = 0; index < count; index++) {
@@ -66,13 +67,12 @@ public record StructureChoicesPacket(
                                     buffer.readInt(),
                                     buffer.readInt())));
         }
-        return new StructureChoicesPacket(hand, position, List.copyOf(structures));
+        return new StructureChoicesPacket(hand, List.copyOf(structures));
     }
 
     public static void handle(StructureChoicesPacket payload, IPayloadContext context) {
         if (FMLEnvironment.dist.isClient()) {
-            ClientPayloadHandlers.showStructureChoices(
-                    payload.hand(), payload.position(), payload.structures());
+            ClientPayloadHandlers.showStructureChoices(payload.hand(), payload.structures());
         }
     }
 }

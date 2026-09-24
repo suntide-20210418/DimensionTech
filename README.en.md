@@ -21,7 +21,11 @@ License: GPL-3.0
 
 Structure analysis reads a structure's loot tables and calculates expected item counts and structure value. Analysis can complete asynchronously; a marker is not advanced into a processing job until its result is ready.
 
+Every vanilla structure now has an authoritative loot-table map: all 34 vanilla structures resolve to a known table set, and 4 of them are confirmed to place no loot container at all (Ocean Monument `ocean_monument`, Swamp Hut `swamp_hut`, Nether Fossil `nether_fossil`, Trail Ruins `trail_ruins`). Those report an exact zero instead of "unsupported". Trial Chambers `trial_chambers` counts its vaults (including the ominous vault) and trial-spawner payouts, and Ruined Portal `ruined_portal` and Shipwreck `shipwreck` chests are covered as well.
+
 Miner output uses expectation-preserving reward generation from analysed item expectations. It preserves long-run expectations, but does not replay Vanilla LootTable joint distributions, pool selection, function chains, or random sequences.
+
+Breaking the **Structure Miner** or the **Structure Data Operator** drops the markers, write slots and any reward that has not finished routing out, instead of discarding them with the block (the working fluid in the tank is not returned).
 
 ### Mythic Miners
 

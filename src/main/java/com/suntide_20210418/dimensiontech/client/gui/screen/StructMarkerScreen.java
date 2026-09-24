@@ -67,7 +67,6 @@ public final class StructMarkerScreen extends Screen {
     private final List<Row> rows = new ArrayList<>();
 
     private List<StructMarkerItem.MarkedStructure> choices = List.of();
-    private BlockPos choicePosition = BlockPos.ZERO;
     private int choiceScroll;
 
     private int left;
@@ -521,12 +520,9 @@ public final class StructMarkerScreen extends Screen {
 
     /** Shows the structures the server found under the player, replacing any previous list. */
     public void showStructureChoices(
-            InteractionHand requestedHand,
-            BlockPos position,
-            List<StructMarkerItem.MarkedStructure> structures) {
+            InteractionHand requestedHand, List<StructMarkerItem.MarkedStructure> structures) {
         if (!holds(requestedHand) || structures.isEmpty()) return;
         choices = List.copyOf(structures);
-        choicePosition = position.immutable();
         choiceScroll = 0;
     }
 
@@ -543,7 +539,7 @@ public final class StructMarkerScreen extends Screen {
             for (int row = 0; row < visible; row++) {
                 int y = box.firstRowY() + row * CHOICE_ROW_H;
                 if (inside(mouseX, mouseY, box.rowX(), y, box.rowWidth(), CHOICE_ROW_H)) {
-                    ModNetwork.selectStructure(hand, choicePosition, first + row);
+                    ModNetwork.selectStructure(hand, first + row);
                     choices = List.of();
                     return true;
                 }

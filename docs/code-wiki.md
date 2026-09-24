@@ -242,7 +242,9 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 `structure/analysis/` 把期望引擎接到"结构价值"上：
 
 - `StructureAnalysisService`：分析服务门面，负责把 loot-expectation 缓存下来（`capture`）。
-- `StructureLootAnalyzer`：解析一个结构的战利品表来源。
+- `StructureLootAnalyzer`：解析一个结构的战利品表来源。1.21.1 的 34 个原版结构里只有 9 个能从 `worldgen/structure/<id>.json` 的 `start_pool` 走到模板图，其余 25 个由代码放置、模板扫描从数据结构上就够不到，它们的表来自三处：模板 NBT（`ruined_portal`，13/13 模板带 `LootTable`）、`StructurePiece#handleDataMarker`（`shipwreck` / `igloo` / `ocean_ruin` / `woodland_mansion` / `end_city`）、`StructurePiece#createChest`（`desert_pyramid` / `jungle_temple` / `stronghold` / `mineshaft` / `nether_fortress` / `buried_treasure`）。
+  模板扫描覆盖三种字段形态：容器与发射器的 `LootTable`、vault 的 `config.loot_table`、试炼刷怪笼的 `loot_tables_to_eject`（`normal_config` 在各原版模板里都省略该字段，因此按 `TrialSpawnerConfig.DEFAULT` 取值而不是复制一份常量；`ominous_config` 缺省时按 `TrialSpawnerBlockEntity#loadAdditional` 的 merge 语义继承 `normal`）。`items_to_drop_when_ominous` **有意不计入** —— 它只在玩家带不祥之兆时额外掉落，不属于刷怪笼的常规产出。
+- `utils/VanillaStructureLootResolver`：上述代码放置结构的权威映射，覆盖全部 34 个原版结构，每条都记录原版证据（类名:行号）。`Resolution.hasContainers() == false` 表示该结构**确认不放置任何战利品容器**（`ocean_monument` / `swamp_hut` / `nether_fossil` / `trail_ruins`），此时 discovery 直接返回 `EXACT` + 空表并带诊断 `VANILLA_NO_CONTAINER`，而不是 `UNSUPPORTED` —— 对玩家表现为「精确的 0 产出」，而不是「这台机器读不了这个结构」。只有连固定映射都没有的命名空间（模组结构）才会继续走虚拟采样。
 - `StructureValueCalculator`：价值计算入口，**异步**评估 frozen loot source，并按配置在两条路径间切换：
   - 精确期望路径：对每个 root table 调 `DistributionalLootTableExecutor1211.evaluate`，汇总 terminal/full `StackMeasure` 并冻结为 `LootExpectationSnapshot`。
   - 采样近似路径（`ItemExpectationMethod.SAMPLING` 或非精确场景）：通过 `LootTableLottery.draw` 做 Monte Carlo 采样，把计数/频率折算为期望概率。
@@ -345,6 +347,7 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 - 使用 NeoForge `RegisterPayloadHandlersEvent` + `CustomPacketPayload`/`StreamCodec` 注册 14 个 payload（`network/payload/` 一包一文件，`TYPE` 的 ResourceLocation 即包身份），`PacketDistributor.sendToServer/sendToPlayer` 发送。1.20.1 的 `SimpleChannel` + 手写序号已整体废弃。
 - 共注册 14 个包：`StructMarkerActionPacket`、`RefreshedMarkerPacket`、`StructureChoicesPacket`、`StructureMinerAnalysisRequestPacket`、`StructureMinerAnalysisPacket`、`StructureMinerExpectedItemTogglePacket`、`StructureMinerSlotTogglePacket`、`StructureReactorTooltipPacket`、`OperatorCatalogueRequestPacket`、`OperatorCataloguePacket`、`OperatorAnalysisRequestPacket`、`OperatorAnalysisPacket`、`OperatorActionPacket`、`ChestAnalysisRequestPacket`。
 - 覆盖：marker 交互、矿机分析请求/响应、expected-item/slot toggle、反应堆 tooltip、数据操作仪的操作与目录、宝箱分析请求。
+- **重叠结构选择的位置权威在服务端**：`StructMarkerActionPacket` 只携带 `hand` + `action` + `selectionIndex`，不携带位置。候选枚举的原点由服务端在收到 `REQUEST_SELECTION` 时写入玩家私有数据（`StructMarkerItem.rememberSelectionOrigin`），选中时一次性消费。两条原因：标记器终端 `isPauseScreen()` 为 `false`，玩家浏览列表时会走动，用实时位置校验会把合法选择丢掉；而客户端回传的位置本就不可信，用服务端记录的点才能保住「只能标记亲自站进去过的结构」这条约束。改这个包时不要重新引入客户端位置字段。
 
 ### 10.3 配置（`config/ModConfigs`）
 - `ModConfigSpec` 构建一个 common 配置（`ModConfig.Type.COMMON`），由入口注入的 `ModContainer` 注册，为最早一步。
@@ -419,9 +422,9 @@ integration/* ──> block/entity + structurereactor(配方展示)
 
 以下均为**在当前源码里核实过**的事实：第 1–2 条是测试体系说明，第 7 条是**已修项**的登记（防复发），其余是**尚未处理**项，改文档时不要把它们写成正常状态。
 
-1. **`*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 **26 个全部通过**。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致——移植期间已发现并修正一处（Tier 1 流体断言，见 §12.3）。
+1. **`*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 **31 个全部通过**。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致——移植期间已发现并修正一处（Tier 1 流体断言，见 §12.3）。
    - 两个配置下都要能跑通：`./gradlew runGameTestServer`（全量，含可选模组）与 `./gradlew runGameTestServer -PvanillaLootRuntime=true`（把可选模组降为 `compileOnly`）。后者的第一次实际运行暴露了 `StructureMinerOutputRouterGameTests#routesLootIntoAnOnlineAe2Interface` 在 AE2 缺席时以 `NoClassDefFoundError: appeng.core.definitions.AEBlocks` 失败——**任何依赖可选模组的 GameTest 都必须自带存在性守卫**（该方法现用 `ModList.get().isLoaded("ae2")`，与 `StructureMinerOutputRouter` 自身同一惯例），否则失败信息会把"环境缺失"伪装成"集成回归"。
-2. **`src/test/java` 为空目录**，`build.gradle` 也没有 `testImplementation` / `test` 任务。当前实际在用的测试只有 `src/main/java` 下的 26 个 GameTest 类，加上 `src/test/resources/gameteststructures/empty.snbt`（由 `syncGameTestStructures` 复制进游戏目录；**原版不提供 `minecraft:empty`，缺它所有 GameTest 直接崩**）。
+2. **`src/test/java` 为空目录**，`build.gradle` 也没有 `testImplementation` / `test` 任务。当前实际在用的测试只有 `src/main/java` 下的 GameTest 用例（现 31 个），加上 `src/test/resources/gameteststructures/empty.snbt`（由 `syncGameTestStructures` 复制进游戏目录；**原版不提供 `minecraft:empty`，缺它所有 GameTest 直接崩**）。
    - fixture 的**实际消费关系**（逐文件核对过，不要按目录想当然）：`data/dimension_tech/loot_table/test/layered_equivalence.json` 由 `StructureValueCalculatorGameTests` 消费；`data/dimension_tech/{loot_table,item_modifier,predicate}/gametest/*` 那 17 个文件在源工程与目标工程**都零 Java 引用**，现由 `LootFixtureSemanticsGameTests` 的 7 个用例统一覆盖（缺失/递归引用降级、不支持函数的两层降级、函数有序执行与数量夹取、计分板数量提供器、附魔开关契约、冻结源递归抓取）。
 3. **`ExactEnchantmentSemantics1211.ENABLED = false`（`:49`）关掉了整条附魔枚举**：`enchant_with_levels` 因此恒为 no-op（`DistributionalFunction1211.java:265`、`DistributionalLootTableExecutor1211.java:637`），任何含该函数的战利品表，期望值都**系统性偏低**（不含附魔产出）。这不是移植回归——源工程 `ExactEnchantmentSemantics1201.java:34` 同样是 `false`，属**既有临时开关**，移植时忠实保留；但它意味着玩家看到的期望值不含附魔产出。
    - 连带影响：1.21 删除战利品表 `treasure` 布尔量，省略 `options` 即取**整个附魔注册表**（含宝藏专属附魔），候选集因此**变宽**。该差异在 `ENABLED=false` 期间不生效；一旦翻回 `true`，`nested_terminal_child.json` / `mixed_terminal_output.json` 的期望值必须重新复核。
@@ -434,3 +437,6 @@ integration/* ──> block/entity + structurereactor(配方展示)
 8. **内联嵌套表未建模**：`value` 也可以是一整个表对象（`NestedLootTable.content` 是 `Either`），原版 1.21.1 数据里有 3 处（都在 `equipment/trial_chamber`）。引擎按 `UNSUPPORTED` + `INLINE_TABLE_MESSAGE` 处理——不会静默当成空表，但也不是精确值。要支持需给引擎加"直接对一段内联 JSON 求值"的入口。
 9. **「精确分析、不做近似 fallback」只对引擎层成立**：`StructureValueCalculator` 在引擎判 `UNSUPPORTED` 且发现状态为 `EXACT` 时会退化为采样兜底（`APPROXIMATE` + `SAMPLING_APPROXIMATION`，`:887-897`），实时与异步两条路径都是这个阶梯。详见 §5.5；`LootFixtureSemanticsGameTests#unsupportedFunctionsPropagateThroughNesting` 按实测把两层的差异分别固化，不再用"UNSUPPORTED"一句话掩盖两种行为。
 10. **冻结源路径读不到计分板**：`LootAnalysisContext.snapshot(...)` 无 level，`minecraft:score` 数量提供器返回 null → `UNSUPPORTED`（`DistributionalNumberProvider1211:255`），而实时路径能读出真实分数。生产走冻结路径，故含计分板数量提供器的表在生产中判不支持。
+11. **`StructureAnalysisService.discover` 会覆盖 discovery 失败的真实原因**：`MainThreadTaskCache.submit` 在 admission 失败时**直接返回 failed future**（`:38-41`，预算为 `virtualStructureStepsPerTick`，默认每 tick 1 次），`discoverStatic` 自身抛错也是同一条路；`failDiscovery` 随后把 state 标成 FAILED 且 `result()` 为 null，而 `discover` 在 `future == null && state.result() == null` 分支统一抛出 `RejectedExecutionException("Discovery unavailable")`（`:319`）——**原始异常被丢弃**。
+    - 实测表现：同一 tick 内提交超过预算的 discovery 请求时，玩家与日志看到的是「Discovery unavailable」，而不是「本 tick 提交预算已用尽」。编写并发触发的 GameTest 时会在这一步踩到（本仓库的 `VanillaStructureLootGameTests` 因此只用同步静态入口断言，对 service 只发一次请求）。
+    - 修法：让 `State` 保留失败原因（它已经存在 `detail` 字段），在该分支把它透出，而不是换成一个泛化异常。

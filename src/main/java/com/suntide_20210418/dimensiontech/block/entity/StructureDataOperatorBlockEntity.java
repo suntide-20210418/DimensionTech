@@ -33,6 +33,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -114,6 +115,26 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
 
     public IItemHandler inventory() {
         return inventory;
+    }
+
+    /**
+     * Drops the target marker, the write slots and both plugin items, so breaking the console never
+     * destroys the markers the player loaded into it.
+     *
+     * <p>Called from {@code StructureDataOperatorBlock#onRemove}, which only runs server side
+     * ({@code LevelChunk#setBlockState} guards the hook with {@code !level.isClientSide}) and still
+     * has the block entity registered at that point. Each slot is emptied as it is dropped so a
+     * repeated removal cannot duplicate the contents.
+     */
+    public void dropContents() {
+        if (level == null) return;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (stack.isEmpty()) continue;
+            inventory.setStackInSlot(slot, ItemStack.EMPTY);
+            Containers.dropItemStack(
+                    level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
+        }
     }
 
     public List<StructureCatalogueEntry> catalogue() {

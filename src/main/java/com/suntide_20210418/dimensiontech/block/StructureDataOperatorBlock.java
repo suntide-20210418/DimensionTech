@@ -95,4 +95,21 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
+
+    /**
+     * Returns the console's contents to the world when the block itself goes away.
+     *
+     * <p>The guard mirrors {@code StructureReactorBlock}: a replacement that is the same block (a
+     * facing change, for instance) must not spill the inventory, because the block entity survives
+     * that transition.
+     */
+    @Override
+    public void onRemove(
+            BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
+        if (!state.is(replacement.getBlock())
+                && level.getBlockEntity(pos) instanceof StructureDataOperatorBlockEntity operator) {
+            operator.dropContents();
+        }
+        super.onRemove(state, level, pos, replacement, moving);
+    }
 }
