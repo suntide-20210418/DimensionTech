@@ -151,6 +151,7 @@ dependencies {
     // real.
     add(optionalModConfiguration, "curse.maven:geckolib-388172:${geckolib_version}")
     add(optionalModConfiguration, "curse.maven:jei-238222:${jei_version}")
+    add(optionalModConfiguration, "curse.maven:mekanism-268560:7904058")
 
     // Mouse Tweaks is a client-only convenience mod. Keeping it off the dev runtime prevents
     // runData/server launches from constructing it.
