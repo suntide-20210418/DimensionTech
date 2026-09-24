@@ -28,6 +28,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -991,6 +992,38 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     record CompletedMarker(MarkerAnalysis loot, int parallel) {}
+
+    /**
+     * Drops everything the miner still owns when the block is removed: the marker slots plus any
+     * completed output that could not be routed into an adjacent inventory or the ME network.
+     *
+     * <p>Pending output is part of that property — the cycle already consumed its marker draw and
+     * energy before the reward was generated, so it is serialized with the block and only waits for
+     * a working target. Destroying the block must therefore return it rather than delete it. The
+     * fluid tank is deliberately not returned: it has no item form to drop.
+     */
+    public void dropContents() {
+        if (level == null || level.isClientSide) return;
+        for (ItemStack pending : outputController.drainPending()) {
+            Containers.dropItemStack(
+                    level,
+                    worldPosition.getX(),
+                    worldPosition.getY(),
+                    worldPosition.getZ(),
+                    pending);
+        }
+        for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
+            ItemStack stack = itemHandler.getStackInSlot(slot);
+            if (stack.isEmpty()) continue;
+            Containers.dropItemStack(
+                    level,
+                    worldPosition.getX(),
+                    worldPosition.getY(),
+                    worldPosition.getZ(),
+                    stack);
+            itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
+        }
+    }
 
     private ItemStackHandler createItemHandler() {
         int slotCount = getSlotCount();
