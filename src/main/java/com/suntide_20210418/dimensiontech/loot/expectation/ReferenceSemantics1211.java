@@ -3,7 +3,7 @@ package com.suntide_20210418.dimensiontech.loot.expectation;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 
-/** Missing and recursive reference behavior verified against Minecraft 1.20.1. */
+/** Missing and recursive reference behavior: defined by Minecraft 1.20.1, replicated on 1.21.1. */
 public final class ReferenceSemantics1211 {
     private ReferenceSemantics1211() {}
 
@@ -154,7 +154,7 @@ public final class ReferenceSemantics1211 {
             List<String> callPath) {
         return new Diagnostic(
                 code,
-                kind + " " + referencedId + " resolved as " + behavior + " (1.20.1)",
+                kind + " " + referencedId + " resolved as " + behavior + " (1.20.1 semantics)",
                 ownerTableId,
                 jsonPointer,
                 callPath);

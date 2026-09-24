@@ -120,7 +120,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
     }
 
     /**
-     * Mass-produced frame parts; one machine eats 44 casings, so the yield is deliberately high.
+     * Mass-produced frame parts; one machine eats 40 casings, so the yield is deliberately high.
      */
     private void frameParts(RecipeOutput writer) {
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MINER_CASING.get())
@@ -215,8 +215,9 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
 
     /**
      * Every upgrade block costs the fragments and tokens of its own tier. That is safe because the
-     * twelve upgrade slots also accept plain casings, which are pure vanilla, so a first machine
-     * never depends on a machine product.
+     * twelve upgrade slots accept the structure miner structure block as well as upgrade blocks
+     * ({@code StructureMinerMultiblock.acceptsUpgradeSlot}), so a machine can be completed without
+     * spending any upgrade block.
      */
     private void upgradeBlocks(RecipeOutput writer) {
         for (String type : SPECIALIZATIONS) {

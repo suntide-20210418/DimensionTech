@@ -440,6 +440,7 @@ KubeJS 集成的对外契约记录在 `docs/kubejs.md`（源工程），移植�
 5. `ModEnusLangProvider` / `ModZhcnLangProvider`：`LanguageProvider` 换包。
 6. **删除 `src/generated/resources` 下的 151 个文件**，用 `./gradlew runData` 全量重生成。不要手工改目录名。
 7. 手工改 `src/main/resources/data/dimension_tech/` 下的 18 个文件目录：`loot_tables` → `loot_table`、`predicates` → `predicate`、`item_modifiers` → `item_modifier`；同步改文件内的 `dimension_tech:loot_tables/...` 引用字符串。
+   - **目录改名只是表面，条目级字段也会改名**（收尾时实测踩到，见 `docs/code-wiki.md` §13 第 7 条）：1.21 把 `minecraft:loot_table` 条目的字段从 `name` 改成 **`value`**（`NestedLootTable.CODEC` = `Codec.either(ResourceKey.codec(Registries.LOOT_TABLE), LootTable.DIRECT_CODEC).fieldOf("value")`；原版 1.21.1 默认包 1178 张表里 `value` 34 次、`name` **0** 次）；`minecraft:set_lore` 新增必填的 `mode`（`ListOperation.codec(256)`，值是 `append` / `replace_all` / `replace_section` / `insert`）。**写错字段的后果是整张表加载失败且只在日志里以 `Couldn't parse element ... No key value in MapLike[...]` 出现**，游戏内表现为"这张表不存在"——所以每次改完手写 datapack JSON，都要在 `runGameTestServer` 日志里确认它真的加载成功。注意 `minecraft:item` / `minecraft:tag` / `minecraft:reference`（谓词与物品修饰器）的字段仍然是 `name`，不要一起改。
 8. 在 3 个 block model JSON 里加 `render_type`（Phase 6 的对应项）。
 9. 迁移 `kubejs.plugins.txt`（内容不变，核对 KubeJS 1.21 的读取路径）。
 
@@ -459,7 +460,7 @@ KubeJS 集成的对外契约记录在 `docs/kubejs.md`（源工程），移植�
 ### Phase 10 — 游戏测试与收尾
 
 1. 迁移 7 个 GameTest 类：换 `GameTestHolder` / `PrefixGameTestTemplate` 的包；`ItemStackHandler` 换包；标记相关的断言改用组件。
-2. `syncGameTestStructures` 任务的源目录 `src/test/resources/gameteststructures` 在源工程**不存在** —— 核对这是历史残留还是由外部脚本注入；若为残留则删掉任务与依赖。
+2. `syncGameTestStructures` 任务的源目录 `src/test/resources/gameteststructures` 在源工程**不存在** —— 目标工程已补入 `empty.snbt`（**必需**：原版不提供 `minecraft:empty` 模板，缺它所有 GameTest 直接崩），任务与 `prepareGameTestServerRun` 的接线保持。
 3. 跑完整回归（见第 6 节）。
 4. 更新 `README.md` / `README.en.md` 的版本与运行环境段落（`1.20.1` → `1.21.1`，`Forge 47.4.10` → `NeoForge 21.1.251`）；更新 `docs/code-wiki.md` 中已失效的模块说明（网络层、注册层、loot 引擎命名）。
 5. 删除移植期的临时分支与 TODO 注释。
@@ -512,7 +513,7 @@ Phase 2-10 每阶段结束执行 `./gradlew compileJava`（含 datagen 时用 `.
 | --- | --- |
 | 放一个结构标记 → 右键 → 选择结构 → 数据写入 | DataComponents 持久化 + 网络往返 |
 | 退出重进，标记数据仍在 | 组件的 `persistent` 序列化 |
-| 宝箱分析器按 `V` 标记容器 | `ClientTickEvent.Post` + 网络 |
+| 宝箱标记器按 `V` 标记容器 | `ClientTickEvent.Post` + 网络 |
 | 6 个 GUI 界面全部打开、滚动、tooltip、输入框正常 | 客户端层 |
 | 反应堆 / 数据操作仪方块为 cutout，采掘器玻璃半透明 | `render_type` |
 | 采掘器接箱子 → 能输出物品 | `Capabilities.ItemHandler.BLOCK` |
@@ -527,9 +528,11 @@ Phase 2-10 每阶段结束执行 `./gradlew compileJava`（含 datagen 时用 `.
 
 ### 6.3 三条 loot 语义基线（Phase 7 的验收核心）
 
-1. **精确语料回归**：`LootAnalysisFingerprintGameTests` 与 `StructureValueCalculatorGameTests`、`VirtualStructureSamplerGameTests`、`StructureMinerLootMergeGameTests`、`StructureMinerOutputRouterGameTests`、`StructureMinerTierGameTests` 全部通过（7 个 GameTest 类）。这是唯一能捕捉"静默算错"的机制。
+1. **精确语料回归**：`LootAnalysisFingerprintGameTests` 与 `StructureValueCalculatorGameTests`、`VirtualStructureSamplerGameTests`、`StructureMinerLootMergeGameTests`、`StructureMinerOutputRouterGameTests`、`StructureMinerTierGameTests`、`LootFixtureSemanticsGameTests` 全部通过（8 个 GameTest 类 / 26 个用例）。这是唯一能捕捉"静默算错"的机制。
+   - 收尾时补上的一条实测教训：**只要 fixture 零 Java 消费，它坏掉是没人知道的**。`loot_table/gametest/*` 那批 fixture 在源工程与目标工程都没有消费者，于是 5 张表一直带着 1.20.1 语法（`name` 字段、缺 `mode`）在 1.21.1 上加载失败；接上测试后第一轮就全红。补测试时还必须检查"这条断言是不是在测一个不存在的表"——`missing_table` 的旧断言就因为"根表没加载"和"根表存在但被引用表缺失"都会报 `MISSING_REFERENCE` 而**假通过**。
 2. **指纹稳定性**：同一个世界、同一份配置，连续两次分析同一个结构，`AnalysisFingerprint` 必须一致；重启服务器后再次分析仍一致。这验证 `RuntimeLootAstSource` 的输入集合完备（特别是新增的附魔注册表维度）。
 3. **vanilla 语料门禁**：用 `-PvanillaLootRuntime=true` 跑 `gameTestServer`（可选模组降到 `compileOnly`）。这条门禁的意义是：精确引擎算出的期望值必须与**纯原版 + 本模组**的战利品表一致；如果只有装了 KubeJS / AE2 等可选模组才通过，说明引擎还在依赖模组注入的副作用，而不是原版语义。
+   - 收尾时这条门禁第一次真正跑起来，立刻暴露 `StructureMinerOutputRouterGameTests#routesLootIntoAnOnlineAe2Interface` 在 AE2 缺席时以 `NoClassDefFoundError: appeng.core.definitions.AEBlocks` 失败。**凡是引用可选模组类型的 GameTest，都必须自带运行时存在性守卫**（`ModList.get().isLoaded(...)`，与 `StructureMinerOutputRouter` 同一惯例），否则这条门禁永远红，而失败信息会把"环境缺失"伪装成"集成回归"。反过来不要用 `@GameTest(required = false)` 一了百了——那会让真正的 AE2 集成回归在全量配置下也不再阻断。
 
 ### 6.4 回归对比方法
 
@@ -562,7 +565,7 @@ Phase 7 期间保留一个 1.20.1 侧的离线对照：对同一组战利品表 
 | Q1 | 6 个源码未 import 的可选依赖（Mekanism / Architectury / GeckoLib / ATO / Time in a Bottle / GuideME）是否删除 | 建议删除，减少类路径污染 |
 | Q2 | 允许木 Tweaks 是否继续保持 client-only（`compileOnly`，不进 datagen 类路径） | 建议保持 |
 | Q3 | 创造模式物品栏标签的位置是否需要在 1.21 显式指定（`withTabsBefore`） | 建议指定，否则排到末尾 |
-| Q4 | `src/test/resources/gameteststructures` 目录缺失，`syncGameTestStructures` 任务是残留还是外部注入 | 建议核实后删除残留 |
+| Q4 | ~~`src/test/resources/gameteststructures` 目录缺失~~ **已核实**：目标工程该目录下 `empty.snbt` 存在且**必需**（原版不提供 `minecraft:empty`），`syncGameTestStructures` 不是残留 | 保留任务与接线，不要删 |
 | Q5 | 是否需要为 1.20.1 存档提供一次性标记迁移（命令 / DataFixer） | 建议不做（与 D3 一致），除非确有存档要继承 |
 
 ---

@@ -554,8 +554,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.tooltip("struct_marker.legacy"), "旧版价值已隐藏，请重新标记结构");
         add(TranslateHelper.tooltip("struct_marker.structure"), "结构：%s");
         add(TranslateHelper.tooltip("struct_marker.no_structure"), "结构：无");
-        add(TranslateHelper.item("chest_marker"), "宝箱分析器");
-        add("screen.dimension_tech.chest_marker.title", "宝箱分析器分析");
+        add(TranslateHelper.item("chest_marker"), "宝箱标记器");
+        add("screen.dimension_tech.chest_marker.title", "宝箱标记器分析");
         add("screen.dimension_tech.chest_marker.selection.selected", "已标记宝箱");
         add("screen.dimension_tech.chest_marker.selection.empty", "未标记宝箱");
         add("screen.dimension_tech.chest_marker.calculation_method", "计算方式：%s");

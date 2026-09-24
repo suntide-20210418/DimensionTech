@@ -31,7 +31,7 @@
 核心循环（玩家侧）：
 
 ```
-在结构中用结构标记器右键捕获当前位置命中的结构（散落容器则用宝箱分析器按 V）
+在结构中用结构标记器右键捕获当前位置命中的结构（散落容器则用宝箱标记器按 V）
 → 得到已写入维度/位置/边界/价值/期望的标记
 → 放入对应 Tier 的采掘器标记槽 → 用扳手切换投影、按投影搭好多方块 → 接 FE 能源 + 流体
 → 采掘器每周期结算资源并输出战利品（附带 min(10, 并行) 个本 Tier 维度碎片与采掘代币）
@@ -71,7 +71,7 @@
 | `loot/` | `DimensionCoreChestLoot` 自定义战利品表 |
 | `energy/` | `EnergyContainer`、`SimpleEnergyContainer`（NeoForge 能量） |
 | `fluid/` | `ModFluids`、`EssenceFluidType` |
-| `item/` | `ModItems`、`ModCreativeModeTabs`、`StructMarkerItem`（结构标记器）、`ChestMarkerItem`（宝箱分析器）、`WrenchItem`（扳手）、`DimensionDeconstructionCoreItem`（维度拆解核心）、数据整合器与结构阐释器 |
+| `item/` | `ModItems`、`ModCreativeModeTabs`、`StructMarkerItem`（结构标记器）、`ChestMarkerItem`（宝箱标记器）、`WrenchItem`（扳手）、`DimensionDeconstructionCoreItem`（维度拆解核心）、数据整合器与结构阐释器 |
 | `network/` | `ModNetwork`（发送侧）、`NetworkHandler`（注册）、`network/payload/`（各 payload） |
 | `recipe/` | `ModRecipes`：RecipeSerializer 的 `DeferredRegister` 注册表 |
 | `config/` | `ModConfigs`：ModConfigSpec 常见配置 + 各 Tier 参数 |
@@ -113,8 +113,8 @@ modEventBus.addListener(…::commonSetup);
 - **方块**：`tier_1..6_structure_miner`、`structure_reactor`、`structure_data_operator`、`structure_miner_casing`、`structure_miner_glass`、`structure_miner_structure`、`structure_miner_upgrade_{parallel,luck,energy,efficiency,aggregate}`（各 6 档，档 1 无后缀，档 2..6 带 `_tier_N`）。
 - **物品**：`structure_marker`、`chest_marker`、`wrench`、`dimension_deconstruction_core`、`data_integrator`、`structure_interpreter`、`dimension_fragment_tier_1..6`、`mining_token_tier_1..6`，以及 5 种精华桶（`structure_essence_bucket`、`surging_structure_essence_bucket`、`recursive_essence_bucket`、`surging_recursive_essence_bucket`、`fractal_essence_bucket`）。
 - **流体**：`structure_essence`、`surging_structure_essence`、`recursive_essence`、`surging_recursive_essence`、`fractal_essence`。
-- 物品中文名（`ModZhcnLangProvider`）：`structure_marker` = 结构标记器、`chest_marker` = 宝箱分析器、`data_integrator` = 数据整合器、`structure_interpreter` = **结构阐释器**、`wrench` = 扳手。注意 `chest_marker` 的英文名是 "Chest Marker"，中英名不同源（见 §13）。
-- 结构标记器与宝箱分析器共用同一 `StructureMarkerData` NBT（宝箱另在其下写 `ChestData` 子标签存 LootTable 与 seed），`ModItems.isMarker(ItemStack)` 是"能否被矿机/操作仪消费"的统一判据。
+- 物品中文名（`ModZhcnLangProvider`）：`structure_marker` = 结构标记器、`chest_marker` = 宝箱标记器、`data_integrator` = 数据整合器、`structure_interpreter` = **结构阐释器**、`wrench` = 扳手。三者同源：注册 id `chest_marker`、中文名「宝箱标记器」、英文名 "Chest Marker"。
+- 结构标记器与宝箱标记器共用同一 `StructureMarkerData` NBT（宝箱另在其下写 `ChestData` 子标签存 LootTable 与 seed），`ModItems.isMarker(ItemStack)` 是"能否被矿机/操作仪消费"的统一判据。
 
 ---
 
@@ -164,7 +164,7 @@ modEventBus.addListener(…::commonSetup);
 
 合计 66 格，布局与 Tier 无关（几何不再随等级变化，所有相关 API 均已去掉 `tier` 参数）。`projectionCounts()` 直接读四个集合的 `size()`，材料提示因此不可能与几何漂移。
 
-硬契约（改坐标前必须保持）：机头 `(0,0,0)` 本体、四侧与上方留空；机头所在层除本体外全空；结构块必须在机头正下方。`docs/tools/multiblock_geometry_check.py` 会校验这些不变量，改几何后先跑它。
+硬契约（改坐标前必须保持）：机头 `(0,0,0)` 本体、四侧与上方留空；机头所在层除本体外全空；结构块必须在机头正下方。原工程的 `docs/tools/multiblock_geometry_check.py` 能自动校验这些不变量，但该脚本**未随移植迁入**本工程（见 §13），改几何后请手工核对四个集合的 `size()` 与机头契约。
 
 ### 4.4 加工数值：`structureminer/processing`
 - `ProcessingMath`：纯函数化的期望/累加计算——`quantityFactorHundredths`（数量因子）、`averageParallel`、`expectedDraws`、`expectedItemCount`，以及 `accumulateHundredths`（把百分位累加为整数 + 有界余数，配合矿机的分数累加规则）。全部用 `BigDecimal`/长整型避免浮点漂移。
@@ -207,6 +207,7 @@ modEventBus.addListener(…::commonSetup);
 | 数据结构与产物 | `StackState`、`StackMeasure`、`TerminalStackMeasure`、`StackObservationMeasure`、`StackObservation`、`TerminalStackKey`、`FrozenJson`、`LootExpectationResult`、`LootAnalysisContext`、`Diagnostic`、`MarkerAnalysis` | 分析的输入/输出/中间表示；`LootExpectationResult` 是统一输出 |
 | 状态/产物枚举 | `AnalysisStatus`（`EXACT / APPROXIMATE / UNSUPPORTED / LEGACY`）、`EvaluationFailureKind` | 结果状态标记 |
 | 可达性 | `Reachability` | 惰性可达性分析，避免展开完整输出列表的乘积爆炸 |
+| 1.21 JSON 形状 | `NestedLootTableEntry1211` | `minecraft:loot_table` 条目在 1.21 的字段是 **`value`**（1.20.1 是 `name`），值可为表 id 或内联表对象；集中一处，避免字段名再被抄成旧版本 |
 | 外部支持 | `RuntimeLootAstSource`、`SavedDataTransaction1211` | 从运行时/存档读取战利品表数据 |
 
 ### 5.3 输出结果：`LootExpectationResult`
@@ -216,6 +217,23 @@ record 字段：`AnalysisStatus status`、`StackMeasure measure`、`TerminalStac
 ### 5.4 指纹：`loot/fingerprint/LootAnalysisFingerprint`
 
 record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`List<String> markerSlots`、`int luckBits`、`String analysisConfig`。用于缓存/复用 marker 战利品分析结果，并保证适配层在存档里可复现、不因无关数据（物品数量、非分析派生字段）变化而失效——这支撑了"后台异步分析"与"结果在下次使用时重算"的机制（任何过期/被替换/已清空/方块实体已被移除的异步结果都不能提交）。
+
+### 5.5 判定层与降级阶梯
+
+「精确」是**引擎层**的性质，不等于对外状态。两层必须分开读：
+
+| 层 | 数据来源 | 引擎判 `UNSUPPORTED` 时的行为 |
+| --- | --- | --- |
+| `DistributionalLootTableExecutor1211`（引擎） | 实时注册表，或 `RuntimeLootAstSource` 冻结快照 | 直接返回 `UNSUPPORTED` + `UNSUPPORTED_TYPE` 诊断，**不做任何近似** |
+| `StructureValueCalculator`（计算器） | 实时 `ServerLevel` | **退化为采样兜底**：状态 `APPROXIMATE` + 诊断 `SAMPLING_APPROXIMATION`（`:887-897`） |
+
+所以"精确分析、不做近似 fallback"只对引擎成立：任何含未建模机制的战利品表，玩家看到的是**采样估计**而不是"不支持"。要拿引擎的原始判定，必须直接调 `DistributionalLootTableExecutor1211.evaluate(...)`。
+
+两条数据来源必须**同判**——它们共用同一套语义，只有输入来源不同。`LootFixtureSemanticsGameTests#requireEnginesAgree` 把这条钉成了常驻不变量。
+
+生产路径走的是**冻结**一侧（`calculateAsync` → `StructureAnalysisService` 缓存 → worker 线程）。这带来一个必须记住的失效方式：`RuntimeLootAstSource.snapshotTables(server, roots)` 递归抓取根表所引用的表/predicate/modifier，**抓不到就静默跳过**。若抓取环节与引擎的解析口径不一致（例如字段名不同），冻结引擎只会把引用当成"缺失表"并返回空产出，期望值**静默偏低**、且不产生任何可区分的错误。跨接口的字段口径必须在同一处定义（见 §5.2 的 `NestedLootTableEntry1211`）。
+
+冻结路径还有一个必然差异：`LootAnalysisContext.snapshot(...)` 按设计没有 level，因此 `minecraft:score` 数量提供器取不到计分板（`DistributionalNumberProvider1211:255` 直接返回 null）→ 判 `UNSUPPORTED`；实时路径能读出真实分数。
 
 ---
 
@@ -391,20 +409,28 @@ integration/* ──> block/entity + structurereactor(配方展示)
 ### 12.3 修改约定
 - 采掘器行为遵守 `BaseMinerBlockEntity#serverTick` 的固定阶段顺序。
 - 异步标记分析以 fingerprint 识别输入；任何过期/被替换/已清空/方块实体已移除的异步结果都不能提交。
-- 改多方块几何前先跑 `python docs/tools/multiblock_geometry_check.py`（不传参校验线上源码，`--source/--expect/--min-upgrade/--label` 可校验 `docs/design/schemes/` 下的候选方案）。
+- 改多方块几何必须手工复核计数、重叠、包围盒覆盖、D4 对称、面连通与机头契约：读 `StructureMinerMultiblock` 的四个集合与 `projectionCounts()`，不要手数格子（几何校验脚本未随移植迁入，见 §13）。
 - 避免在无性能数据时引入缓存索引或通用抽象层；保留中文注释与命名语境。
+- Tier 判定**以代码为准**：`getMinerTier() >= 1` 对任何合法 Tier 恒为真，因此**每个 Tier 都需要流体输入**（Tier 1 为水），JEI 与 README 都照此写。`StructureMinerTierGameTests#allTiersMapToTheirConfiguredMachineValues` 的断言已改为 `!requiresFluidInput()` 的否定式；若将来要让 Tier 1 免流体，需同时改判据、JEI 展示与 README 三处，该断言会随之失败。
 
 ---
 
 ## 13. 已知不一致与待处理
 
-以下均为**在当前源码里核实过**的事实，尚未处理，改文档时不要把它们写成正常状态：
+以下均为**在当前源码里核实过**的事实：第 1–2 条是测试体系说明，第 7 条是**已修项**的登记（防复发），其余是**尚未处理**项，改文档时不要把它们写成正常状态。
 
-1. **19 个 `*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 **19 个全部通过**。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致——移植期间已发现并修正一处（见第 5 条）。
-2. **`src/test/java` 为空目录**，`build.gradle` 也没有 `testImplementation` / `test` 任务。当前实际在用的测试只有 `src/main/java` 下那 19 个 GameTest 类，加上 `src/test/resources/gameteststructures/empty.snbt`（由 `syncGameTestStructures` 复制进游戏目录；**原版不提供 `minecraft:empty`，缺它所有 GameTest 直接崩**）。`data/dimension_tech/gametest/*` 与 `loot_table/test/*` 共 18 个 fixture 由这些测试消费。
-3. **`ModRecipesProvider` 的两处注释与代码不符**：`:123` 写 "one machine eats 44 casings"（实际 40）；`:218` 写 "twelve upgrade slots also accept plain casings"（`acceptsUpgradeSlot` 实际接受升级方块或结构方块，不是机壳）。
-4. **`neoforge.mods.toml` 的 `description` 有拼写错误**：`This is a mod for strcture processing.`（应为 `structure`）。这是玩家可见文本。
-5. **Tier 1 需要流体，判据 `getMinerTier() >= 1` 对任何合法 Tier 恒为真**：因此每个 Tier 都需要流体输入（Tier 1 为水），JEI 也照此展示。旧版 README 曾写"Tier 1 默认不需要流体"，与本条不符，已按代码口径统一。**`StructureMinerTierGameTests#allTiersMapToTheirConfiguredMachineValues` 原先断言 `tier >= 2`（期望 Tier 1 免流体），与该判据直接冲突；经确认"以代码为准"后已修正为 `!requiresFluidInput()` 的否定式，测试现全绿。** 若将来决定让 Tier 1 免流体，需同时改判据、JEI 展示与 README 三处。
-6. **宝箱分析器的命名中英不同源，JEI 文案也对不上**：`item.dimension_tech.chest_marker` 的中文名是「宝箱分析器」，英文名是「Chest Marker」；而 JEI 中文串 `jei.dimension_tech.chest_miner.chest_marker` 写成「已标记的宝箱标记器」。三处不一致，统一命名待定——文档暂按物品中文名「宝箱分析器」写（`ChestMarkerItem` 的类注释用的也是「宝箱分析器」）。
-7. **`structureminer/output/EquipmentDismantler` 对狼铠的产出量未定稿**：1.21 新增 `ArmorItem.Type.BODY`（狼铠），1.20.1 无对应物，现按同为耐久系数 16 的胸甲口径取材料数。这是等价映射而非忠实移植，属于平衡决策。
-8. **`gametest` 战利品表 fixture 的附魔候选集语义在 1.21 变宽**：`nested_terminal_child.json` / `mixed_terminal_output.json` 原本写 `treasure: false`（等价于 `"options": "#minecraft:non_treasure"`），而 1.21 已删除该字段，省略 `options` 即取**整个附魔注册表**（含宝藏专属附魔）。未编造替代字段，这两张表的期望值因此包含宝藏附魔，其断言尚未复核。
+1. **`*GameTests` 在 NeoForge 下会自动被注解发现并运行**（`@GameTestHolder` + `@GameTest`，无需在 `DimensionTechMod` 里显式注册）。1.21.1 上实测 **26 个全部通过**。注意：源 1.20.1 工程曾把这些测试从入口摘除，因此**这套测试此前并未在跑**，其断言未必与当前代码一致——移植期间已发现并修正一处（Tier 1 流体断言，见 §12.3）。
+   - 两个配置下都要能跑通：`./gradlew runGameTestServer`（全量，含可选模组）与 `./gradlew runGameTestServer -PvanillaLootRuntime=true`（把可选模组降为 `compileOnly`）。后者的第一次实际运行暴露了 `StructureMinerOutputRouterGameTests#routesLootIntoAnOnlineAe2Interface` 在 AE2 缺席时以 `NoClassDefFoundError: appeng.core.definitions.AEBlocks` 失败——**任何依赖可选模组的 GameTest 都必须自带存在性守卫**（该方法现用 `ModList.get().isLoaded("ae2")`，与 `StructureMinerOutputRouter` 自身同一惯例），否则失败信息会把"环境缺失"伪装成"集成回归"。
+2. **`src/test/java` 为空目录**，`build.gradle` 也没有 `testImplementation` / `test` 任务。当前实际在用的测试只有 `src/main/java` 下的 26 个 GameTest 类，加上 `src/test/resources/gameteststructures/empty.snbt`（由 `syncGameTestStructures` 复制进游戏目录；**原版不提供 `minecraft:empty`，缺它所有 GameTest 直接崩**）。
+   - fixture 的**实际消费关系**（逐文件核对过，不要按目录想当然）：`data/dimension_tech/loot_table/test/layered_equivalence.json` 由 `StructureValueCalculatorGameTests` 消费；`data/dimension_tech/{loot_table,item_modifier,predicate}/gametest/*` 那 17 个文件在源工程与目标工程**都零 Java 引用**，现由 `LootFixtureSemanticsGameTests` 的 7 个用例统一覆盖（缺失/递归引用降级、不支持函数的两层降级、函数有序执行与数量夹取、计分板数量提供器、附魔开关契约、冻结源递归抓取）。
+3. **`ExactEnchantmentSemantics1211.ENABLED = false`（`:49`）关掉了整条附魔枚举**：`enchant_with_levels` 因此恒为 no-op（`DistributionalFunction1211.java:265`、`DistributionalLootTableExecutor1211.java:637`），任何含该函数的战利品表，期望值都**系统性偏低**（不含附魔产出）。这不是移植回归——源工程 `ExactEnchantmentSemantics1201.java:34` 同样是 `false`，属**既有临时开关**，移植时忠实保留；但它意味着玩家看到的期望值不含附魔产出。
+   - 连带影响：1.21 删除战利品表 `treasure` 布尔量，省略 `options` 即取**整个附魔注册表**（含宝藏专属附魔），候选集因此**变宽**。该差异在 `ENABLED=false` 期间不生效；一旦翻回 `true`，`nested_terminal_child.json` / `mixed_terminal_output.json` 的期望值必须重新复核。
+   - `LootFixtureSemanticsGameTests#disabledEnchantmentKeepsTerminalOutputExact` 把当前口径钉成了断言：翻转开关会让它失败，用来强制复核。
+4. **几何校验脚本未随移植迁入**：源工程的 `docs/tools/multiblock_geometry_check.py` 与 `docs/design/schemes/*.java` 在目标工程**不存在**（本仓库零 `.py`）。改多方块几何现在只能手工核对 `StructureMinerMultiblock` 的四个集合与 `projectionCounts()`；README 与本文档已按此改写。
+5. **`structureminer/output/EquipmentDismantler` 对狼铠的产出量未定稿**：1.21 新增 `ArmorItem.Type.BODY`（狼铠），1.20.1 无对应物，现按同为耐久系数 16 的胸甲口径取材料数（`:143`）。这是等价映射而非忠实移植，属于平衡决策。
+6. **移植期的临时探针日志仍在**：`RuntimeLootAstSource.java:143`、`StructureValueCalculator.java:264/295/406/421`、`MainThreadTaskCache.java:73`、`StructureDataOperatorBlockEntity.java:280` 共 6 处以 `[TEMP PROBE]` 前缀打印耗时。移植计划 §4 第 5 条本要求清理移植期临时物，尚未执行。
+7. **1.21 数据包格式断层（已修，登记以免复发）**：`minecraft:loot_table` 条目在 1.21 把字段从 `name` 改成 **`value`** —— 原版 1.21.1 默认包 1178 张表里 `value` 出现 34 次（31 处表 id + 3 处内联表），`name` 出现 **0** 次。移植后的引擎与 `RuntimeLootAstSource` 的递归抓取最初都按 1.20.1 的 `name` 解析：条目派发处把嵌套引用误判成 `UNSUPPORTED`，快照抓取处更糟——漏抓被引用表后冻结引擎把引用当作缺失表，**静默少算期望值**（见 §5.5）。现由 `NestedLootTableEntry1211` 统一承载，并由 `LootFixtureSemanticsGameTests#requireEnginesAgree` 与 `#frozenSourceCapturesNestedReferences` 钉住。
+   - 同一批 fixture 自己也是 1.20.1 语法（`name` 字段，以及 `set_lore` 缺 1.21 必填的 `mode`），在 1.21.1 上**整张表加载失败**（`Couldn't parse element ... No key value in MapLike[...]`）。因为零 Java 消费，此前无人察觉；其中 `missing_table` 的旧断言曾**假通过**——根表没加载时同样报 `MISSING_REFERENCE`，与"根表存在、被引用表缺失"的语义撞车。**凡新增 fixture，务必先在 `runGameTestServer` 日志里确认它真的加载成功**，否则断言测的是"表不存在"。
+8. **内联嵌套表未建模**：`value` 也可以是一整个表对象（`NestedLootTable.content` 是 `Either`），原版 1.21.1 数据里有 3 处（都在 `equipment/trial_chamber`）。引擎按 `UNSUPPORTED` + `INLINE_TABLE_MESSAGE` 处理——不会静默当成空表，但也不是精确值。要支持需给引擎加"直接对一段内联 JSON 求值"的入口。
+9. **「精确分析、不做近似 fallback」只对引擎层成立**：`StructureValueCalculator` 在引擎判 `UNSUPPORTED` 且发现状态为 `EXACT` 时会退化为采样兜底（`APPROXIMATE` + `SAMPLING_APPROXIMATION`，`:887-897`），实时与异步两条路径都是这个阶梯。详见 §5.5；`LootFixtureSemanticsGameTests#unsupportedFunctionsPropagateThroughNesting` 按实测把两层的差异分别固化，不再用"UNSUPPORTED"一句话掩盖两种行为。
+10. **冻结源路径读不到计分板**：`LootAnalysisContext.snapshot(...)` 无 level，`minecraft:score` 数量提供器返回 null → `UNSUPPORTED`（`DistributionalNumberProvider1211:255`），而实时路径能读出真实分数。生产走冻结路径，故含计分板数量提供器的表在生产中判不支持。

@@ -30,7 +30,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 /**
- * 宝箱分析器：按绑定按键（默认 V）分析准星指向的宝箱；若目标是带 LootTable 引用的容器，直接以该 宝箱的 LootTable
+ * 宝箱标记器：按绑定按键（默认 V）分析准星指向的宝箱；若目标是带 LootTable 引用的容器，直接以该 宝箱的 LootTable
  * 作为战利品来源做期望分析并标记它。右键（use）只打开分析界面查看已标记内容。
  *
  * <p>它写入的 {@code StructureMarkerData} 与 {@link StructMarkerItem} 同构（Dimension + Position +
