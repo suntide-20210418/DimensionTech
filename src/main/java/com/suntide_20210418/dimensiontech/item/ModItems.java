@@ -6,6 +6,7 @@ import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
@@ -53,6 +54,18 @@ public final class ModItems {
                     () -> new DimensionDeconstructionCoreItem(new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, Item>[] DIMENSION_FRAGMENTS =
             tieredItems("dimension_fragment");
+
+    /**
+     * Every tier of dimension fragment.
+     *
+     * <p>The reactor's fragment slot takes this tag rather than one tier: which tier a recipe
+     * actually consumes is decided by the recipe's own ingredient, so the slot only has to know
+     * that what was loaded is a fragment at all — and a slot that accepts fragments wholesale is
+     * what lets a pack add its own tier through the tag.
+     */
+    public static final TagKey<Item> DIMENSION_FRAGMENTS_TAG =
+            TagKey.create(Registries.ITEM, ResourceLocationHelper.modLoc("dimension_fragments"));
+
     public static final DeferredHolder<Item, Item>[] MINING_TOKENS = tieredItems("mining_token");
     public static final DeferredHolder<Item, Item> DATA_INTEGRATOR =
             ITEMS.register("data_integrator", () -> new Item(new Item.Properties().stacksTo(1)));

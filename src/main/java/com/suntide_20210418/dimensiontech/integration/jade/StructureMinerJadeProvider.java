@@ -68,9 +68,10 @@ public enum StructureMinerJadeProvider
         data.putString(STATUS, miner.isOutputBlocked() ? "blocked" : running ? "running" : "idle");
         ListTag slotTags = new ListTag();
         int workingCount = 0;
-        for (int slot = 0; slot < miner.getItemHandler().getSlots(); slot++) {
+        for (int slot = 0; slot < miner.insertOnlyItemHandler().getSlots(); slot++) {
             var markerInfo =
-                    StructMarkerItem.getMarkerInfo(miner.getItemHandler().getStackInSlot(slot));
+                    StructMarkerItem.getMarkerInfo(
+                            miner.insertOnlyItemHandler().getStackInSlot(slot));
             if (markerInfo.isEmpty()) {
                 continue;
             }
@@ -103,7 +104,7 @@ public enum StructureMinerJadeProvider
             }
         }
         data.put(SLOTS, slotTags);
-        data.putInt(SLOT_COUNT, miner.getItemHandler().getSlots());
+        data.putInt(SLOT_COUNT, miner.insertOnlyItemHandler().getSlots());
         data.putInt(WORKING_COUNT, workingCount);
         data.putString(OUTPUT, miner.getOutputState().name().toLowerCase(Locale.ROOT));
         data.putInt(PENDING_ITEMS, miner.getPendingOutputCount());

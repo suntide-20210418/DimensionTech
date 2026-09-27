@@ -25,6 +25,9 @@ bin/
 
 .vscode/
 
+# Agent 工作区：记忆、临时脚本等项目数据，按约定不进版本库
+.workbuddy/
+
 .DS_Store
 
 run/

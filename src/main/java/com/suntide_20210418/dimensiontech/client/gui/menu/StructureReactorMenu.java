@@ -236,10 +236,6 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         return data.get(StructureReactorBlockEntity.DATA_AUTO_PULL) != 0;
     }
 
-    public boolean autoPushFluid() {
-        return data.get(StructureReactorBlockEntity.DATA_AUTO_PUSH) != 0;
-    }
-
     public boolean meNetwork() {
         return data.get(StructureReactorBlockEntity.DATA_ME_NETWORK) != 0;
     }
@@ -252,9 +248,10 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         return data.get(StructureReactorBlockEntity.DATA_INPUT_FLUID_LOCKED) != 0;
     }
 
-    public StructureReactorBlockEntity.FluidFaceMode fluidFaceMode(Direction direction) {
+    /** The mode of the face the screen's logical direction points at. */
+    public StructureReactorBlockEntity.FluidFaceMode fluidFaceMode(Direction logicalDirection) {
         int packed = data.get(StructureReactorBlockEntity.DATA_FLUID_FACE_MODES);
-        int ordinal = (packed >> (direction.ordinal() * 2)) & 3;
+        int ordinal = (packed >> (reactor.toWorldDirection(logicalDirection).ordinal() * 2)) & 3;
         return StructureReactorBlockEntity.FluidFaceMode.values()[ordinal];
     }
 
@@ -287,10 +284,6 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         if (!stillValid(player)) return false;
         if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PULL) {
             if (!player.level().isClientSide) reactor.toggleAutoPullFluid();
-            return true;
-        }
-        if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PUSH) {
-            if (!player.level().isClientSide) reactor.toggleAutoPushFluid();
             return true;
         }
         if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_ME_NETWORK) {
@@ -384,10 +377,13 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         return reactor.getBlockPos();
     }
 
-    /** The reactor's fluid faces are world-oriented, so there is no logical-to-world remap. */
+    /**
+     * The screen's cells are a front view of the machine, so the adjacency readout has to go
+     * through the block's facing exactly like the clicks do.
+     */
     @Override
     public Direction toWorldDirection(Direction d) {
-        return d;
+        return reactor.toWorldDirection(d);
     }
 
     @Override

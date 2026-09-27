@@ -76,6 +76,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             MinerAccelerationController.MINIMUM_NATURAL_TICKS;
 
     private final ItemStackHandler itemHandler;
+    private final IItemHandler insertOnlyItemHandler;
     private final EnergyContainer energyStorage;
     private final FluidTank fluidTank;
     private final IFluidHandler fluidInputHandler;
@@ -99,6 +100,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
         super(type, position, blockState);
         this.itemHandler = createItemHandler();
+        this.insertOnlyItemHandler = new InsertOnlyItemHandler(itemHandler);
         this.upgradeController = new MinerUpgradeController(position);
         this.analysisController =
                 new MinerAnalysisController(
@@ -537,8 +539,21 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return outputController.outputFaceEnabled(worldDirection);
     }
 
+    /** The raw slot handler. Only the menu and the miner's own controllers may hold this one. */
     public IItemHandler getItemHandler() {
         return itemHandler;
+    }
+
+    /**
+     * Insert-only view of the marker slots, used as the block capability.
+     *
+     * <p>Every slot holds a marker the miner consumes, so an external handler must be able to load
+     * them and never to take them: an extraction would feed the machine's own inputs to whatever
+     * pipe asked. Everything outside the machine reads through this view, while the menu keeps
+     * {@link #getItemHandler()} so the player can still take a marker back out.
+     */
+    public IItemHandler insertOnlyItemHandler() {
+        return insertOnlyItemHandler;
     }
 
     /**

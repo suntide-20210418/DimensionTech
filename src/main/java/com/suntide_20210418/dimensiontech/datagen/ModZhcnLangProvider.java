@@ -531,8 +531,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.face.empty", "无方块");
         add("screen.dimension_tech.structure_miner.face.north", "正");
         add("screen.dimension_tech.structure_miner.face.south", "后");
-        add("screen.dimension_tech.structure_miner.face.east", "东");
-        add("screen.dimension_tech.structure_miner.face.west", "西");
+        add("screen.dimension_tech.structure_miner.face.east", "左");
+        add("screen.dimension_tech.structure_miner.face.west", "右");
         add("screen.dimension_tech.structure_miner.face.up", "上");
         add("screen.dimension_tech.structure_miner.face.down", "下");
         add("screen.dimension_tech.structure_miner.face.status.fluid_input", "拥有流体输入");
