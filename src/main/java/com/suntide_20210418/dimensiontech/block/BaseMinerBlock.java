@@ -32,8 +32,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 
@@ -184,7 +182,10 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
                 }
                 return ItemInteractionResult.sidedSuccess(level.isClientSide());
             }
-            if (FMLEnvironment.dist == Dist.CLIENT) {
+            // Logical side, not FMLEnvironment: an integrated server shares the physical client, so
+            // a physical-side check would let the server thread toggle a second time and cancel the
+            // projection the client just turned on.
+            if (level.isClientSide()) {
                 com.suntide_20210418.dimensiontech.client.StructureMinerProjectionClient.toggle(
                         position);
             }
