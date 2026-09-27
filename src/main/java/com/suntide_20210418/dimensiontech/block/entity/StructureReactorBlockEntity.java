@@ -1,16 +1,17 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.suntide_20210418.dimensiontech.block.StructureReactorBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorMenu;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorAnalogSignal;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorSequenceTelemetry;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
+import com.suntide_20210418.dimensiontech.structurereactor.StateId;
+import com.suntide_20210418.dimensiontech.structurereactor.StateStep;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipe;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
-import com.suntide_20210418.dimensiontech.structurereactor.StateId;
-import com.suntide_20210418.dimensiontech.structurereactor.StateStep;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
@@ -138,6 +139,48 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                     setChanged();
                 }
             };
+
+    /**
+     * The view automation sees: the same two slots, insert-only.
+     *
+     * <p>Both slots are inputs the cycle consumes — the fragment slot pays for a start, the
+     * operation slot resolves a step — so an extractor that pulls them out starves the reactor of
+     * material the player already supplied. The player keeps full access: the menu talks to
+     * {@link #inventory} directly, exactly as the slots draw it.
+     */
+    private final IItemHandler automationInventory =
+            new IItemHandler() {
+                @Override
+                public int getSlots() {
+                    return inventory.getSlots();
+                }
+
+                @Override
+                public ItemStack getStackInSlot(int slot) {
+                    return inventory.getStackInSlot(slot);
+                }
+
+                @Override
+                public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+                    return inventory.insertItem(slot, stack, simulate);
+                }
+
+                @Override
+                public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                    return ItemStack.EMPTY;
+                }
+
+                @Override
+                public int getSlotLimit(int slot) {
+                    return inventory.getSlotLimit(slot);
+                }
+
+                @Override
+                public boolean isItemValid(int slot, ItemStack stack) {
+                    return inventory.isItemValid(slot, stack);
+                }
+            };
+
     private boolean inputFluidLocked;
     private Fluid lockedInputFluid = Fluids.EMPTY;
     private final FluidTank inputTank = tank(true);
@@ -167,16 +210,17 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     private StateId lastEventState;
 
     /**
-     * The comparator level currently published to neighbouring comparators, or {@code -1} before the
-     * first server tick.
+     * The comparator level currently published to neighbouring comparators, or {@code -1} before
+     * the first server tick.
      *
-     * <p>The sentinel earns its keep on chunk load: the comparators around the reactor keep whatever
-     * they recorded before the save, so a freshly loaded reactor has to publish once even though
-     * nothing has changed since.
+     * <p>The sentinel earns its keep on chunk load: the comparators around the reactor keep
+     * whatever they recorded before the save, so a freshly loaded reactor has to publish once even
+     * though nothing has changed since.
      */
     private int announcedAnalogSignal = -1;
 
-    private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> inventory);
+    private final LazyOptional<IItemHandler> itemCapability =
+            LazyOptional.of(() -> automationInventory);
     private final LazyOptional<IFluidHandler> dualFluidCapability =
             LazyOptional.of(() -> new DualTankAccess(inputTank, outputTank));
     private final Map<Direction, LazyOptional<IFluidHandler>> faceFluidCapabilities =
@@ -248,12 +292,39 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         return packed;
     }
 
-    public void cycleFluidFace(Direction direction) {
+    /** Cycles the face the player clicked; the argument is machine-local, as the screen sees it. */
+    public void cycleFluidFace(Direction logicalDirection) {
         if (level != null && level.isClientSide) return;
+        Direction worldDirection = toWorldDirection(logicalDirection);
         FluidFaceMode[] values = FluidFaceMode.values();
-        fluidFaceModes[direction.ordinal()] =
-                values[(getFluidFaceMode(direction).ordinal() + 1) % values.length];
+        fluidFaceModes[worldDirection.ordinal()] =
+                values[(getFluidFaceMode(worldDirection).ordinal() + 1) % values.length];
         setChanged();
+    }
+
+    /**
+     * Rotates a face as the player sees it into the world direction that face is.
+     *
+     * <p>{@link com.suntide_20210418.dimensiontech.client.gui.screen.OutputFaceConfigScreen} draws
+     * its six buttons around the machine's front, so the direction it names is the machine's own
+     * "front / left / right" — not a world direction. The stored face modes are world-indexed (the
+     * capability asks by world side), so the two only line up after this rotation. Without it a
+     * face configured on that screen lands on a different side of the block than the player
+     * pointed at, which is what "the pipe on this face still cannot pull the output" looks like.
+     */
+    public Direction toWorldDirection(Direction logicalDirection) {
+        if (level == null
+                || !level.getBlockState(worldPosition).hasProperty(StructureReactorBlock.FACING)) {
+            return logicalDirection;
+        }
+        Direction front = level.getBlockState(worldPosition).getValue(StructureReactorBlock.FACING);
+        return switch (logicalDirection) {
+            case NORTH -> front;
+            case SOUTH -> front.getOpposite();
+            case EAST -> front.getClockWise();
+            case WEST -> front.getCounterClockWise();
+            default -> logicalDirection;
+        };
     }
 
     public boolean isAutoPullFluidEnabled() {
@@ -345,7 +416,9 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         return input || output;
     }
 
-    /** Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills. */
+    /**
+     * Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills.
+     */
     private void playFluidTransferSound(boolean pouringIn) {
         if (level == null) return;
         level.playSound(
@@ -490,7 +563,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                 // The slot is empty on most ticks; only a real submission may settle or penalize.
                 StructureReactorCycle.Resolution result =
                         be.cycle.resolve(operation, operation.isEmpty());
-                if (result != StructureReactorCycle.Resolution.NONE) be.recordEvent(result, expected);
+                if (result != StructureReactorCycle.Resolution.NONE)
+                    be.recordEvent(result, expected);
                 if (result.consumesInput()) be.inventory.extractItem(OPERATION_SLOT, 1, false);
                 be.setChanged();
             }
@@ -501,7 +575,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
             if (be.cycle.status() == StructureReactorCycle.Status.READY_TO_COMMIT) be.tryCommit();
         }
         // Published after the tick body, because a refinement whose resources are in place commits
-        // within the same tick: refining goes straight to idle instead of flashing the blocked level.
+        // within the same tick: refining goes straight to idle instead of flashing the blocked
+        // level.
         be.announceAnalogSignal();
     }
 
@@ -525,9 +600,9 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     /**
      * The comparator level this reactor announces right now.
      *
-     * <p>It is a pure function of the cycle and the stored material, so a comparator that re-reads at
-     * any moment gets the same answer the tick loop compares against, and the block never has to keep
-     * a second copy of the state machine in sync with the first.
+     * <p>It is a pure function of the cycle and the stored material, so a comparator that re-reads
+     * at any moment gets the same answer the tick loop compares against, and the block never has to
+     * keep a second copy of the state machine in sync with the first.
      *
      * <p>A client-side block entity carries no tank or inventory contents, so the idle sub-case
      * degrades to the plain idle level there. That is harmless: the power a comparator emits is
@@ -543,12 +618,12 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     }
 
     /**
-     * Publishes {@link #analogSignal()} to neighbouring comparators, but only when the level actually
-     * changed.
+     * Publishes {@link #analogSignal()} to neighbouring comparators, but only when the level
+     * actually changed.
      *
-     * <p>Notifying unconditionally would walk all six neighbours on every tick and, through redstone
-     * conductors, reach the blocks behind them. Hooking {@link #setChanged()} is no better: the
-     * running and refining branches call it on every tick already.
+     * <p>Notifying unconditionally would walk all six neighbours on every tick and, through
+     * redstone conductors, reach the blocks behind them. Hooking {@link #setChanged()} is no
+     * better: the running and refining branches call it on every tick already.
      */
     private void announceAnalogSignal() {
         if (level == null || level.isClientSide) return;
@@ -573,12 +648,13 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     /**
      * The single verdict on whether a cycle may begin, and why it may not.
      *
-     * <p>{@link #tryStart()} and {@link #analogSignal()} both read this one verdict, so the redstone
-     * report can never disagree with what the reactor actually does. Splitting the checks between
-     * them is precisely how a "blocked" report would end up describing a reactor that is running.
+     * <p>{@link #tryStart()} and {@link #analogSignal()} both read this one verdict, so the
+     * redstone report can never disagree with what the reactor actually does. Splitting the checks
+     * between them is precisely how a "blocked" report would end up describing a reactor that is
+     * running.
      *
-     * <p>Only conditions a player cannot wait out map to {@link StartBlock#WAITING}: material that is
-     * still arriving resolves itself, while material no recipe accepts never will.
+     * <p>Only conditions a player cannot wait out map to {@link StartBlock#WAITING}: material that
+     * is still arriving resolves itself, while material no recipe accepts never will.
      */
     private StartCheck startCheck() {
         FluidStack held = inputTank.getFluid();
@@ -880,11 +956,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         List<StateId> states = recipe.sequence(branch).stream().map(StateStep::state).toList();
         packedSequenceLength = Math.min(states.size(), ReactorSequenceTelemetry.MAX_STATES);
         System.arraycopy(
-                ReactorSequenceTelemetry.pack(states),
-                0,
-                packedSequence,
-                0,
-                packedSequence.length);
+                ReactorSequenceTelemetry.pack(states), 0, packedSequence, 0, packedSequence.length);
     }
 
     @Override
@@ -1002,30 +1074,60 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         }
     }
 
+    /**
+     * One face's view of the reactor's two tanks.
+     *
+     * <p>The view lists exactly the tanks that face was configured to move fluid through, so a pipe
+     * that reads tank {@code 0} to learn what this side holds is told the truth: an output face
+     * shows the output tank, an input face shows the input tank. Advertising both tanks on every
+     * face used to answer a question about the output tank with the input tank's contents - fluid
+     * that this side reports as its own and then refuses to drain.
+     *
+     * <p>Forge's {@code fill}/{@code drain} are not tank-addressed, so a face configured for output
+     * never hands out the input tank: only the reactor's own cycle may consume that.
+     */
     private record FaceFluidAccess(StructureReactorBlockEntity reactor, Direction direction)
             implements IFluidHandler {
         private FluidFaceMode mode() {
             return reactor.getFluidFaceMode(direction);
         }
 
+        /** The tank at {@code index} of this face's view, or null when the index is out of range. */
+        private FluidTank tank(int index) {
+            return switch (mode()) {
+                case INPUT -> index == 0 ? reactor.inputTank : null;
+                case OUTPUT -> index == 0 ? reactor.outputTank : null;
+                case INPUT_OUTPUT ->
+                        index == 0 ? reactor.inputTank : index == 1 ? reactor.outputTank : null;
+                case DISABLED -> null;
+            };
+        }
+
         @Override
         public int getTanks() {
-            return 2;
+            return switch (mode()) {
+                case INPUT, OUTPUT -> 1;
+                case INPUT_OUTPUT -> 2;
+                case DISABLED -> 0;
+            };
         }
 
         @Override
-        public FluidStack getFluidInTank(int tank) {
-            return tank == 0 ? reactor.inputTank.getFluid() : reactor.outputTank.getFluid();
+        public FluidStack getFluidInTank(int index) {
+            FluidTank tank = tank(index);
+            return tank == null ? FluidStack.EMPTY : tank.getFluid();
         }
 
         @Override
-        public int getTankCapacity(int tank) {
-            return tank == 0 ? reactor.inputTank.getCapacity() : reactor.outputTank.getCapacity();
+        public int getTankCapacity(int index) {
+            FluidTank tank = tank(index);
+            return tank == null ? 0 : tank.getCapacity();
         }
 
         @Override
-        public boolean isFluidValid(int tank, FluidStack stack) {
-            return tank == 0 && acceptsInput(mode()) && reactor.inputTank.isFluidValid(stack);
+        public boolean isFluidValid(int index, FluidStack stack) {
+            // Only the input tank can be filled, so only a view of it answers true.
+            return tank(index) == reactor.inputTank && reactor.inputTank.isFluidValid(stack);
         }
 
         @Override

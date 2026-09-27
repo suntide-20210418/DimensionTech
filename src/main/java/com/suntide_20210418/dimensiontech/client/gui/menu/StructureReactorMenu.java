@@ -4,8 +4,8 @@ import com.suntide_20210418.dimensiontech.block.entity.StructureReactorBlockEnti
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorSequenceTelemetry;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
-import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StateId;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -252,9 +252,18 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         return data.get(StructureReactorBlockEntity.DATA_INPUT_FLUID_LOCKED) != 0;
     }
 
-    public StructureReactorBlockEntity.FluidFaceMode fluidFaceMode(Direction direction) {
+    /**
+     * The mode of the face the face-config screen drew at {@code logicalDirection}.
+     *
+     * <p>The screen names faces as the machine sees them ("front / left / right"), while the modes
+     * are stored per world side, so the logical direction is rotated before it indexes the packed
+     * mask. Cycling a face does the same conversion on the server, which is what keeps the button
+     * the player pressed and the mode it reports in step.
+     */
+    public StructureReactorBlockEntity.FluidFaceMode fluidFaceMode(Direction logicalDirection) {
+        Direction worldDirection = reactor.toWorldDirection(logicalDirection);
         int packed = data.get(StructureReactorBlockEntity.DATA_FLUID_FACE_MODES);
-        int ordinal = (packed >> (direction.ordinal() * 2)) & 3;
+        int ordinal = (packed >> (worldDirection.ordinal() * 2)) & 3;
         return StructureReactorBlockEntity.FluidFaceMode.values()[ordinal];
     }
 
@@ -359,21 +368,24 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         net.minecraft.client.Minecraft.getInstance()
                 .gameMode
                 .handleInventoryButtonClick(
-                        containerId, StructureReactorBlockEntity.BUTTON_CYCLE_FLUID_FACE_BASE + d.ordinal());
+                        containerId,
+                        StructureReactorBlockEntity.BUTTON_CYCLE_FLUID_FACE_BASE + d.ordinal());
     }
 
     @Override
     public void cycleModernMode() {
         net.minecraft.client.Minecraft.getInstance()
                 .gameMode
-                .handleInventoryButtonClick(containerId, StructureReactorBlockEntity.BUTTON_TOGGLE_ME_NETWORK);
+                .handleInventoryButtonClick(
+                        containerId, StructureReactorBlockEntity.BUTTON_TOGGLE_ME_NETWORK);
     }
 
     @Override
     public void cycleAutoExtract() {
         net.minecraft.client.Minecraft.getInstance()
                 .gameMode
-                .handleInventoryButtonClick(containerId, StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PULL);
+                .handleInventoryButtonClick(
+                        containerId, StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PULL);
     }
 
     @Override
@@ -381,10 +393,10 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         return reactor.getBlockPos();
     }
 
-    /** The reactor's fluid faces are world-oriented, so there is no logical-to-world remap. */
+    /** The screen draws machine-local faces; the block's facing turns them into world sides. */
     @Override
     public Direction toWorldDirection(Direction d) {
-        return d;
+        return reactor.toWorldDirection(d);
     }
 
     @Override
