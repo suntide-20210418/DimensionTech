@@ -786,7 +786,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     }
 
     /**
-     * Container data channel. The server reads the live reactor, while {@link #set} mirrors
+     * Container data channel. The server reads the live reactor, while mirrors
      * whatever the server broadcasts so the client screen never renders from its own inert block
      * entity.
      */
@@ -903,9 +903,9 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         tag.put("ReactorItems", inventory.serializeNBT(registries));
         tag.put("ReactorInput", inputTank.writeToNBT(registries, new CompoundTag()));
         tag.put("ReactorOutput", outputTank.writeToNBT(registries, new CompoundTag()));
-        tag.put("ReactorReservedFluid", reservedFluid.save(registries, new CompoundTag()));
-        // The reserved stack is empty whenever no cycle is running, so this has to survive an
+        // Both reserved stacks are empty whenever no cycle is running, so they have to survive an
         // empty stack instead of using the throwing overload.
+        tag.put("ReactorReservedFluid", reservedFluid.saveOptional(registries));
         tag.put("ReactorReservedFragments", reservedFragments.saveOptional(registries));
         tag.putInt("FluidFaceModes", getFluidFaceModesPacked());
         tag.putBoolean("AutoPullFluid", autoPullFluid);
