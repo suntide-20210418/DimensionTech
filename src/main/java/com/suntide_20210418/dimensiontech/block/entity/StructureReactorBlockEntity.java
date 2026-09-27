@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.block.entity;
 import com.suntide_20210418.dimensiontech.block.StructureReactorBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorMenu;
 import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
+import com.suntide_20210418.dimensiontech.item.ModItemTags;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorAnalogSignal;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorSequenceTelemetry;
@@ -124,7 +125,11 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
             new ItemStackHandler(2) {
                 @Override
                 public boolean isItemValid(int slot, ItemStack stack) {
-                    return slot == FRAGMENT_SLOT || slot == OPERATION_SLOT;
+                    if (slot == FRAGMENT_SLOT) {
+                        return stack.is(ModItemTags.DIMENSION_FRAGMENTS);
+                    }
+                    // The operation slot takes whatever the active recipe's ritual step asks for.
+                    return slot == OPERATION_SLOT;
                 }
 
                 @Override
