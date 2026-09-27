@@ -153,6 +153,7 @@ dependencies {
     add(optionalModConfiguration, "curse.maven:jei-238222:${jei_version}")
     add(optionalModConfiguration, "curse.maven:mekanism-268560:7904058")
     add(optionalModConfiguration, "curse.maven:let-me-see-see-your-code-1229018:6777654")
+    add(optionalModConfiguration, "curse.maven:ae2-jei-integration-1074338:7727898")
 
     // Mouse Tweaks is a client-only convenience mod. Keeping it off the dev runtime prevents
     // runData/server launches from constructing it.
@@ -214,6 +215,10 @@ spotless {
 
     format 'misc', {
         target '**/*.md', '.gitignore'
+        // Agent 工作区（.workbuddy/）里有自己的 .md 记忆文件，它们不是项目内容且不入版本库。
+        // 不排除的话，本地 spotlessCheck 会被这些文件的换行格式判失败，而 CI 上根本看不到
+        // 这个目录 —— 一个只在本地出现、与提交内容无关的假失败。
+        targetExclude '.workbuddy/**'
         trimTrailingWhitespace()
         endWithNewline()
     }

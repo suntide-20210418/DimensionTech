@@ -25,10 +25,12 @@ public final class ModCapabilities {
 
         BlockEntityType<StructureReactorBlockEntity> reactor =
                 ModBlockEntities.STRUCTURE_REACTOR.get();
+        // Insert-only: both slots are material the reactor consumes, so pipes may feed them but
+        // never empty them. The menu still holds the raw handler for manual removal.
         event.registerBlockEntity(
                 Capabilities.ItemHandler.BLOCK,
                 reactor,
-                (blockEntity, side) -> blockEntity.inventory());
+                (blockEntity, side) -> blockEntity.insertOnlyItemHandler());
         event.registerBlockEntity(
                 Capabilities.FluidHandler.BLOCK,
                 reactor,
@@ -37,8 +39,12 @@ public final class ModCapabilities {
 
     private static <BE extends BaseMinerBlockEntity> void registerMiner(
             RegisterCapabilitiesEvent event, BlockEntityType<BE> type) {
+        // Insert-only: every marker slot is material the miner consumes, so pipes and buses may
+        // load them but never empty them. The menu keeps the raw handler for manual removal.
         event.registerBlockEntity(
-                Capabilities.ItemHandler.BLOCK, type, (miner, side) -> miner.getItemHandler());
+                Capabilities.ItemHandler.BLOCK,
+                type,
+                (miner, side) -> miner.insertOnlyItemHandler());
         event.registerBlockEntity(
                 Capabilities.EnergyStorage.BLOCK, type, (miner, side) -> miner.getEnergyStorage());
         event.registerBlockEntity(

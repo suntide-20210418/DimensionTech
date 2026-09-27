@@ -1,0 +1,10 @@
+{
+  "values": [
+    "dimension_tech:dimension_fragment_tier_1",
+    "dimension_tech:dimension_fragment_tier_2",
+    "dimension_tech:dimension_fragment_tier_3",
+    "dimension_tech:dimension_fragment_tier_4",
+    "dimension_tech:dimension_fragment_tier_5",
+    "dimension_tech:dimension_fragment_tier_6"
+  ]
+}

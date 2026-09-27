@@ -131,6 +131,7 @@ modEventBus.addListener(…::commonSetup);
   `更新结构/升级状态 → 红石判断 → 自动抽液 → 待输出重试 → 标记与记录分析缓存 → 加工计划 → 工作 hook → 能源与周期流体结算 → 槽位推进 → 周期 hook → 战利品生成 → 输出 hook → 输出路由`
 - 可运行条件（`#canRun` 一类）要求：多方块结构完整、红石模式允许、输出未阻塞、存在有效 marker；同时刷新 loot/processing plans。
 - 产出点：按 slot 推进，读取 `MarkerAnalysis`，生成 completed markers，最终调用 `drawMarkerLoot` 产出战利品（产出基于已分析物品的期望构造权重）。
+- **槽位对外契约**：每个 Tier 的 `ItemHandler.BLOCK` capability 暴露的是 `BaseMinerBlockEntity#insertOnlyItemHandler()`，即 `InsertOnlyItemHandler` 视图——插入、读取、`isItemValid`、槽位上限全部透传，`extractItem` 恒返回空。所有标记槽都是采掘器要消耗的输入，管道、存储总线与 ME 网络只能投喂、不能抽走；裸 `itemHandler` 只留给菜单（玩家要能取回放错的标记）和机器自身逻辑，Jade 读盘也走视图。
 
 - `Tier1StructureMinerBlockEntity` … `Tier6StructureMinerBlockEntity`：几乎只做参数差异化——通过 `ModConfigs.TIERS[0..5]` 配置 slot、并行、幸运、能量/消耗、效率等。真正的行为都在基类（与"避免重复状态/职责重叠"的代码卫生一致）。
 
@@ -277,6 +278,10 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 - `ReactorSequenceTelemetry` / `ReactorTooltipSnapshot`：遥测与 tooltip 快照（供 GUI 展示）。
 - `ReactorAnalogSignal`：把 cycle 快照映射为比较器输出等级（0–15），按"反应堆在等什么"分区（空闲 / 进行中按 `StateId` / 奖励窗口 / 精炼中 / 启动被阻 / 提交被阻），让红石电路能比较、相减与锁存。
 - `StructureReactorBlockEntity`：主循环按 cycle 状态执行 `tick / resolve / tryStart / tryCommit`；启动与提交时校验输入、碎片、配方匹配与输出容量，产出 `outputAmountMb()`。
+- **槽位过滤与物品标签**：`FRAGMENT_SLOT` 只接受 `dimension_tech:dimension_fragments` 标签里的物品（= 六个 Tier 的 `dimension_fragment_tier_N`，由 `ModItemTagsProvider` 生成）；具体哪一级是配方的事，塞错等级仍由 `startCheck` 判 `WRONG_FRAGMENTS`，槽位只负责"是不是碎片"。`OPERATION_SLOT` 仍接受任意物品。数据包可以往这个标签里加自己的碎片，槽位就会一并接受。
+- **槽位对外契约**：与采掘器同一条策略——`ItemHandler.BLOCK` capability 暴露 `insertOnlyItemHandler()`，管道只能投喂这两个槽、一颗都抽不走；菜单拿裸 `inventory()`，玩家才能取回放错的碎片或操作物。
+- **流体面：按世界方向存储，按 FACING 换算读**。`getFluidFaceMode(worldDirection)` 索引世界面（capability 的 `side`、`pullFluids` / `pushFluid` 的循环都按世界面读），而"输出面配置"界面画的是机器正视图，所以入口统一经 `toWorldDirection(logical)` 用 `StructureReactorBlock.FACING` 换算：`cycleFluidFace(logical)` 与菜单的 `fluidFaceMode` / `toWorldDirection` 都走它。默认仍是 `DOWN = OUTPUT`，上/下不参与换算。旋转方块只改 `FACING`，模式留在原世界面（与采掘器同约定）。
+- **输出就是面模式，没有第二个开关**：面模式置为 `OUTPUT` 或 `INPUT_OUTPUT` 即是"自动输出"（界面 tooltip 也是这么写的），`serverTick` 每 tick 无条件调用 `pushFluid`，只有输出槽为空或该面不是输出面才会空转——与采掘器的物品输出路由同一条契约。因为 AE2 接口从不主动抽取，AE2 输出只需两件事同时成立：**该面模式 = 输出 + ME 网络开**，随后走 `Ae2Integration.insertFluidIntoInterfaceNetwork`。
 
 ### 7.2 结构数据操作仪（`StructureDataOperatorBlock*`）
 - `StructureDataOperatorBlockEntity`：管理结构标记的读写/分析/批量复制。
@@ -284,6 +289,7 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 - 槽位（`StructureDataOperatorBlockEntity`）：`TARGET = 0` 放目标标记器、`OPERAND_START = 1` 起连续的 `OPERAND_COUNT = 36` 个写入槽（界面 9×4）、`INTEGRATOR = 37`（只收 `data_integrator`）、`INTERPRETER = 38`（只收 `structure_interpreter`）。
 - **前置关系**（写文档时最容易漏的一环）：`interpreterAvailable() = hasIntegrator() && hasInterpreter()`，只有两者齐备界面才出现结构目录；`INTERPRETER` 槽在整合器为空时**不接受插入**，`INTEGRATOR` 槽在阐释器在位时 `extractItem` 直接返回空（**抽不出来**）。
 - **复制不需要整合器**：`canCopy` 只校验目标槽有已写入数据的标记器 + 36 个写入槽非空；`copyData()` 也只是把目标槽的 `StructureMarkerData` 拷进全部写入槽。整合器唯一的作用是解锁阐释器槽。
+- **对外物品接口：没有**。操作仪不注册 `ItemHandler.BLOCK` capability（`ModCapabilities` 只登记采掘器与反应堆），管道与存储总线碰不到它的槽；裸 `inventory()` 只给菜单和本类逻辑用——上面那条"阐释器在位时整合器抽不出来"的规则就写在它身上，别把它换成对外 capability 的视图。
 - 目录流程：`refreshCatalogue(player, includeAllStructures)` 生成目录 → `analyseCatalogueEntry(dimension, id)` 分析（按 value 配置指纹缓存）→ `writeCatalogueEntry(dimension, id)` 写入目标槽的标记器。
 - 宝箱侧：`ChestMarkerItem.markChest` 直接标记并立即分析；`refreshAnalysis` 用当前世界数据与配置重算；profile 只用 NBT 里的 LootTable（`ChestInfo(position, lootTable, seed)`），不查结构模板、不依赖世界加载。
 
@@ -338,7 +344,7 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 
 ### 10.1 DataGen（`datagen/`）
 `ModDataGenerator#gatherData` 触发时注册：
-- 服务端：`ModRecipesProvider`（配方）、`LootTableProvider` + `ModBlockLootTablesProvider`（方块战利品表）。
+- 服务端：`ModRecipesProvider`（配方）、`ModItemTagsProvider`（物品标签，目前只有 `dimension_tech:dimension_fragments`，即六个 Tier 的维度碎片；标签在 `ModItems.DIMENSION_FRAGMENTS_TAG` 声明，反应堆的碎片槽按它过滤）、`LootTableProvider` + `ModBlockLootTablesProvider`（方块战利品表）。
 - 客户端：`ModItemModelsProvider`、`ModBlockStateProvider`、`ModEnusLangProvider`、`ModZhcnLangProvider`（中英文语言文件）。
 - `DatagenExitWatchdog`：因为可选模组（尤其 KubeJS）可能持有非 daemon 线程，DataGen 主线程结束后 JVM 可能不退出；watchdog 检测 lingering 线程并在必要时 `System.exit(0)`。这也覆盖了 IDE 直接跑 `Application` 型 runData 配置的场景。
 - 生成产物写入 `src/generated/resources`。

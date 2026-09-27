@@ -33,6 +33,9 @@ public final class ModDataGenerator {
                 event.includeServer(), new ModRecipesProvider(packOutput, registries));
         generator.addProvider(
                 event.includeServer(),
+                new ModItemTagsProvider(packOutput, registries, existingFileHelper));
+        generator.addProvider(
+                event.includeServer(),
                 new LootTableProvider(
                         packOutput,
                         Set.of(),

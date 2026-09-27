@@ -764,8 +764,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.face.empty", "No block");
         add("screen.dimension_tech.structure_miner.face.north", "Front");
         add("screen.dimension_tech.structure_miner.face.south", "Back");
-        add("screen.dimension_tech.structure_miner.face.east", "East");
-        add("screen.dimension_tech.structure_miner.face.west", "West");
+        add("screen.dimension_tech.structure_miner.face.east", "Left");
+        add("screen.dimension_tech.structure_miner.face.west", "Right");
         add("screen.dimension_tech.structure_miner.face.up", "Up");
         add("screen.dimension_tech.structure_miner.face.down", "Down");
         add("screen.dimension_tech.structure_miner.face.status.fluid_input", "Fluid input");
