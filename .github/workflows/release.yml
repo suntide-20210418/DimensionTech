@@ -1,0 +1,217 @@
+# 发布：版本标签 -> 构建 -> 发布到 CurseForge / Modrinth / GitHub Release
+#
+# 触发条件：
+#   - 推送版本标签，例如 `git tag 1.0.0-1.20.1 && git push origin 1.0.0-1.20.1`
+#     （允许 `v` 前缀；标签必须与 gradle.properties 里的 mod_version 完全一致）
+#   - 手动 workflow_dispatch：给定一个已存在的标签，可选择只构建不发布
+#
+# 需要的仓库配置（Settings -> Secrets and variables -> Actions）：
+#   变量（Variables）  CURSEFORGE_PROJECT_ID    CurseForge 项目 ID（数字）
+#   变量（Variables）  MODRINTH_PROJECT_ID      Modrinth 项目 ID
+#   密钥（Secrets）    CURSEFORGE_TOKEN         https://authors.curseforge.com/#/account/api-tokens
+#   密钥（Secrets）    MODRINTH_TOKEN           https://modrinth.com/settings/pats
+#   密钥（Secrets）    GITHUB_TOKEN             GitHub 自动注入，无需配置
+#
+# 某个平台的「项目 ID」与「令牌」都为空时会被自动跳过；只配了一半会在构建前直接报错。
+# 因此第一次可以先只配 Modrinth（或只配 CurseForge），之后再补另一个平台。
+
+name: Release
+
+on:
+  push:
+    tags:
+      # 版本标签形如 1.0.0-1.20.1。`*` 不匹配 '/'，标签里不会出现 '/'，够用。
+      - '*.*.*-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的 Git 标签（例如 1.0.0-1.20.1），必须已经存在'
+        required: true
+        type: string
+      publish:
+        description: '构建完成后真正发布到 CurseForge / Modrinth'
+        required: false
+        default: false
+        type: boolean
+
+# 创建 / 更新 GitHub Release 需要写权限。
+permissions:
+  contents: write
+
+env:
+  # 标签推送时用被推送的标签；手动触发时用输入的标签。
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    name: Build & publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          # 生成变更日志要遍历历史标签，必须取全量历史。
+          fetch-depth: 0
+
+      - name: Validate tag against gradle.properties
+        id: meta
+        run: |
+          set -euo pipefail
+          tag="${RELEASE_TAG}"
+          version="${tag#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-.+$ ]]; then
+            echo "::error::标签 '$tag' 不符合 '<mod版本>-<MC版本>' 形式，例如 1.0.0-1.20.1"
+            exit 1
+          fi
+          mod_version=$(sed -n 's/^mod_version=//p' gradle.properties)
+          if [ "$version" != "$mod_version" ]; then
+            echo "::error::标签版本 $version 与 gradle.properties 的 mod_version=$mod_version 不一致。"
+            echo "::error::请先把 gradle.properties 的 mod_version 改成 $version 并提交，再重新打标签。"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "标签校验通过：$tag -> 发布版本 $version"
+
+      # 在耗时十几分钟的构建之前先把凭据问题暴露出来。
+      - name: Check publish configuration
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          CF_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          CF_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MR_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+          MR_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          targets=0
+          if [ -n "${CF_ID:-}" ] || [ -n "${CF_TOKEN:-}" ]; then
+            if [ -z "${CF_ID:-}" ] || [ -z "${CF_TOKEN:-}" ]; then
+              echo "::error::CurseForge 配置不完整：需要同时提供仓库变量 CURSEFORGE_PROJECT_ID 与仓库密钥 CURSEFORGE_TOKEN"
+              exit 1
+            fi
+            echo "CurseForge: 项目 ${CF_ID}"
+            targets=$((targets + 1))
+          else
+            echo "CurseForge: 未配置，跳过"
+          fi
+          if [ -n "${MR_ID:-}" ] || [ -n "${MR_TOKEN:-}" ]; then
+            if [ -z "${MR_ID:-}" ] || [ -z "${MR_TOKEN:-}" ]; then
+              echo "::error::Modrinth 配置不完整：需要同时提供仓库变量 MODRINTH_PROJECT_ID 与仓库密钥 MODRINTH_TOKEN"
+              exit 1
+            fi
+            echo "Modrinth: 项目 ${MR_ID}"
+            targets=$((targets + 1))
+          else
+            echo "Modrinth: 未配置，跳过"
+          fi
+          if [ "$targets" -eq 0 ]; then
+            echo "::warning::CurseForge 与 Modrinth 都未配置，本次只会创建 GitHub Release"
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build
+        run: ./gradlew build --stacktrace
+
+      - name: Collect artifacts
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          main=''
+          for f in build/libs/*.jar; do
+            case "$f" in *-sources.jar) continue ;; esac
+            main="$f"
+            break
+          done
+          if [ -z "$main" ]; then
+            echo "::error::build/libs 下没有找到主 jar"
+            exit 1
+          fi
+          unzip -p "$main" META-INF/mods.toml > mods.toml.extracted
+          grep -Fq "version=\"${VERSION}\"" mods.toml.extracted
+          echo "构建产物："
+          ls -l build/libs
+
+      - name: Generate changelog
+        run: |
+          set -euo pipefail
+          tag="${RELEASE_TAG}"
+          prev=$(git describe --tags --abbrev=0 --match '*.*.*-*' "${tag}^" 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            {
+              echo "自 \`$prev\` 以来的变更："
+              echo
+              git log --no-merges --pretty='- %s (%h)' "$prev..$tag"
+              echo
+              echo "[完整变更记录](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${prev}...${tag})"
+            } > CHANGELOG_LATEST.md
+          else
+            {
+              echo "首个发布。"
+              echo
+              git log --no-merges --pretty='- %s (%h)' "$tag"
+            } > CHANGELOG_LATEST.md
+          fi
+          cat CHANGELOG_LATEST.md
+
+      - name: Publish
+        if: github.event_name == 'push' || inputs.publish
+        uses: Kira-NT/mc-publish@v3.3.1
+        with:
+          # 只把主 jar 交给 CurseForge / Modrinth；GitHub Release 额外附上源码 jar。
+          files: build/libs/!(*-sources).jar
+          github-files: |
+            build/libs/!(*-sources).jar
+            build/libs/*-sources.jar
+
+          name: Dimension Tech ${{ steps.meta.outputs.version }} for Minecraft 1.20.1 (Forge)
+          version: ${{ steps.meta.outputs.version }}
+          version-type: release
+          # 提供了 changelog-file 时 github-generate-changelog 默认即为 false，
+          # 也就是三个平台共用同一份变更日志（由上一步从 git 历史生成）。
+          changelog-file: CHANGELOG_LATEST.md
+
+          # 元数据显式给出，不依赖 action 去解析带 ${} 占位符的 mods.toml。
+          loaders: forge
+          game-versions: 1.20.1
+          environment: client | server
+          java: '17'
+          # 与 META-INF/mods.toml 声明的可选前置一致。括号里是 Modrinth 项目 ID，
+          # 大括号里是 CurseForge 项目 ID（后者取自 build.gradle 的 curse.maven 坐标）。
+          dependencies: |
+            ae2(optional){modrinth:XxWD5pD3}{curseforge:223794}
+            jade(optional){modrinth:nvQzSEkH}{curseforge:324717}
+            jei(optional){modrinth:u6dRKJwZ}{curseforge:238222}
+
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-tag: ${{ steps.meta.outputs.tag }}
+
+          retry-attempts: 3
+          retry-delay: 10000
+          fail-mode: fail
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dimension_tech-release-${{ steps.meta.outputs.version }}
+          path: build/libs/*.jar
+          if-no-files-found: warn
+          retention-days: 30

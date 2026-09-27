@@ -127,6 +127,12 @@ repositories {
         url = 'https://bmclapi2.bangbang93.com/maven'
         content { includeGroup "net.minecraftforge" }
     }
+    // 官方 Forge Maven。BMCLAPI 是面向中国大陆的镜像，境外 CI（GitHub Actions）
+    // 命中它时延迟高、偶发超时；这里作为后备排在镜像之后，本地开发仍优先走镜像。
+    maven {
+        url = 'https://maven.minecraftforge.net/'
+        content { includeGroup "net.minecraftforge" }
+    }
     maven {
         url "https://cursemaven.com"
         content { includeGroup "curse.maven" }
