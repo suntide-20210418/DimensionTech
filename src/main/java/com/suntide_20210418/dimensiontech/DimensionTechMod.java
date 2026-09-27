@@ -49,6 +49,7 @@ public class DimensionTechMod {
         modEventBus.addListener(DimensionTechMod::commonSetup);
         modEventBus.addListener(ModCapabilities::register);
         modEventBus.addListener(NetworkHandler::register);
+
     }
 
     private static void commonSetup(final FMLCommonSetupEvent event) {
