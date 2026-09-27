@@ -12,6 +12,7 @@ import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
+import com.suntide_20210418.dimensiontech.utils.InsertOnlyItemHandler;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
@@ -78,6 +79,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             MinerAccelerationController.MINIMUM_NATURAL_TICKS;
 
     private final ItemStackHandler itemHandler;
+
+    /**
+     * The view automation sees: the same slots, insert-only. Every slot holds a marker the miner
+     * runs on, so an extractor that empties one silently stops the machine.
+     */
+    private final IItemHandler automationInventory;
     private final EnergyContainer energyStorage;
     private LazyOptional<IItemHandler> itemHandlerCapability;
     private LazyOptional<IEnergyStorage> energyCapability;
@@ -103,6 +110,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             BlockEntityType<?> type, BlockPos position, BlockState blockState) {
         super(type, position, blockState);
         this.itemHandler = createItemHandler();
+        this.automationInventory = new InsertOnlyItemHandler(itemHandler);
         this.upgradeController = new MinerUpgradeController(position);
         this.analysisController =
                 new MinerAnalysisController(
@@ -130,7 +138,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         setChanged();
                     }
                 };
-        this.itemHandlerCapability = LazyOptional.of(() -> itemHandler);
+        this.itemHandlerCapability = LazyOptional.of(() -> automationInventory);
         this.energyCapability = LazyOptional.of(() -> energyStorage);
         this.fluidCapability = LazyOptional.of(this::createFluidInputHandler);
         this.fluidOutputCapability = LazyOptional.of(this::createFluidOutputHandler);
@@ -154,9 +162,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     }
 
     /**
-     * Moves fluid between a held fluid container and this miner's single tank on direct interaction.
-     * A filled container pours into the tank when the tank is empty or already holds that fluid;
-     * failing that, an empty (or matching) container draws the stored fluid back out.
+     * Moves fluid between a held fluid container and this miner's single tank on direct
+     * interaction. A filled container pours into the tank when the tank is empty or already holds
+     * that fluid; failing that, an empty (or matching) container draws the stored fluid back out.
      *
      * @return true when any fluid actually moved, so the caller knows to re-place the container
      */
@@ -175,7 +183,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     /** Pours a filled container into the tank, up to the tank's remaining room. */
     private boolean pourIntoFrom(IFluidHandlerItem container, FluidStack held) {
         if (!fluidTank.isEmpty() && !fluidTank.getFluid().isFluidEqual(held)) return false;
-        int wanted = Math.min(fluidTank.getCapacity() - fluidTank.getFluidAmount(), held.getAmount());
+        int wanted =
+                Math.min(fluidTank.getCapacity() - fluidTank.getFluidAmount(), held.getAmount());
         if (wanted <= 0 || !fluidTank.isFluidValid(held)) return false;
         FluidStack drained = container.drain(wanted, IFluidHandler.FluidAction.EXECUTE);
         if (drained.isEmpty()) return false;
@@ -197,7 +206,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         int room = container.getTankCapacity(0) - held.getAmount();
         if (room <= 0) return false;
         FluidStack offered =
-                fluidTank.drain(Math.min(room, stored.getAmount()), IFluidHandler.FluidAction.SIMULATE);
+                fluidTank.drain(
+                        Math.min(room, stored.getAmount()), IFluidHandler.FluidAction.SIMULATE);
         if (offered.isEmpty()) return false;
         int accepted = container.fill(offered, IFluidHandler.FluidAction.EXECUTE);
         if (accepted <= 0) return false;
@@ -205,7 +215,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return true;
     }
 
-    /** Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills. */
+    /**
+     * Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills.
+     */
     private void playFluidTransferSound(boolean pouringIn) {
         if (level == null) return;
         level.playSound(
@@ -481,9 +493,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public void toggleRedstoneControl() {
         redstoneMode =
-                redstoneMode == RedstoneMode.SIGNAL
-                        ? RedstoneMode.ALWAYS
-                        : RedstoneMode.SIGNAL;
+                redstoneMode == RedstoneMode.SIGNAL ? RedstoneMode.ALWAYS : RedstoneMode.SIGNAL;
         redstoneThreshold = 8;
         setChanged();
     }
@@ -1016,11 +1026,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             ItemStack stack = itemHandler.getStackInSlot(slot);
             if (stack.isEmpty()) continue;
             Containers.dropItemStack(
-                    level,
-                    worldPosition.getX(),
-                    worldPosition.getY(),
-                    worldPosition.getZ(),
-                    stack);
+                    level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
             itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
         }
     }
@@ -1041,7 +1047,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             protected void onContentsChanged(int slot) {
                 if (analysisController != null) analysisController.invalidateIfInputsChanged();
                 ItemStack marker = getStackInSlot(slot);
-                if (!ModItems.isMarker(marker) || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
+                if (!ModItems.isMarker(marker)
+                        || StructMarkerItem.getMarkerInfo(marker).isEmpty()) {
                     resetSlotState(slot);
                 }
                 setChanged();
@@ -1185,7 +1192,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     @Override
     public void reviveCaps() {
         super.reviveCaps();
-        itemHandlerCapability = LazyOptional.of(() -> itemHandler);
+        itemHandlerCapability = LazyOptional.of(() -> automationInventory);
         energyCapability = LazyOptional.of(() -> energyStorage);
         fluidCapability = LazyOptional.of(this::createFluidInputHandler);
         fluidOutputCapability = LazyOptional.of(this::createFluidOutputHandler);

@@ -12,6 +12,7 @@ import com.suntide_20210418.dimensiontech.structurereactor.StateStep;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipe;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipes;
+import com.suntide_20210418.dimensiontech.utils.InsertOnlyItemHandler;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
@@ -102,20 +103,18 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     public static final int DATA_REFINING_TICKS = 24;
     public static final int DATA_AUTO_PULL = 25;
-    public static final int DATA_AUTO_PUSH = 26;
-    public static final int DATA_ME_NETWORK = 27;
-    public static final int DATA_FLUID_FACE_MODES = 28;
-    public static final int DATA_INPUT_FLUID_LOCKED = 29;
-    public static final int DATA_REDSTONE = 30;
+    public static final int DATA_ME_NETWORK = 26;
+    public static final int DATA_FLUID_FACE_MODES = 27;
+    public static final int DATA_INPUT_FLUID_LOCKED = 28;
+    public static final int DATA_REDSTONE = 29;
 
-    public static final int DATA_SLOT_COUNT = 31;
+    public static final int DATA_SLOT_COUNT = 30;
     public static final int BUTTON_TOGGLE_AUTO_PULL = 30;
-    public static final int BUTTON_TOGGLE_AUTO_PUSH = 31;
-    public static final int BUTTON_TOGGLE_ME_NETWORK = 32;
-    public static final int BUTTON_TOGGLE_INPUT_LOCK = 33;
-    public static final int BUTTON_CLEAR_INPUT_TANK = 34;
-    public static final int BUTTON_CLEAR_OUTPUT_TANK = 35;
-    public static final int BUTTON_TOGGLE_REDSTONE_CONTROL = 36;
+    public static final int BUTTON_TOGGLE_ME_NETWORK = 31;
+    public static final int BUTTON_TOGGLE_INPUT_LOCK = 32;
+    public static final int BUTTON_CLEAR_INPUT_TANK = 33;
+    public static final int BUTTON_CLEAR_OUTPUT_TANK = 34;
+    public static final int BUTTON_TOGGLE_REDSTONE_CONTROL = 35;
 
     /** Everything from here up is a fluid-face cycle id, so screen buttons must stay below it. */
     public static final int BUTTON_CYCLE_FLUID_FACE_BASE = 40;
@@ -148,38 +147,7 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
      * material the player already supplied. The player keeps full access: the menu talks to
      * {@link #inventory} directly, exactly as the slots draw it.
      */
-    private final IItemHandler automationInventory =
-            new IItemHandler() {
-                @Override
-                public int getSlots() {
-                    return inventory.getSlots();
-                }
-
-                @Override
-                public ItemStack getStackInSlot(int slot) {
-                    return inventory.getStackInSlot(slot);
-                }
-
-                @Override
-                public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-                    return inventory.insertItem(slot, stack, simulate);
-                }
-
-                @Override
-                public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                    return ItemStack.EMPTY;
-                }
-
-                @Override
-                public int getSlotLimit(int slot) {
-                    return inventory.getSlotLimit(slot);
-                }
-
-                @Override
-                public boolean isItemValid(int slot, ItemStack stack) {
-                    return inventory.isItemValid(slot, stack);
-                }
-            };
+    private final IItemHandler automationInventory = new InsertOnlyItemHandler(inventory);
 
     private boolean inputFluidLocked;
     private Fluid lockedInputFluid = Fluids.EMPTY;
@@ -189,7 +157,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
     private ItemStack reservedFragments = ItemStack.EMPTY;
     private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
     private boolean autoPullFluid;
-    private boolean autoPushFluid;
     private boolean meNetwork;
     private boolean redstoneControl;
 
@@ -331,10 +298,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         return autoPullFluid;
     }
 
-    public boolean isAutoPushFluidEnabled() {
-        return autoPushFluid;
-    }
-
     public boolean isMeNetworkEnabled() {
         return meNetwork;
     }
@@ -355,11 +318,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
 
     public void toggleAutoPullFluid() {
         autoPullFluid = !autoPullFluid;
-        setChanged();
-    }
-
-    public void toggleAutoPushFluid() {
-        autoPushFluid = !autoPushFluid;
         setChanged();
     }
 
@@ -552,7 +510,9 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         if (cycleRuns) {
             if (level instanceof ServerLevel serverLevel) {
                 if (be.autoPullFluid) be.pullFluids(serverLevel);
-                if (be.autoPushFluid) be.pushFluid(serverLevel);
+                // A face configured for output is a standing request to push into it, so the push
+                // waits on no toggle of its own: setting the face is the switch.
+                be.pushFluid(serverLevel);
             }
             if (cycleNeedsStart(be)) be.tryStart();
             if (be.cycle.status() == StructureReactorCycle.Status.RUNNING) {
@@ -910,7 +870,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
             case DATA_ELAPSED_TICKS -> cycle.elapsedTicks();
             case DATA_REFINING_TICKS -> cycle.elapsedTicks();
             case DATA_AUTO_PULL -> autoPullFluid ? 1 : 0;
-            case DATA_AUTO_PUSH -> autoPushFluid ? 1 : 0;
             case DATA_ME_NETWORK -> meNetwork ? 1 : 0;
             case DATA_FLUID_FACE_MODES -> getFluidFaceModesPacked();
             case DATA_INPUT_FLUID_LOCKED -> inputFluidLocked ? 1 : 0;
@@ -969,7 +928,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
         tag.put("ReactorReservedFragments", reservedFragments.save(new CompoundTag()));
         tag.putInt("FluidFaceModes", getFluidFaceModesPacked());
         tag.putBoolean("AutoPullFluid", autoPullFluid);
-        tag.putBoolean("AutoPushFluid", autoPushFluid);
         tag.putBoolean("MeNetwork", meNetwork);
         tag.putBoolean("RedstoneControl", redstoneControl);
         tag.putBoolean("InputFluidLocked", inputFluidLocked);
@@ -1001,7 +959,6 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
                             : FluidFaceMode.DISABLED;
         }
         autoPullFluid = tag.getBoolean("AutoPullFluid");
-        autoPushFluid = tag.getBoolean("AutoPushFluid");
         meNetwork = tag.getBoolean("MeNetwork");
         redstoneControl = tag.getBoolean("RedstoneControl");
         inputFluidLocked = tag.getBoolean("InputFluidLocked");

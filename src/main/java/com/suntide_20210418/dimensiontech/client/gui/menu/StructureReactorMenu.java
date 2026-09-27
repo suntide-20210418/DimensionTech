@@ -236,10 +236,6 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         return data.get(StructureReactorBlockEntity.DATA_AUTO_PULL) != 0;
     }
 
-    public boolean autoPushFluid() {
-        return data.get(StructureReactorBlockEntity.DATA_AUTO_PUSH) != 0;
-    }
-
     public boolean meNetwork() {
         return data.get(StructureReactorBlockEntity.DATA_ME_NETWORK) != 0;
     }
@@ -296,10 +292,6 @@ public final class StructureReactorMenu extends AbstractContainerMenu
         if (!stillValid(player)) return false;
         if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PULL) {
             if (!player.level().isClientSide) reactor.toggleAutoPullFluid();
-            return true;
-        }
-        if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_AUTO_PUSH) {
-            if (!player.level().isClientSide) reactor.toggleAutoPushFluid();
             return true;
         }
         if (id == StructureReactorBlockEntity.BUTTON_TOGGLE_ME_NETWORK) {
