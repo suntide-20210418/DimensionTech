@@ -19,7 +19,12 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
-/** Adds the dimension core roll and player-scoped 20-chest pity to structure loot. */
+/**
+ * Adds the dimension core roll and player-scoped 20-chest pity to structure loot. Vanilla chests
+ * and Lootr chests take different paths and use different idempotency keys, because they do not
+ * agree on where a chest's contents live; see {@link #openVanillaChest} and {@link
+ * #openLootrChest}.
+ */
 @EventBusSubscriber(modid = DimensionTechMod.MOD_ID)
 public final class DimensionCoreChestLoot {
     private static final String MISSES_TAG =
@@ -33,8 +38,7 @@ public final class DimensionCoreChestLoot {
     // 副作用一起消失，同一个箱子可以无限重复掷骰、无限推进保底。与其继续依赖别人的实现细节，不如自己
     // 把这条不变式写下来。BlockEntity#getPersistentData 会以 "NeoForgeData" 键往返存档，而且 Lootr
     // 换方块实体时会显式搬运它（PlatformAPIImpl#copySpecificData / #restoreSpecificData）。
-    // 包内可见：临时诊断 ChestLootDiagnostics 要把它打进日志里，诊断删掉后可以收回 private。
-    static final String ROLLED_TAG = DimensionTechMod.MOD_ID + ":dimension_core_rolled";
+    private static final String ROLLED_TAG = DimensionTechMod.MOD_ID + ":dimension_core_rolled";
 
     /** Consecutive failed chests before the next one is guaranteed to hold a core. */
     public static final int PITY_CHEST = 20;
@@ -53,13 +57,10 @@ public final class DimensionCoreChestLoot {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        ChestLootDiagnostics.probeEntry(event, blockEntity);
         if (!(blockEntity instanceof RandomizableContainerBlockEntity container)) {
-            ChestLootDiagnostics.skip("not-a-randomizable-container", level, pos, blockEntity);
             return;
         }
         if (!container.canOpen(player)) {
-            ChestLootDiagnostics.skip("canOpen=false", level, pos, blockEntity);
             return;
         }
 
@@ -68,13 +69,7 @@ public final class DimensionCoreChestLoot {
         // DataComponents.CONTAINER_LOOT（见 applyImplicitComponents / collectImplicitComponents）。
         // 所以这里读 getLootTable()，它同时承担「这是不是一个还没展开的战利品箱」这一判断。
         ResourceKey<LootTable> lootTable = container.getLootTable();
-        if (lootTable == null) {
-            ChestLootDiagnostics.skip("lootTable=null", level, pos, blockEntity);
-            return;
-        }
-        if (!lootTable.location().getPath().startsWith("chests/")) {
-            ChestLootDiagnostics.skip(
-                    "lootTable-path=" + lootTable.location(), level, pos, blockEntity);
+        if (lootTable == null || !lootTable.location().getPath().startsWith("chests/")) {
             return;
         }
 
@@ -82,7 +77,7 @@ public final class DimensionCoreChestLoot {
         if (LootrCompat.isLootrContainer(blockEntity)) {
             openLootrChest(blockEntity, level, pos, player);
         } else {
-            openVanillaChest(container, level, pos, player);
+            openVanillaChest(container, player);
         }
     }
 
@@ -98,13 +93,9 @@ public final class DimensionCoreChestLoot {
 
     // 原版箱子：战利品全局只有一份（第一个开的人展开它，之后箱子就空了），所以幂等判据必须是箱子级的。
     private static void openVanillaChest(
-            RandomizableContainerBlockEntity container,
-            Level level,
-            BlockPos pos,
-            ServerPlayer player) {
+            RandomizableContainerBlockEntity container, ServerPlayer player) {
         CompoundTag marker = container.getPersistentData();
         if (marker.getBoolean(ROLLED_TAG)) {
-            ChestLootDiagnostics.skip("already-rolled", level, pos, container);
             return;
         }
 
@@ -128,14 +119,12 @@ public final class DimensionCoreChestLoot {
         // 这一步必须用只读探测。get-or-create 会顺手把背包建出来，建完之后就再也读不到 null 了，
         // 「是否首开」这个判据会当场失效。
         if (LootrCompat.peekInventory(level, pos, player) != null) {
-            ChestLootDiagnostics.skip("lootr-already-looted-by-player", level, pos, blockEntity);
             return;
         }
         // 取到（必要时创建并填充）这个玩家的背包。Lootr 自己的 handleProviderOpen 紧跟着会走同一条
         // get-or-create 路径拿到同一个实例再开菜单，所以这里提前建好不会把战利品填两遍。
         Container target = LootrCompat.openLootInventory(level, pos, player);
         if (target == null) {
-            ChestLootDiagnostics.skip("lootr-inventory-unavailable", level, pos, blockEntity);
             return;
         }
         rollInto(blockEntity, target, player);
@@ -146,18 +135,12 @@ public final class DimensionCoreChestLoot {
         CompoundTag persistentData = player.getPersistentData();
         int misses = Math.max(0, persistentData.getInt(MISSES_TAG));
         boolean guaranteed = misses >= PITY_CHEST - 1;
-        // TEMP-DIAG：为了把真正的骰值写进日志才拆出 roll。三元表达式只在 !guaranteed 时求值，
-        // 和原来 `guaranteed || nextFloat() < DROP_CHANCE` 的短路行为完全一致 —— 不能改成先无条件
-        // 取值再比较，那会平移该玩家 RandomSource 的随机流。
-        float roll = guaranteed ? Float.NaN : player.getRandom().nextFloat();
-        boolean generated = guaranteed || roll < DROP_CHANCE;
-        ChestLootDiagnostics.roll(blockEntity, target, misses, guaranteed, roll, generated, player);
+        boolean generated = guaranteed || player.getRandom().nextFloat() < DROP_CHANCE;
         if (generated) {
             insertCore(target, player, blockEntity);
             persistentData.putInt(MISSES_TAG, 0);
         } else {
             persistentData.putInt(MISSES_TAG, misses + 1);
-            ChestLootDiagnostics.pityAdvanced(target, misses + 1);
         }
         // 原版箱子上这就是标记容器与标记方块实体；Lootr 背包上它会转成 LootrSavedData#setDirty。
         target.setChanged();
@@ -168,7 +151,6 @@ public final class DimensionCoreChestLoot {
         for (int slot = 0; slot < target.getContainerSize(); slot++) {
             if (target.getItem(slot).isEmpty()) {
                 target.setItem(slot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get()));
-                ChestLootDiagnostics.coreWritten(blockEntity, target, slot, false, player);
                 return;
             }
         }
@@ -176,7 +158,6 @@ public final class DimensionCoreChestLoot {
         int slot = player.getRandom().nextInt(target.getContainerSize());
         ItemStack displaced = target.getItem(slot).copy();
         target.setItem(slot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get()));
-        ChestLootDiagnostics.coreWritten(blockEntity, target, slot, true, player);
         BlockPos pos = blockEntity.getBlockPos();
         Containers.dropItemStack(
                 player.serverLevel(),
