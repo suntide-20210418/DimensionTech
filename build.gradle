@@ -154,6 +154,7 @@ dependencies {
     add(optionalModConfiguration, "curse.maven:mekanism-268560:7904058")
     add(optionalModConfiguration, "curse.maven:let-me-see-see-your-code-1229018:6777654")
     add(optionalModConfiguration, "curse.maven:ae2-jei-integration-1074338:7727898")
+    add(optionalModConfiguration, "curse.maven:lootr-361276:8968561")
 
     // Mouse Tweaks is a client-only convenience mod. Keeping it off the dev runtime prevents
     // runData/server launches from constructing it.

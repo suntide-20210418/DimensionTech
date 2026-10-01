@@ -36,10 +36,13 @@ public final class DimensionCoreChestLoot {
             return;
         }
         BlockEntity blockEntity = event.getLevel().getBlockEntity(event.getPos());
+        ChestLootDiagnostics.probeEntry(event, blockEntity);
         if (!(blockEntity instanceof RandomizableContainerBlockEntity container)) {
+            ChestLootDiagnostics.skip("not-a-randomizable-container", event, blockEntity);
             return;
         }
         if (!container.canOpen(player)) {
+            ChestLootDiagnostics.skip("canOpen=false", event, blockEntity);
             return;
         }
 
@@ -48,7 +51,12 @@ public final class DimensionCoreChestLoot {
         // （SeededContainerLoot）里，saveAdditional 还会显式移除该 NBT 键
         // （见 RandomizableContainerBlockEntity#saveAdditional / #setComponents），所以这里改读注册表键。
         ResourceKey<LootTable> lootTable = container.getLootTable();
-        if (lootTable == null || !lootTable.location().getPath().startsWith("chests/")) {
+        if (lootTable == null) {
+            ChestLootDiagnostics.skip("lootTable=null", event, blockEntity);
+            return;
+        }
+        if (!lootTable.location().getPath().startsWith("chests/")) {
+            ChestLootDiagnostics.skip("lootTable-path=" + lootTable.location(), event, blockEntity);
             return;
         }
 
@@ -57,12 +65,18 @@ public final class DimensionCoreChestLoot {
         CompoundTag persistentData = player.getPersistentData();
         int misses = Math.max(0, persistentData.getInt(MISSES_TAG));
         boolean guaranteed = misses >= PITY_CHEST - 1;
-        boolean generated = guaranteed || player.getRandom().nextFloat() < DROP_CHANCE;
+        // TEMP-DIAG：为了把真正的骰值写进日志才拆出 roll。三元表达式只在 !guaranteed 时求值，
+        // 和原来 `guaranteed || nextFloat() < DROP_CHANCE` 的短路行为完全一致 —— 不能改成先无条件
+        // 取值再比较，那会平移该玩家 RandomSource 的随机流。
+        float roll = guaranteed ? Float.NaN : player.getRandom().nextFloat();
+        boolean generated = guaranteed || roll < DROP_CHANCE;
+        ChestLootDiagnostics.roll(container, misses, guaranteed, roll, generated);
         if (generated) {
             insertCore(container, player);
             persistentData.putInt(MISSES_TAG, 0);
         } else {
             persistentData.putInt(MISSES_TAG, misses + 1);
+            ChestLootDiagnostics.pityAdvanced(container, misses + 1, player);
         }
         container.setChanged();
     }
@@ -83,6 +97,7 @@ public final class DimensionCoreChestLoot {
             if (container.getItem(slot).isEmpty()) {
                 container.setItem(
                         slot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get()));
+                ChestLootDiagnostics.coreWritten(container, slot, false, player);
                 return;
             }
         }
@@ -90,6 +105,7 @@ public final class DimensionCoreChestLoot {
         int slot = player.getRandom().nextInt(container.getContainerSize());
         ItemStack displaced = container.getItem(slot).copy();
         container.setItem(slot, new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get()));
+        ChestLootDiagnostics.coreWritten(container, slot, true, player);
         Containers.dropItemStack(
                 player.serverLevel(),
                 container.getBlockPos().getX() + 0.5D,
