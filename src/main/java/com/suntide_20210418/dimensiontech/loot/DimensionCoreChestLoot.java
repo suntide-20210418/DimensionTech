@@ -70,7 +70,7 @@ public final class DimensionCoreChestLoot {
         // 取值再比较，那会平移该玩家 RandomSource 的随机流。
         float roll = guaranteed ? Float.NaN : player.getRandom().nextFloat();
         boolean generated = guaranteed || roll < DROP_CHANCE;
-        ChestLootDiagnostics.roll(container, misses, guaranteed, roll, generated);
+        ChestLootDiagnostics.roll(container, misses, guaranteed, roll, generated, player);
         if (generated) {
             insertCore(container, player);
             persistentData.putInt(MISSES_TAG, 0);

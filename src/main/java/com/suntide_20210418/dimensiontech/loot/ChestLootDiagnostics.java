@@ -104,13 +104,15 @@ public final class ChestLootDiagnostics {
                         + blockEntity.getClass().getName());
     }
 
-    // 通过了所有门禁并且已经掷过骰子。
+    // 通过了所有门禁并且已经掷过骰子。末尾的 lootrInventory 探针是「这个玩家是否首次开启这个箱子」
+    // 的唯一判据：原版靠 unpackLootTable 把 lootTable 置空来做幂等，Lootr 把那个方法覆写成了空实现。
     public static void roll(
             RandomizableContainerBlockEntity container,
             int missesBefore,
             boolean guaranteed,
             float roll,
-            boolean generated) {
+            boolean generated,
+            ServerPlayer player) {
         if (!ENABLED) {
             return;
         }
@@ -126,7 +128,10 @@ public final class ChestLootDiagnostics {
                         + " chance="
                         + DimensionCoreChestLoot.DROP_CHANCE
                         + " generated="
-                        + generated);
+                        + generated
+                        + " | "
+                        + describeLootrInventory(
+                                container.getLevel(), container.getBlockPos(), player));
     }
 
     // 核心写进 target 之后调用。这里的 readBack 是关键证据：它反映的是「方块实体自己的容器」，
@@ -194,7 +199,7 @@ public final class ChestLootDiagnostics {
                 "menu="
                         + event.getContainer().getClass().getSimpleName()
                         + "(type="
-                        + event.getContainer().getType()
+                        + BuiltInRegistries.MENU.getKey(event.getContainer().getType())
                         + ") container="
                         + container.getClass().getName()
                         + " lootrOwned="
