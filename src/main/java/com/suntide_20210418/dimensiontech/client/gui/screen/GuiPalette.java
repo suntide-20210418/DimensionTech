@@ -54,6 +54,20 @@ final class GuiPalette {
     /** One pixel shadow inside a slot well. */
     static final int SLOT_SHADE = 0xFF2F2F2F;
 
+    /**
+     * A quantity drawn in a slot's bottom-right corner, over the item's own art.
+     *
+     * <p>Pure white, and the one token here that is deliberately not chosen against a surface: it
+     * lands on item textures whose colours are unknown, so it is drawn with the vanilla text shadow
+     * instead. The shadow renders each glyph a second time at a quarter brightness, which outlines
+     * every stroke and is what makes the colour legible over art rather than over a face.
+     *
+     * <p>Not {@link #TEXT}, although both are light: that token is contracted to the well and the
+     * title band, and this one is contracted to item art. Renaming one to share the other would
+     * lose the reason each is the value it is.
+     */
+    static final int SLOT_COUNT = 0xFFFFFFFF;
+
     /** Selected row in the catalogue. */
     static final int SELECT = 0xFF77909F;
 

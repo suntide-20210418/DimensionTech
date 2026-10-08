@@ -384,7 +384,6 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.multiplier_header", "倍率");
         add("screen.dimension_tech.struct_marker.multiplier", "倍率：%s");
         add("screen.dimension_tech.struct_marker.tooltip.expected", "期望：%s");
-        add("screen.dimension_tech.struct_marker.tooltip.quantity", "数量：%s");
         add("screen.dimension_tech.struct_marker.item.disabled", "已禁用产出");
         add("screen.dimension_tech.struct_marker.no_items", "没有可用的期望物品");
         add("screen.dimension_tech.struct_marker.mark", "标记结构");

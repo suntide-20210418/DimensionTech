@@ -257,7 +257,6 @@
   "screen.dimension_tech.struct_marker.subtitle": "战利品期望与价值概览",
   "screen.dimension_tech.struct_marker.title": "结构标记器分析",
   "screen.dimension_tech.struct_marker.tooltip.expected": "期望：%s",
-  "screen.dimension_tech.struct_marker.tooltip.quantity": "数量：%s",
   "screen.dimension_tech.structure_miner.actual_progress": "实际tick：%s / %s（x%s）",
   "screen.dimension_tech.structure_miner.attribute.bonus": "最终加成：+%s%%",
   "screen.dimension_tech.structure_miner.attribute.capacity": "储能",

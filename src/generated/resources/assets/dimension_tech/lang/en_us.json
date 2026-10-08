@@ -257,7 +257,6 @@
   "screen.dimension_tech.struct_marker.subtitle": "Loot expectations and value overview",
   "screen.dimension_tech.struct_marker.title": "Structure Marker Analysis",
   "screen.dimension_tech.struct_marker.tooltip.expected": "Expected: %s",
-  "screen.dimension_tech.struct_marker.tooltip.quantity": "Amount: %s",
   "screen.dimension_tech.structure_miner.actual_progress": "Actual ticks: %s / %s (x%s)",
   "screen.dimension_tech.structure_miner.attribute.bonus": "Final bonus: +%s%%",
   "screen.dimension_tech.structure_miner.attribute.capacity": "Capacity",

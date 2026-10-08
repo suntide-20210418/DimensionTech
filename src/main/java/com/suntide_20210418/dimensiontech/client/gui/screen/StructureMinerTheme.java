@@ -55,6 +55,9 @@ final class StructureMinerTheme {
     static final int HOVER = GuiPalette.HOVER;
     static final int DISABLED_OVERLAY = GuiPalette.DISABLED_OVERLAY;
 
+    /** A quantity in a slot's corner, drawn over item art with the vanilla text shadow. */
+    static final int SLOT_COUNT = GuiPalette.SLOT_COUNT;
+
     /**
      * Translucent wash laid over a hovered cell of the expectation grid.
      *

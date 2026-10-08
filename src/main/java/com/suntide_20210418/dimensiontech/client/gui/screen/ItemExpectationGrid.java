@@ -42,8 +42,19 @@ final class ItemExpectationGrid {
      * <p>A stack rather than a bare item: the icon pass needs one anyway, rarity — which the
      * multiplier was derived from — is a stack property, and carrying it lets the caller build it
      * once per list rebuild instead of once per frame per cell.
+     *
+     * <p>{@code amount} is the quantity already formatted for the slot corner. It is carried rather
+     * than formatted in the draw loop for the same reason {@code multiplier} is: the cell is
+     * redrawn every frame, and {@code String.format} per cell per frame is allocation and work for
+     * a string that has not changed. Callers that do not supply one get it derived here, so the
+     * four existing call sites did not have to change.
      */
-    record Entry(ItemStack stack, double expected, double multiplier, boolean enabled) {
+    record Entry(
+            ItemStack stack, double expected, double multiplier, boolean enabled, String amount) {
+        Entry(ItemStack stack, double expected, double multiplier, boolean enabled) {
+            this(stack, expected, multiplier, enabled, ReadingFormat.quantity(expected));
+        }
+
         Entry(ItemStack stack, double expected, double multiplier) {
             this(stack, expected, multiplier, true);
         }
@@ -51,6 +62,40 @@ final class ItemExpectationGrid {
 
     /** Drawn width of the scrollbar, matching {@link GuiChrome#scrollbar}. */
     private static final int BAR_W = 3;
+
+    /**
+     * The item icon's edge length.
+     *
+     * <p>Sixteen is the item model system's own size, not a choice. It is named here because the
+     * icon inset and the amount badge's offset are both derived from it, and they have to stay
+     * derived rather than re-typed.
+     */
+    private static final int ICON = 16;
+
+    /**
+     * Distance from the icon's bottom edge to the amount's top edge, in pixels.
+     *
+     * <p>Nine is vanilla's own offset in {@code GuiGraphics#renderItemDecorations}, which is {@code
+     * iconHeight - fontHeight + 1}. Kept as a literal for the same reason vanilla does: the badge
+     * is positioned against the icon's bottom edge, and expressing it through {@code
+     * Font#lineHeight} would move the badge if a resource pack changed the font, which is not what
+     * a slot count should do.
+     */
+    private static final int AMOUNT_TOP_OFFSET = 9;
+
+    /**
+     * Z the amount is lifted to before it is drawn.
+     *
+     * <p><b>Not decoration — without it the amount is invisible on every opaque icon.</b> {@code
+     * GuiGraphics#renderItem} pushes its own pose and translates to {@code z = 150} before handing
+     * the model to the item renderer, while {@code fill}, {@code blit} and {@code drawString} all
+     * draw at whatever z the current pose carries, which is zero here. So drawing the amount
+     * straight after the icon puts it at z = 0 and the icon's own pixels paint over it: the call
+     * order says icon-then-text, the depth order says text-then-icon. Vanilla answers this in its
+     * own {@code renderItemDecorations} with {@code translate(0, 0, 200)}; the same value is used
+     * here so the two read as the same fix.
+     */
+    private static final int AMOUNT_Z = 200;
 
     /**
      * Width of the scrollbar's grab zone, wider than the bar itself.
@@ -104,7 +149,7 @@ final class ItemExpectationGrid {
         this.cellW = Math.max(1, cellW);
         this.cellH = Math.max(1, cellH);
         this.cellGap = Math.max(0, cellGap);
-        this.iconInset = Math.max(0, (this.cellW - 16) / 2);
+        this.iconInset = Math.max(0, (this.cellW - ICON) / 2);
         this.scrollable = scrollable;
     }
 
@@ -247,7 +292,7 @@ final class ItemExpectationGrid {
                 if (index >= items.size()) break;
                 int cx = cellX(col);
                 if (cx + cellW > right) break;
-                drawCell(g, items.get(index), index, cx, cy, index == hovered);
+                drawCell(g, font, items.get(index), index, cx, cy, index == hovered);
             }
         }
 
@@ -268,14 +313,25 @@ final class ItemExpectationGrid {
     }
 
     /**
-     * One cell, in the order the layers have to land.
+     * One cell, in the order the layers are issued.
      *
-     * <p>The slot face is under the icon because the sprite is opaque; the disabled wash and the
-     * hover wash are over it because both are translucent and would be hidden by an opaque icon
-     * below them. Selection is a sprite swap rather than a wash, so a selected cell that is also
-     * hovered still reads as selected.
+     * <p>The slot face is under the icon because the sprite is opaque, and the amount is issued
+     * after the icon because a slot count belongs on top of the item it counts. Selection is a
+     * sprite swap rather than a wash, so a selected cell that is also hovered still reads as
+     * selected.
+     *
+     * <p><b>Issue order is not depth order, and the washes are the layer that disagrees.</b> The
+     * icon is drawn at z = 150 by {@code GuiGraphics#renderItem}, while the slot sprite, both
+     * washes and the amount's text are all drawn at z = 0 unless a caller lifts them. The amount
+     * lifts itself to {@link #AMOUNT_Z} and the sprite is meant to sit behind the icon anyway, so
+     * those two are fine; the washes are not, and currently land <i>behind</i> the icon, tinting
+     * only the part of the cell the icon does not cover — the slot sprite's own margin. That is
+     * pre-existing and is left alone here rather than changed under a bug fix: lifting them would
+     * alter how every cell of all four grids reads, which is a visual decision rather than a
+     * correction.
      */
-    private void drawCell(GuiGraphics g, Entry entry, int index, int cx, int cy, boolean hovered) {
+    private void drawCell(
+            GuiGraphics g, Font font, Entry entry, int index, int cx, int cy, boolean hovered) {
         if (scrollable) {
             StructureMinerSpriteRenderer.marker(g, cx, cy, index == selected);
         } else {
@@ -288,12 +344,42 @@ final class ItemExpectationGrid {
             g.renderItem(entry.stack(), cx + iconInset, cy + iconInset);
         }
 
+        drawAmount(g, font, entry.amount(), cx, cy);
+
         if (!entry.enabled()) {
             g.fill(cx, cy, cx + cellW, cy + cellH, StructureMinerTheme.DISABLED_OVERLAY);
         }
         if (hovered && index != selected) {
             g.fill(cx, cy, cx + cellW, cy + cellH, StructureMinerTheme.HOVER_WASH);
         }
+    }
+
+    /**
+     * The quantity, bottom-right, the way a vanilla slot draws a stack count.
+     *
+     * <p>Positioned by the same arithmetic {@code GuiGraphics#renderItemDecorations} uses for a
+     * vanilla count: right edge one pixel past the icon's, top {@link #AMOUNT_TOP_OFFSET} below the
+     * icon's. Right-aligned rather than centred so a two-character amount and a four-character one
+     * share an edge instead of drifting, which is what makes a column of them scannable.
+     *
+     * <p><b>White with the vanilla shadow, deliberately.</b> The badge lands on the item's own art,
+     * whose colours are unknown, so no flat colour is guaranteed to read; the shadow draws each
+     * glyph twice with the second copy at a quarter brightness, which gives every stroke a dark
+     * edge against whatever is behind it. The slot sprite itself is light here — sampled at {@code
+     * #FFB0C0BF} — so a plain dark ink would read better on the bare sprite but would disappear on
+     * a dark icon, and the badge sits on the icon, not the sprite.
+     *
+     * <p>The pose is lifted by {@link #AMOUNT_Z} first, because the icon is drawn at a depth that
+     * would otherwise bury the text. See that constant.
+     */
+    private void drawAmount(GuiGraphics g, Font font, String amount, int cx, int cy) {
+        if (amount.isEmpty()) return;
+        int x = cx + cellW - font.width(amount);
+        int y = cy + iconInset + AMOUNT_TOP_OFFSET;
+        g.pose().pushPose();
+        g.pose().translate(0.0F, 0.0F, AMOUNT_Z);
+        g.drawString(font, amount, x, y, StructureMinerTheme.SLOT_COUNT, true);
+        g.pose().popPose();
     }
 
     /**
@@ -327,16 +413,6 @@ final class ItemExpectationGrid {
                 Component.translatable(
                         "screen.dimension_tech.struct_marker.tooltip.expected",
                         ReadingFormat.reading(entry.expected())));
-        /*
-         * The short amount is a second line rather than a replacement for the reading above. The
-         * reading is the number the machine will actually average over many cycles, decimals and
-         * all, and the short form is what a player compares between cells at a glance — dropping
-         * either would lose something the other carries.
-         */
-        lines.add(
-                Component.translatable(
-                        "screen.dimension_tech.struct_marker.tooltip.quantity",
-                        ReadingFormat.quantity(entry.expected())));
         lines.add(
                 Component.translatable(
                         "screen.dimension_tech.struct_marker.multiplier",

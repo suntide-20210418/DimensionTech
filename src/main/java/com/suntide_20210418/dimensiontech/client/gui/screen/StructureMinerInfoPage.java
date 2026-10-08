@@ -933,9 +933,6 @@ final class StructureMinerInfoPage {
                                 "screen.dimension_tech.struct_marker.tooltip.expected",
                                 ReadingFormat.reading(entry.expected())),
                         Component.translatable(
-                                "screen.dimension_tech.struct_marker.tooltip.quantity",
-                                ReadingFormat.quantity(entry.expected())),
-                        Component.translatable(
                                 "screen.dimension_tech.struct_marker.multiplier",
                                 String.format(
                                         java.util.Locale.ROOT,
