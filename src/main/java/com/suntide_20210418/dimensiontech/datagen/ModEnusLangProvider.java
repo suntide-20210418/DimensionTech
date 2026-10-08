@@ -540,6 +540,8 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.item_count", "%s items");
         add("screen.dimension_tech.struct_marker.multiplier_header", "Multiplier");
         add("screen.dimension_tech.struct_marker.multiplier", "Multiplier: %s");
+        add("screen.dimension_tech.struct_marker.tooltip.expected", "Expected: %s");
+        add("screen.dimension_tech.struct_marker.item.disabled", "Output disabled");
         add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
         add("screen.dimension_tech.struct_marker.mark", "Mark Structure");
         add("screen.dimension_tech.struct_marker.select", "Select Structure");

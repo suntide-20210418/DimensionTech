@@ -2,8 +2,10 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerLayout;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerTelemetrySnapshot;
+import com.suntide_20210418.dimensiontech.item.ItemValueFacade;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.gui.Font;
@@ -44,6 +46,28 @@ final class StructureMinerInfoPage {
 
     /** One labelled detail row: its own text box plus a pixel of separation. */
     private static final int DETAIL_ROW_STRIDE = DETAIL_H + 1;
+
+    /**
+     * Cells across the product grid.
+     *
+     * <p>Seven, not nine: this grid shares its column with the page's own scrollbar, and the
+     * content column is 182 wide where the marker viewport is 186. Seven 18px cells and six 2px
+     * gutters come to 138, leaving the row's label space beside it. The grid here is not the whole
+     * section — the section header and the disabled legend still own the left of the row.
+     */
+    private static final int PRODUCT_COLUMNS = 7;
+
+    /**
+     * One grid instance for the whole page.
+     *
+     * <p>{@code scrollable = false} on purpose. This grid lives inside the page's own scrolling
+     * viewport: the product section is measured into {@link #contentHeight} and moves with the
+     * page's scroll offset, so a second scroll region nested inside it would have to negotiate the
+     * wheel, the keyboard and a drag bar with the outer one. There is nothing for it to buy — the
+     * page already scrolls to whatever the grid is tall enough to need.
+     */
+    private static final ItemExpectationGrid GRID =
+            ItemExpectationGrid.ofSpriteSlots(PRODUCT_COLUMNS, false);
 
     private StructureMinerInfoPage() {}
 
@@ -478,6 +502,21 @@ final class StructureMinerInfoPage {
         return y + DETAIL_ROW_STRIDE;
     }
 
+    /**
+     * The product section: a caption, a legend for the disabled state, and a grid of cells.
+     *
+     * <p><b>What the grid replaced.</b> This section used to be a zebra-striped list of
+     * twenty-pixel rows — icon, name, expected count — which meant a structure with forty drops
+     * needed eight hundred pixels of page to show them all, and the page scroll grew with the drop
+     * count. As a grid of 18px cells it is four times narrower per item, and the item's name, which
+     * was the only thing the row had that a cell does not, moved into the tooltip the cell already
+     * opens.
+     *
+     * <p><b>Disabled is drawn twice, on purpose.</b> The cell carries a dim wash, and this section
+     * carries a legend line explaining what that wash means. A wash alone says "something is wrong
+     * here"; the legend says which way, and a player who has disabled nothing sees an unambiguous
+     * empty grid rather than a grid of grey squares they cannot name.
+     */
     private static int drawProductSection(
             StructureMinerScreenContext c, GuiGraphics g, int x, int y, int width) {
         Font font = c.font();
@@ -503,49 +542,53 @@ final class StructureMinerInfoPage {
             return y + StructureMinerInfoLayout.ROW_H_INTERACTIVE;
         }
 
-        for (int index = 0; index < rows.size(); index++) {
-            int rowY = y + index * StructureMinerInfoLayout.ROW_H_INTERACTIVE;
-            StructureMinerScreen.ExpectedItemRow row = rows.get(index);
+        List<ItemExpectationGrid.Entry> cells = cellsOf(c, rows);
+        int gridX = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
+        int gridH = GRID.contentHeight(rows.size());
+        GRID.render(
+                g,
+                font,
+                cells,
+                gridX,
+                y,
+                width,
+                gridH,
+                StructureMinerLayout.scaleToScreen(
+                        c.leftPos() + gridX, c.topPos() + y, width, gridH, c.uiScale()),
+                0,
+                0,
+                Component.empty());
+
+        return gridH;
+    }
+
+    /**
+     * The grid's cells, built from the page's rows.
+     *
+     * <p>The disabled flag is per-cell rather than a separate overlay pass because the grid draws
+     * the wash itself, over the icon pass it owns. The multiplier is read per rebuild, not per
+     * frame — {@code ItemValueFacade#multiplier} compiles regexes and would be a real cost in a
+     * render loop.
+     */
+    private static List<ItemExpectationGrid.Entry> cellsOf(
+            StructureMinerScreenContext c, List<StructureMinerScreen.ExpectedItemRow> rows) {
+        List<ItemExpectationGrid.Entry> cells = new ArrayList<>(rows.size());
+        for (StructureMinerScreen.ExpectedItemRow row : rows) {
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(row.item());
             boolean disabled = itemId != null && c.disabledExpectedItems().contains(itemId);
-            ItemStack stack = new ItemStack(row.item());
-            String expected = ReadingFormat.reading(row.expected());
-            int expectedWidth = font.width(expected);
-
-            if (index % 2 != 0) {
-                g.fill(x - 1, rowY - 1, x + width, rowY + 18, StructureMinerTheme.STRIPE_INK);
-            }
-            if (disabled) {
-                g.fill(x - 2, rowY - 2, x + width, rowY + 18, StructureMinerTheme.DISABLED_OVERLAY);
-                g.fill(x - 2, rowY - 2, x, rowY + 18, StructureMinerTheme.ERROR);
-            }
-            g.renderItem(stack, x, rowY);
-            g.drawString(
-                    font,
-                    font.plainSubstrByWidth(
-                            stack.getHoverName().getString(),
-                            Math.max(1, width - expectedWidth - 26)),
-                    x + 22,
-                    rowY + 4,
-                    disabled ? StructureMinerTheme.ERROR : StructureMinerTheme.INK,
-                    false);
-            g.drawString(
-                    font,
-                    expected,
-                    x + width - expectedWidth,
-                    rowY + 4,
-                    disabled ? StructureMinerTheme.ERROR : StructureMinerTheme.FLUIX,
-                    false);
-            if (disabled) {
-                g.fill(
-                        x,
-                        rowY + 9,
-                        x + width - expectedWidth - 3,
-                        rowY + 10,
-                        StructureMinerTheme.ERROR);
-            }
+            cells.add(
+                    new ItemExpectationGrid.Entry(
+                            new ItemStack(row.item()),
+                            row.expected(),
+                            ItemValueFacade.multiplier(row.item()),
+                            !disabled));
         }
-        return y + rows.size() * StructureMinerInfoLayout.ROW_H_INTERACTIVE;
+        return cells;
+    }
+
+    /** Height the product grid needs, so {@link #contentHeight} and the draw pass agree. */
+    static int productSectionHeight(int itemCount) {
+        return GRID.contentHeight(itemCount);
     }
 
     // --- shared helpers ----------------------------------------------------
@@ -608,8 +651,7 @@ final class StructureMinerInfoPage {
                 StructureMinerInfoLayout.SECTION_HEADER_H
                         + Math.max(
                                 StructureMinerInfoLayout.ROW_H_INTERACTIVE,
-                                c.expectedItemRows().size()
-                                        * StructureMinerInfoLayout.ROW_H_INTERACTIVE);
+                                productSectionHeight(c.expectedItemRows().size()));
         return height;
     }
 
@@ -633,30 +675,24 @@ final class StructureMinerInfoPage {
     }
 
     /**
-     * Product-row index under a panel-local point, or {@code -1}.
+     * Product-cell index under a panel-local point, or {@code -1}.
      *
-     * <p>Derived from the same terms {@link #contentHeight} uses, so the clickable strip and the
-     * drawn strip cannot drift apart.
+     * <p>Delegates to the grid's own hit test rather than re-deriving the arithmetic. That matters
+     * more here than at the other call sites: this grid is inside a scrolling page, so the point
+     * has to be rebased by the current scroll offset before the grid sees it, and getting that
+     * rebase wrong would make a click land one row off exactly when the page is scrolled.
      */
     static int productRowAt(StructureMinerScreenContext c, double x, double y) {
         int slot = c.selectedMarkerSlot();
         if (slot < 0) return -1;
         int top = productSectionTop(c, slot);
-        int index =
-                (int) Math.floor((y - top) / (double) StructureMinerInfoLayout.ROW_H_INTERACTIVE);
-        if (index < 0 || index >= c.expectedItemRows().size()) return -1;
         int left = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
         int width =
                 StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
-        return StructureMinerInfoLayout.inside(
-                        x,
-                        y,
-                        left,
-                        top + index * StructureMinerInfoLayout.ROW_H_INTERACTIVE,
-                        width,
-                        StructureMinerInfoLayout.ROW_H_INTERACTIVE)
-                ? index
-                : -1;
+        int height = Math.max(1, productSectionHeight(c.expectedItemRows().size()));
+
+        return GRID.cellAt(
+                cellsOf(c, c.expectedItemRows()), (int) x - left, (int) y - top, width, height);
     }
 
     private static int productSectionTop(StructureMinerScreenContext c, int slot) {
@@ -672,10 +708,15 @@ final class StructureMinerInfoPage {
 
     /** True when a panel-local point falls inside the scrolling viewport. */
     /**
-     * Hover pass: the thread selector, which shares the work lane's grid, and the product rows.
+     * Hover pass: the thread selector, which shares the work lane's grid, and the product cells.
      *
-     * <p>Product rows reuse {@link #productRowAt}, the same hit test the click path uses, so a
-     * tooltip cannot appear over a row that would not respond to a click.
+     * <p>Product cells reuse {@link #productRowAt}, the same hit test the click path uses, so a
+     * tooltip cannot appear over a cell that would not respond to a click.
+     *
+     * <p>The product tooltip is assembled here rather than handed to {@link
+     * ItemExpectationGrid#renderTooltip} because this page's tooltip has a fourth line the grid
+     * knows nothing about — the "click to enable/disable" hint. The two data lines are built from
+     * the same keys the grid uses, so a cell's expectation reads identically on every screen.
      */
     static void renderTooltip(
             StructureMinerScreenContext c,
@@ -693,12 +734,24 @@ final class StructureMinerInfoPage {
         List<StructureMinerScreen.ExpectedItemRow> rows = c.expectedItemRows();
         int row = productRowAt(c, x, y);
         if (row < 0 || row >= rows.size()) return;
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(rows.get(row).item());
+
+        StructureMinerScreen.ExpectedItemRow entry = rows.get(row);
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(entry.item());
         boolean disabled = itemId != null && c.disabledExpectedItems().contains(itemId);
+
         g.renderTooltip(
                 c.font(),
                 List.of(
-                        new ItemStack(rows.get(row).item()).getHoverName(),
+                        new ItemStack(entry.item()).getHoverName(),
+                        Component.translatable(
+                                "screen.dimension_tech.struct_marker.tooltip.expected",
+                                ReadingFormat.reading(entry.expected())),
+                        Component.translatable(
+                                "screen.dimension_tech.struct_marker.multiplier",
+                                String.format(
+                                        java.util.Locale.ROOT,
+                                        "%.2f",
+                                        ItemValueFacade.multiplier(entry.item()))),
                         Component.translatable(
                                 disabled
                                         ? "screen.dimension_tech.structure_miner.expected_item.enable"

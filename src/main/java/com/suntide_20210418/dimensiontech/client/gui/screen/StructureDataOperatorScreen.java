@@ -78,7 +78,6 @@ public final class StructureDataOperatorScreen
     static final int LIST_Y = SEARCH_Y + SEARCH_H + 2;
 
     static final int LIST_ROW_H = 13;
-    static final int TABLE_ROW_H = 18;
 
     /**
      * The action pair sits on the empty panel face right of the tabs and left of the machine slots.
@@ -114,6 +113,15 @@ public final class StructureDataOperatorScreen
     private GuiSearchField search;
     private int listScroll;
     private int detailScroll;
+
+    /**
+     * Cell count of the marker currently in the detail pane, mirrored for the page renderers.
+     *
+     * <p>They are static, so they cannot ask the screen for its {@code detailMarker}. Mirroring the
+     * count as it changes keeps the one number they need out of an instanceof-and-cast.
+     */
+    private static int lastDetailItemCount;
+
     private int statusTicks;
     private int analysisPollTicks;
     private String statusKey;
@@ -193,6 +201,13 @@ public final class StructureDataOperatorScreen
         return detailMarker;
     }
 
+    /** Single writer for the detail pane's marker; keeps the mirrored cell count in step. */
+    private void setDetailMarker(ItemStack marker) {
+        detailMarker = marker;
+        lastDetailItemCount =
+                marker.isEmpty() ? 0 : StructMarkerItem.getExpectedItemCounts(marker).size();
+    }
+
     int listScroll() {
         return listScroll;
     }
@@ -205,16 +220,33 @@ public final class StructureDataOperatorScreen
         return detailScroll;
     }
 
+    /**
+     * How many expectation cells the selected marker carries.
+     *
+     * <p>Static so the page renderers can size a scroll range against it without an instance; the
+     * detail marker itself is instance state, so this reads it off the last screen to render.
+     */
+    static int detailItemCount() {
+        return lastDetailItemCount;
+    }
+
+    /**
+     * Sets the detail pane's scroll offset, clamped to what the grid can actually scroll by.
+     *
+     * <p>The range is a pixel figure off {@link #detailContentHeight()} rather than a row count:
+     * the grid is a matrix now, so "how many rows are left" is no longer the same question as "how
+     * much taller is the content than the window".
+     */
     void detailScroll(int value) {
-        detailScroll =
-                Math.max(
-                        0,
-                        Math.min(
-                                Math.max(
-                                        0,
-                                        StructMarkerItem.getExpectedItemCounts(detailMarker).size()
-                                                - tableRows()),
-                                value));
+        detailScroll = Math.max(0, Math.min(Math.max(0, detailMaxScroll()), value));
+    }
+
+    /** The largest valid detail scroll offset. */
+    private int detailMaxScroll() {
+        return Math.max(
+                0,
+                StructureDataIntegratorPage.gridContentHeight(detailItemCount())
+                        - StructureDataIntegratorPage.gridHeight());
     }
 
     /** How many catalogue rows the list region can show. */
@@ -222,18 +254,15 @@ public final class StructureDataOperatorScreen
         return Math.max(1, (StructureDataOperatorLayout.CANVAS.height() - LIST_Y - 4) / LIST_ROW_H);
     }
 
-    /** How many expectation rows the detail table can show. */
-    static int tableRows() {
-        /*
-         * Measured from where the table actually starts rather than from a fixed inset, because the
-         * readings block above it is what sets that offset. Rows are allowed to reach the canvas
-         * bottom: the block already accounts for the padding a page would otherwise reserve.
-         */
-        return Math.max(
-                1,
-                (StructureDataOperatorLayout.CANVAS.height()
-                                - StructureDataIntegratorPage.tableTop())
-                        / TABLE_ROW_H);
+    /**
+     * The whole dossier grid's content height, in pixels.
+     *
+     * <p>Computed from the same grid that draws the cells, so the scroll range and the drawn
+     * content cannot disagree — which is what the previous row-count arithmetic could not promise
+     * once the cells became a matrix rather than a column.
+     */
+    static int detailContentHeight() {
+        return StructureDataIntegratorPage.gridContentHeight(detailItemCount());
     }
 
     String searchText() {
@@ -317,7 +346,7 @@ public final class StructureDataOperatorScreen
         /* A new catalogue invalidates the names cached for the old one. */
         searchLabels.clear();
         selected = null;
-        detailMarker = ItemStack.EMPTY;
+        setDetailMarker(ItemStack.EMPTY);
         listScroll = 0;
         detailScroll = 0;
         expandedDimensions.clear();
@@ -345,14 +374,14 @@ public final class StructureDataOperatorScreen
                 .ifPresent(
                         entry -> {
                             selected = entry;
-                            detailMarker = marker.copy();
+                            setDetailMarker(marker.copy());
                             detailScroll = 0;
                         });
     }
 
     void select(StructureDataOperatorBlockEntity.StructureCatalogueEntry entry) {
         selected = entry;
-        detailMarker = ItemStack.EMPTY;
+        setDetailMarker(ItemStack.EMPTY);
         analysisPollTicks = 0;
         ModNetwork.structureOperatorRequestDetail(
                 menu.containerId, entry.dimension(), entry.structure());
@@ -376,7 +405,7 @@ public final class StructureDataOperatorScreen
 
     void refreshSelectedAnalysis() {
         if (selected == null) return;
-        detailMarker = ItemStack.EMPTY;
+        setDetailMarker(ItemStack.EMPTY);
         analysisPollTicks = 0;
         ModNetwork.structureOperatorRefreshDetail(
                 menu.containerId, selected.dimension(), selected.structure());
@@ -717,6 +746,29 @@ public final class StructureDataOperatorScreen
         return inside(windowX, windowY, x, ACTION_Y, ACTION_W, ACTION_H);
     }
 
+    /**
+     * Forwards a drag to the operate page's grid.
+     *
+     * <p>Only that page has a grabbable bar: its grid is scrollable, the integrator's is not (its
+     * scroll offset lives here on the screen already), so the screen has to relay the move across
+     * the frames between press and release for exactly one of them.
+     */
+    @Override
+    public boolean mouseDragged(
+            double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (page == Page.OPERATION && StructureDataOperatorOperationPage.isDragging()) {
+            StructureDataOperatorOperationPage.mouseDragged(canvasMouseY(mouseY));
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        StructureDataOperatorOperationPage.mouseReleased();
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         // 鼠标滚轮只产生纵向滚动量。
@@ -756,7 +808,7 @@ public final class StructureDataOperatorScreen
         catalogue = List.of();
         expandedDimensions.clear();
         selected = null;
-        detailMarker = ItemStack.EMPTY;
+        setDetailMarker(ItemStack.EMPTY);
         listScroll = 0;
         detailScroll = 0;
     }

@@ -59,4 +59,20 @@ final class ReadingFormat {
         }
         return String.format(Locale.ROOT, FIXED_FORMAT, value);
     }
+
+    /**
+     * Reads an exact rational at the display boundary without ever throwing.
+     *
+     * <p>{@link
+     * com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability#finiteDoubleValue}
+     * throws when the rational does not fit a double, and every caller here is on the render path —
+     * an overflow there is a crash, not a wrong number. The saturating value is the largest finite
+     * double rather than infinity, because infinity would poison the sort and print as {@code
+     * Infinity} instead of reading as a placeholder.
+     */
+    static double displayValue(
+            com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability expected) {
+        double value = expected.doubleValue();
+        return Double.isFinite(value) ? value : Double.MAX_VALUE;
+    }
 }
