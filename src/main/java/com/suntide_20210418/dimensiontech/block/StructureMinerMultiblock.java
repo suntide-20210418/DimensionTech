@@ -24,22 +24,23 @@ import net.minecraft.world.level.block.state.BlockState;
  * carved out of its middle three layers.
  *
  * <p><b>Where the head sits.</b> Every coordinate below is an offset from the controller, which is
- * at {@code (0,0,0)}. The controller occupies the <em>front-left corner of the bottom plate</em>,
- * standing in for the casing block that used to be there: the body then extends back ({@code -X}),
- * up ({@code +Y}) and right ({@code +Z}) from it. Expressed in the "left-front-bottom corner is the
- * origin, x runs back-to-front, y bottom-to-top, z left-to-right" convention, that puts the head at
- * {@code (4, 0, 2)} — 4 of the 5 cells back-to-front, on the bottom layer, in the middle column.
+ * at {@code (0,0,0)}. The controller occupies the <em>back-left corner of the bottom plate</em>,
+ * standing in for the casing block that used to be there: the body then extends forward ({@code
+ * +X}), up ({@code +Y}) and right ({@code +Z}) from it. Expressed in the "left-front-bottom corner
+ * is the origin, x runs back-to-front, y bottom-to-top, z left-to-right" convention, that puts the
+ * head at {@code (0, 0, 2)} — the back end of the 5-cell run, on the bottom layer, in the middle
+ * column.
  *
- * <p><b>Clearance, and what it costs.</b> The head only keeps its front ({@code +X}) and top
- * ({@code +Y}) neighbours free; its back, left and right faces are walled in by the bottom plate's
- * casing ring. Automation therefore has two faces to attach to, not five — the price of sinking the
+ * <p><b>Clearance, and what it costs.</b> The head keeps its front ({@code +X}) and top ({@code
+ * +Y}) neighbours free; its back, left and right faces are walled in by the bottom plate's casing
+ * ring. Automation therefore has two faces to attach to, not five — the price of sinking the
  * controller into the plate instead of floating it above the rig.
  *
- * <p><b>The drill contract.</b> The two structure blocks sit one column back from the head, at the
- * centre of the bottom plate {@code (-2,0,0)} and the centre of the top plate {@code (-2,4,0)}.
- * They are the plate centres rather than the head's own column, because the head now shares that
- * column with nothing: it is a corner block. Anything that needs to keep pointing at the structure
- * must follow the head's facing, which is independent of these offsets.
+ * <p><b>The drill contract.</b> The two structure blocks sit two columns forward of the head, at
+ * the centre of the bottom plate {@code (2,0,0)} and the centre of the top plate {@code (2,4,0)}.
+ * They are the plate centres rather than the head's own column, because the head is a corner block
+ * and shares no column with the drill. Anything that needs to keep pointing at the structure must
+ * follow the head's facing, which is independent of these offsets.
  *
  * <p>The layout is deliberately tier-independent: every block is one of the shared frame parts, so
  * the four {@code Set} fields below are the single source of truth for the shape, the material plan
@@ -51,18 +52,18 @@ public class StructureMinerMultiblock {
      * Without the spokes the plates would only touch air: the waist sits at radius 1, the ring at
      * radius 2, and nothing in between.
      *
-     * <p>The bottom plate is the one that loses a block: its front-left corner cell is where the
+     * <p>The bottom plate is the one that loses a block: its back-left corner cell is where the
      * controller stands, so that coordinate is deliberately absent here — keeping it would make the
-     * build button try to stack casing on top of the head.
+     * build button try to stack casing on top of the head. The cell the head vacated at the
+     * opposite corner ({@code 4,0,0}) is casing again, so the plate still holds 19 of its 25 cells.
      */
     private static final Set<String> CASING =
             Set.of(
-                    "-4,0,-2", "-4,0,-1", "-4,0,0", "-4,0,1", "-4,0,2", "-3,0,-2", "-3,0,0",
-                    "-3,0,2", "-2,0,-2", "-2,0,-1", "-2,0,1", "-2,0,2", "-1,0,-2", "-1,0,0",
-                    "-1,0,2", "0,0,-2", "0,0,-1", "0,0,1", "0,0,2", "-4,4,-2", "-4,4,-1", "-4,4,0",
-                    "-4,4,1", "-4,4,2", "-3,4,-2", "-3,4,0", "-3,4,2", "-2,4,-2", "-2,4,-1",
-                    "-2,4,1", "-2,4,2", "-1,4,-2", "-1,4,0", "-1,4,2", "0,4,-2", "0,4,-1", "0,4,0",
-                    "0,4,1", "0,4,2");
+                    "0,0,-2", "0,0,-1", "0,0,1", "0,0,2", "1,0,-2", "1,0,0", "1,0,2", "2,0,-2",
+                    "2,0,-1", "2,0,1", "2,0,2", "3,0,-2", "3,0,0", "3,0,2", "4,0,-2", "4,0,-1",
+                    "4,0,1", "4,0,2", "0,4,-2", "0,4,-1", "0,4,0", "0,4,1", "0,4,2", "1,4,-2",
+                    "1,4,0", "1,4,2", "2,4,-2", "2,4,-1", "2,4,1", "2,4,2", "3,4,-2", "3,4,0",
+                    "3,4,2", "4,4,-2", "4,4,-1", "4,4,0", "4,4,1", "4,4,2", "4,0,0");
 
     /**
      * The four corner posts of the waist (y = 1, 2, 3). Glass replaces the eight focus blocks the
@@ -71,15 +72,15 @@ public class StructureMinerMultiblock {
      */
     private static final Set<String> GLASS =
             Set.of(
-                    "-3,1,-1", "-3,1,1", "-1,1,-1", "-1,1,1", "-3,2,-1", "-3,2,1", "-1,2,-1",
-                    "-1,2,1", "-3,3,-1", "-3,3,1", "-1,3,-1", "-1,3,1");
+                    "1,1,-1", "1,1,1", "3,1,-1", "3,1,1", "1,2,-1", "1,2,1", "3,2,-1", "3,2,1",
+                    "1,3,-1", "1,3,1", "3,3,-1", "3,3,1");
 
     /**
      * The two structure blocks: the hard contract at the centre of the bottom plate, plus the drill
      * point at the centre of the top plate. Both are plate centres, and both keep the middle column
      * ({@code z = 0}) that the waist bays also use.
      */
-    private static final Set<String> STRUCTURE = Set.of("-2,0,0", "-2,4,0");
+    private static final Set<String> STRUCTURE = Set.of("2,0,0", "2,4,0");
 
     /**
      * The twelve module bays: four face-centred columns of three stacked slots (y = 1, 2, 3), each
@@ -90,8 +91,8 @@ public class StructureMinerMultiblock {
      */
     private static final Set<String> UPGRADE =
             Set.of(
-                    "-2,1,-1", "-2,1,1", "-3,1,0", "-1,1,0", "-2,2,-1", "-2,2,1", "-3,2,0",
-                    "-1,2,0", "-2,3,-1", "-2,3,1", "-3,3,0", "-1,3,0");
+                    "2,1,-1", "2,1,1", "1,1,0", "3,1,0", "2,2,-1", "2,2,1", "1,2,0", "3,2,0",
+                    "2,3,-1", "2,3,1", "1,3,0", "3,3,0");
 
     private StructureMinerMultiblock() {}
 
@@ -102,8 +103,8 @@ public class StructureMinerMultiblock {
      * depends on:
      *
      *   1. no two of the four sets claim the same cell;
-     *   2. every block stays inside the 5x5x5 body that grows backwards, upwards and rightwards
-     *      from the head at the front-left corner;
+     *   2. every block stays inside the 5x5x5 body that grows forwards, upwards and rightwards from
+     *      the head at the back-left corner;
      *   3. the head's own cell is never claimed by a pattern block, so placement can never stack
      *      casing on the controller.
      *
@@ -133,14 +134,14 @@ public class StructureMinerMultiblock {
     }
 
     /**
-     * Whether a head-relative offset lands inside the 5x5x5 body box. The box grows backwards,
-     * upwards and rightwards from the head, which occupies the box's front-left-bottom corner, so
+     * Whether a head-relative offset lands inside the 5x5x5 body box. The box grows forwards,
+     * upwards and rightwards from the head, which occupies the box's back-left-bottom corner, so
      * every axis span is {@code [HEAD, HEAD + 4]} with the head at the origin.
      */
     private static boolean inBody(BlockPos offset) {
         int extent = 4;
-        return offset.getX() >= -extent
-                && offset.getX() <= 0
+        return offset.getX() >= 0
+                && offset.getX() <= extent
                 && offset.getY() >= 0
                 && offset.getY() <= extent
                 && offset.getZ() >= -2
