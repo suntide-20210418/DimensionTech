@@ -9,6 +9,16 @@ final class StructureMinerUiState {
     StructureMinerScreen.Page page = StructureMinerScreen.Page.WORK;
     int selectedMarkerSlot = -1;
     int hoveredMarkerSlot = -1;
+
+    /**
+     * Which bulk button the pointer is over, traced once per frame by the info page.
+     *
+     * <p>Held here rather than recomputed by the draw pass because the buttons are drawn during the
+     * page render and the answer depends on the page's scroll offset, which the draw pass is in the
+     * middle of applying. Tracing first and drawing from the trace keeps both on the same frame.
+     */
+    StructureMinerInfoPage.BulkAction hoveredBulkAction = StructureMinerInfoPage.BulkAction.NONE;
+
     int markerInfoScroll;
     int attributeScroll;
 

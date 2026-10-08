@@ -5,6 +5,7 @@ import com.suntide_20210418.dimensiontech.integration.ae2.Ae2Integration;
 import com.suntide_20210418.dimensiontech.structureminer.output.ExpectationRewardGenerator;
 import com.suntide_20210418.dimensiontech.structureminer.output.StructureMinerOutputRouter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -137,6 +138,24 @@ final class MinerOutputController {
 
     Set<ResourceLocation> disabledItems() {
         return Set.copyOf(disabledItems);
+    }
+
+    /**
+     * Sets the whole disabled set at once, for the select-all and deselect-all gestures.
+     *
+     * <p>An explicit replace rather than a loop of {@link #toggleDisabledItem}: a toggle is defined
+     * against the current membership, so applying the same desired state twice would undo it. The
+     * GUI sends one packet and the server applies one state, which is idempotent and cannot be
+     * reordered into the wrong answer by a retransmit.
+     *
+     * @return true when the set actually changed, so the caller can skip the analysis refresh.
+     */
+    boolean replaceDisabledItems(Collection<ResourceLocation> items) {
+        Set<ResourceLocation> next = new HashSet<>(items);
+        if (next.equals(disabledItems)) return false;
+        disabledItems.clear();
+        disabledItems.addAll(next);
+        return true;
     }
 
     List<ItemStack> emit(

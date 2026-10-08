@@ -384,6 +384,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.multiplier_header", "倍率");
         add("screen.dimension_tech.struct_marker.multiplier", "倍率：%s");
         add("screen.dimension_tech.struct_marker.tooltip.expected", "期望：%s");
+        add("screen.dimension_tech.struct_marker.tooltip.quantity", "数量：%s");
         add("screen.dimension_tech.struct_marker.item.disabled", "已禁用产出");
         add("screen.dimension_tech.struct_marker.no_items", "没有可用的期望物品");
         add("screen.dimension_tech.struct_marker.mark", "标记结构");
@@ -450,6 +451,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.hint.slot_toggle", "右键槽位以启用或停用该线程");
         add("screen.dimension_tech.structure_miner.expected_item.enable", "点击启用产出");
         add("screen.dimension_tech.structure_miner.expected_item.disable", "点击禁用产出");
+        add("screen.dimension_tech.structure_miner.expected_item.select_all", "启用全部产出物品");
+        add("screen.dimension_tech.structure_miner.expected_item.deselect_all", "禁用全部产出物品");
         add("screen.dimension_tech.structure_miner.natural_progress", "自然tick：%s / %s");
         add("screen.dimension_tech.structure_miner.actual_progress", "实际tick：%s / %s（x%s）");
         add("screen.dimension_tech.structure_miner.parallel.expand_hint", "点击展开并行明细");

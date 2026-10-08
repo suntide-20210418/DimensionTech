@@ -327,6 +327,16 @@ final class ItemExpectationGrid {
                 Component.translatable(
                         "screen.dimension_tech.struct_marker.tooltip.expected",
                         ReadingFormat.reading(entry.expected())));
+        /*
+         * The short amount is a second line rather than a replacement for the reading above. The
+         * reading is the number the machine will actually average over many cycles, decimals and
+         * all, and the short form is what a player compares between cells at a glance — dropping
+         * either would lose something the other carries.
+         */
+        lines.add(
+                Component.translatable(
+                        "screen.dimension_tech.struct_marker.tooltip.quantity",
+                        ReadingFormat.quantity(entry.expected())));
         lines.add(
                 Component.translatable(
                         "screen.dimension_tech.struct_marker.multiplier",

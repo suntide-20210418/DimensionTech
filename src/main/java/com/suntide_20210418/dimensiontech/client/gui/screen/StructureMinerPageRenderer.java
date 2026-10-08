@@ -163,6 +163,18 @@ final class StructureMinerPageRenderer {
             return true;
         }
 
+        // Bulk selection before the per-cell gesture: the two buttons sit on the section header,
+        // which is above every cell, so a point can only be one or the other and the order is
+        // documentation rather than a tie-break.
+        StructureMinerInfoPage.BulkAction bulk = StructureMinerInfoPage.bulkActionAt(c, x, y);
+        if (bulk != StructureMinerInfoPage.BulkAction.NONE) {
+            ModNetwork.setStructureMinerAllExpectedItems(
+                    c.menu().containerId,
+                    c.selectedMarkerSlot(),
+                    bulk == StructureMinerInfoPage.BulkAction.DESELECT_ALL);
+            return true;
+        }
+
         int row = StructureMinerInfoPage.productRowAt(c, x, y);
         if (row >= 0) {
             StructureMinerScreen.ExpectedItemRow entry = c.expectedItemRows().get(row);

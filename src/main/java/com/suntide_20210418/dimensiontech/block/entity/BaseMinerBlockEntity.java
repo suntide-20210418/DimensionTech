@@ -16,6 +16,7 @@ import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -671,6 +672,20 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public void toggleExpectedItem(ResourceLocation itemId) {
         outputController.toggleDisabledItem(itemId);
         setChanged();
+    }
+
+    /**
+     * Replaces the disabled-output set wholesale, for the select-all and deselect-all gestures.
+     *
+     * <p>Idempotent where {@link #toggleExpectedItem} is not: it states the desired set instead of
+     * inverting the current one, so a repeated call is a no-op rather than a flip back.
+     *
+     * @return true when the set changed, so the caller can skip re-running the analysis.
+     */
+    public boolean setDisabledExpectedItems(Collection<ResourceLocation> itemIds) {
+        if (!outputController.replaceDisabledItems(itemIds)) return false;
+        setChanged();
+        return true;
     }
 
     public boolean isExpectedItemDisabled(ResourceLocation itemId) {

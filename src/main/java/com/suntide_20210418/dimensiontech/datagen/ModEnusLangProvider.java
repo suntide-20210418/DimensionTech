@@ -541,6 +541,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.multiplier_header", "Multiplier");
         add("screen.dimension_tech.struct_marker.multiplier", "Multiplier: %s");
         add("screen.dimension_tech.struct_marker.tooltip.expected", "Expected: %s");
+        add("screen.dimension_tech.struct_marker.tooltip.quantity", "Amount: %s");
         add("screen.dimension_tech.struct_marker.item.disabled", "Output disabled");
         add("screen.dimension_tech.struct_marker.no_items", "No expected items available");
         add("screen.dimension_tech.struct_marker.mark", "Mark Structure");
@@ -631,6 +632,12 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_miner.expected_item.disable",
                 "Click to disable output");
+        add(
+                "screen.dimension_tech.structure_miner.expected_item.select_all",
+                "Enable every expected item");
+        add(
+                "screen.dimension_tech.structure_miner.expected_item.deselect_all",
+                "Disable every expected item");
         add("screen.dimension_tech.structure_miner.natural_progress", "Natural ticks: %s / %s");
         add("screen.dimension_tech.structure_miner.actual_progress", "Actual ticks: %s / %s (x%s)");
         add(

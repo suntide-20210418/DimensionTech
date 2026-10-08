@@ -335,6 +335,11 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     }
 
     @Override
+    public StructureMinerInfoPage.BulkAction hoveredBulkAction() {
+        return uiState.hoveredBulkAction;
+    }
+
+    @Override
     /**
      * True when the selected marker actually carries analysis data.
      *
@@ -448,6 +453,14 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         // both
         // the work page's lane and the info page's selector, which share the same grid.
         uiState.hoveredMarkerSlot = markerSlotAt(logicalMouseX - leftPos, logicalMouseY - topPos);
+        // Traced alongside the lane, for the same reason: the product section's bulk buttons are
+        // drawn from inside the page render, which has already applied the page's scroll offset, so
+        // the hit test has to be taken from the same place the buttons are positioned.
+        uiState.hoveredBulkAction =
+                uiState.page == Page.INFO
+                        ? StructureMinerInfoPage.bulkActionAt(
+                                this, logicalMouseX - leftPos, logicalMouseY - topPos)
+                        : StructureMinerInfoPage.BulkAction.NONE;
         graphics.pose().pushPose();
         graphics.pose().scale(uiScale, uiScale, 1.0F);
         super.render(graphics, logicalMouseX, logicalMouseY, partialTick);

@@ -7,6 +7,7 @@ import com.suntide_20210418.dimensiontech.network.payload.OperatorCatalogueReque
 import com.suntide_20210418.dimensiontech.network.payload.RefreshedMarkerPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructMarkerActionPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerAnalysisRequestPacket;
+import com.suntide_20210418.dimensiontech.network.payload.StructureMinerExpectedItemBulkPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerExpectedItemTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerSlotTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureReactorTooltipPacket;
@@ -53,6 +54,19 @@ public final class ModNetwork {
             int containerId, int slot, ResourceLocation itemId) {
         PacketDistributor.sendToServer(
                 new StructureMinerExpectedItemTogglePacket(containerId, slot, itemId));
+    }
+
+    /**
+     * Enables or disables every expected item of one marker at once.
+     *
+     * <p>One packet rather than a loop of {@link #toggleStructureMinerExpectedItem}: each toggle
+     * answer carries a full analysis snapshot, so looping would send the drop table back N times
+     * and make the server re-derive it N times for a single button press.
+     */
+    public static void setStructureMinerAllExpectedItems(
+            int containerId, int slot, boolean allDisabled) {
+        PacketDistributor.sendToServer(
+                new StructureMinerExpectedItemBulkPacket(containerId, slot, allDisabled));
     }
 
     public static void toggleStructureMinerSlot(int containerId, int slot) {

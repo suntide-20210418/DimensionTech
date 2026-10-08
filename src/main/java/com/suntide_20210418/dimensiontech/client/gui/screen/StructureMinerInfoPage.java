@@ -50,12 +50,44 @@ final class StructureMinerInfoPage {
     /**
      * Cells across the product grid.
      *
-     * <p>Seven, not nine: this grid shares its column with the page's own scrollbar, and the
-     * content column is 182 wide where the marker viewport is 186. Seven 18px cells and six 2px
-     * gutters come to 138, leaving the row's label space beside it. The grid here is not the whole
-     * section — the section header and the disabled legend still own the left of the row.
+     * <p>Nine, the same count as the other three call sites, which makes the product cell land at
+     * the same on-screen size everywhere in the mod. Nine 18px cells and eight 2px gutters come to
+     * 178 against a content column of {@code INFO_LIST_W - 2 * VIEWPORT_PAD} = 182, so the row fits
+     * with four pixels to spare. The page's own scrollbar does not eat into that: it sits at {@code
+     * SCROLLBAR_X = INFO_LIST_X + INFO_LIST_W}, one gutter outside the content column, so this grid
+     * is not sharing its width with anything.
      */
-    private static final int PRODUCT_COLUMNS = 7;
+    private static final int PRODUCT_COLUMNS = 9;
+
+    /**
+     * Gap between the product section's two bulk buttons.
+     *
+     * <p>Two pixels, the same gutter the grid cells use, so the pair reads as one group rather than
+     * as two unrelated controls that happen to be adjacent.
+     */
+    private static final int BULK_BUTTON_GAP = 2;
+
+    /**
+     * Height of the product section's bulk-button band.
+     *
+     * <p>Twenty-four, against a {@code SMALL_W}-tall button: the band is the button plus two pixels
+     * of air above and below, so the buttons read as a row of their own rather than as something
+     * the header or the grid is crowding.
+     */
+    private static final int BULK_ROW_H = 24;
+
+    /**
+     * Room the section header's label keeps before the bulk buttons may push into it.
+     *
+     * <p>If the two buttons would start closer than this to the section's left edge the label has
+     * already been consumed, so they are skipped entirely rather than drawn over it. The content
+     * column is 182 wide and the pair takes 42, so this cannot trigger at the current metrics — it
+     * is the guard that keeps a future column change from silently burying the caption.
+     */
+    private static final int BULK_LABEL_MIN_W = 120;
+
+    /** Edge length of one 10x10 bulk-button glyph, centred in the 20px button. */
+    private static final int BULK_GLYPH = 10;
 
     /**
      * One grid instance for the whole page.
@@ -503,7 +535,7 @@ final class StructureMinerInfoPage {
     }
 
     /**
-     * The product section: a caption, a legend for the disabled state, and a grid of cells.
+     * The product section: a caption, two selection buttons, and a grid of cells.
      *
      * <p><b>What the grid replaced.</b> This section used to be a zebra-striped list of
      * twenty-pixel rows — icon, name, expected count — which meant a structure with forty drops
@@ -516,6 +548,17 @@ final class StructureMinerInfoPage {
      * carries a legend line explaining what that wash means. A wash alone says "something is wrong
      * here"; the legend says which way, and a player who has disabled nothing sees an unambiguous
      * empty grid rather than a grid of grey squares they cannot name.
+     *
+     * <p><b>The two bulk buttons own a row of their own.</b> They are separate controls rather than
+     * a toggle because "all on" and "all off" are the two states a player wants to jump to, and a
+     * single toggle cannot express which one without also reading the current selection back.
+     *
+     * <p>They sit on a dedicated {@link #BULK_ROW_H} band between the header and the grid rather
+     * than on the header row itself. A {@code SMALL_W}-tall button does not fit an {@code
+     * SECTION_HEADER_H}-tall header, and hanging it over the edge would either cover the section's
+     * own caption or drop two pixels outside the height {@link #productSectionHeight} reports — so
+     * the page would clip the bottom of the buttons at the very end of the scroll range. A real row
+     * costs twelve pixels of page and keeps one sum in charge of every offset.
      */
     private static int drawProductSection(
             StructureMinerScreenContext c, GuiGraphics g, int x, int y, int width) {
@@ -539,8 +582,17 @@ final class StructureMinerInfoPage {
                     y,
                     StructureMinerTheme.DIM,
                     false);
-            return y + StructureMinerInfoLayout.ROW_H_INTERACTIVE;
+            // The empty section still reserves its bulk band, because {@link #productSectionHeight}
+            // reports one for an empty list and the two numbers must not disagree — an empty
+            // product
+            // list would otherwise leave the page four pixels shorter than the sum claims, and
+            // every
+            // section below it would be off by that much.
+            return y + BULK_ROW_H;
         }
+
+        drawBulkButtons(c, g, x, y, width);
+        y += BULK_ROW_H;
 
         List<ItemExpectationGrid.Entry> cells = cellsOf(c, rows);
         int gridX = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
@@ -559,7 +611,115 @@ final class StructureMinerInfoPage {
                 0,
                 Component.empty());
 
-        return gridH;
+        return BULK_ROW_H + gridH;
+    }
+
+    /**
+     * The select-all and deselect-all buttons, right-aligned on the product section's button row.
+     *
+     * <p>Drawn by the page rather than by {@link ItemExpectationGrid}: they act on the whole
+     * section and sit outside the grid's viewport, and the control deliberately owns geometry only
+     * — it has no opinion about which set of items a caller is showing or what a bulk action means.
+     *
+     * <p>The buttons are dimmed against the marker lane's cells because they act on the selected
+     * thread, and with no thread selected there is nothing for them to act on.
+     */
+    private static void drawBulkButtons(
+            StructureMinerScreenContext c, GuiGraphics g, int x, int rowY, int width) {
+        int size = StructureMinerSpriteRenderer.SMALL_W;
+        int deselectX = x + width - size;
+        int selectX = deselectX - BULK_BUTTON_GAP - size;
+        if (selectX < x + BULK_LABEL_MIN_W) return;
+
+        // Centred in the band, which is taller than the button so the row has a little air.
+        int buttonY = rowY + (BULK_ROW_H - size) / 2;
+        boolean configured = c.selectedMarkerSlot() >= 0;
+        boolean overSelect = c.hoveredBulkAction() == BulkAction.SELECT_ALL;
+        boolean overDeselect = c.hoveredBulkAction() == BulkAction.DESELECT_ALL;
+
+        StructureMinerSpriteRenderer.smallButton(g, selectX, buttonY, overSelect, configured);
+        StructureMinerSpriteRenderer.smallButton(g, deselectX, buttonY, overDeselect, configured);
+        if (!configured) {
+            g.fill(
+                    selectX,
+                    buttonY,
+                    deselectX + size,
+                    buttonY + size,
+                    StructureMinerTheme.DISABLED_OVERLAY);
+        }
+
+        // All-on is the filled glyph, all-off the hollow one: the pair reads as a set at a glance,
+        // which a pair of identical squares with different letters would not.
+        bulkGlyph(g, selectX, buttonY, size, true);
+        bulkGlyph(g, deselectX, buttonY, size, false);
+    }
+
+    /**
+     * A 10x10 mark inside a 20px button: four bars for "all on", four hollow brackets for "all
+     * off". Drawn from fills because the sheet has no glyph for either and both are two rectangles
+     * deep.
+     */
+    private static void bulkGlyph(GuiGraphics g, int x, int y, int size, boolean filled) {
+        int inset = (size - BULK_GLYPH) / 2;
+        int left = x + inset;
+        int top = y + inset;
+        int right = left + BULK_GLYPH;
+        int bottom = top + BULK_GLYPH;
+        int color = StructureMinerTheme.INK;
+        if (filled) {
+            g.fill(left, top, right, bottom, color);
+            return;
+        }
+        g.fill(left, top, right, top + 1, color);
+        g.fill(left, bottom - 1, right, bottom, color);
+        g.fill(left, top, left + 1, bottom, color);
+        g.fill(right - 1, top, right, bottom, color);
+    }
+
+    /**
+     * True when a page-local point is over one of the two bulk buttons.
+     *
+     * <p>Returns {@link BulkAction#NONE} when no thread is selected, matching the dimmed draw: a
+     * button that is greyed out must not answer a click, or the player learns that grey means
+     * nothing.
+     */
+    static BulkAction bulkActionAt(StructureMinerScreenContext c, double x, double y) {
+        if (c.selectedMarkerSlot() < 0) return BulkAction.NONE;
+        int slot = c.selectedMarkerSlot();
+        int size = StructureMinerSpriteRenderer.SMALL_W;
+        // Same centring the draw pass applies, from the same band origin.
+        int top = bulkRowTop(c, slot) + (BULK_ROW_H - size) / 2;
+        int left = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
+        int width =
+                StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
+        int deselectX = left + width - size;
+        int selectX = deselectX - BULK_BUTTON_GAP - size;
+        if (selectX < left + BULK_LABEL_MIN_W) return BulkAction.NONE;
+
+        if (StructureMinerInfoLayout.inside(x, y, selectX, top, size, size)) {
+            return BulkAction.SELECT_ALL;
+        }
+        if (StructureMinerInfoLayout.inside(x, y, deselectX, top, size, size)) {
+            return BulkAction.DESELECT_ALL;
+        }
+        return BulkAction.NONE;
+    }
+
+    /**
+     * Y of the product section's bulk-button band — the header's own lower edge.
+     *
+     * <p>Derived from the same sum {@link #productSectionTop} uses, so the hit test and the draw
+     * pass cannot disagree about which row the buttons are on.
+     */
+    private static int bulkRowTop(StructureMinerScreenContext c, int slot) {
+        return productSectionTop(c, slot);
+    }
+
+    /** What the product section's two bulk buttons ask for. */
+    enum BulkAction {
+        NONE,
+        SELECT_ALL,
+        DESELECT_ALL
     }
 
     /**
@@ -586,8 +746,20 @@ final class StructureMinerInfoPage {
         return cells;
     }
 
-    /** Height the product grid needs, so {@link #contentHeight} and the draw pass agree. */
+    /**
+     * Height the product section needs below its header, so {@link #contentHeight}, the draw pass
+     * and {@link #productRowAt} all agree.
+     *
+     * <p>Includes the bulk-button band, because that band is inside the section and above the grid.
+     * Folding it in here rather than adding it at the three call sites is what keeps a click from
+     * drifting a row when the buttons move.
+     */
     static int productSectionHeight(int itemCount) {
+        return BULK_ROW_H + GRID.contentHeight(itemCount);
+    }
+
+    /** Height of the product grid alone; the bulk band is not part of it. */
+    private static int gridHeight(int itemCount) {
         return GRID.contentHeight(itemCount);
     }
 
@@ -685,11 +857,12 @@ final class StructureMinerInfoPage {
     static int productRowAt(StructureMinerScreenContext c, double x, double y) {
         int slot = c.selectedMarkerSlot();
         if (slot < 0) return -1;
-        int top = productSectionTop(c, slot);
+        // The grid starts one bulk row below the section top, which is where the buttons sit.
+        int top = productSectionTop(c, slot) + BULK_ROW_H;
         int left = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
         int width =
                 StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
-        int height = Math.max(1, productSectionHeight(c.expectedItemRows().size()));
+        int height = Math.max(1, gridHeight(c.expectedItemRows().size()));
 
         return GRID.cellAt(
                 cellsOf(c, c.expectedItemRows()), (int) x - left, (int) y - top, width, height);
@@ -731,6 +904,19 @@ final class StructureMinerInfoPage {
             return;
         }
 
+        BulkAction bulk = bulkActionAt(c, x, y);
+        if (bulk != BulkAction.NONE) {
+            g.renderTooltip(
+                    c.font(),
+                    Component.translatable(
+                            bulk == BulkAction.SELECT_ALL
+                                    ? "screen.dimension_tech.structure_miner.expected_item.select_all"
+                                    : "screen.dimension_tech.structure_miner.expected_item.deselect_all"),
+                    screenX,
+                    screenY);
+            return;
+        }
+
         List<StructureMinerScreen.ExpectedItemRow> rows = c.expectedItemRows();
         int row = productRowAt(c, x, y);
         if (row < 0 || row >= rows.size()) return;
@@ -746,6 +932,9 @@ final class StructureMinerInfoPage {
                         Component.translatable(
                                 "screen.dimension_tech.struct_marker.tooltip.expected",
                                 ReadingFormat.reading(entry.expected())),
+                        Component.translatable(
+                                "screen.dimension_tech.struct_marker.tooltip.quantity",
+                                ReadingFormat.quantity(entry.expected())),
                         Component.translatable(
                                 "screen.dimension_tech.struct_marker.multiplier",
                                 String.format(

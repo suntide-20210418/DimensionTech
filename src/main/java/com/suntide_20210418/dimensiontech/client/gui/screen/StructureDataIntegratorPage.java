@@ -98,7 +98,7 @@ final class StructureDataIntegratorPage {
     }
 
     /**
-     * /** Draws the hovered dossier cell's tooltip.
+     * Draws the hovered dossier cell's tooltip.
      *
      * <p>The point is rebased twice: once out of the canvas and out of the detail column, and once
      * more by the scroll offset — the cells are drawn at {@code row - scroll}, so a point has to be
@@ -264,12 +264,23 @@ final class StructureDataIntegratorPage {
                 false);
 
         List<ItemExpectationGrid.Entry> cells = cellsOf(marker);
+        /*
+         * The origin carries the screen's scroll offset, not just the table top. This grid is
+         * scrollable = false — its offset lives on the screen — so the control positions row 0 at
+         * the origin it is handed and subtracts nothing itself. Drawing at tableTop() left the
+         * cells frozen while the bar moved and the tooltip hit test, which does subtract the
+         * offset, slid to a row that was never under the pointer.
+         *
+         * The scissor stays anchored at tableTop(): it is the window the cells scroll inside, so it
+         * must not move with them.
+         */
+        int gridY = tableTop() - s.detailScroll();
         GRID.render(
                 g,
                 s.getMinecraft().font,
                 cells,
                 x,
-                tableTop(),
+                gridY,
                 width,
                 gridHeight(),
                 StructureMinerLayout.scaleToScreen(
@@ -285,7 +296,7 @@ final class StructureDataIntegratorPage {
                     s.getMinecraft().font,
                     Component.translatable("screen.dimension_tech.structure_operator.no_loot"),
                     x + width / 2,
-                    tableTop() + GRID.strideY(),
+                    gridY + GRID.strideY(),
                     StructureMinerTheme.DIM);
         }
 

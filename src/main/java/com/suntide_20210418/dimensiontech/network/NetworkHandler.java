@@ -11,6 +11,7 @@ import com.suntide_20210418.dimensiontech.network.payload.StructMarkerActionPack
 import com.suntide_20210418.dimensiontech.network.payload.StructureChoicesPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerAnalysisPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerAnalysisRequestPacket;
+import com.suntide_20210418.dimensiontech.network.payload.StructureMinerExpectedItemBulkPacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerExpectedItemTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureMinerSlotTogglePacket;
 import com.suntide_20210418.dimensiontech.network.payload.StructureReactorTooltipPacket;
@@ -47,6 +48,10 @@ public final class NetworkHandler {
                 StructureMinerExpectedItemTogglePacket.TYPE,
                 StructureMinerExpectedItemTogglePacket.STREAM_CODEC,
                 StructureMinerExpectedItemTogglePacket::handle);
+        registrar.playToServer(
+                StructureMinerExpectedItemBulkPacket.TYPE,
+                StructureMinerExpectedItemBulkPacket.STREAM_CODEC,
+                StructureMinerExpectedItemBulkPacket::handle);
         registrar.playToServer(
                 StructureMinerSlotTogglePacket.TYPE,
                 StructureMinerSlotTogglePacket.STREAM_CODEC,
