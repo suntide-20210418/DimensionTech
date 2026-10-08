@@ -14,7 +14,7 @@ License: GPL-3.0
 
 1. Stand **inside a structure** and right-click with a **Structure Marker**: the screen lists every structure your position hits, and picking one writes its dimension, position, and bounds into the marker and computes the loot expectation. For loose containers, use the **Chest Marker** instead: press `V` to analyse and mark the container under the crosshair.
 2. Place a **Mythic Miner** of the desired tier and right-click it to open its controls.
-3. Right-click the miner while holding a **wrench** to toggle its multiblock projection; **shift+right-click** to build the multiblock from your inventory in one go. Then build the shown structure.
+3. Right-click the miner while holding a **wrench** to toggle its multiblock projection; **shift+right-click** to build the multiblock from your inventory in one go. Then build the shown structure. Both the projection and the build follow the miner's **facing when it was placed**: the body always grows out of the miner's back, and the open faces automation attaches to always front the miner's decorated side.
 4. Put written **Structure Markers** into the miner, then provide FE power and any required fluid.
 5. Configure redstone, item output, fluid faces, and automatic fluid extraction. The miner processes the markers and routes the generated loot. On top of the structure loot, every cycle also yields the miner tier's own **dimension fragments** and **mining tokens** (`min(10, parallel)` of each).
 6. Once you have tier 2 fragments and tokens, craft the **Data Integrator**; tier 5 fragments and tokens give you the **Structure Interpreter** (which also needs a Data Integrator, a nether star, and netherite). Only with both in the **Structure Data Operator** do you unlock the structure catalogue and bulk writing — which is why that machine sits after the miner rather than at the start of the loop.
@@ -33,12 +33,12 @@ Mythic Miners are available from Tier 1 through Tier 6. Each tier differs in mar
 
 The base multiblock requires:
 
-- 40 Mythic Miner Casings
+- 39 Mythic Miner Casings
 - 12 Mythic Miner Glass
 - 2 Mythic Miner Structure blocks
 - 12 upgrade slots (each holds an upgrade block or a structure block)
 
-The whole machine hangs below the miner itself (the miner owns the top layer): clear a 5x5x5 space underneath it first. The projection marks every position. The glass replaces the focus blocks the old layout needed, running through the waist so the casing sides stay see-through.
+The multiblock is anchored on the miner itself: the body stands **above** it, and the miner occupies the middle cell of the bottom plate's back edge, so the plate needs 39 casings rather than 40. Clear the whole 5x5x5 volume the body occupies first — it lies to one side of the miner, not on top of it — and the projection marks every position. Both the projection and the build follow the facing the miner was placed with, so the body never grows out in front of the machine. The glass replaces the focus blocks the old layout needed, running through the waist so the casing sides stay see-through.
 
 Every tier requires a fluid input by default (the gate is `BaseMinerBlockEntity#requiresFluidInput`, which defaults to `tier >= 1`; KubeJS can turn it off through `requiresFluid(false)`). The required fluids are:
 
@@ -150,7 +150,7 @@ See [docs/code-wiki.md](docs/code-wiki.md) for the full module responsibilities,
 
 Asynchronous marker analysis uses a fingerprint of its inputs. The fingerprint includes algorithm version, active markers, dimension, position, structure and bounds, luck, and analysis configuration. It ignores stack count and non-analysis derived payload. Results from a stale, replaced, cleared, or removed block entity must never be committed.
 
-Touching the multiblock coordinates means re-verifying counts, overlap, envelope coverage, D4 symmetry, face connectivity, and the controller contract; the four collections in `StructureMinerMultiblock` and `projectionCounts()` are the only source of truth, so do not count cells by hand. The original project verified these invariants with `docs/tools/multiblock_geometry_check.py`, but that script was **not carried over**, so verification is manual for now (see [docs/code-wiki.md](docs/code-wiki.md) §13).
+Touching the multiblock coordinates means re-verifying counts, overlap, envelope coverage, the four facing rotations, face connectivity, and the controller contract; the four collections in `StructureMinerMultiblock` and `projectionCounts()` are the only source of truth, so do not count cells by hand. The original project verified these invariants with `docs/tools/multiblock_geometry_check.py`, but that script was **not carried over**, so verification is manual for now (see [docs/code-wiki.md](docs/code-wiki.md) §13).
 
 ### KubeJS Extension
 
