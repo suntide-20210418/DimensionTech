@@ -83,10 +83,23 @@ final class ReadingFormat {
      *
      * <p>Ten thousand, so the four-digit case still prints in full and anything wider gets a unit.
      * The grid cell is eighteen pixels wide and the tooltip is read at a glance; {@code 12345} is
-     * three pixels of noise next to {@code 12K} where the only extra information is the last three
+     * three pixels of noise next to {@code 12.35K} where the only extra information is the last
      * digits of an expectation nobody acts on.
+     *
+     * <p>The threshold is also where the precision rule changes: below it the value is a count the
+     * player recognises and wants exactly, so it prints with no decimals, while above it the value
+     * is being rescaled anyway and keeps four significant digits instead.
      */
     private static final double QUANTITY_THRESHOLD = 10_000.0D;
+
+    /**
+     * Significant digits kept by the suffixed form.
+     *
+     * <p>Four, which is what the display was specified with and also the most a mantissa in {@code
+     * [1, 1000)} can carry in three decimals. The mantissa's decimal count follows from this rather
+     * than being fixed: {@code 1.235K}, {@code 12.35K}, {@code 123.5K} all carry four.
+     */
+    private static final int QUANTITY_SIGNIFICANT_DIGITS = 4;
 
     /**
      * The decimal suffixes, smallest first. Index 0 means "no suffix" and is only reached by values
@@ -97,19 +110,29 @@ final class ReadingFormat {
     /**
      * Formats an expected item count as a short, readable amount.
      *
-     * <p>The rules are "four significant digits and zero decimals, rounded", and the concrete ask
-     * was that ten thousand reads as {@code 10K}. Those two do not both bite: with no decimals, a
-     * mantissa below a thousand carries at most three significant digits, so the significant-digit
-     * bound is an upper limit that the decimal rule already enforces. The rounding rule is
-     * therefore what actually decides the output, and the unit is chosen as the largest one that
-     * leaves at least one integral digit — {@code 9999} prints in full, {@code 10000} becomes
-     * {@code 10K}, {@code 123456} becomes {@code 123K}, {@code 1234567} becomes {@code 1M}.
+     * <p><b>Two tiers, split at {@link #QUANTITY_THRESHOLD}.</b> Below it the value is printed as
+     * an integer — zero decimals, rounded — because it is a count the player can hold in their head
+     * and {@code 9999} is more informative than {@code 10.00K}. At or above it the value is
+     * rescaled onto a {@link #QUANTITY_SUFFIXES unit} and kept to {@link
+     * #QUANTITY_SIGNIFICANT_DIGITS significant digits}, so the decimals come back: {@code 12450}
+     * reads {@code 12.45K}, not {@code 12K}. Rounding to an integer before the unit is chosen would
+     * throw away the leading digits of every value a structure actually produces.
      *
-     * <p>The renormalisation loop is not decorative. Rounding happens after the unit is picked, so
-     * {@code 999_600} scales to {@code 999.6} and rounds to {@code 1000} — a mantissa that has
-     * outgrown its own unit. Stepping up and re-rounding turns that into {@code 1M} instead of the
-     * off-by-a-factor-of-a-thousand {@code 1000K}. It terminates because each step divides by a
-     * thousand and the loop is bounded by the suffix list.
+     * <p>The mantissa's decimal count is derived from the significant-digit budget rather than
+     * fixed, so it shrinks as the mantissa grows: four digits means three decimals at {@code
+     * 1.235K}, two at {@code 12.35K}, one at {@code 123.5K}, none at {@code 1235K} — which never
+     * arises, because that mantissa would have been renormalised onto the next unit.
+     *
+     * <p>Trailing zeros are trimmed. The digits are still significant — {@code 10.00K} and {@code
+     * 10K} denote the same rounded value — but a mantissa that ends in {@code .00} implies a
+     * precision the number does not have, and the trimming is why {@code 10000} reads {@code 10K}
+     * rather than {@code 10.00K}.
+     *
+     * <p><b>Renormalisation.</b> Rounding happens after the unit is picked, so a mantissa can round
+     * up past its own unit: {@code 999_950} scales to {@code 999.95K} and rounds to {@code 1000K}.
+     * Stepping up and re-rounding turns that into {@code 1M} instead of the off-by-a-factor-of-a-
+     * thousand {@code 1000K}. It terminates because each step divides by a thousand and the loop is
+     * bounded by the suffix list.
      *
      * <p>Negative and non-finite inputs cannot arrive from a loot expectation, but the formatter is
      * shared and has to stay total: a non-finite value falls back to the plain reading rather than
@@ -133,20 +156,76 @@ final class ReadingFormat {
             if (unit >= QUANTITY_SUFFIXES.length - 1) break;
         }
 
-        /*
-         * Halves round up, in floating point rather than through Math.round. Math.round returns a
-         * long, so a saturating value would be clamped to Long.MAX_VALUE and then printed with all
-         * of that integer's digits — a hundred-quintillion-item expectation would render as a
-         * nineteen-digit number followed by a suffix. Flooring the sum keeps the magnitude in a
-         * double and loses nothing that the suffix has not already thrown away.
-         */
-        double rounded = Math.floor(scaled + 0.5D);
+        int decimals = mantissaDecimals(scaled);
+        double rounded = roundTo(scaled, decimals);
         if (rounded >= 1000.0D && unit < QUANTITY_SUFFIXES.length - 1) {
             rounded /= 1000.0D;
             unit++;
+            // The mantissa shrank by a factor of a thousand, so it has room for three more
+            // decimals; re-deriving rather than reusing `decimals` is what keeps 1M holding four
+            // significant digits instead of one.
+            decimals = mantissaDecimals(rounded);
         }
 
         String sign = value < 0.0D ? "-" : "";
-        return sign + String.format(Locale.ROOT, "%.0f", rounded) + QUANTITY_SUFFIXES[unit];
+        /*
+         * The suffix list can run out, which takes an expectation past a quintillion items — more
+         * than any loot table produces. The saturating value from ReadingFormat#displayValue does
+         * reach here, though, and its mantissa still carries all three hundred of its digits.
+         *
+         * No further division helps: the loop above already stopped at the largest suffix, so the
+         * mantissa is simply too big for this scale. Clamping to the significant-digit budget keeps
+         * the result to a handful of characters and reads as the placeholder it is, instead of
+         * printing 1.798e308 in full.
+         */
+        if (rounded >= 1000.0D) {
+            rounded = 999.9D;
+            decimals = 1;
+        }
+        return sign + trimTrailingZeros(formatFixed(rounded, decimals)) + QUANTITY_SUFFIXES[unit];
+    }
+
+    /**
+     * Decimal places that show {@link #QUANTITY_SIGNIFICANT_DIGITS} significant digits in a
+     * mantissa of {@code [1, 1000)}: three below ten, two below a hundred, one above.
+     *
+     * <p>Clamped at zero because a mantissa at or above a thousand has already spent its whole
+     * budget on the integer part, and a negative precision is not a format Java accepts.
+     */
+    private static int mantissaDecimals(double mantissa) {
+        int magnitudeDigits = (int) Math.floor(Math.log10(Math.max(1.0D, mantissa))) + 1;
+        return Math.max(0, QUANTITY_SIGNIFICANT_DIGITS - magnitudeDigits);
+    }
+
+    /**
+     * Rounds to {@code decimals} places in floating point.
+     *
+     * <p>Halves round up. Not via {@code Math.round}, which returns a long: a saturating magnitude
+     * would be clamped to {@code Long.MAX_VALUE} and then printed with all nineteen of that
+     * integer's digits. Flooring the sum keeps the magnitude in a double and loses nothing that the
+     * suffix has not already thrown away.
+     */
+    private static double roundTo(double value, int decimals) {
+        double scale = Math.pow(10.0D, decimals);
+        return Math.floor(value * scale + 0.5D) / scale;
+    }
+
+    /** Fixed-point format at a runtime precision, for a mantissa rather than the whole reading. */
+    private static String formatFixed(double value, int decimals) {
+        return String.format(Locale.ROOT, "%." + decimals + "f", value);
+    }
+
+    /**
+     * Drops the fraction and any trailing zeros from a formatted mantissa.
+     *
+     * <p>{@code 10.00} becomes {@code 10} and {@code 12.50} becomes {@code 12.5} — the digits stay
+     * significant, but trailing zeros advertise a precision the value does not carry.
+     */
+    private static String trimTrailingZeros(String formatted) {
+        if (formatted.indexOf('.') < 0) return formatted;
+        int end = formatted.length();
+        while (end > 0 && formatted.charAt(end - 1) == '0') end--;
+        if (end > 0 && formatted.charAt(end - 1) == '.') end--;
+        return formatted.substring(0, end);
     }
 }
