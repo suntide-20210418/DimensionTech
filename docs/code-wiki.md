@@ -345,6 +345,8 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 | AE2 | `integration/ae2/Ae2Integration` | ME 网络输出与流体交互 |
 | 通用钩子 | `MinerIntegrationHooks` | 统一封装跨集成的矿机钩子点 |
 
+除上述"本模组去适配别人"的集成外，还对外提供一个**稳定 API 包** `com.suntide_20210418.dimensiontech.api`（`DimensionTechApi` + `StructureValuation`），供其它模组只读消费结构/宝箱估值（产出期望、结构价值、维度价值）与宝箱标记能力。它不引入新算法，全部转调内部既有实现，因此与模组自身的口径（配置过滤、指纹、缓存）逐项一致；调用方须自行以 `ModList.isLoaded("dimension_tech")` 门禁，并把对该包的引用隔离在不会提前加载的兼容类里。
+
 选装依赖的构建处理值得注意（见 `build.gradle`）：数据生成时以 `compileOnly` 隔离可选模组（`-PvanillaLootRuntime` 则是原版战利品语料门禁的旧开关），避免它们污染生成的资源，或如 KubeJS 持有非 daemon 线程导致 datagen JVM 不退出的问题；客户端/开发运行时才以 `implementation` 加入。KubeJS 的接入还通过 `src/main/resources/kubejs.plugins.txt`（`META-INF/services` 风格）被 KubeJS 探测加载。
 
 ---
