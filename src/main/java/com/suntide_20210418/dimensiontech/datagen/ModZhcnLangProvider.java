@@ -259,6 +259,18 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("block.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("container.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("block.dimension_tech.structure_miner_casing", "采掘器外壳");
+        add("block.dimension_tech.fluid_input", "流体输入仓");
+        add("block.dimension_tech.energy_input", "能源输入仓");
+        add("block.dimension_tech.item_output", "物品弹出仓");
+        add("message.dimension_tech.fluid_input_chamber.contents", "流体输入仓：%1$s / %2$s mB");
+        add("message.dimension_tech.fluid_input_chamber.auto_pull_on", "自动拉取已开启（%1$s / %2$s mB）");
+        add("message.dimension_tech.fluid_input_chamber.auto_pull_off", "自动拉取已关闭（%1$s / %2$s mB）");
+        add(
+                "message.dimension_tech.energy_input_chamber.contents",
+                "能源输入仓：%1$s / %2$s FE，耗能 %3$s FE/t");
+        add(
+                "message.dimension_tech.energy_input_chamber.contents_unbound",
+                "能源输入仓：%1$s / %2$s FE，未绑定采掘器");
         add("block.dimension_tech.structure_miner_structure", "采掘器结构方块");
         add("block.dimension_tech.structure_miner_glass", "结构采掘器玻璃");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "1级并行升级方块");
@@ -383,6 +395,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.struct_marker.item_count", "%s 项");
         add("screen.dimension_tech.struct_marker.multiplier_header", "倍率");
         add("screen.dimension_tech.struct_marker.multiplier", "倍率：%s");
+        add("screen.dimension_tech.struct_marker.tooltip.expected", "期望：%s");
+        add("screen.dimension_tech.struct_marker.item.disabled", "已禁用产出");
         add("screen.dimension_tech.struct_marker.no_items", "没有可用的期望物品");
         add("screen.dimension_tech.struct_marker.mark", "标记结构");
         add("screen.dimension_tech.struct_marker.select", "选择结构");
@@ -448,6 +462,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.hint.slot_toggle", "右键槽位以启用或停用该线程");
         add("screen.dimension_tech.structure_miner.expected_item.enable", "点击启用产出");
         add("screen.dimension_tech.structure_miner.expected_item.disable", "点击禁用产出");
+        add("screen.dimension_tech.structure_miner.expected_item.select_all", "启用全部产出物品");
+        add("screen.dimension_tech.structure_miner.expected_item.deselect_all", "禁用全部产出物品");
         add("screen.dimension_tech.structure_miner.natural_progress", "自然tick：%s / %s");
         add("screen.dimension_tech.structure_miner.actual_progress", "实际tick：%s / %s（x%s）");
         add("screen.dimension_tech.structure_miner.parallel.expand_hint", "点击展开并行明细");
@@ -473,9 +489,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.attribute.reduction", "最终降低：%s%%");
         add("screen.dimension_tech.structure_miner.attribute.total_count", "升级方块总数：%s");
         add("screen.dimension_tech.structure_miner.attribute.upgrade_breakdown", "专精升级：%s，聚合升级：%s");
-        add("screen.dimension_tech.structure_miner.output.me_network", "ME 网络");
-        add("screen.dimension_tech.structure_miner.output.item_handler", "物品容器");
-        add("screen.dimension_tech.structure_miner.output.none", "未连接");
+        add("screen.dimension_tech.structure_miner.output.chamber", "物品弹出仓");
+        add("screen.dimension_tech.structure_miner.output.chamber_missing", "未安装物品弹出仓");
+        add("screen.dimension_tech.structure_miner.chamber_missing", "缺少仓室：%s");
         add("screen.dimension_tech.structure_miner.output.blocked", "输出堵塞：%s 件无法弹出");
         add("screen.dimension_tech.structure_miner.inventory", "玩家背包");
         add("screen.dimension_tech.structure_miner.output_face", "输出面");
@@ -606,6 +622,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.output.me_network", "ME 网络");
         add("jade.dimension_tech.output.item_handler", "物品容器");
         add("jade.dimension_tech.output.none", "无输出");
+        add("jade.dimension_tech.output.chamber", "物品弹出仓");
         add("jade.dimension_tech.pending", "待输出：%s 个物品");
         add("jade.dimension_tech.reason", "原因：%s");
         add("jade.dimension_tech.reason.me_full", "网络存储空间不足");
@@ -617,6 +634,24 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.energy_consumption_value", "%s FE/t");
         add("jade.dimension_tech.seconds", "%s");
         add("jade.dimension_tech.items", "%s");
+
+        // 仓室悬停读数（流体输入仓 / 物品弹出仓）
+        add("jade.dimension_tech.fluid", "流体：%s");
+        add("jade.dimension_tech.fluid_amount", "储量：%s");
+        add("jade.dimension_tech.fluid_empty", "空");
+        add("jade.dimension_tech.required_fluid", "需求：%s");
+        add("jade.dimension_tech.auto_pull", "自动拉取：%s");
+        add("jade.dimension_tech.on", "开");
+        add("jade.dimension_tech.off", "关");
+        add("jade.dimension_tech.unbound", "未绑定采掘器");
+        add("jade.dimension_tech.device", "设备：%s");
+        add("jade.dimension_tech.device_online", "在线");
+        add("jade.dimension_tech.device_offline", "离线");
+        add("jade.dimension_tech.device_absent", "未安装 AE2");
+        add("jade.dimension_tech.backlog", "物品堆积：%s");
+        add("jade.dimension_tech.backlog_blocked", "%s 件，机器已停机");
+        add("jade.dimension_tech.backlog_waiting", "%s 件待弹出");
+        add("jade.dimension_tech.backlog_clear", "无");
     }
 
     private void addVanillaRegistryNames() {

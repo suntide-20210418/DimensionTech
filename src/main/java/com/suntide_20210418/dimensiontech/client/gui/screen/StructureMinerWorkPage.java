@@ -293,9 +293,11 @@ final class StructureMinerWorkPage {
         int width = StructureMinerInfoLayout.WORK_CHIP_W;
         int stride = width + StructureMinerInfoLayout.WORK_CHIP_GAP;
 
-        BaseMinerBlockEntity.OutputState output = t.outputState();
         // A non-empty pending list is the machine's hard stop: canRunThisTick refuses every cycle
-        // until the router drains it, so this state outranks the configured output mode.
+        // until the item output chamber drains it, so this state outranks the output target. The
+        // target itself is the chamber's identity now, so the chip reports whether one is installed
+        // — and names it when it is not, because "unlinked" on its own tells the player nothing
+        // about what to place.
         if (t.pendingCount() > 0) {
             StructureMinerTheme.statusChip(
                     g,
@@ -308,6 +310,7 @@ final class StructureMinerWorkPage {
                             t.pendingCount()),
                     StructureMinerTheme.ERROR);
         } else {
+            boolean installed = t.outputChamberInstalled();
             StructureMinerTheme.statusChip(
                     g,
                     c.font(),
@@ -315,13 +318,10 @@ final class StructureMinerWorkPage {
                     y,
                     width,
                     Component.translatable(
-                            "screen.dimension_tech.structure_miner.output."
-                                    + output.name().toLowerCase(Locale.ROOT)),
-                    switch (output) {
-                        case ME_NETWORK -> StructureMinerTheme.SUCCESS;
-                        case ITEM_HANDLER -> StructureMinerTheme.FLUIX;
-                        case NONE -> StructureMinerTheme.ERROR;
-                    });
+                            installed
+                                    ? "screen.dimension_tech.structure_miner.output.chamber"
+                                    : "screen.dimension_tech.structure_miner.output.chamber_missing"),
+                    installed ? StructureMinerTheme.FLUIX : StructureMinerTheme.ERROR);
         }
 
         BaseMinerBlockEntity.RedstoneMode redstone = t.redstoneMode();

@@ -114,18 +114,18 @@ Two small helpers are also exposed: `DimensionTech.version()` returns the mod ve
 
 The `miner` wrapper exposes machine telemetry and validated controls.
 
-Telemetry: `energyStored`, `energyCapacity`, `effectiveEnergyCapacity`, `energyConsumption`, `workingThreadCount`, `efficiency`, `luck`, `baseParallel`, `progress`, `processingTime`, `slotCount`, `slotProgress(slot)`, `slotEnabled(slot)`, `pendingOutputCount`, `structureComplete`, `fluidAmount`, `fluidCapacity`, `requiredFluid`, `autoExtractFluid`, `equipmentDismantling`, `expectedItemDisabled(id)`, `markedStructures`, `blockId`, `minerTier`, `dimension`, `position`, `redstoneMode`, `outputMode`.
+Telemetry: `energyStored`, `energyCapacity`, `effectiveEnergyCapacity`, `energyConsumption`, `workingThreadCount`, `efficiency`, `luck`, `baseParallel`, `progress`, `processingTime`, `slotCount`, `slotProgress(slot)`, `slotEnabled(slot)`, `pendingOutputCount`, `structureComplete`, `fluidAmount`, `fluidCapacity`, `requiredFluid`, `autoExtractFluid`, `hasFluidChamber`, `hasEnergyChamber`, `hasItemChamber`, `equipmentDismantling`, `expectedItemDisabled(slot, id)`, `markedStructures`, `blockId`, `minerTier`, `dimension`, `position`, `redstoneMode`.
+
+The tank, the FE buffer and the output router live in the three casing chambers, not in the controller, so `energyStored`, `fluidAmount`, `fluidCapacity` and `autoExtractFluid` read through to the chamber that is installed and report zero/false when the ring has none. The three `has*Chamber` calls answer that question directly. The per-face output configuration is gone: output is the item output chamber's identity now, so there is no mode and no face mask to set.
 
 Controls:
 
 ```js
 event.miner.setSlotEnabled(0, false)
 event.miner.setRedstoneMode('no_signal')
-event.miner.setOutputMode('item_handler')
-event.miner.setOutputFace('north', true)
 event.miner.setAutoExtractFluid(true)
 event.miner.setEquipmentDismantling(false)
-event.miner.setExpectedItemDisabled('minecraft:diamond', true)
+event.miner.setExpectedItemDisabled(0, 'minecraft:diamond', true)
 ```
 
 All controls run on the server thread and mark the block entity dirty for saving. Invalid modes, directions, IDs, or configuration values raise a KubeJS script error instead of silently changing state.
@@ -249,18 +249,18 @@ DimensionTech.reactorRecipe('dimension_tech:structure_surge')
 
 `miner` 包装器同时提供遥测数据与经过验证的控制方法。
 
-遥测：`energyStored`、`energyCapacity`、`effectiveEnergyCapacity`、`energyConsumption`、`workingThreadCount`、`efficiency`、`luck`、`baseParallel`、`progress`、`processingTime`、`slotCount`、`slotProgress(slot)`、`slotEnabled(slot)`、`pendingOutputCount`、`structureComplete`、`fluidAmount`、`fluidCapacity`、`requiredFluid`、`autoExtractFluid`、`equipmentDismantling`、`expectedItemDisabled(id)`、`markedStructures`、`blockId`、`minerTier`、`dimension`、`position`、`redstoneMode`、`outputMode`。
+遥测：`energyStored`、`energyCapacity`、`effectiveEnergyCapacity`、`energyConsumption`、`workingThreadCount`、`efficiency`、`luck`、`baseParallel`、`progress`、`processingTime`、`slotCount`、`slotProgress(slot)`、`slotEnabled(slot)`、`pendingOutputCount`、`structureComplete`、`fluidAmount`、`fluidCapacity`、`requiredFluid`、`autoExtractFluid`、`hasFluidChamber`、`hasEnergyChamber`、`hasItemChamber`、`equipmentDismantling`、`expectedItemDisabled(slot, id)`、`markedStructures`、`blockId`、`minerTier`、`dimension`、`position`、`redstoneMode`。
+
+流体罐、FE 缓冲与产出路由都已迁到三个仓室里，不再由本体持有，所以 `energyStored`、`fluidAmount`、`fluidCapacity`、`autoExtractFluid` 都是"读已安装的仓室"，环上没有对应仓室时返回 0 / false；想直接判断就调 `has*Chamber`。逐面输出配置已经移除：产出是物品弹出仓自身的身份，既没有输出模式也没有输出面掩码可设。
 
 控制：
 
 ```js
 event.miner.setSlotEnabled(0, false)
 event.miner.setRedstoneMode('no_signal')
-event.miner.setOutputMode('item_handler')
-event.miner.setOutputFace('north', true)
 event.miner.setAutoExtractFluid(true)
 event.miner.setEquipmentDismantling(false)
-event.miner.setExpectedItemDisabled('minecraft:diamond', true)
+event.miner.setExpectedItemDisabled(0, 'minecraft:diamond', true)
 ```
 
 所有控制方法都在服务端线程执行，并会将方块实体标记为待保存。无效的模式、方向、资源 ID 或配置值会抛出 KubeJS 脚本错误，而不会静默改变状态。

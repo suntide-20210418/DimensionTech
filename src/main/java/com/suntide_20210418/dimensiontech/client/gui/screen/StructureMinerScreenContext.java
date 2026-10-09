@@ -77,6 +77,15 @@ interface StructureMinerScreenContext {
     int hoveredMarkerSlot();
 
     /**
+     * Bulk button under the pointer on the info page, or {@link
+     * StructureMinerInfoPage.BulkAction#NONE}.
+     *
+     * <p>Traced by the screen before the page render, because the buttons are drawn during it and
+     * their position depends on the scroll offset the render is applying.
+     */
+    StructureMinerInfoPage.BulkAction hoveredBulkAction();
+
+    /**
      * True once the asynchronous analysis for the selected slot has arrived.
      *
      * <p>Pages must not read a missing analysis as zero: zero is a legitimate value, and showing it

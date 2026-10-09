@@ -52,9 +52,14 @@ public final class StructureMinerProjectionClient {
                     true);
             return;
         }
+        // The pattern is turned to the controller's facing here, once. That is safe because nothing
+        // writes FACING after placement — the block only sets it from getStateForPlacement — so the
+        // stored offsets cannot go stale behind the overlay's back.
         projection =
                 new Projection(
-                        center.immutable(), dimension, StructureMinerMultiblock.projection());
+                        center.immutable(),
+                        dimension,
+                        StructureMinerMultiblock.projection(minecraft.level, center));
         minecraft.player.displayClientMessage(
                 Component.translatable("message.dimension_tech.structure_miner.projection_on"),
                 true);

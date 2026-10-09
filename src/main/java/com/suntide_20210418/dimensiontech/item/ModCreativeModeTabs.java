@@ -73,6 +73,9 @@ public final class ModCreativeModeTabs {
                                                         ModItems.TIER_6_STRUCTURE_MINER.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_MINER_CASING.get());
+                                                output.accept(ModItems.FLUID_INPUT_CHAMBER.get());
+                                                output.accept(ModItems.ENERGY_INPUT_CHAMBER.get());
+                                                output.accept(ModItems.ITEM_OUTPUT_CHAMBER.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_MINER_STRUCTURE.get());
                                                 output.accept(ModItems.STRUCTURE_MINER_GLASS.get());

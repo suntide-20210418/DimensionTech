@@ -153,6 +153,25 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .define('A', Items.AMETHYST_SHARD)
                 .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
                 .save(writer);
+
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.ITEM_OUTPUT_CHAMBER.get(), 1)
+                .requires(ModItems.STRUCTURE_MINER_CASING.get())
+                .requires(Items.CHEST)
+                .unlockedBy("has_iron_ingot", has(Items.IRON_INGOT))
+                .save(writer);
+
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.FLUID_INPUT_CHAMBER.get(), 1)
+                .requires(ModItems.STRUCTURE_MINER_CASING.get())
+                .requires(Items.BUCKET)
+                .unlockedBy("has_iron_ingot", has(Items.IRON_INGOT))
+                .save(writer);
+
+        ShapelessRecipeBuilder.shapeless(
+                        RecipeCategory.MISC, ModItems.ENERGY_INPUT_CHAMBER.get(), 1)
+                .requires(ModItems.STRUCTURE_MINER_CASING.get())
+                .requires(Items.REDSTONE_BLOCK)
+                .unlockedBy("has_iron_ingot", has(Items.IRON_INGOT))
+                .save(writer);
     }
 
     private void machines(RecipeOutput writer) {

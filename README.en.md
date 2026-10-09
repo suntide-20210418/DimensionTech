@@ -14,9 +14,9 @@ License: GPL-3.0
 
 1. Stand **inside a structure** and right-click with a **Structure Marker**: the screen lists every structure your position hits, and picking one writes its dimension, position, and bounds into the marker and computes the loot expectation. For loose containers, use the **Chest Marker** instead: press `V` to analyse and mark the container under the crosshair.
 2. Place a **Mythic Miner** of the desired tier and right-click it to open its controls.
-3. Right-click the miner while holding a **wrench** to toggle its multiblock projection; **shift+right-click** to build the multiblock from your inventory in one go. Then build the shown structure.
-4. Put written **Structure Markers** into the miner, then provide FE power and any required fluid.
-5. Configure redstone, item output, fluid faces, and automatic fluid extraction. The miner processes the markers and routes the generated loot. On top of the structure loot, every cycle also yields the miner tier's own **dimension fragments** and **mining tokens** (`min(10, parallel)` of each).
+3. Right-click the miner while holding a **wrench** to toggle its multiblock projection; **shift+right-click** to build the multiblock from your inventory in one go. Then build the shown structure. Both the projection and the build follow the miner's **facing when it was placed**: the body always grows out of the miner's back, and the open faces automation attaches to always front the miner's decorated side.
+4. Put written **Structure Markers** into the miner, and swap a **Fluid Input Chamber**, an **Energy Input Chamber** and an **Item Output Chamber** into the casing ring — every input, every FE and all output now go through them.
+5. Configure redstone. The miner processes the markers and routes the generated loot. On top of the structure loot, every cycle also yields the miner tier's own **dimension fragments** and **mining tokens** (`min(10, parallel)` of each).
 6. Once you have tier 2 fragments and tokens, craft the **Data Integrator**; tier 5 fragments and tokens give you the **Structure Interpreter** (which also needs a Data Integrator, a nether star, and netherite). Only with both in the **Structure Data Operator** do you unlock the structure catalogue and bulk writing — which is why that machine sits after the miner rather than at the start of the loop.
 
 Structure analysis reads a structure's loot tables and calculates expected item counts and structure value. Analysis can complete asynchronously; a marker is not advanced into a processing job until its result is ready.
@@ -33,12 +33,24 @@ Mythic Miners are available from Tier 1 through Tier 6. Each tier differs in mar
 
 The base multiblock requires:
 
-- 40 Mythic Miner Casings
+- 39 Mythic Miner Casings
 - 12 Mythic Miner Glass
 - 2 Mythic Miner Structure blocks
 - 12 upgrade slots (each holds an upgrade block or a structure block)
 
-The whole machine hangs below the miner itself (the miner owns the top layer): clear a 5x5x5 space underneath it first. The projection marks every position. The glass replaces the focus blocks the old layout needed, running through the waist so the casing sides stay see-through.
+Any of the 39 casing cells may be swapped for one of the three chambers below; a cell that holds a chamber no longer consumes casing.
+
+### The three chambers
+
+The chambers are the same size as a casing block, so they drop straight into any casing cell and move the miner's fluid, power and output out of the controller:
+
+- **Fluid Input Chamber**: one fluid slot of 16,000 mB that only accepts the processing fluid the miner's tier calls for. Plain right-click reports the stored amount in chat; **shift+right-click** toggles auto-pull (draining the required fluid out of adjacent containers). Right-clicking with a fluid container in hand fills or drains it directly.
+- **Energy Input Chamber**: the machine's FE buffer. Its capacity follows the miner it serves and is cached, so the chamber still accepts energy while the multiblock is not standing: an incomplete machine uses the cached value, and a chamber that has never read one defaults to 10,000 FE. Plain right-click reports the stored energy and the machine's consumption in chat.
+- **Item Output Chamber**: the output route. Each attempt ejects **one group** and leaves the rest for the next tick. With AE2 installed it is also a device on the ME network — cables reach it — and while that node is online it pushes the **whole** queue into network storage in one pass instead.
+
+When more than one chamber of a kind is installed, the first one in a fixed casing-cell order wins and the rest count as plain casing. Whichever chamber is missing simply cannot do its part: without an energy or fluid chamber the miner does not start, and without an item output chamber the output can never leave, so the machine stalls on a blocked queue. A complete multiblock is therefore not the same as a working machine: while the structure stands but chambers are missing, the miner interface names the ones you still have to place.
+
+The multiblock is anchored on the miner itself: the body stands **above** it, and the miner occupies the middle cell of the bottom plate's back edge, so the plate needs 39 casings rather than 40. Clear the whole 5x5x5 volume the body occupies first — it lies to one side of the miner, not on top of it — and the projection marks every position. Both the projection and the build follow the facing the miner was placed with, so the body never grows out in front of the machine. The glass replaces the focus blocks the old layout needed, running through the waist so the casing sides stay see-through.
 
 Every tier requires a fluid input by default (the gate is `BaseMinerBlockEntity#requiresFluidInput`, which defaults to `tier >= 1`; KubeJS can turn it off through `requiresFluid(false)`). The required fluids are:
 
@@ -85,7 +97,7 @@ The NeoForge common configuration contains base values for all six miner tiers a
 These integrations are optional:
 
 - **KubeJS**: server-side miner overrides, reactor recipes, structure-value rules, and work events.
-- **Jade**: miner status display.
+- **Jade**: miner status display; the fluid input chamber shows its contents, the fluid the machine needs and whether auto-pull is on, and the item output chamber shows whether its ME device is online plus how much finished loot is still stacked up.
 - **Applied Energistics 2**: ME-network-related output and fluid interaction.
 - **JEI**: recipes for the reactor, the miner, and the deconstruction core.
 
@@ -129,9 +141,9 @@ Do not run `spotlessApply`: the repository's aosp 100-column configuration rewri
 
 | Location | Responsibility |
 | --- | --- |
-| `block/` | Mythic Miners, Structure Reactor, Structure Data Operator, multiblock layout and projection, casing/glass/upgrade blocks |
-| `block/entity/` | Miner ticks, resource accounting, output, asynchronous marker analysis, reactor cycle, and tier implementations |
-| `structureminer/` | Miner processing math (`ProcessingMath`, external tick acceleration) and output routing |
+| `block/` | Mythic Miners, Structure Reactor, Structure Data Operator, multiblock layout and projection, casing/glass/upgrade blocks, and the three chambers |
+| `block/entity/` | Miner ticks, resource accounting, chamber block entities, asynchronous marker analysis, reactor cycle, and tier implementations |
+| `structureminer/` | Miner processing math (`ProcessingMath`, external tick acceleration) and reward generation |
 | `structurereactor/` | Reactor recipes, formulas, state steps, and telemetry |
 | `structure/analysis/` | Structure value calculation, virtual sampling, and loot analysis service |
 | `item/` | Structure Marker/Chest Marker, wrench, dimension-deconstruction core, data integrator, structure interpreter, fragments, and mining tokens |
@@ -139,18 +151,18 @@ Do not run `spotlessApply`: the repository's aosp 100-column configuration rewri
 | `loot/fingerprint/` | Analysis fingerprint (cache/save stability) |
 | `recipe/` | RecipeSerializer registration |
 | `config/` | Forge common configuration and tier settings |
-| `integration/` | Optional KubeJS, Jade, AE2, and JEI integrations |
+| `integration/` | Optional KubeJS, Jade, AE2 (`MachineGridNode` bridge), and JEI integrations |
 | `datagen/` | Data generation for recipes, block loot tables, models, and both language files |
 
 See [docs/code-wiki.md](docs/code-wiki.md) for the full module responsibilities, key classes, and dependency directions.
 
 ### Miner Behavior Contracts
 
-`BaseMinerBlockEntity#serverTick` coordinates the server-side miner lifecycle. Its phases are fixed: refresh structure and upgrades, redstone gate, automatic fluid extraction, pending-output retry, marker and analysis cache, processing plans, work hook, energy and cycle-fluid accounting, slot advancement, cycle hook, loot generation, output hook, and output routing.
+`BaseMinerBlockEntity#serverTick` coordinates the server-side miner lifecycle. Its phases are fixed: refresh structure and upgrades, locate and drive the three chambers, redstone gate, pending-output retry, marker and analysis cache, processing plans, work hook, energy and cycle-fluid accounting, slot advancement, cycle hook, loot generation, output hook, and output (handed to the item output chamber). Automatic fluid extraction is no longer the controller's job — it happens in the fluid input chamber's own tick.
 
 Asynchronous marker analysis uses a fingerprint of its inputs. The fingerprint includes algorithm version, active markers, dimension, position, structure and bounds, luck, and analysis configuration. It ignores stack count and non-analysis derived payload. Results from a stale, replaced, cleared, or removed block entity must never be committed.
 
-Touching the multiblock coordinates means re-verifying counts, overlap, envelope coverage, D4 symmetry, face connectivity, and the controller contract; the four collections in `StructureMinerMultiblock` and `projectionCounts()` are the only source of truth, so do not count cells by hand. The original project verified these invariants with `docs/tools/multiblock_geometry_check.py`, but that script was **not carried over**, so verification is manual for now (see [docs/code-wiki.md](docs/code-wiki.md) §13).
+Touching the multiblock coordinates means re-verifying counts, overlap, envelope coverage, the four facing rotations, face connectivity, and the controller contract; the four collections in `StructureMinerMultiblock` and `projectionCounts()` are the only source of truth, so do not count cells by hand. The original project verified these invariants with `docs/tools/multiblock_geometry_check.py`, but that script was **not carried over**, so verification is manual for now (see [docs/code-wiki.md](docs/code-wiki.md) §13).
 
 ### KubeJS Extension
 

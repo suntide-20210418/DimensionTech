@@ -18,9 +18,10 @@ public record StructureMinerTelemetrySnapshot(
         int baseParallel,
         int efficiencyHundredths,
         int luckHundredths,
-        BaseMinerBlockEntity.OutputState outputState,
+        boolean fluidChamberInstalled,
+        boolean energyChamberInstalled,
+        boolean outputChamberInstalled,
         BaseMinerBlockEntity.RedstoneMode redstoneMode,
-        int outputFaceMask,
         boolean structureComplete,
         boolean equipmentDismantling,
         boolean hasFluid,
@@ -63,12 +64,6 @@ public record StructureMinerTelemetrySnapshot(
                             menu.getMarkerCurrentExternalAccelerationMachineTicks(slot),
                             menu.isMarkerWaitingForNaturalWindow(slot)));
         }
-        int output =
-                Math.max(
-                        0,
-                        Math.min(
-                                BaseMinerBlockEntity.OutputState.values().length - 1,
-                                menu.getTelemetry(5)));
         int redstone =
                 Math.max(
                         0,
@@ -85,9 +80,10 @@ public record StructureMinerTelemetrySnapshot(
                 menu.getBaseParallel(),
                 menu.getEfficiencyHundredths(),
                 menu.getLuckHundredths(),
-                BaseMinerBlockEntity.OutputState.values()[output],
+                menu.hasFluidChamber(),
+                menu.hasEnergyChamber(),
+                menu.hasItemChamber(),
                 BaseMinerBlockEntity.RedstoneMode.values()[redstone],
-                menu.getTelemetry(13),
                 menu.getTelemetry(14) != 0,
                 menu.isEquipmentDismantlingEnabled(),
                 menu.hasFluid(),

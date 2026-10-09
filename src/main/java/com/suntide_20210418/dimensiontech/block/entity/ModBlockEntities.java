@@ -94,6 +94,37 @@ public final class ModBlockEntities {
                                                     ModBlocks.TIER_6_STRUCTURE_MINER.get())
                                             .build(null));
 
+    public static final DeferredHolder<
+                    BlockEntityType<?>, BlockEntityType<FluidInputChamberBlockEntity>>
+            FLUID_INPUT_CHAMBER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "fluid_input",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    FluidInputChamberBlockEntity::new,
+                                                    ModBlocks.FLUID_INPUT_CHAMBER.get())
+                                            .build(null));
+    public static final DeferredHolder<
+                    BlockEntityType<?>, BlockEntityType<EnergyInputChamberBlockEntity>>
+            ENERGY_INPUT_CHAMBER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "energy_input",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    EnergyInputChamberBlockEntity::new,
+                                                    ModBlocks.ENERGY_INPUT_CHAMBER.get())
+                                            .build(null));
+    public static final DeferredHolder<
+                    BlockEntityType<?>, BlockEntityType<ItemOutputChamberBlockEntity>>
+            ITEM_OUTPUT_CHAMBER =
+                    BLOCK_ENTITY_TYPES.register(
+                            "item_output",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    ItemOutputChamberBlockEntity::new,
+                                                    ModBlocks.ITEM_OUTPUT_CHAMBER.get())
+                                            .build(null));
+
     private ModBlockEntities() {}
 
     public static void register(IEventBus eventBus) {

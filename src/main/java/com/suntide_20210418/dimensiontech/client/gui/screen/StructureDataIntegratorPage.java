@@ -1,6 +1,8 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorLayout;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerLayout;
+import com.suntide_20210418.dimensiontech.item.ItemValueFacade;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
@@ -8,7 +10,6 @@ import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -24,6 +25,13 @@ import net.minecraft.world.item.ItemStack;
  * clipped to the canvas and translated to its origin, so {@code (0,0)} is the canvas corner. The
  * two columns are 150 and 181 pixels wide inside a 343-wide canvas — the catalogue is a master
  * list, the dossier its detail pane.
+ *
+ * <p><b>The dossier's expectation table became a grid.</b> It was three columns of text — item,
+ * expected, multiplier — inside a 181px pane, which left about ninety pixels for the item name and
+ * stacked at most a dozen rows in the space below the readings block. As a grid of 18px cells nine
+ * across it fits four times as many items, and the name and the multiplier both moved into the
+ * tooltip. The sort bar above it is not here: this pane has no sort interaction to preserve, only
+ * one order, so the bar shrank to a caption row.
  */
 final class StructureDataIntegratorPage {
     private static final int PAD = 4;
@@ -35,7 +43,29 @@ final class StructureDataIntegratorPage {
     private static final int LIST_Y = StructureDataOperatorScreen.LIST_Y;
 
     private static final int ROW_H = StructureDataOperatorScreen.LIST_ROW_H;
+
+    /** Caption row above the dossier grid. */
     private static final int TABLE_HEADER_H = 10;
+
+    /**
+     * Cells across the dossier grid.
+     *
+     * <p>Nine, the same as everywhere else. The pane is 181 wide, so nine cells plus eight gutters
+     * come to 178 and the bar takes three more — the grid leaves four pixels of margin, which is
+     * the tightest fit of the four call sites and the reason the count is not raised.
+     */
+    private static final int GRID_COLUMNS = 9;
+
+    /**
+     * The dossier grid.
+     *
+     * <p>Not static, unlike the operate page's: this page's scroll offset lives on the screen
+     * ({@code detailScroll}), because the screen also owns the wheel gate for the two panes. The
+     * grid here is only a painter plus a hit test, so one shared instance is enough and the scroll
+     * stays where it already was.
+     */
+    private static final ItemExpectationGrid GRID =
+            ItemExpectationGrid.ofSpriteSlots(GRID_COLUMNS, false);
 
     private StructureDataIntegratorPage() {}
 
@@ -67,6 +97,13 @@ final class StructureDataIntegratorPage {
         return true;
     }
 
+    /**
+     * Draws the hovered dossier cell's tooltip.
+     *
+     * <p>The point is rebased twice: once out of the canvas and out of the detail column, and once
+     * more by the scroll offset — the cells are drawn at {@code row - scroll}, so a point has to be
+     * pushed back by the same amount before the grid can match it to a cell.
+     */
     static void renderTooltip(
             StructureDataOperatorScreen s,
             GuiGraphics graphics,
@@ -75,27 +112,18 @@ final class StructureDataIntegratorPage {
             int screenMouseX,
             int screenMouseY) {
         if (s.detailMarker().isEmpty()) return;
-        List<Map.Entry<ResourceLocation, ExactProbability>> rows =
-                expectedItemRows(s.detailMarker());
-        int visible = StructureDataOperatorScreen.tableRows();
-        for (int row = 0; row < visible && s.detailScroll() + row < rows.size(); row++) {
-            int y = tableRowY(row);
-            if (!StructureDataOperatorScreen.inside(
-                    localMouseX,
-                    localMouseY,
-                    StructureDataOperatorScreen.DETAIL_X + 2,
-                    y,
-                    18,
-                    StructureDataOperatorScreen.TABLE_ROW_H)) continue;
-            Item item =
-                    BuiltInRegistries.ITEM
-                            .getOptional(rows.get(s.detailScroll() + row).getKey())
-                            .orElse(null);
-            if (item != null)
-                graphics.renderTooltip(
-                        s.getMinecraft().font, new ItemStack(item), screenMouseX, screenMouseY);
-            return;
-        }
+        List<ItemExpectationGrid.Entry> cells = cellsOf(s.detailMarker());
+        if (cells.isEmpty()) return;
+        GRID.renderTooltip(
+                graphics,
+                s.getMinecraft().font,
+                cells,
+                localMouseX - StructureDataOperatorScreen.DETAIL_X,
+                localMouseY - tableTop() + s.detailScroll(),
+                StructureDataOperatorScreen.DETAIL_W,
+                gridHeight(),
+                screenMouseX,
+                screenMouseY);
     }
 
     // ------------------------------------------------------------------ list
@@ -166,18 +194,14 @@ final class StructureDataIntegratorPage {
         return PAD + StructureDataOperatorReadings.height() + 2;
     }
 
-    private static int tableRowY(int row) {
-        return tableHeaderY() + TABLE_HEADER_H + row * StructureDataOperatorScreen.TABLE_ROW_H;
-    }
-
     /**
-     * Y of the detail table's first row.
+     * Y of the dossier grid's first row — one caption strip below the header origin.
      *
      * <p>The screen sizes its scroll window from this rather than from a fixed canvas inset,
-     * because the readings block above the table is what actually sets the offset.
+     * because the readings block above the grid is what actually sets the offset.
      */
     static int tableTop() {
-        return tableRowY(0);
+        return tableHeaderY() + TABLE_HEADER_H;
     }
 
     private static void drawDetail(
@@ -217,15 +241,14 @@ final class StructureDataIntegratorPage {
             return;
         }
 
-        String itemLabel =
-                Component.translatable("screen.dimension_tech.struct_marker.item").getString();
-        String expectedLabel =
-                Component.translatable("screen.dimension_tech.struct_marker.expected").getString();
-        String multiplierLabel =
-                Component.translatable("screen.dimension_tech.struct_marker.multiplier_header")
+        /*
+         * The bar is a caption, not a sort control. This pane has one order — expected descending —
+         * and nothing to toggle it against, so the three column labels collapsed into one line
+         * naming what the grid holds. It reads as a header without pretending to be clickable.
+         */
+        String caption =
+                Component.translatable("screen.dimension_tech.struct_marker.items_heading")
                         .getString();
-        int expectedX = x + width * 55 / 100;
-        int multiplierX = x + width * 78 / 100;
         g.fill(
                 x,
                 tableHeaderY(),
@@ -234,73 +257,46 @@ final class StructureDataIntegratorPage {
                 StructureMinerTheme.STRIPE_WELL);
         g.drawString(
                 s.getMinecraft().font,
-                itemLabel,
+                s.getMinecraft().font.plainSubstrByWidth(caption, width - 4),
                 x + 2,
                 tableHeaderY() + 1,
                 StructureMinerTheme.INK,
                 false);
-        g.drawString(
-                s.getMinecraft().font,
-                expectedLabel,
-                expectedX,
-                tableHeaderY() + 1,
-                StructureMinerTheme.INK,
-                false);
-        g.drawString(
-                s.getMinecraft().font,
-                multiplierLabel,
-                multiplierX,
-                tableHeaderY() + 1,
-                StructureMinerTheme.INK,
-                false);
 
-        List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(marker);
-        int visible = StructureDataOperatorScreen.tableRows();
-        int nameBudget = Math.max(18, expectedX - x - 20);
-        for (int row = 0; row < visible && s.detailScroll() + row < rows.size(); row++) {
-            int y = tableRowY(row);
-            Map.Entry<ResourceLocation, ExactProbability> entry = rows.get(s.detailScroll() + row);
-            Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
-            if (item != null) g.renderItem(new ItemStack(item), x + 1, y + 1);
-            String name =
-                    item == null
-                            ? entry.getKey().toString()
-                            : new ItemStack(item).getHoverName().getString();
-            g.drawString(
-                    s.getMinecraft().font,
-                    s.getMinecraft().font.plainSubstrByWidth(name, nameBudget),
-                    x + 19,
-                    y + 5,
-                    StructureMinerTheme.INK,
-                    false);
-            g.drawString(
-                    s.getMinecraft().font,
-                    ReadingFormat.reading(entry.getValue().finiteDoubleValue()),
-                    expectedX,
-                    y + 5,
-                    accent,
-                    false);
-            g.drawString(
-                    s.getMinecraft().font,
-                    String.format(
-                            Locale.ROOT,
-                            "%.2f",
-                            StructureDataOperatorOperationPage.multiplier(
-                                    item == null ? net.minecraft.world.item.Items.AIR : item)),
-                    multiplierX,
-                    y + 5,
-                    StructureMinerTheme.DIM,
-                    false);
-        }
+        List<ItemExpectationGrid.Entry> cells = cellsOf(marker);
+        /*
+         * The origin carries the screen's scroll offset, not just the table top. This grid is
+         * scrollable = false — its offset lives on the screen — so the control positions row 0 at
+         * the origin it is handed and subtracts nothing itself. Drawing at tableTop() left the
+         * cells frozen while the bar moved and the tooltip hit test, which does subtract the
+         * offset, slid to a row that was never under the pointer.
+         *
+         * The scissor stays anchored at tableTop(): it is the window the cells scroll inside, so it
+         * must not move with them.
+         */
+        int gridY = tableTop() - s.detailScroll();
+        GRID.render(
+                g,
+                s.getMinecraft().font,
+                cells,
+                x,
+                gridY,
+                width,
+                gridHeight(),
+                StructureMinerLayout.scaleToScreen(
+                        s.canvasX(x), s.canvasY(tableTop()), width, gridHeight(), 1.0F),
+                0,
+                0,
+                Component.translatable("screen.dimension_tech.struct_marker.no_items"));
 
-        if (rows.isEmpty()
+        if (cells.isEmpty()
                 && StructMarkerItem.getAnalysisStatus(marker) == AnalysisStatus.UNSUPPORTED) {
             GuiText.centered(
                     g,
                     s.getMinecraft().font,
                     Component.translatable("screen.dimension_tech.structure_operator.no_loot"),
                     x + width / 2,
-                    tableRowY(0) + StructureDataOperatorScreen.TABLE_ROW_H,
+                    gridY + GRID.strideY(),
                     StructureMinerTheme.DIM);
         }
 
@@ -328,16 +324,51 @@ final class StructureDataIntegratorPage {
                     StructureMinerTheme.DIM,
                     false);
         }
-        if (rows.size() > visible) {
+        /*
+         * The bar is drawn by hand rather than by the grid: this call site runs the grid with
+         * scrollable = false, because the scroll offset it has to honour already lives on the
+         * screen. The range and the thumb position are therefore expressed in the grid's own pixel
+         * terms, which is what makes the bar agree with the cells after the switch from rows.
+         */
+        int contentHeight = gridContentHeight(cells.size());
+        if (contentHeight > gridHeight()) {
             StructureMinerTheme.scrollbar(
                     g,
                     x + width - 3,
-                    tableRowY(0),
-                    visible * StructureDataOperatorScreen.TABLE_ROW_H,
-                    rows.size() * StructureDataOperatorScreen.TABLE_ROW_H,
-                    visible * StructureDataOperatorScreen.TABLE_ROW_H,
-                    s.detailScroll() * StructureDataOperatorScreen.TABLE_ROW_H);
+                    tableTop(),
+                    gridHeight(),
+                    contentHeight,
+                    gridHeight(),
+                    s.detailScroll());
         }
+    }
+
+    /** Height available to the dossier grid, in canvas-local pixels. */
+    static int gridHeight() {
+        return StructureDataOperatorLayout.CANVAS.height() - tableTop() - PAD;
+    }
+
+    /** Pixel height {@code itemCount} dossier cells need, for the scroll range the screen owns. */
+    static int gridContentHeight(int itemCount) {
+        return GRID.contentHeight(itemCount);
+    }
+
+    /** The dossier grid's cells, rebuilt from the marker's expectation map. */
+    private static List<ItemExpectationGrid.Entry> cellsOf(ItemStack marker) {
+        List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(marker);
+        List<ItemExpectationGrid.Entry> cells = new ArrayList<>(rows.size());
+        for (Map.Entry<ResourceLocation, ExactProbability> entry : rows) {
+            Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
+            if (item == null) continue;
+            ItemStack stack = new ItemStack(item);
+            cells.add(
+                    new ItemExpectationGrid.Entry(
+                            stack,
+                            ReadingFormat.displayValue(entry.getValue()),
+                            ItemValueFacade.multiplier(item),
+                            true));
+        }
+        return cells;
     }
 
     private static List<Map.Entry<ResourceLocation, ExactProbability>> expectedItemRows(

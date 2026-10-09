@@ -1,8 +1,10 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructMarkerLayout;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerLayout;
 import com.suntide_20210418.dimensiontech.item.ChestMarkerItem;
 import com.suntide_20210418.dimensiontech.item.ChestMarkerItem.ChestInfo;
+import com.suntide_20210418.dimensiontech.item.ItemValueFacade;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.item.StructureMarkerData;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
@@ -32,19 +34,23 @@ import net.minecraft.world.item.ItemStack;
  * expectation viewport and a clear button. Expectation rows, the analysis-status chip and the four
  * readings all come from the same {@code StructureMarkerData} component the structure marker
  * writes.
+ *
+ * <p><b>The list is a grid.</b> Like its structure counterpart, the viewport is drawn by {@link
+ * ItemExpectationGrid}: nine 18px cells across, names moved into the tooltip. The two screens were
+ * line-for-line duplicates before; the grid is the one place their list rendering converges.
  */
 public final class ChestMarkerScreen extends Screen {
-    private static final int ROW_HOVER = 0xFF9BB49A;
+    /** Cells across the expectation viewport — the same nine the structure marker uses. */
+    private static final int GRID_COLUMNS = 9;
 
     private final InteractionHand hand;
 
     private ItemStack marker;
-    private final List<Row> rows = new ArrayList<>();
+    private final List<ItemExpectationGrid.Entry> rows = new ArrayList<>();
+    private final ItemExpectationGrid grid = ItemExpectationGrid.ofSpriteSlots(GRID_COLUMNS, true);
 
     private int left;
     private int top;
-    private int scroll;
-    private int hoveredRow = -1;
 
     public ChestMarkerScreen(ItemStack marker, InteractionHand hand) {
         super(Component.translatable("screen.dimension_tech.chest_marker.title"));
@@ -61,7 +67,7 @@ public final class ChestMarkerScreen extends Screen {
     public void refresh(ItemStack updated) {
         marker = updated;
         rebuildRows();
-        scroll = Math.max(0, Math.min(maxScroll(), scroll));
+        grid.clampScroll(rows.size(), StructMarkerLayout.VIEWPORT_H);
     }
 
     @Override
@@ -71,18 +77,34 @@ public final class ChestMarkerScreen extends Screen {
         rebuildRows();
     }
 
-    /** The expectation rows, heaviest first — the same order the structure marker ships. */
+    /**
+     * The expectation cells, heaviest first — the same order the structure marker ships.
+     *
+     * <p>Sorting goes through {@link ReadingFormat#displayValue} rather than {@code
+     * ExactProbability#finiteDoubleValue}: the latter throws on a rational that does not fit a
+     * double, and a comparator that throws takes the frame down with it.
+     */
     private void rebuildRows() {
         rows.clear();
         for (Map.Entry<ResourceLocation, ExactProbability> entry :
                 StructMarkerItem.getExpectedItemCounts(marker).entrySet()) {
             Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
-            if (item != null) rows.add(new Row(item, entry.getValue()));
+            if (item != null) {
+                rows.add(
+                        new ItemExpectationGrid.Entry(
+                                new ItemStack(item),
+                                ReadingFormat.displayValue(entry.getValue()),
+                                ItemValueFacade.multiplier(item)));
+            }
         }
         rows.sort(
-                Comparator.comparingDouble((Row row) -> row.expected.finiteDoubleValue())
+                Comparator.comparingDouble(ItemExpectationGrid.Entry::expected)
                         .reversed()
-                        .thenComparing(row -> BuiltInRegistries.ITEM.getKey(row.item).toString()));
+                        .thenComparing(
+                                row ->
+                                        BuiltInRegistries.ITEM
+                                                .getKey(row.stack().getItem())
+                                                .toString()));
     }
 
     @Override
@@ -99,20 +121,26 @@ public final class ChestMarkerScreen extends Screen {
 
         int windowX = mouseX - left;
         int windowY = mouseY - top;
-        hoveredRow = rowAt(mouseX, mouseY);
 
         g.pose().pushPose();
         g.pose().translate(left, top, 0.0D);
         drawFace(g);
         drawCaption(g);
         drawLeftColumn(g);
-        drawExpectationSection(g);
+        drawExpectationSection(g, windowX, windowY);
         drawActions(g, windowX, windowY);
         g.pose().popPose();
 
-        if (hoveredRow >= 0) {
-            g.renderTooltip(font, new ItemStack(rows.get(hoveredRow).item), mouseX, mouseY);
-        }
+        grid.renderTooltip(
+                g,
+                font,
+                rows,
+                windowX - StructMarkerLayout.VIEWPORT.x(),
+                windowY - StructMarkerLayout.VIEWPORT.y(),
+                StructMarkerLayout.VIEWPORT_W,
+                StructMarkerLayout.VIEWPORT_H,
+                mouseX,
+                mouseY);
     }
 
     private void drawFace(GuiGraphics g) {
@@ -215,8 +243,8 @@ public final class ChestMarkerScreen extends Screen {
                 .orElse(null);
     }
 
-    /** The section caption, its rule, and the scrolling expectation viewport. */
-    private void drawExpectationSection(GuiGraphics g) {
+    /** The section caption, its rule, and the scrolling expectation grid. */
+    private void drawExpectationSection(GuiGraphics g, int windowX, int windowY) {
         StructureMinerTheme.sectionHeader(
                 g,
                 font,
@@ -238,80 +266,38 @@ public final class ChestMarkerScreen extends Screen {
                 StructureMinerTheme.INK,
                 false);
 
-        drawViewport(g);
+        drawGrid(g, windowX, windowY);
     }
 
-    private void drawViewport(GuiGraphics g) {
-        g.enableScissor(
-                left + StructMarkerLayout.VIEWPORT.x(),
-                top + StructMarkerLayout.VIEWPORT.y(),
-                left + StructMarkerLayout.VIEWPORT.right(),
-                top + StructMarkerLayout.VIEWPORT.bottom());
-        g.pose().pushPose();
-        g.pose().translate(StructMarkerLayout.VIEWPORT.x(), StructMarkerLayout.VIEWPORT.y(), 0.0D);
+    /**
+     * Hands the viewport to the shared grid.
+     *
+     * <p>The scissor is projected here rather than inside the control because {@code enableScissor}
+     * applies the window GUI scale but ignores the pose. This screen does not scale its pose — the
+     * frame is a fixed 300x176 — so the projection is the panel origin plus the viewport's own
+     * offset, at scale 1.
+     */
+    private void drawGrid(GuiGraphics g, int windowX, int windowY) {
+        StructureMinerLayout.ScissorBounds clip =
+                StructureMinerLayout.scaleToScreen(
+                        left + StructMarkerLayout.VIEWPORT.x(),
+                        top + StructMarkerLayout.VIEWPORT.y(),
+                        StructMarkerLayout.VIEWPORT_W,
+                        StructMarkerLayout.VIEWPORT_H,
+                        1.0F);
 
-        if (rows.isEmpty()) {
-            StructureMinerTheme.emptyState(
-                    g,
-                    font,
-                    0,
-                    0,
-                    StructMarkerLayout.VIEWPORT_W,
-                    StructMarkerLayout.VIEWPORT_H,
-                    Component.translatable("screen.dimension_tech.struct_marker.no_items"));
-        } else {
-            int visible =
-                    Math.min(scroll, Math.max(0, rows.size() - StructMarkerLayout.visibleRows()));
-            for (int index = visible; index < rows.size(); index++) {
-                int y = StructMarkerLayout.rowY(index - visible);
-                if (y >= StructMarkerLayout.VIEWPORT_H) break;
-                drawRow(g, index, y);
-            }
-        }
-
-        g.pose().popPose();
-        g.disableScissor();
-
-        StructureMinerTheme.scrollbar(
+        grid.render(
                 g,
-                StructMarkerLayout.VIEWPORT.x() + StructMarkerLayout.SCROLLBAR_X,
-                StructMarkerLayout.VIEWPORT.y(),
-                StructMarkerLayout.VIEWPORT_H,
-                rows.size() * StructMarkerLayout.ROW_H,
-                StructMarkerLayout.VIEWPORT_H,
-                scroll * StructMarkerLayout.ROW_H);
-    }
-
-    /** One expectation row: item icon, name, and the expected count right-aligned against it. */
-    private void drawRow(GuiGraphics g, int index, int y) {
-        Row row = rows.get(index);
-        if (index == hoveredRow) {
-            g.fill(0, y, StructMarkerLayout.VIEWPORT_W, y + StructMarkerLayout.ROW_H, ROW_HOVER);
-        }
-
-        ItemStack stack = new ItemStack(row.item);
-        g.renderItem(stack, StructMarkerLayout.ROW_PAD, y + 1);
-
-        String expected = ReadingFormat.reading(row.expected.finiteDoubleValue());
-        int expectedWidth = font.width(expected);
-        String name =
-                font.plainSubstrByWidth(
-                        stack.getHoverName().getString(),
-                        Math.max(
-                                1,
-                                StructMarkerLayout.CONTENT_RIGHT
-                                        - StructMarkerLayout.ROW_NAME_X
-                                        - expectedWidth
-                                        - 6));
-        g.drawString(
-                font, name, StructMarkerLayout.ROW_NAME_X, y + 4, StructureMinerTheme.INK, false);
-        g.drawString(
                 font,
-                expected,
-                StructMarkerLayout.CONTENT_RIGHT - expectedWidth,
-                y + 4,
-                StructureMinerTheme.FLUIX,
-                false);
+                rows,
+                StructMarkerLayout.VIEWPORT.x(),
+                StructMarkerLayout.VIEWPORT.y(),
+                StructMarkerLayout.VIEWPORT_W,
+                StructMarkerLayout.VIEWPORT_H,
+                clip,
+                windowX - StructMarkerLayout.VIEWPORT.x(),
+                windowY - StructMarkerLayout.VIEWPORT.y(),
+                Component.translatable("screen.dimension_tech.struct_marker.no_items"));
     }
 
     /** A single clear button, centred across the bottom of the face. */
@@ -353,6 +339,20 @@ public final class ChestMarkerScreen extends Screen {
 
         int windowX = (int) mouseX - left;
         int windowY = (int) mouseY - top;
+
+        /* The bar is tested first: its grab zone overlaps the grid's right edge by a few pixels. */
+        int gridX = windowX - StructMarkerLayout.VIEWPORT.x();
+        int gridY = windowY - StructMarkerLayout.VIEWPORT.y();
+        if (grid.scrollbarContains(
+                gridX,
+                gridY,
+                StructMarkerLayout.VIEWPORT_W,
+                StructMarkerLayout.VIEWPORT_H,
+                rows.size())) {
+            grid.beginDrag(gridY);
+            return true;
+        }
+
         int x = (StructMarkerLayout.WIDTH - StructMarkerLayout.ACTION_W) / 2;
         if (ChestMarkerItem.getChestInfo(marker).isPresent()
                 && inside(
@@ -368,26 +368,32 @@ public final class ChestMarkerScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    /** Drags the expectation scrollbar, a path this screen did not have before the grid. */
+    @Override
+    public boolean mouseDragged(
+            double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (grid.dragging()) {
+            grid.continueDrag(
+                    (int) mouseY - top - StructMarkerLayout.VIEWPORT.y(),
+                    rows.size(),
+                    StructMarkerLayout.VIEWPORT_H);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        grid.endDrag();
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         // 鼠标滚轮只产生纵向滚动量。
         int step = (int) Math.signum(scrollY);
-        scroll = Math.max(0, Math.min(maxScroll(), scroll - step));
+        grid.scrollBy(-step, rows.size(), StructMarkerLayout.VIEWPORT_H);
         return true;
-    }
-
-    private int maxScroll() {
-        return Math.max(0, rows.size() - StructMarkerLayout.visibleRows());
-    }
-
-    /** Expectation-row index under a screen point, or {@code -1}. */
-    private int rowAt(double mouseX, double mouseY) {
-        int viewportX = (int) mouseX - left - StructMarkerLayout.VIEWPORT.x();
-        int viewportY = (int) mouseY - top - StructMarkerLayout.VIEWPORT.y();
-        if (viewportX < 0 || viewportX >= StructMarkerLayout.VIEWPORT_W) return -1;
-        if (viewportY < 0 || viewportY >= StructMarkerLayout.VIEWPORT_H) return -1;
-        int index = scroll + viewportY / StructMarkerLayout.ROW_H;
-        return index >= 0 && index < rows.size() ? index : -1;
     }
 
     // ----------------------------------------------------------------- helpers
@@ -411,6 +417,4 @@ public final class ChestMarkerScreen extends Screen {
     private static boolean inside(double x, double y, int left, int top, int width, int height) {
         return x >= left && x < left + width && y >= top && y < top + height;
     }
-
-    private record Row(Item item, ExactProbability expected) {}
 }

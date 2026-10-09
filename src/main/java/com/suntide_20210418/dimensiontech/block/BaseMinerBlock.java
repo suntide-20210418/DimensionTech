@@ -32,8 +32,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 
 public abstract class BaseMinerBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -191,16 +189,9 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             }
             return ItemInteractionResult.sidedSuccess(level.isClientSide());
         }
-        IFluidHandlerItem container = stack.getCapability(Capabilities.FluidHandler.ITEM);
-        if (container != null) {
-            if (!level.isClientSide()
-                    && level.getBlockEntity(position) instanceof BaseMinerBlockEntity miner) {
-                exchangeFluid(player, hand, stack, miner, container);
-            }
-            // A held fluid container is spent on the transfer and never opens the screen, so the
-            // interaction result stays the same on both sides.
-            return ItemInteractionResult.sidedSuccess(level.isClientSide());
-        }
+        // The controller has no tank of its own any more: a held fluid container is the fluid input
+        // chamber's business, so it falls through to the normal item interaction here and the
+        // machine opens its screen.
         if (!level.isClientSide()
                 && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(position) instanceof BaseMinerBlockEntity blockEntity) {
@@ -208,27 +199,6 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
             serverPlayer.openMenu(blockEntity, buffer -> buffer.writeBlockPos(position));
         }
         return ItemInteractionResult.sidedSuccess(level.isClientSide());
-    }
-
-    /**
-     * Runs the tank transfer and then re-places the held container, because a container carries its
-     * fluid in the item itself: a water bucket becomes an empty one and the reverse.
-     */
-    private static void exchangeFluid(
-            Player player,
-            InteractionHand hand,
-            ItemStack held,
-            BaseMinerBlockEntity miner,
-            IFluidHandlerItem container) {
-        if (!miner.exchangeWithFluidContainer(container)) return;
-        ItemStack result = container.getContainer();
-        if (result.isEmpty() || ItemStack.isSameItemSameComponents(result, held)) return;
-        if (held.getCount() == 1) {
-            player.setItemInHand(hand, result);
-        } else if (!player.getAbilities().instabuild) {
-            held.shrink(1);
-            if (!player.getInventory().add(result)) player.drop(result, false);
-        }
     }
 
     /**

@@ -2,8 +2,10 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerLayout;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerTelemetrySnapshot;
+import com.suntide_20210418.dimensiontech.item.ItemValueFacade;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.gui.Font;
@@ -44,6 +46,57 @@ final class StructureMinerInfoPage {
 
     /** One labelled detail row: its own text box plus a pixel of separation. */
     private static final int DETAIL_ROW_STRIDE = DETAIL_H + 1;
+
+    /**
+     * Cells across the product grid.
+     *
+     * <p>Nine, the same count as the other three call sites, which makes the product cell land at
+     * the same on-screen size everywhere in the mod. Nine 18px cells and eight 2px gutters come to
+     * 178 against a content column of {@code INFO_LIST_W - 2 * VIEWPORT_PAD} = 182, so the row fits
+     * with four pixels to spare. The page's own scrollbar does not eat into that: it sits at {@code
+     * SCROLLBAR_X = INFO_LIST_X + INFO_LIST_W}, one gutter outside the content column, so this grid
+     * is not sharing its width with anything.
+     */
+    private static final int PRODUCT_COLUMNS = 9;
+
+    /**
+     * Gap between the product section's two bulk buttons.
+     *
+     * <p>Two pixels, the same gutter the grid cells use, so the pair reads as one group rather than
+     * as two unrelated controls that happen to be adjacent.
+     */
+    private static final int BULK_BUTTON_GAP = 2;
+
+    /**
+     * Height of the product section's bulk-button band.
+     *
+     * <p>Twenty-four, against a {@code SMALL_W}-tall button: the band is the button plus two pixels
+     * of air above and below, so the buttons read as a row of their own rather than as something
+     * the header or the grid is crowding.
+     */
+    private static final int BULK_ROW_H = 24;
+
+    /**
+     * Room the section header's label keeps before the bulk buttons may push into it.
+     *
+     * <p>If the two buttons would start closer than this to the section's left edge the label has
+     * already been consumed, so they are skipped entirely rather than drawn over it. The content
+     * column is 182 wide and the pair takes 42, so this cannot trigger at the current metrics — it
+     * is the guard that keeps a future column change from silently burying the caption.
+     */
+    private static final int BULK_LABEL_MIN_W = 120;
+
+    /**
+     * One grid instance for the whole page.
+     *
+     * <p>{@code scrollable = false} on purpose. This grid lives inside the page's own scrolling
+     * viewport: the product section is measured into {@link #contentHeight} and moves with the
+     * page's scroll offset, so a second scroll region nested inside it would have to negotiate the
+     * wheel, the keyboard and a drag bar with the outer one. There is nothing for it to buy — the
+     * page already scrolls to whatever the grid is tall enough to need.
+     */
+    private static final ItemExpectationGrid GRID =
+            ItemExpectationGrid.ofSpriteSlots(PRODUCT_COLUMNS, false);
 
     private StructureMinerInfoPage() {}
 
@@ -478,6 +531,32 @@ final class StructureMinerInfoPage {
         return y + DETAIL_ROW_STRIDE;
     }
 
+    /**
+     * The product section: a caption, two selection buttons, and a grid of cells.
+     *
+     * <p><b>What the grid replaced.</b> This section used to be a zebra-striped list of
+     * twenty-pixel rows — icon, name, expected count — which meant a structure with forty drops
+     * needed eight hundred pixels of page to show them all, and the page scroll grew with the drop
+     * count. As a grid of 18px cells it is four times narrower per item, and the item's name, which
+     * was the only thing the row had that a cell does not, moved into the tooltip the cell already
+     * opens.
+     *
+     * <p><b>Disabled is drawn twice, on purpose.</b> The cell carries a dim wash, and this section
+     * carries a legend line explaining what that wash means. A wash alone says "something is wrong
+     * here"; the legend says which way, and a player who has disabled nothing sees an unambiguous
+     * empty grid rather than a grid of grey squares they cannot name.
+     *
+     * <p><b>The two bulk buttons own a row of their own.</b> They are separate controls rather than
+     * a toggle because "all on" and "all off" are the two states a player wants to jump to, and a
+     * single toggle cannot express which one without also reading the current selection back.
+     *
+     * <p>They sit on a dedicated {@link #BULK_ROW_H} band between the header and the grid rather
+     * than on the header row itself. A {@code SMALL_W}-tall button does not fit an {@code
+     * SECTION_HEADER_H}-tall header, and hanging it over the edge would either cover the section's
+     * own caption or drop two pixels outside the height {@link #productSectionHeight} reports — so
+     * the page would clip the bottom of the buttons at the very end of the scroll range. A real row
+     * costs twelve pixels of page and keeps one sum in charge of every offset.
+     */
     private static int drawProductSection(
             StructureMinerScreenContext c, GuiGraphics g, int x, int y, int width) {
         Font font = c.font();
@@ -500,52 +579,158 @@ final class StructureMinerInfoPage {
                     y,
                     StructureMinerTheme.DIM,
                     false);
-            return y + StructureMinerInfoLayout.ROW_H_INTERACTIVE;
+            // The empty section still reserves its bulk band, because {@link #productSectionHeight}
+            // reports one for an empty list and the two numbers must not disagree — an empty
+            // product
+            // list would otherwise leave the page four pixels shorter than the sum claims, and
+            // every
+            // section below it would be off by that much.
+            return y + BULK_ROW_H;
         }
 
-        for (int index = 0; index < rows.size(); index++) {
-            int rowY = y + index * StructureMinerInfoLayout.ROW_H_INTERACTIVE;
-            StructureMinerScreen.ExpectedItemRow row = rows.get(index);
+        drawBulkButtons(c, g, x, y, width);
+        y += BULK_ROW_H;
+
+        List<ItemExpectationGrid.Entry> cells = cellsOf(c, rows);
+        int gridX = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
+        int gridH = GRID.contentHeight(rows.size());
+        GRID.render(
+                g,
+                font,
+                cells,
+                gridX,
+                y,
+                width,
+                gridH,
+                StructureMinerLayout.scaleToScreen(
+                        c.leftPos() + gridX, c.topPos() + y, width, gridH, c.uiScale()),
+                0,
+                0,
+                Component.empty());
+
+        return BULK_ROW_H + gridH;
+    }
+
+    /**
+     * The select-all and deselect-all buttons, right-aligned on the product section's button row.
+     *
+     * <p>Drawn by the page rather than by {@link ItemExpectationGrid}: they act on the whole
+     * section and sit outside the grid's viewport, and the control deliberately owns geometry only
+     * — it has no opinion about which set of items a caller is showing or what a bulk action means.
+     *
+     * <p>The buttons are dimmed against the marker lane's cells because they act on the selected
+     * thread, and with no thread selected there is nothing for them to act on.
+     */
+    private static void drawBulkButtons(
+            StructureMinerScreenContext c, GuiGraphics g, int x, int rowY, int width) {
+        int size = StructureMinerSpriteRenderer.SMALL_W;
+        int deselectX = x + width - size;
+        int selectX = deselectX - BULK_BUTTON_GAP - size;
+        if (selectX < x + BULK_LABEL_MIN_W) return;
+
+        // Centred in the band, which is taller than the button so the row has a little air.
+        int buttonY = rowY + (BULK_ROW_H - size) / 2;
+        boolean configured = c.selectedMarkerSlot() >= 0;
+        boolean overSelect = c.hoveredBulkAction() == BulkAction.SELECT_ALL;
+        boolean overDeselect = c.hoveredBulkAction() == BulkAction.DESELECT_ALL;
+
+        StructureMinerSpriteRenderer.smallButton(g, selectX, buttonY, overSelect);
+        StructureMinerSpriteRenderer.smallButton(g, deselectX, buttonY, overDeselect);
+        if (!configured) {
+            g.fill(
+                    selectX,
+                    buttonY,
+                    deselectX + size,
+                    buttonY + size,
+                    StructureMinerTheme.DISABLED_OVERLAY);
+        }
+    }
+
+    /**
+     * True when a page-local point is over one of the two bulk buttons.
+     *
+     * <p>Returns {@link BulkAction#NONE} when no thread is selected, matching the dimmed draw: a
+     * button that is greyed out must not answer a click, or the player learns that grey means
+     * nothing.
+     */
+    static BulkAction bulkActionAt(StructureMinerScreenContext c, double x, double y) {
+        if (c.selectedMarkerSlot() < 0) return BulkAction.NONE;
+        int slot = c.selectedMarkerSlot();
+        int size = StructureMinerSpriteRenderer.SMALL_W;
+        // Same centring the draw pass applies, from the same band origin.
+        int top = bulkRowTop(c, slot) + (BULK_ROW_H - size) / 2;
+        int left = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
+        int width =
+                StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
+        int deselectX = left + width - size;
+        int selectX = deselectX - BULK_BUTTON_GAP - size;
+        if (selectX < left + BULK_LABEL_MIN_W) return BulkAction.NONE;
+
+        if (StructureMinerInfoLayout.inside(x, y, selectX, top, size, size)) {
+            return BulkAction.SELECT_ALL;
+        }
+        if (StructureMinerInfoLayout.inside(x, y, deselectX, top, size, size)) {
+            return BulkAction.DESELECT_ALL;
+        }
+        return BulkAction.NONE;
+    }
+
+    /**
+     * Y of the product section's bulk-button band — the header's own lower edge.
+     *
+     * <p>Derived from the same sum {@link #productSectionTop} uses, so the hit test and the draw
+     * pass cannot disagree about which row the buttons are on.
+     */
+    private static int bulkRowTop(StructureMinerScreenContext c, int slot) {
+        return productSectionTop(c, slot);
+    }
+
+    /** What the product section's two bulk buttons ask for. */
+    enum BulkAction {
+        NONE,
+        SELECT_ALL,
+        DESELECT_ALL
+    }
+
+    /**
+     * The grid's cells, built from the page's rows.
+     *
+     * <p>The disabled flag is per-cell rather than a separate overlay pass because the grid draws
+     * the wash itself, over the icon pass it owns. The multiplier is read per rebuild, not per
+     * frame — {@code ItemValueFacade#multiplier} compiles regexes and would be a real cost in a
+     * render loop.
+     */
+    private static List<ItemExpectationGrid.Entry> cellsOf(
+            StructureMinerScreenContext c, List<StructureMinerScreen.ExpectedItemRow> rows) {
+        List<ItemExpectationGrid.Entry> cells = new ArrayList<>(rows.size());
+        for (StructureMinerScreen.ExpectedItemRow row : rows) {
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(row.item());
             boolean disabled = itemId != null && c.disabledExpectedItems().contains(itemId);
-            ItemStack stack = new ItemStack(row.item());
-            String expected = ReadingFormat.reading(row.expected());
-            int expectedWidth = font.width(expected);
-
-            if (index % 2 != 0) {
-                g.fill(x - 1, rowY - 1, x + width, rowY + 18, StructureMinerTheme.STRIPE_INK);
-            }
-            if (disabled) {
-                g.fill(x - 2, rowY - 2, x + width, rowY + 18, StructureMinerTheme.DISABLED_OVERLAY);
-                g.fill(x - 2, rowY - 2, x, rowY + 18, StructureMinerTheme.ERROR);
-            }
-            g.renderItem(stack, x, rowY);
-            g.drawString(
-                    font,
-                    font.plainSubstrByWidth(
-                            stack.getHoverName().getString(),
-                            Math.max(1, width - expectedWidth - 26)),
-                    x + 22,
-                    rowY + 4,
-                    disabled ? StructureMinerTheme.ERROR : StructureMinerTheme.INK,
-                    false);
-            g.drawString(
-                    font,
-                    expected,
-                    x + width - expectedWidth,
-                    rowY + 4,
-                    disabled ? StructureMinerTheme.ERROR : StructureMinerTheme.FLUIX,
-                    false);
-            if (disabled) {
-                g.fill(
-                        x,
-                        rowY + 9,
-                        x + width - expectedWidth - 3,
-                        rowY + 10,
-                        StructureMinerTheme.ERROR);
-            }
+            cells.add(
+                    new ItemExpectationGrid.Entry(
+                            new ItemStack(row.item()),
+                            row.expected(),
+                            ItemValueFacade.multiplier(row.item()),
+                            !disabled));
         }
-        return y + rows.size() * StructureMinerInfoLayout.ROW_H_INTERACTIVE;
+        return cells;
+    }
+
+    /**
+     * Height the product section needs below its header, so {@link #contentHeight}, the draw pass
+     * and {@link #productRowAt} all agree.
+     *
+     * <p>Includes the bulk-button band, because that band is inside the section and above the grid.
+     * Folding it in here rather than adding it at the three call sites is what keeps a click from
+     * drifting a row when the buttons move.
+     */
+    static int productSectionHeight(int itemCount) {
+        return BULK_ROW_H + GRID.contentHeight(itemCount);
+    }
+
+    /** Height of the product grid alone; the bulk band is not part of it. */
+    private static int gridHeight(int itemCount) {
+        return GRID.contentHeight(itemCount);
     }
 
     // --- shared helpers ----------------------------------------------------
@@ -608,8 +793,7 @@ final class StructureMinerInfoPage {
                 StructureMinerInfoLayout.SECTION_HEADER_H
                         + Math.max(
                                 StructureMinerInfoLayout.ROW_H_INTERACTIVE,
-                                c.expectedItemRows().size()
-                                        * StructureMinerInfoLayout.ROW_H_INTERACTIVE);
+                                productSectionHeight(c.expectedItemRows().size()));
         return height;
     }
 
@@ -633,30 +817,25 @@ final class StructureMinerInfoPage {
     }
 
     /**
-     * Product-row index under a panel-local point, or {@code -1}.
+     * Product-cell index under a panel-local point, or {@code -1}.
      *
-     * <p>Derived from the same terms {@link #contentHeight} uses, so the clickable strip and the
-     * drawn strip cannot drift apart.
+     * <p>Delegates to the grid's own hit test rather than re-deriving the arithmetic. That matters
+     * more here than at the other call sites: this grid is inside a scrolling page, so the point
+     * has to be rebased by the current scroll offset before the grid sees it, and getting that
+     * rebase wrong would make a click land one row off exactly when the page is scrolled.
      */
     static int productRowAt(StructureMinerScreenContext c, double x, double y) {
         int slot = c.selectedMarkerSlot();
         if (slot < 0) return -1;
-        int top = productSectionTop(c, slot);
-        int index =
-                (int) Math.floor((y - top) / (double) StructureMinerInfoLayout.ROW_H_INTERACTIVE);
-        if (index < 0 || index >= c.expectedItemRows().size()) return -1;
+        // The grid starts one bulk row below the section top, which is where the buttons sit.
+        int top = productSectionTop(c, slot) + BULK_ROW_H;
         int left = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
         int width =
                 StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
-        return StructureMinerInfoLayout.inside(
-                        x,
-                        y,
-                        left,
-                        top + index * StructureMinerInfoLayout.ROW_H_INTERACTIVE,
-                        width,
-                        StructureMinerInfoLayout.ROW_H_INTERACTIVE)
-                ? index
-                : -1;
+        int height = Math.max(1, gridHeight(c.expectedItemRows().size()));
+
+        return GRID.cellAt(
+                cellsOf(c, c.expectedItemRows()), (int) x - left, (int) y - top, width, height);
     }
 
     private static int productSectionTop(StructureMinerScreenContext c, int slot) {
@@ -672,10 +851,15 @@ final class StructureMinerInfoPage {
 
     /** True when a panel-local point falls inside the scrolling viewport. */
     /**
-     * Hover pass: the thread selector, which shares the work lane's grid, and the product rows.
+     * Hover pass: the thread selector, which shares the work lane's grid, and the product cells.
      *
-     * <p>Product rows reuse {@link #productRowAt}, the same hit test the click path uses, so a
-     * tooltip cannot appear over a row that would not respond to a click.
+     * <p>Product cells reuse {@link #productRowAt}, the same hit test the click path uses, so a
+     * tooltip cannot appear over a cell that would not respond to a click.
+     *
+     * <p>The product tooltip is assembled here rather than handed to {@link
+     * ItemExpectationGrid#renderTooltip} because this page's tooltip has a fourth line the grid
+     * knows nothing about — the "click to enable/disable" hint. The two data lines are built from
+     * the same keys the grid uses, so a cell's expectation reads identically on every screen.
      */
     static void renderTooltip(
             StructureMinerScreenContext c,
@@ -690,15 +874,40 @@ final class StructureMinerInfoPage {
             return;
         }
 
+        BulkAction bulk = bulkActionAt(c, x, y);
+        if (bulk != BulkAction.NONE) {
+            g.renderTooltip(
+                    c.font(),
+                    Component.translatable(
+                            bulk == BulkAction.SELECT_ALL
+                                    ? "screen.dimension_tech.structure_miner.expected_item.select_all"
+                                    : "screen.dimension_tech.structure_miner.expected_item.deselect_all"),
+                    screenX,
+                    screenY);
+            return;
+        }
+
         List<StructureMinerScreen.ExpectedItemRow> rows = c.expectedItemRows();
         int row = productRowAt(c, x, y);
         if (row < 0 || row >= rows.size()) return;
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(rows.get(row).item());
+
+        StructureMinerScreen.ExpectedItemRow entry = rows.get(row);
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(entry.item());
         boolean disabled = itemId != null && c.disabledExpectedItems().contains(itemId);
+
         g.renderTooltip(
                 c.font(),
                 List.of(
-                        new ItemStack(rows.get(row).item()).getHoverName(),
+                        new ItemStack(entry.item()).getHoverName(),
+                        Component.translatable(
+                                "screen.dimension_tech.struct_marker.tooltip.expected",
+                                ReadingFormat.reading(entry.expected())),
+                        Component.translatable(
+                                "screen.dimension_tech.struct_marker.multiplier",
+                                String.format(
+                                        java.util.Locale.ROOT,
+                                        "%.2f",
+                                        ItemValueFacade.multiplier(entry.item()))),
                         Component.translatable(
                                 disabled
                                         ? "screen.dimension_tech.structure_miner.expected_item.enable"

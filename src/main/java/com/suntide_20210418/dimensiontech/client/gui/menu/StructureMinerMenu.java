@@ -20,7 +20,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
-public class StructureMinerMenu extends AbstractContainerMenu implements OutputFaceConfigMenu {
+public class StructureMinerMenu extends AbstractContainerMenu {
     public static final int BASE_PLAYER_INVENTORY_Y = 258;
     public static final int MENU_WIDTH = 320;
     public static final int FLUID_MENU_WIDTH = 376;
@@ -62,6 +62,13 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
     private static final int BASE_PARALLEL_LOW = 38;
     private static final int BASE_PARALLEL_HIGH = 39;
     private static final int EQUIPMENT_DISMANTLING = 40;
+
+    /**
+     * Carries {@code BaseMinerBlockEntity#installedChamberMask()}. This index used to be the
+     * per-face output mask, which the item output chamber replaced.
+     */
+    private static final int CHAMBER_MASK = 13;
+
     private static final int EXTERNAL_ACCELERATION_PARALLEL_LOW = 41;
     private static final int EXTERNAL_ACCELERATION_PARALLEL_HIGH = 42;
     private static final int EXTERNAL_ACCELERATION_TICKS_LOW = 43;
@@ -132,19 +139,17 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
                     public int get(int index) {
                         if (index >= telemetry.length) {
                             return switch (index - telemetry.length) {
-                                case 0 -> blockEntity.getFluidTank().getFluidAmount();
-                                case 1 -> blockEntity.getFluidTank().getCapacity();
+                                // Fluid now lives in the fluid input chamber; these read that
+                                // chamber and report zero when the ring has none.
+                                case 0 -> blockEntity.getFluidAmount();
+                                case 1 -> blockEntity.getFluidCapacity();
                                 case 2 ->
                                         hasFluidInput
                                                 ? BuiltInRegistries.FLUID.getId(
-                                                        blockEntity
-                                                                .getFluidTank()
-                                                                .getFluid()
-                                                                .getFluid())
+                                                        blockEntity.getStoredFluid())
                                                 : -1;
-                                case 3 -> blockEntity.getFluidTank().isEmpty() ? 0 : 1;
-                                case 4 -> blockEntity.getFluidFaceModesPacked();
-                                case 5 -> blockEntity.isAutoExtractFluidEnabled() ? 1 : 0;
+                                case 3 -> blockEntity.hasStoredFluid() ? 1 : 0;
+                                case 5 -> blockEntity.isFluidAutoPullEnabled() ? 1 : 0;
                                 default -> 0;
                             };
                         }
@@ -159,10 +164,9 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
                                         : 0;
                             }
                             case 1 -> blockEntity.getProcessingTime();
-                            case 2 -> lowWord(blockEntity.getEnergyStorage().getEnergyStored());
-                            case 3 -> lowWord(blockEntity.getEnergyStorage().getMaxEnergyStored());
+                            case 2 -> lowWord(blockEntity.getEnergyStored());
+                            case 3 -> lowWord(blockEntity.getStoredEnergyCapacity());
                             case 4 -> lowWord(blockEntity.getDrawParallel());
-                            case 5 -> blockEntity.getOutputState().ordinal();
                             case 6 -> blockEntity.getPendingOutputCount();
                             case 7 -> blockEntity.getBaseParallelCount();
                             case 8 -> blockEntity.getAccumulatedParallelHundredths();
@@ -170,12 +174,14 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
                             case 10 -> lowWord(blockEntity.getEffectiveEnergyConsumption());
                             case 11 -> blockEntity.getRedstoneMode().ordinal();
                             case 12 -> blockEntity.getRedstoneThreshold();
-                            case 13 -> blockEntity.getOutputFaceMask();
+                            // Chamber presence has to travel as telemetry: the client-side copy of
+                            // this block entity never runs serverTick, so reading it directly there
+                            // always answers "no chamber".
+                            case CHAMBER_MASK -> blockEntity.installedChamberMask();
                             case 14 -> blockEntity.isStructureComplete() ? 1 : 0;
-                            case ENERGY_STORED_HIGH ->
-                                    highWord(blockEntity.getEnergyStorage().getEnergyStored());
+                            case ENERGY_STORED_HIGH -> highWord(blockEntity.getEnergyStored());
                             case ENERGY_CAPACITY_HIGH ->
-                                    highWord(blockEntity.getEnergyStorage().getMaxEnergyStored());
+                                    highWord(blockEntity.getStoredEnergyCapacity());
                             case ENERGY_CONSUMPTION_HIGH ->
                                     highWord(blockEntity.getEffectiveEnergyConsumption());
                             case PARALLEL_HIGH -> highWord(blockEntity.getDrawParallel());
@@ -382,95 +388,28 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
         return fluidTelemetry[3] != 0;
     }
 
-    public BaseMinerBlockEntity.FluidFaceMode getFluidFaceMode(
-            net.minecraft.core.Direction logicalDirection) {
-        net.minecraft.core.Direction worldDirection =
-                blockEntity.toWorldDirection(logicalDirection);
-        int ordinal = (fluidTelemetry[4] >> (worldDirection.ordinal() * 2)) & 3;
-        return ordinal < BaseMinerBlockEntity.FluidFaceMode.values().length
-                ? BaseMinerBlockEntity.FluidFaceMode.values()[ordinal]
-                : BaseMinerBlockEntity.FluidFaceMode.DISABLED;
-    }
-
-    public boolean isAutoExtractFluidEnabled() {
+    /** Whether the installed fluid chamber is pulling the working fluid in by itself. */
+    public boolean isFluidAutoPullEnabled() {
         return fluidTelemetry[5] != 0;
-    }
-
-    public boolean isOutputFaceEnabled(net.minecraft.core.Direction direction) {
-        net.minecraft.core.Direction worldDirection = blockEntity.toWorldDirection(direction);
-        return (getTelemetry(13) & (1 << worldDirection.ordinal())) != 0;
-    }
-
-    public BaseMinerBlockEntity.OutputState getOutputState() {
-        int ordinal =
-                Math.max(
-                        0,
-                        Math.min(
-                                BaseMinerBlockEntity.OutputState.values().length - 1,
-                                getTelemetry(5)));
-        return BaseMinerBlockEntity.OutputState.values()[ordinal];
     }
 
     public boolean isRedstoneControlEnabled() {
         return getTelemetry(11) == BaseMinerBlockEntity.RedstoneMode.SIGNAL.ordinal();
     }
 
-    /** Sends the dedicated item-output backend toggle used by the AE mode control. */
-    public void toggleAeOutputMode() {
-        net.minecraft.client.Minecraft.getInstance()
-                .gameMode
-                .handleInventoryButtonClick(containerId, 1);
+    /** Whether the fluid input chamber is installed, as last synchronised by the server. */
+    public boolean hasFluidChamber() {
+        return (getTelemetry(CHAMBER_MASK) & BaseMinerBlockEntity.CHAMBER_FLUID) != 0;
     }
 
-    // --- OutputFaceConfigMenu -------------------------------------------------
-
-    @Override
-    public int containerId() {
-        return containerId;
+    /** Whether the energy input chamber is installed, as last synchronised by the server. */
+    public boolean hasEnergyChamber() {
+        return (getTelemetry(CHAMBER_MASK) & BaseMinerBlockEntity.CHAMBER_ENERGY) != 0;
     }
 
-    @Override
-    public boolean isInputFaceEnabled(net.minecraft.core.Direction d) {
-        return getFluidFaceMode(d) == BaseMinerBlockEntity.FluidFaceMode.INPUT;
-    }
-
-    @Override
-    public boolean isModernModeEnabled() {
-        return getOutputState() == BaseMinerBlockEntity.OutputState.ME_NETWORK;
-    }
-
-    @Override
-    public boolean isAutoExtractEnabled() {
-        return isAutoExtractFluidEnabled();
-    }
-
-    @Override
-    public void cycleOutputFace(net.minecraft.core.Direction d) {
-        net.minecraft.client.Minecraft.getInstance()
-                .gameMode
-                .handleInventoryButtonClick(containerId, 10 + d.ordinal());
-    }
-
-    @Override
-    public void cycleModernMode() {
-        toggleAeOutputMode();
-    }
-
-    @Override
-    public void cycleAutoExtract() {
-        net.minecraft.client.Minecraft.getInstance()
-                .gameMode
-                .handleInventoryButtonClick(containerId, 26);
-    }
-
-    @Override
-    public BlockPos getBlockPos() {
-        return blockEntity.getBlockPos();
-    }
-
-    @Override
-    public net.minecraft.core.Direction toWorldDirection(net.minecraft.core.Direction d) {
-        return blockEntity.toWorldDirection(d);
+    /** Whether the item output chamber is installed, as last synchronised by the server. */
+    public boolean hasItemChamber() {
+        return (getTelemetry(CHAMBER_MASK) & BaseMinerBlockEntity.CHAMBER_OUTPUT) != 0;
     }
 
     public BaseMinerBlockEntity getBlockEntity() {
@@ -479,28 +418,8 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id == 1 && !player.level().isClientSide) {
-            blockEntity.cycleOutputState();
-            return true;
-        }
         if (id == 2 && !player.level().isClientSide) {
             blockEntity.toggleRedstoneControl();
-            return true;
-        }
-        if (id >= 10 && id < 10 + net.minecraft.core.Direction.values().length) {
-            if (!player.level().isClientSide) {
-                blockEntity.toggleOutputFace(net.minecraft.core.Direction.values()[id - 10]);
-            }
-            return true;
-        }
-        if (id >= 20 && id < 20 + net.minecraft.core.Direction.values().length) {
-            if (!player.level().isClientSide) {
-                blockEntity.cycleFluidFace(net.minecraft.core.Direction.values()[id - 20]);
-            }
-            return true;
-        }
-        if (id == 26 && !player.level().isClientSide) {
-            blockEntity.toggleAutoExtractFluid();
             return true;
         }
         if (id == 3 && player.level() instanceof ServerLevel serverLevel) {
@@ -513,7 +432,7 @@ public class StructureMinerMenu extends AbstractContainerMenu implements OutputF
             }
             return true;
         }
-        return id == 1 || id == 2 || id == 3;
+        return id == 2 || id == 3;
     }
 
     /**

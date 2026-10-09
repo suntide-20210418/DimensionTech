@@ -67,6 +67,27 @@ public final class ModBlocks {
             BLOCKS.register(
                     "structure_miner_casing",
                     () -> new Block(BlockBehaviour.Properties.of().strength(4.0F)));
+    // The three casing-shaped chambers. Each stands in for a casing block anywhere in the pattern
+    // ring and carries one of the miner's I/O roles; see
+    // StructureMinerMultiblock#acceptsCasingSlot.
+    public static final DeferredHolder<Block, Block> FLUID_INPUT_CHAMBER =
+            BLOCKS.register(
+                    "fluid_input",
+                    () ->
+                            new FluidInputChamberBlock(
+                                    BlockBehaviour.Properties.of().strength(3.0F)));
+    public static final DeferredHolder<Block, Block> ENERGY_INPUT_CHAMBER =
+            BLOCKS.register(
+                    "energy_input",
+                    () ->
+                            new EnergyInputChamberBlock(
+                                    BlockBehaviour.Properties.of().strength(3.0F)));
+    public static final DeferredHolder<Block, Block> ITEM_OUTPUT_CHAMBER =
+            BLOCKS.register(
+                    "item_output",
+                    () ->
+                            new ItemOutputChamberBlock(
+                                    BlockBehaviour.Properties.of().strength(3.0F)));
     public static final DeferredHolder<Block, Block> STRUCTURE_MINER_STRUCTURE =
             BLOCKS.register(
                     "structure_miner_structure",

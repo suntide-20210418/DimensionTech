@@ -120,35 +120,16 @@ public final class StructMarkerLayout {
     /** Section width: the viewport plus its own two rules. */
     public static final int SECTION_W = VIEWPORT_W;
 
-    // --- expectation rows ---------------------------------------------------
-    /** Row pitch. The viewport shows five whole rows and fourteen pixels of a sixth. */
-    public static final int ROW_H = 18;
-
-    /** Item icon size, and therefore the leading inset of every row. */
-    public static final int ROW_ICON = 16;
-
-    /** Left inset of a row's content inside the viewport. */
-    public static final int ROW_PAD = 4;
-
-    /** The name starts past the icon and a six pixel gutter. */
-    public static final int ROW_NAME_X = ROW_PAD + ROW_ICON + 6;
-
-    /** Gap between the content column and the scrollbar's grab zone. */
-    public static final int SCROLLBAR_GAP = 2;
-
-    /** Drawn width of the scrollbar. */
-    public static final int SCROLLBAR_W = 3;
-
-    /** Scrollbar x, in viewport-local coordinates. */
-    public static final int SCROLLBAR_X = VIEWPORT_W - ROW_PAD - SCROLLBAR_W;
-
-    /**
-     * Right edge the expected-count column aligns to, in viewport-local coordinates.
-     *
-     * <p>Derived rather than typed so it follows the scrollbar if either number moves: values are
-     * right-aligned against it with {@code x = right - font.width(value)}.
+    // --- expectation grid ---------------------------------------------------
+    /*
+     * The viewport is filled by ItemExpectationGrid now, which owns its own cell size, pitch and
+     * scrollbar geometry. What used to live here — ROW_H, ROW_PAD, ROW_NAME_X, CONTENT_RIGHT,
+     * SCROLLBAR_X/W/GAP and the two row helpers — described a text row with an icon, a name and a
+     * right-aligned count. The grid has no name column and no row pitch in common with that, so
+     * keeping the numbers would have left a second, contradictory description of the same 186x104
+     * rectangle. Only the rectangle itself survives, because the caller still has to know where to
+     * put the control and where to clip it.
      */
-    public static final int CONTENT_RIGHT = SCROLLBAR_X - SCROLLBAR_GAP;
 
     // --- action row ---------------------------------------------------------
     /**
@@ -173,14 +154,4 @@ public final class StructMarkerLayout {
     public static final int ACTION_SECOND_X = ACTION_FIRST_X + ACTION_W + ACTION_GAP;
 
     private StructMarkerLayout() {}
-
-    /** How many expectation rows the viewport shows whole. */
-    public static int visibleRows() {
-        return Math.max(1, VIEWPORT_H / ROW_H);
-    }
-
-    /** Y of the {@code index}-th expectation row, in viewport-local coordinates. */
-    public static int rowY(int index) {
-        return index * ROW_H;
-    }
 }

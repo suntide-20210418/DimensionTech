@@ -54,9 +54,27 @@ final class StructureMinerTheme {
     static final int FRAME_HIGHLIGHT = GuiPalette.BEVEL_MID;
     static final int HOVER = GuiPalette.HOVER;
     static final int DISABLED_OVERLAY = GuiPalette.DISABLED_OVERLAY;
+
+    /** A quantity in a slot's corner, drawn over item art with the vanilla text shadow. */
+    static final int SLOT_COUNT = GuiPalette.SLOT_COUNT;
+
+    /**
+     * Translucent wash laid over a hovered cell of the expectation grid.
+     *
+     * <p>Lifted from the marker lane's {@code #9BB49A} hover tone and given alpha, so the item icon
+     * underneath stays legible. The lane pressed its hovered row in with the opaque tone because
+     * the row was text on a flat recess; a grid cell has an icon on it and an opaque fill would
+     * erase the thing the player is pointing at.
+     */
+    static final int HOVER_WASH = 0x409BB49A;
+
     static final int BACKDROP = GuiPalette.BACKDROP;
     static final int FLUID = GuiPalette.FLUID;
     static final int FLUID_ACCENT = GuiPalette.FLUID_ACCENT;
+
+    /** One step up from the canvas face. Used to lift a hovered sort bar. */
+    static final int RECESS_LIT = GuiPalette.RECESS_LIT;
+
     // AE2 energy meters use a repeating two-row pixel pattern, not a gradient.
     static final int ENERGY_BORDER = GuiPalette.ENERGY_BORDER;
     static final int ENERGY_TICK = GuiPalette.ENERGY_TICK;

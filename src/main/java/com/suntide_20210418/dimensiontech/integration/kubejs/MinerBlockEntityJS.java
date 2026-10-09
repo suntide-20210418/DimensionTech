@@ -1,7 +1,6 @@
 package com.suntide_20210418.dimensiontech.integration.kubejs;
 
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
-import net.minecraft.core.Direction;
 
 public final class MinerBlockEntityJS {
     private final BaseMinerBlockEntity miner;
@@ -19,7 +18,7 @@ public final class MinerBlockEntityJS {
     }
 
     public int effectiveEnergyCapacity() {
-        return miner.getEnergyStorage().getMaxEnergyStored();
+        return miner.getEffectiveEnergyCapacity();
     }
 
     public int energyConsumption() {
@@ -75,11 +74,11 @@ public final class MinerBlockEntityJS {
     }
 
     public int fluidAmount() {
-        return miner.getFluidTank().getFluidAmount();
+        return miner.getFluidAmount();
     }
 
     public int fluidCapacity() {
-        return miner.getFluidTank().getCapacity();
+        return miner.getFluidCapacity();
     }
 
     public String requiredFluid() {
@@ -89,12 +88,29 @@ public final class MinerBlockEntityJS {
                 : net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fluid).toString();
     }
 
+    /**
+     * Auto-pull now lives on the fluid input chamber, so this reads — and sets — that chamber. It
+     * reports false when the ring has no fluid chamber, which is also the reason a machine without
+     * one can never start a cycle.
+     */
     public boolean autoExtractFluid() {
-        return miner.isAutoExtractFluidEnabled();
+        return miner.isFluidAutoPullEnabled();
     }
 
     public void setAutoExtractFluid(boolean enabled) {
-        if (miner.isAutoExtractFluidEnabled() != enabled) miner.toggleAutoExtractFluid();
+        miner.setFluidAutoPull(enabled);
+    }
+
+    public boolean hasFluidChamber() {
+        return miner.hasFluidChamber();
+    }
+
+    public boolean hasEnergyChamber() {
+        return miner.hasEnergyChamber();
+    }
+
+    public boolean hasItemChamber() {
+        return miner.hasItemChamber();
     }
 
     public boolean equipmentDismantling() {
@@ -105,13 +121,14 @@ public final class MinerBlockEntityJS {
         if (miner.isEquipmentDismantlingEnabled() != enabled) miner.toggleEquipmentDismantling();
     }
 
-    public boolean expectedItemDisabled(Object id) {
-        return miner.isExpectedItemDisabled(DimensionTechJS.parse(id));
+    public boolean expectedItemDisabled(int slot, Object id) {
+        return miner.isExpectedItemDisabled(slot, DimensionTechJS.parse(id));
     }
 
-    public void setExpectedItemDisabled(Object id, boolean disabled) {
+    public void setExpectedItemDisabled(int slot, Object id, boolean disabled) {
         var item = DimensionTechJS.parse(id);
-        if (miner.isExpectedItemDisabled(item) != disabled) miner.toggleExpectedItem(item);
+        if (miner.isExpectedItemDisabled(slot, item) != disabled)
+            miner.toggleExpectedItem(slot, item);
     }
 
     public java.util.List<net.minecraft.resources.ResourceLocation> markedStructures() {
@@ -152,36 +169,6 @@ public final class MinerBlockEntityJS {
         for (int i = 0; i < BaseMinerBlockEntity.RedstoneMode.values().length; i++) {
             if (miner.getRedstoneMode() == target) return;
             miner.cycleRedstoneMode();
-        }
-    }
-
-    public String outputMode() {
-        return miner.getOutputState().name().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    public void setOutputMode(String mode) {
-        BaseMinerBlockEntity.OutputState target;
-        try {
-            target =
-                    BaseMinerBlockEntity.OutputState.valueOf(
-                            mode.toUpperCase(java.util.Locale.ROOT));
-        } catch (RuntimeException e) {
-            throw new IllegalArgumentException("Unknown output mode: " + mode, e);
-        }
-        if (target == BaseMinerBlockEntity.OutputState.NONE)
-            throw new IllegalArgumentException("Output mode cannot be none");
-        if (miner.getOutputState() != target) miner.cycleOutputState();
-    }
-
-    public void setOutputFace(Direction direction, boolean enabled) {
-        if (miner.isOutputFaceEnabled(direction) != enabled) miner.toggleOutputFace(direction);
-    }
-
-    public void setOutputFace(String direction, boolean enabled) {
-        try {
-            setOutputFace(Direction.valueOf(direction.toUpperCase(java.util.Locale.ROOT)), enabled);
-        } catch (RuntimeException e) {
-            throw new IllegalArgumentException("Unknown direction: " + direction, e);
         }
     }
 }
