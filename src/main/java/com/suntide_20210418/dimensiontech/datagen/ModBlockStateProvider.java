@@ -39,6 +39,17 @@ public class ModBlockStateProvider extends BlockStateProvider {
         simpleBlockWithItem(
                 ModBlocks.STRUCTURE_MINER_CASING.get(),
                 models().getExistingFile(modLoc("block/structure_miner_casing")));
+        // The three chambers ship hand-authored models too, and they are full cubes with no facing,
+        // so a single variant each is enough.
+        simpleBlockWithItem(
+                ModBlocks.FLUID_INPUT_CHAMBER.get(),
+                models().getExistingFile(modLoc("block/fluid_input")));
+        simpleBlockWithItem(
+                ModBlocks.ENERGY_INPUT_CHAMBER.get(),
+                models().getExistingFile(modLoc("block/energy_input")));
+        simpleBlockWithItem(
+                ModBlocks.ITEM_OUTPUT_CHAMBER.get(),
+                models().getExistingFile(modLoc("block/item_output")));
 
         registerHandWrittenMiner(ModBlocks.TIER_1_STRUCTURE_MINER.get(), 1);
         registerHandWrittenMiner(ModBlocks.TIER_2_STRUCTURE_MINER.get(), 2);

@@ -68,10 +68,11 @@ public record StructureMinerExpectedItemBulkPacket(int containerId, int slot, bo
                         : Set.of();
 
         // 停用集合没变就说明这次点击是空操作——连点两次同一个按钮，或在全部已启用时又按了全选。
-        // 为它重跑一次分析，等于白烧一整轮推导去回传一份与屏幕上完全相同的快照。
-        if (!menu.getBlockEntity().setDisabledExpectedItems(disabled)) return;
+        // 状态没变就没有要回传的东西，直接结束。
+        if (!menu.getBlockEntity().setDisabledExpectedItems(payload.slot(), disabled)) return;
 
-        menu.getBlockEntity().refreshMarkerAnalysis();
+        // 不再重跑分析：禁用集合不参与分析推导，缓存快照里的物品期望本就是对的；变化的只有
+        // 它的 disabledItems 字段，重发快照即可带回客户端。
         StructureMinerAnalysisSnapshot snapshot =
                 menu.getBlockEntity().getMarkerAnalysisSnapshot(payload.slot());
         PacketDistributor.sendToPlayer(

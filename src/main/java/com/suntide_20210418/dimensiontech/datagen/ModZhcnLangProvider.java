@@ -259,6 +259,18 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("block.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("container.dimension_tech.tier_6_structure_miner", "第6阶虚空结构资源采掘器");
         add("block.dimension_tech.structure_miner_casing", "采掘器外壳");
+        add("block.dimension_tech.fluid_input", "流体输入仓");
+        add("block.dimension_tech.energy_input", "能源输入仓");
+        add("block.dimension_tech.item_output", "物品弹出仓");
+        add("message.dimension_tech.fluid_input_chamber.contents", "流体输入仓：%1$s / %2$s mB");
+        add("message.dimension_tech.fluid_input_chamber.auto_pull_on", "自动拉取已开启（%1$s / %2$s mB）");
+        add("message.dimension_tech.fluid_input_chamber.auto_pull_off", "自动拉取已关闭（%1$s / %2$s mB）");
+        add(
+                "message.dimension_tech.energy_input_chamber.contents",
+                "能源输入仓：%1$s / %2$s FE，耗能 %3$s FE/t");
+        add(
+                "message.dimension_tech.energy_input_chamber.contents_unbound",
+                "能源输入仓：%1$s / %2$s FE，未绑定采掘器");
         add("block.dimension_tech.structure_miner_structure", "采掘器结构方块");
         add("block.dimension_tech.structure_miner_glass", "结构采掘器玻璃");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "1级并行升级方块");
@@ -480,6 +492,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.output.me_network", "ME 网络");
         add("screen.dimension_tech.structure_miner.output.item_handler", "物品容器");
         add("screen.dimension_tech.structure_miner.output.none", "未连接");
+        add("screen.dimension_tech.structure_miner.output.chamber", "物品弹出仓");
         add("screen.dimension_tech.structure_miner.output.blocked", "输出堵塞：%s 件无法弹出");
         add("screen.dimension_tech.structure_miner.inventory", "玩家背包");
         add("screen.dimension_tech.structure_miner.output_face", "输出面");
@@ -610,6 +623,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.output.me_network", "ME 网络");
         add("jade.dimension_tech.output.item_handler", "物品容器");
         add("jade.dimension_tech.output.none", "无输出");
+        add("jade.dimension_tech.output.chamber", "物品弹出仓");
         add("jade.dimension_tech.pending", "待输出：%s 个物品");
         add("jade.dimension_tech.reason", "原因：%s");
         add("jade.dimension_tech.reason.me_full", "网络存储空间不足");

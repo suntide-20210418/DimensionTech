@@ -51,8 +51,10 @@ public record StructureMinerExpectedItemTogglePacket(
                 && payload.slot() >= 0
                 && payload.slot() < menu.getContainerSlotCount()
                 && menu.stillValid(player)) {
-            menu.getBlockEntity().toggleExpectedItem(payload.itemId());
-            menu.getBlockEntity().refreshMarkerAnalysis();
+            menu.getBlockEntity().toggleExpectedItem(payload.slot(), payload.itemId());
+            // No analysis refresh here: the disabled set does not feed the analysis, so the cached
+            // snapshot's item expectations are already correct. Only its disabledItems field
+            // changed, and re-sending the snapshot is what carries that back to the client.
             StructureMinerAnalysisSnapshot snapshot =
                     menu.getBlockEntity().getMarkerAnalysisSnapshot(payload.slot());
             PacketDistributor.sendToPlayer(

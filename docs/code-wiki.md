@@ -110,7 +110,7 @@ modEventBus.addListener(…::commonSetup);
 - `ModMenu.MENU_TYPES`：`DeferredRegister<MenuType<?>>`，与 GUI 的 `ModMenu` 配合。
 
 ### 3.3 已注册内容清单（速查）
-- **方块**：`tier_1..6_structure_miner`、`structure_reactor`、`structure_data_operator`、`structure_miner_casing`、`structure_miner_glass`、`structure_miner_structure`、`structure_miner_upgrade_{parallel,luck,energy,efficiency,aggregate}`（各 6 档，档 1 无后缀，档 2..6 带 `_tier_N`）。
+- **方块**：`tier_1..6_structure_miner`、`structure_reactor`、`structure_data_operator`、`structure_miner_casing`、`structure_miner_glass`、`structure_miner_structure`、`structure_miner_upgrade_{parallel,luck,energy,efficiency,aggregate}`（各 6 档，档 1 无后缀，档 2..6 带 `_tier_N`），以及三种仓室 `fluid_input`、`energy_input`、`item_output`。
 - **物品**：`structure_marker`、`chest_marker`、`wrench`、`dimension_deconstruction_core`、`data_integrator`、`structure_interpreter`、`dimension_fragment_tier_1..6`、`mining_token_tier_1..6`，以及 5 种精华桶（`structure_essence_bucket`、`surging_structure_essence_bucket`、`recursive_essence_bucket`、`surging_recursive_essence_bucket`、`fractal_essence_bucket`）。
 - **流体**：`structure_essence`、`surging_structure_essence`、`recursive_essence`、`surging_recursive_essence`、`fractal_essence`。
 - 物品中文名（`ModZhcnLangProvider`）：`structure_marker` = 结构标记器、`chest_marker` = 宝箱标记器、`data_integrator` = 数据整合器、`structure_interpreter` = **结构阐释器**、`wrench` = 扳手。三者同源：注册 id `chest_marker`、中文名「宝箱标记器」、英文名 "Chest Marker"。
@@ -122,13 +122,14 @@ modEventBus.addListener(…::commonSetup);
 
 ### 4.1 方块实体层级
 
-- `BaseMinerBlockEntity`：所有采掘器的**服务端主控基类**。构造时初始化 `itemHandler`、`SimpleEnergyContainer`、`FluidTank`，以及四个控制器：
+- `BaseMinerBlockEntity`：所有采掘器的**服务端主控基类**。构造时初始化 `itemHandler` 与四个控制器：
   - `MinerAnalysisController`（分析流转）
   - `MinerUpgradeController`（升级参数）
   - `MinerAccelerationController`（外部加速，如时间之瓶）
-  - `MinerOutputController`（输出管理）
+  - `MinerOutputController`（产出奖励生成与待输出队列）
+- **本体不再持有流体罐、FE 缓冲与产出路由**：这三样分别在流体输入仓、能源输入仓与物品弹出仓的方块实体里（见 §4.7）。本体每 tick 按固定顺序遍历图案的外壳格，各取第一个同类仓室并 `bindMiner(this)`，随后经它们结算周期流体、能源与产出；缺哪类仓室，对应环节就无法完成。
 - 主循环在 `BaseMinerBlockEntity#serverTick()`，按固定阶段推进：
-  `更新结构/升级状态 → 红石判断 → 自动抽液 → 待输出重试 → 标记与记录分析缓存 → 加工计划 → 工作 hook → 能源与周期流体结算 → 槽位推进 → 周期 hook → 战利品生成 → 输出 hook → 输出路由`
+  `更新结构/升级状态 → 定位并驱动仓室 → 红石判断 → 待输出重试 → 标记与记录分析缓存 → 加工计划 → 工作 hook → 能源与周期流体结算 → 槽位推进 → 周期 hook → 战利品生成 → 输出 hook → 输出（交给物品弹出仓）`
 - 可运行条件（`#canRun` 一类）要求：多方块结构完整、红石模式允许、输出未阻塞、存在有效 marker；同时刷新 loot/processing plans。
 - 产出点：按 slot 推进，读取 `MarkerAnalysis`，生成 completed markers，最终调用 `drawMarkerLoot` 产出战利品（产出基于已分析物品的期望构造权重）。
 - **槽位对外契约**：每个 Tier 的 `ItemHandler.BLOCK` capability 暴露的是 `BaseMinerBlockEntity#insertOnlyItemHandler()`，即 `InsertOnlyItemHandler` 视图——插入、读取、`isItemValid`、槽位上限全部透传，`extractItem` 恒返回空。所有标记槽都是采掘器要消耗的输入，管道、存储总线与 ME 网络只能投喂、不能抽走；裸 `itemHandler` 只留给菜单（玩家要能取回放错的标记）和机器自身逻辑，Jade 读盘也走视图。
@@ -158,7 +159,7 @@ modEventBus.addListener(…::commonSetup);
 
 | 集合 | 数量 | 含义 |
 | --- | --- | --- |
-| `CASING` | 39 | 上下两块法兰端板（`y=0` / `y=4`），各 5×5 外环 16 格 + 4 根通向腰柱的辐条；下盘后边中点那格被机头本体占据，故为 39 而非 40 |
+| `CASING` | 39 | 上下两块法兰端板（`y=0` / `y=4`），各 5×5 外环 16 格 + 4 根通向腰柱的辐条；下盘后边中点那格被机头本体占据，故为 39 而非 40。**每一格都可换成三种仓室中的任意一种**（`acceptsCasingSlot`），换了就不再消耗机壳 |
 | `GLASS` | 12 | 腰部（`y=1..3`）四个角柱，取代旧版的 8 个维度聚焦方块 |
 | `STRUCTURE` | 2 | 下盘中心 `(2,0,0)` 与上盘中心 `(2,4,0)`（钻点） |
 | `UPGRADE` | 12 | 腰部四个面心柱 ×3 层；槽位接受升级方块**或结构方块**（`acceptsUpgradeSlot`） |
@@ -181,13 +182,25 @@ modEventBus.addListener(…::commonSetup);
 - `ExternalTickAcceleration`：处理外部实体 tick 加速（如时间之瓶）带来的加倍/节流逻辑；`MINIMUM_NATURAL_TICKS = 400`，即一个加工周期至少 400 自然 tick，保证受加速时资源结算依然稳定可预期。
 
 ### 4.5 产出系统：`structureminer/output`
-- `StructureMinerOutputRouter`：把生成的 `ItemStack` 按输出面 mask 与目标能力，分发到相邻 item handler 或 AE2 ME 网络（`MinerOutputController` 记录 `ITEM_HANDLER` / `ME_NETWORK` 两种输出状态）。
 - `ExpectationRewardGenerator`：基于已分析物品的期望构造奖励权重（`draw(...)` 按权重抽；`equipmentDismantling` 打开时每个产物先经 `EquipmentDismantler` 拆解，再按 `disabledItems` 过滤）。另有两笔**非战利品**的固定产出：`addTieredRewards` 每周期附送 `min(10, parallel)` 个本 Tier 的 `dimension_fragment_tier_N` 与等量 `mining_token_tier_N`；`rollDimensionCores` 按 `min(1.0, 0.05 × tier)` 掷 `parallel` 次拆解核心，单周期上限 `MAX_DECONSTRUCTION_CORES = 10`，只受"预期物品开关"（`disabledItems`）约束。碎片与代币是 `data_integrator` / `structure_interpreter` 的配方原料，**这是操作仪必须排在采掘器之后的原因**。
 - `EquipmentDismantler`：拆解核心的物品拆解路径。
+- **产出路由已不在本体**：待输出队列仍由 `MinerOutputController` 持有（要随机器保存、破坏时掉落），但真正"送出去"是 `ItemOutputChamberBlockEntity#eject`。原来按输出面掩码分发到相邻 handler / ME 接口的 `StructureMinerOutputRouter` 及其 GameTest 已随本次迁移删除，由 `ItemOutputChamberGameTests` 接替（一次一组 + AE2 全量两条路径）。满耐久策略（`FullDurabilityLoot.normalize`）原来在路由器里逐组施加，现在改在 `MinerOutputController#emit` 里对整批施加一次，两条路径因此看到同一批物品。
 
 ### 4.6 能量与流体
-- `energy/EnergyContainer`（接口）/`SimpleEnergyContainer`（Forge `EnergyStorage` 实现），接入采掘器 FE 结算。
-- `fluid/ModFluids` + `EssenceFluidType`（Forge FluidType），Tier2-6 各需要一种精华流体，在一个周期开始时扣除。
+- `energy/EnergyContainer`（接口）/`SimpleEnergyContainer`（Forge `EnergyStorage` 实现）。能源输入仓用 `SimpleEnergyContainer` 持有机器的 FE 缓冲，`canConsume/consume` 是机器侧扣费、`receiveEnergy` 是外部注入，两者语义不同。
+- `fluid/ModFluids` + `EssenceFluidType`（Forge FluidType），Tier2-6 各需要一种精华流体，在一个周期开始时扣除（`FLUID_PER_WORK_CYCLE_MB = 25`）。罐在流体输入仓里，容量常量 `FLUID_TANK_CAPACITY_MB = 16_000` 仍留在 `BaseMinerBlockEntity` 上，作为"机器加工流体契约"的唯一来源（JEI 也读它）。
+
+### 4.7 三种仓室（`block/MinerChamberBlock` + `block/entity/*ChamberBlockEntity`）
+
+三个仓室与 `structure_miner_casing` 同尺寸，可以顶掉图案里任意一格外壳，把机器的 I/O 从本体搬到外壳上。
+
+- **可替换外壳的唯一判据**是 `StructureMinerMultiblock#acceptsCasingSlot`：普通机壳，或任意 `MinerChamberBlock` 子类。`isFilled` 的 `CASING` 分支改走它（与 `UPGRADE` 分支的 `acceptsUpgradeSlot` 平行），因此材料计划、完整性判定与客户端投影叠加层三者不会对"装了仓室的格子算不算已填充"产生分歧。
+- **定位**用 `StructureMinerMultiblock#casingSearchOrder(level, center)`：把旋转后的外壳偏移排序（`BlockPos` 自然序 y→z→x）后返回世界坐标。必须排序，因为 `CASING` 是无序 `Set`，"同类取第一个"不能依赖它的迭代顺序；旋转是双射，所以在作者坐标系里定序等价于四个朝向下都定序。
+- **tick 由本体驱动**（`BaseMinerBlockEntity#locateChambers` + `tickChambers`），仓室自己没有 `BlockEntityTicker`：本体是唯一不需要反向查找就能拿到它们的对象，而它本来就每 tick 走一遍图案。反查"哪个控制器拥有我"要在 5×5×5 里扫 125 个候选再逐个校验图案。
+- `MinerChamberBlockEntity#miner()` 是绑定的唯一入口，并会拒绝已被移除的旧宿主——控制器被拆掉后，仓室不能继续替它作答（流体有效性校验依赖它）。
+- `FluidInputChamberBlockEntity`：单罐 16000 mB，`isFluidValid` 要求宿主存在、`requiresFluidInput()` 且流体等于该 Tier 所需流体。能力只暴露**只进**视图（`inputHandler()`），因为它是输入仓。自动抽取在 `chamberTick` 里从相邻 handler 拉所需流体。空手右键报储量，Shift+右键切换自动拉取；手持流体容器右键走 `exchangeWithFluidContainer` 灌/抽（这段从原 `BaseMinerBlockEntity` 平移过来）。
+- `EnergyInputChamberBlockEntity`：**容量是镜像来的，不是自定的**。本体只有在多方块成形时才给出有意义的容量（升级倍率在未成形时被清空），所以仓室把最近一次从"成形机器"读到的值缓存下来；未成形时用缓存，从未读过则用 `DEFAULT_CAPACITY_FE = 10_000`。存档时**先恢复缓存容量再恢复已存电量**，否则超出 10000 的值会在读入时被 `setCapacity` 截断。
+- `ItemOutputChamberBlockEntity`：`eject(level, pending)` 两条互斥路径——网格在线时整批推入网络存储，否则只送走队首**一组**，其余原样返回（内容相同则直接返回原列表，避免造一个相等的副本）。**AE 设备身份**经 `AECapabilities.IN_WORLD_GRID_NODE_HOST` 能力暴露：AE2 19.2 的 `GridHelper.getNodeHost` 是 `Level.getCapability(...)` 调用而非 `instanceof`，所以宿主是可插拔的，仓室方块实体本身**完全不引用 AE2 类型**，未装 AE2 时不会被类验证拖垮。`ManagedGridNode` 的 `inWorldNode` 默认 false，必须显式 `setInWorldNode(true)`，否则线缆找到宿主也连不上。
 
 ---
 
@@ -342,8 +355,10 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 | JEI | `integration/jei/`：`StructureReactorJeiPlugin`、`StructureMinerJeiPlugin`、`DeconstructionCoreJeiCategory`（+ `Recipe(s)`/`Text`）、`chestminerjeitext` | 展示结构反应堆、采掘器、拆解核心的配方；把对应屏幕展示区注册为 JEI 点击区域 |
 | Jade | `integration/jade/StructureMinerJadePlugin` + `StructureMinerJadeProvider` | 服务端向 Jade HUD 提供矿机状态、slot marker、进度、并行、输出、能量等显示 |
 | KubeJS | `integration/kubejs/DimensionTechKubeJSPlugin`、`MinerEventsJS`、`MinerBlockEntityJS`、`DimensionTechJS` | 向服务器脚本暴露矿机参数、反应堆配方、结构价值与工作事件覆写（详见 `docs/kubejs.md`） |
-| AE2 | `integration/ae2/Ae2Integration` | ME 网络输出与流体交互 |
+| AE2 | `integration/ae2/Ae2Integration`、`integration/ae2/Ae2GridNode`、`integration/ae2/Ae2GridHosts`（经核心侧 `integration/MachineGridNode(s)` 桥接） | ME 网络流体交互；以及把物品弹出仓注册成 ME 设备（`AECapabilities.IN_WORLD_GRID_NODE_HOST`） |
 | 通用钩子 | `MinerIntegrationHooks` | 统一封装跨集成的矿机钩子点 |
+
+`MachineGridNode` / `MachineGridNodes` 是 AE2 可选性的关键结构：物品弹出仓的方块实体是无条件注册、无条件构造的，若它直接 `import appeng.*`，未装 AE2 的客户端会在**类验证期**就崩。核心侧只留一个不含任何 AE2 类型的接口与一个在 `ModList.isLoaded("ae2")` 守卫内才引用实现的工厂；`Ae2GridHosts.registerCapability` 同样只在守卫内被 `ModCapabilities` 调用。与本仓对外 API 包、跨模组桥接的两层约定同源。
 
 除上述"本模组去适配别人"的集成外，还对外提供一个**稳定 API 包** `com.suntide_20210418.dimensiontech.api`（`DimensionTechApi` + `StructureValuation`），供其它模组只读消费结构/宝箱估值（产出期望、结构价值、维度价值）与宝箱标记能力。它不引入新算法，全部转调内部既有实现，因此与模组自身的口径（配置过滤、指纹、缓存）逐项一致；调用方须自行以 `ModList.isLoaded("dimension_tech")` 门禁，并把对该包的引用隔离在不会提前加载的兼容类里。
 
@@ -397,7 +412,8 @@ BaseMinerBlockEntity ──> Miner*Controller ──> structureminer/output ─�
 structure/analysis ──> loot/expectation(Distributional/Stateful*) ──> FiniteDistribution / ExactProbability / Draw 语义
 config/ModConfigs ──> loot/expectation(FrozenJson, TerminalStackKey) & utils/StructureScriptConfigService
 client/gui ──> block/entity(数据源) & network(请求)
-integration/* ──> block/entity + structurereactor(配方展示)
+block/entity(MinerChamber*) ──> integration/MachineGridNode(仅核心接口，无 AE2 类型)
+integration/* ──> block/entity + structurereactor(配方展示) + integration/ae2(仅 AE2 存在时被解析)
 ```
 依赖方向清晰：基础设施 + 期望引擎在最底层，机器与玩法在中间，客户端 UI 与可选集成都依赖它们。
 

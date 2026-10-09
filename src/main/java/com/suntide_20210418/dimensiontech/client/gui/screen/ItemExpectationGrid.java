@@ -359,8 +359,14 @@ final class ItemExpectationGrid {
      *
      * <p>Positioned by the same arithmetic {@code GuiGraphics#renderItemDecorations} uses for a
      * vanilla count: right edge one pixel past the icon's, top {@link #AMOUNT_TOP_OFFSET} below the
-     * icon's. Right-aligned rather than centred so a two-character amount and a four-character one
-     * share an edge instead of drifting, which is what makes a column of them scannable.
+     * icon's. Right-aligned rather than centred so every amount shares an edge instead of drifting,
+     * which is what makes a column of them scannable.
+     *
+     * <p><b>A longer amount is shrunk, not allowed to overflow.</b> At the drawn size a three- or
+     * four-character amount crowds or spills out of the 18px cell, so {@link #amountScale} steps
+     * the size down with the character count. The scale is applied about the badge's bottom-right
+     * corner — the edge it is anchored to — so shrinking pulls the text toward that corner instead
+     * of shifting it off the icon.
      *
      * <p><b>White with the vanilla shadow, deliberately.</b> The badge lands on the item's own art,
      * whose colours are unknown, so no flat colour is guaranteed to read; the shadow draws each
@@ -374,12 +380,29 @@ final class ItemExpectationGrid {
      */
     private void drawAmount(GuiGraphics g, Font font, String amount, int cx, int cy) {
         if (amount.isEmpty()) return;
-        int x = cx + cellW - font.width(amount);
+        int width = font.width(amount);
+        int x = cx + cellW - width;
         int y = cy + iconInset + AMOUNT_TOP_OFFSET;
+        float scale = amountScale(amount.length());
         g.pose().pushPose();
-        g.pose().translate(0.0F, 0.0F, AMOUNT_Z);
-        g.drawString(font, amount, x, y, StructureMinerTheme.SLOT_COUNT, true);
+        g.pose().translate(x + width, y + font.lineHeight, AMOUNT_Z);
+        g.pose().scale(scale, scale, 1.0F);
+        g.drawString(font, amount, -width, -font.lineHeight, StructureMinerTheme.SLOT_COUNT, true);
         g.pose().popPose();
+    }
+
+    /**
+     * Font scale for an amount, stepped down by character count: two characters or fewer at full
+     * size, three at 90%, four at 75%, five or more at 50%.
+     *
+     * <p>{@code ReadingFormat#quantity} caps an amount at four characters, so the five-or-more case
+     * is the guard for a future formatter change rather than a state reachable today.
+     */
+    private static float amountScale(int length) {
+        if (length > 4) return 0.5F;
+        if (length > 3) return 0.75F;
+        if (length > 2) return 0.9F;
+        return 1.0F;
     }
 
     /**

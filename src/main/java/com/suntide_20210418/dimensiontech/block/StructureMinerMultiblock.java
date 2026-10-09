@@ -350,18 +350,58 @@ public class StructureMinerMultiblock {
     }
 
     /**
+     * Whether {@code state} may stand in for a casing block: the plain casing, or any of the three
+     * chambers.
+     *
+     * <p>The chambers are casing-shaped on purpose — a player swaps a shell block for a functional
+     * one without changing the silhouette — so a casing slot has to take them. This is the one
+     * place that rule lives, so the planner, the completeness test and the client overlay cannot
+     * disagree about whether an installed chamber counts as filled.
+     */
+    public static boolean acceptsCasingSlot(BlockState state) {
+        return state.is(ModBlocks.STRUCTURE_MINER_CASING.get())
+                || state.getBlock() instanceof MinerChamberBlock;
+    }
+
+    /**
+     * The casing cells, in a deterministic order.
+     *
+     * <p>The miner walks this to find its chambers, and "the first of each kind wins" has to mean
+     * the same thing on every launch — {@link #CASING} is an unordered {@code Set}, so its own
+     * iteration order is not a contract. The offsets are sorted before the facing rotation, which
+     * is fine: rotation is a bijection, so a fixed order in the authored frame stays a fixed order
+     * in every turned frame.
+     */
+    public static List<BlockPos> casingSearchOrder(LevelReader level, BlockPos center) {
+        Direction facing = facingOf(level, center);
+        List<BlockPos> offsets = new ArrayList<>(CASING.size());
+        for (String coordinate : CASING) {
+            offsets.add(worldOffset(facing, coordinate));
+        }
+        offsets.sort(null);
+        List<BlockPos> positions = new ArrayList<>(offsets.size());
+        for (BlockPos offset : offsets) {
+            positions.add(center.offset(offset));
+        }
+        return List.copyOf(positions);
+    }
+
+    /**
      * Whether {@code actual} already satisfies the slot {@code projected} points at. The bays are
-     * modelled from the structure block but accept any upgrade block, so they cannot be compared
+     * modelled from the structure block but accept any upgrade block, and the casing ring is
+     * modelled from the plain casing but accepts any chamber, so neither can be compared
      * block-for-block; every other slot has to match its projected block exactly.
      *
      * <p>This is the only place that rule lives: the planner, the completeness test and the
-     * client-side overlay all ask it, so a bay full of upgrades can never read as "missing" to one
-     * of them and "filled" to another.
+     * client-side overlay all ask it, so a slot can never read as "missing" to one of them and
+     * "filled" to another.
      */
     public static boolean isFilled(ProjectionBlock projected, BlockState actual) {
-        return projected.kind() == ProjectionKind.UPGRADE
-                ? acceptsUpgradeSlot(actual)
-                : actual.is(projected.state().getBlock());
+        return switch (projected.kind()) {
+            case UPGRADE -> acceptsUpgradeSlot(actual);
+            case CASING -> acceptsCasingSlot(actual);
+            default -> actual.is(projected.state().getBlock());
+        };
     }
 
     /**

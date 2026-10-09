@@ -376,6 +376,24 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "container.dimension_tech.tier_6_structure_miner",
                 "Tier 6 Void Structure Resource Miner");
         add("block.dimension_tech.structure_miner_casing", "Miner Casing");
+        add("block.dimension_tech.fluid_input", "Fluid Input Chamber");
+        add("block.dimension_tech.energy_input", "Energy Input Chamber");
+        add("block.dimension_tech.item_output", "Item Output Chamber");
+        add(
+                "message.dimension_tech.fluid_input_chamber.contents",
+                "Fluid input chamber: %1$s / %2$s mB");
+        add(
+                "message.dimension_tech.fluid_input_chamber.auto_pull_on",
+                "Auto-pull enabled (%1$s / %2$s mB)");
+        add(
+                "message.dimension_tech.fluid_input_chamber.auto_pull_off",
+                "Auto-pull disabled (%1$s / %2$s mB)");
+        add(
+                "message.dimension_tech.energy_input_chamber.contents",
+                "Energy input chamber: %1$s / %2$s FE, consumption %3$s FE/t");
+        add(
+                "message.dimension_tech.energy_input_chamber.contents_unbound",
+                "Energy input chamber: %1$s / %2$s FE, no miner bound");
         add("block.dimension_tech.structure_miner_structure", "Miner Structure Block");
         add("block.dimension_tech.structure_miner_glass", "Structure Miner Glass");
         add("block.dimension_tech.structure_miner_upgrade_parallel", "Tier 1 Parallel Upgrade");
@@ -683,6 +701,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.output.me_network", "ME Network");
         add("screen.dimension_tech.structure_miner.output.item_handler", "Item Container");
         add("screen.dimension_tech.structure_miner.output.none", "Unlinked");
+        add("screen.dimension_tech.structure_miner.output.chamber", "Item output chamber");
         add("screen.dimension_tech.structure_miner.output.blocked", "Output blocked: %s pending");
         add("screen.dimension_tech.structure_miner.inventory", "Player Inventory");
         add("screen.dimension_tech.structure_miner.output_face", "Output Face");
@@ -859,6 +878,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jade.dimension_tech.output.me_network", "ME network");
         add("jade.dimension_tech.output.item_handler", "Inventory");
         add("jade.dimension_tech.output.none", "No output");
+        add("jade.dimension_tech.output.chamber", "Item output chamber");
         add("jade.dimension_tech.pending", "Pending output: %s items");
         add("jade.dimension_tech.reason", "Reason: %s");
         add("jade.dimension_tech.reason.me_full", "ME network storage is full");

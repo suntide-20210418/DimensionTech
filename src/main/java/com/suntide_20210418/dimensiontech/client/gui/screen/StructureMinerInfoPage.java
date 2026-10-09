@@ -86,9 +86,6 @@ final class StructureMinerInfoPage {
      */
     private static final int BULK_LABEL_MIN_W = 120;
 
-    /** Edge length of one 10x10 bulk-button glyph, centred in the 20px button. */
-    private static final int BULK_GLYPH = 10;
-
     /**
      * One grid instance for the whole page.
      *
@@ -637,8 +634,8 @@ final class StructureMinerInfoPage {
         boolean overSelect = c.hoveredBulkAction() == BulkAction.SELECT_ALL;
         boolean overDeselect = c.hoveredBulkAction() == BulkAction.DESELECT_ALL;
 
-        StructureMinerSpriteRenderer.smallButton(g, selectX, buttonY, overSelect, configured);
-        StructureMinerSpriteRenderer.smallButton(g, deselectX, buttonY, overDeselect, configured);
+        StructureMinerSpriteRenderer.smallButton(g, selectX, buttonY, overSelect);
+        StructureMinerSpriteRenderer.smallButton(g, deselectX, buttonY, overDeselect);
         if (!configured) {
             g.fill(
                     selectX,
@@ -647,33 +644,6 @@ final class StructureMinerInfoPage {
                     buttonY + size,
                     StructureMinerTheme.DISABLED_OVERLAY);
         }
-
-        // All-on is the filled glyph, all-off the hollow one: the pair reads as a set at a glance,
-        // which a pair of identical squares with different letters would not.
-        bulkGlyph(g, selectX, buttonY, size, true);
-        bulkGlyph(g, deselectX, buttonY, size, false);
-    }
-
-    /**
-     * A 10x10 mark inside a 20px button: four bars for "all on", four hollow brackets for "all
-     * off". Drawn from fills because the sheet has no glyph for either and both are two rectangles
-     * deep.
-     */
-    private static void bulkGlyph(GuiGraphics g, int x, int y, int size, boolean filled) {
-        int inset = (size - BULK_GLYPH) / 2;
-        int left = x + inset;
-        int top = y + inset;
-        int right = left + BULK_GLYPH;
-        int bottom = top + BULK_GLYPH;
-        int color = StructureMinerTheme.INK;
-        if (filled) {
-            g.fill(left, top, right, bottom, color);
-            return;
-        }
-        g.fill(left, top, right, top + 1, color);
-        g.fill(left, bottom - 1, right, bottom, color);
-        g.fill(left, top, left + 1, bottom, color);
-        g.fill(right - 1, top, right, bottom, color);
     }
 
     /**

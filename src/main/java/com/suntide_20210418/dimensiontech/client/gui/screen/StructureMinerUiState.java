@@ -35,7 +35,6 @@ final class StructureMinerUiState {
     boolean workStatusExpanded;
     boolean productInfoExpanded;
     boolean showParallelBreakdown;
-    boolean outputFaceConfig;
     StructureMinerAnalysisSnapshot analysis = StructureMinerAnalysisSnapshot.EMPTY;
     int analysisSlot = -1;
 

@@ -118,6 +118,12 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, Item> STRUCTURE_MINER_CASING =
             blockItem("structure_miner_casing", ModBlocks.STRUCTURE_MINER_CASING);
+    public static final DeferredHolder<Item, Item> FLUID_INPUT_CHAMBER =
+            blockItem("fluid_input", ModBlocks.FLUID_INPUT_CHAMBER);
+    public static final DeferredHolder<Item, Item> ENERGY_INPUT_CHAMBER =
+            blockItem("energy_input", ModBlocks.ENERGY_INPUT_CHAMBER);
+    public static final DeferredHolder<Item, Item> ITEM_OUTPUT_CHAMBER =
+            blockItem("item_output", ModBlocks.ITEM_OUTPUT_CHAMBER);
     public static final DeferredHolder<Item, Item> STRUCTURE_MINER_STRUCTURE =
             blockItem("structure_miner_structure", ModBlocks.STRUCTURE_MINER_STRUCTURE);
     public static final DeferredHolder<Item, Item> STRUCTURE_MINER_GLASS =

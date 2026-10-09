@@ -33,8 +33,6 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         implements StructureMinerScreenContext {
     private static final ResourceLocation GUI_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/void_structre_miner.png");
-    private static final ResourceLocation OUTPUT_FACE_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("dimension_tech", "guis/output_face_config.png");
 
     /**
      * Real pixel size of {@link #GUI_TEXTURE}. {@code blit} normalises UVs by the size it is handed
@@ -78,13 +76,14 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     private static final int LEFT_CONTROLS_WIDTH = 30;
 
     /**
-     * Left control rail, top to bottom: output face, one-click build, equipment dismantling on the
-     * tiers that support it, then redstone. The last two share a slot depending on the tier, so
-     * both are resolved by identity rather than by position.
+     * Left control rail, top to bottom: one-click build, then equipment dismantling on the tiers
+     * that support it, then redstone. The output-face panel used to sit above these; it is gone
+     * because the output routing is the item output chamber's business now. The last two share a
+     * slot depending on the tier, so both are resolved by identity rather than by position.
      */
-    private static final int PLACE_STRUCTURE_BUTTON_INDEX = 1;
+    private static final int PLACE_STRUCTURE_BUTTON_INDEX = 0;
 
-    private static final int EQUIPMENT_DISMANTLING_BUTTON_INDEX = 2;
+    private static final int EQUIPMENT_DISMANTLING_BUTTON_INDEX = 1;
 
     /**
      * Item icons are committed at a raised GUI Z, so anything meant to sit on top of one has to be
@@ -106,10 +105,9 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     private int attributeContentHeight;
 
     /**
-     * Expected products as reported by the last analysis packet.
-     *
-     * <p>Not the display source: the marker item carries the same expectations, rewritten only when
-     * they change. See {@link #expectedItemRows()} for why the item wins.
+     * Expected products as reported by the last analysis packet — the miner's per-cycle output
+     * after the total-parallel correction has been applied to the marker's raw counts. This is the
+     * display source; see {@link #expectedItemRows()}.
      */
     private List<ExpectedItemRow> analysisRows = List.of();
 
@@ -252,19 +250,25 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     }
 
     /**
-     * Expected products for the selected marker, read from the marker item first.
+     * Expected products for the selected marker: the thread's per-cycle output, read from the
+     * analysis packet first.
      *
-     * <p>The item carries the exact expectations the marking pass persisted. That makes it the
-     * right source rather than the async snapshot: when a machine cannot recompute a loot table the
-     * snapshot comes back empty, and an empty result printed as data is worse than no result.
+     * <p>The packet carries the server-authoritative expectations after the miner's effective
+     * attributes are applied — the marker's raw per-item counts scaled by the total-parallel draws,
+     * and broken into crafting materials when equipment dismantling is on. That is the number the
+     * player wants here: how much of each item this thread actually produces per cycle. The marker
+     * item only carries the raw structure expectation, so it is the fallback for the brief window
+     * before the first packet lands, not the display source.
      */
     @Override
     public List<ExpectedItemRow> expectedItemRows() {
-        Map<ResourceLocation, ExactProbability> stored =
-                StructMarkerItem.getExpectedItemCounts(selectedMarkerStack());
-        List<ExpectedItemRow> raw = stored.isEmpty() ? analysisRows : rowsFromCounts(stored);
+        List<ExpectedItemRow> rows =
+                analysisRows.isEmpty()
+                        ? rowsFromCounts(
+                                StructMarkerItem.getExpectedItemCounts(selectedMarkerStack()))
+                        : analysisRows;
         if (!menu.isEquipmentDismantlingEnabled()) {
-            return raw;
+            return rows;
         }
         // With equipment dismantling on, equipment must never appear as its own entry. Every
         // equipment item is broken down into the materials that craft it, and those materials are
@@ -272,7 +276,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         // total. Re-dismantling is a no-op for items that are already materials, so this is safe
         // whether the rows came from the persisted marker item or from the already-dismantled
         // analysis packet.
-        return dismantledRows(raw);
+        return dismantledRows(rows);
     }
 
     /**
@@ -525,7 +529,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                                     menu.getFluidAmount(),
                                     menu.getFluidCapacity()),
                             Component.translatable(
-                                    menu.isAutoExtractFluidEnabled()
+                                    menu.isFluidAutoPullEnabled()
                                             ? "screen.dimension_tech.structure_miner.auto_extract_enabled"
                                             : "screen.dimension_tech.structure_miner.auto_extract_disabled")),
                     Optional.empty(),
@@ -718,7 +722,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                 (int)
                         ((y - StructureMinerInfoLayout.EXTERNAL_BUTTON_Y)
                                 / StructureMinerInfoLayout.EXTERNAL_BUTTON_STRIDE);
-        int count = menu.supportsEquipmentDismantling() ? 4 : 3;
+        int count = menu.supportsEquipmentDismantling() ? 3 : 2;
         return index >= 0
                         && index < count
                         && inside(
@@ -746,12 +750,10 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                         + index * StructureMinerInfoLayout.EXTERNAL_BUTTON_STRIDE,
                 20,
                 20)) return false;
-        if (index == 0) {
-            Minecraft.getInstance().setScreen(new OutputFaceConfigScreen(this, menu));
-            return true;
-        } else if (index == 1) {
+        if (index == PLACE_STRUCTURE_BUTTON_INDEX) {
             Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 3);
-        } else if (index == 2 && menu.supportsEquipmentDismantling()) {
+        } else if (index == EQUIPMENT_DISMANTLING_BUTTON_INDEX
+                && menu.supportsEquipmentDismantling()) {
             Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 4);
         } else if (index == redstoneButtonIndex()) {
             Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, 2);
@@ -908,9 +910,12 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     private void drawExternalButtons(GuiGraphics g, int mouseX, int mouseY) {
         int x = StructureMinerInfoLayout.EXTERNAL_BUTTON_X;
-        int[] iconU = {32, 0, 32};
-        int[] iconV = {16, 16, 32};
-        int count = menu.supportsEquipmentDismantling() ? 4 : 3;
+        // One icon per rail slot, in rail order: build, dismantling. The redstone slot draws its
+        // own
+        // torch instead, which is why it needs no entry here.
+        int[] iconU = {0, 32};
+        int[] iconV = {16, 32};
+        int count = menu.supportsEquipmentDismantling() ? 3 : 2;
         for (int i = 0; i < count; i++) {
             int y =
                     StructureMinerInfoLayout.EXTERNAL_BUTTON_Y
@@ -993,10 +998,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
             return "screen.dimension_tech.structure_miner.equipment_dismantling_"
                     + (menu.isEquipmentDismantlingEnabled() ? "on" : "off");
         }
-        // Everything else the rail accepts is either the output-face or the build button.
-        return buttonIndex == PLACE_STRUCTURE_BUTTON_INDEX
-                ? "screen.dimension_tech.structure_miner.place_structure"
-                : "screen.dimension_tech.structure_miner.output_face";
+        // The only slot left on the rail is the build button.
+        return "screen.dimension_tech.structure_miner.place_structure";
     }
 
     private boolean selectPageAt(double mouseX, double mouseY) {

@@ -1,7 +1,6 @@
 package com.suntide_20210418.dimensiontech.integration.jade;
 
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
-import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity.OutputState;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
@@ -63,8 +62,7 @@ public enum StructureMinerJadeProvider
 
         boolean running =
                 miner.isStructureComplete()
-                        && miner.getEnergyStorage().getEnergyStored()
-                                >= miner.getEffectiveEnergyConsumption();
+                        && miner.getEnergyStored() >= miner.getEffectiveEnergyConsumption();
         data.putString(STATUS, miner.isOutputBlocked() ? "blocked" : running ? "running" : "idle");
         ListTag slotTags = new ListTag();
         int workingCount = 0;
@@ -106,7 +104,9 @@ public enum StructureMinerJadeProvider
         data.put(SLOTS, slotTags);
         data.putInt(SLOT_COUNT, miner.insertOnlyItemHandler().getSlots());
         data.putInt(WORKING_COUNT, workingCount);
-        data.putString(OUTPUT, miner.getOutputState().name().toLowerCase(Locale.ROOT));
+        // The output mode used to be a machine setting (item handler vs ME network). It is the item
+        // output chamber's identity now, so what matters here is simply whether one is installed.
+        data.putString(OUTPUT, miner.hasItemChamber() ? "chamber" : "none");
         data.putInt(PENDING_ITEMS, miner.getPendingOutputCount());
         data.putInt(ENERGY_CONSUMPTION, miner.getEffectiveEnergyConsumption());
         data.putDouble(BASE_EFFICIENCY, miner.getBaseMachineEfficiency());
@@ -332,12 +332,9 @@ public enum StructureMinerJadeProvider
     }
 
     private static Component blockedReason(String output) {
-        String reason =
-                OutputState.ME_NETWORK.name().toLowerCase(Locale.ROOT).equals(output)
-                        ? "me_full"
-                        : OutputState.ITEM_HANDLER.name().toLowerCase(Locale.ROOT).equals(output)
-                                ? "inventory_full"
-                                : "no_target";
+        // Without an item output chamber nothing was ever offered the queue, so "no target" is the
+        // honest reason; with one installed, a blocked queue means it ran out of room.
+        String reason = "chamber".equals(output) ? "inventory_full" : "no_target";
         return Component.translatable("jade.dimension_tech.reason." + reason);
     }
 

@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -37,6 +39,15 @@ final class MinerAnalysisController {
 
     void invalidateIfInputsChanged() {
         cache.invalidateIfAnalysisInputsChanged();
+    }
+
+    void saveAnalysis(
+            CompoundTag parent, String dataFingerprint, HolderLookup.Provider registries) {
+        cache.saveAnalysis(parent, dataFingerprint, registries);
+    }
+
+    void loadAnalysis(CompoundTag parent, HolderLookup.Provider registries) {
+        cache.loadAnalysis(parent, registries);
     }
 
     List<MarkerAnalysis> entries() {

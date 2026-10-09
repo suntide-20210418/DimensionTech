@@ -5,12 +5,12 @@ import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import com.suntide_20210418.dimensiontech.energy.EnergyContainer;
-import com.suntide_20210418.dimensiontech.energy.SimpleEnergyContainer;
 import com.suntide_20210418.dimensiontech.fluid.ModFluids;
 import com.suntide_20210418.dimensiontech.integration.MinerIntegrationHooks;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.MarkerAnalysis;
+import com.suntide_20210418.dimensiontech.structure.analysis.AnalysisDataFingerprint;
 import com.suntide_20210418.dimensiontech.utils.AnalysisLifecycle;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -28,8 +27,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -40,20 +37,26 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * The structure miner controller.
+ *
+ * <p><b>Its I/O lives in the chambers.</b> The controller no longer owns a fluid tank, an FE buffer
+ * or an output router: those are the fluid input chamber, the energy input chamber and the item
+ * output chamber, which stand in the multiblock's casing ring. On every tick the controller walks
+ * the pattern's casing cells in a fixed order, takes the first chamber of each kind, and settles
+ * fluid, energy and output through them. With no chamber of a given kind, that part of the cycle
+ * simply cannot complete — the machine stalls rather than silently working without it.
+ */
 public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuProvider {
-    private static final boolean AE2_LOADED = ModList.get().isLoaded("ae2");
     private static final String INVENTORY_TAG = "Inventory";
-    private static final String ENERGY_TAG = "Energy";
     private static final String PROGRESS_TAG = "Progress";
     private static final String SLOT_PROGRESS_TAG = "SlotProgress";
     private static final String PENDING_OUTPUT_TAG = "PendingOutput";
@@ -68,6 +71,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             "LastEnergyConsumptionGameTime";
     private static final int DRAWS_PER_PARALLEL = 8;
     public static final int FLUID_PER_WORK_CYCLE_MB = 25;
+
+    /** Capacity of the fluid input chamber's single tank. */
     public static final int FLUID_TANK_CAPACITY_MB = 16_000;
 
     /**
@@ -76,13 +81,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public static final int MINIMUM_PROCESSING_TIME =
             MinerAccelerationController.MINIMUM_NATURAL_TICKS;
 
+    /** Reported as the cycle length when no slot is running; also the natural-window floor. */
+    public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
+
     private final ItemStackHandler itemHandler;
     private final IItemHandler insertOnlyItemHandler;
-    private final EnergyContainer energyStorage;
-    private final FluidTank fluidTank;
-    private final IFluidHandler fluidInputHandler;
-    private final IFluidHandler fluidOutputHandler;
-    public static final int DEFAULT_PROCESSING_TIME = MINIMUM_PROCESSING_TIME;
     private final MinerAnalysisController analysisController;
     private final MinerUpgradeController upgradeController;
     private final MinerAccelerationController accelerationController;
@@ -90,9 +93,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final boolean[] slotEnabled;
     private RedstoneMode redstoneMode = RedstoneMode.ALWAYS;
     private int redstoneThreshold = 8;
-    private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
-    private boolean autoExtractFluid;
     private boolean structureComplete;
+
+    /** The chamber of each kind currently installed, or null when the ring has none. */
+    @Nullable private FluidInputChamberBlockEntity fluidChamber;
+
+    @Nullable private EnergyInputChamberBlockEntity energyChamber;
+    @Nullable private ItemOutputChamberBlockEntity itemChamber;
 
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
@@ -110,27 +117,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         this.accelerationController = new MinerAccelerationController(slotCount);
         this.slotEnabled = new boolean[slotCount];
         java.util.Arrays.fill(this.slotEnabled, true);
-        java.util.Arrays.fill(this.fluidFaceModes, FluidFaceMode.INPUT);
-        this.energyStorage =
-                new SimpleEnergyContainer(
-                        getEnergyCapacity(), true, false, ignored -> setChanged());
-        this.fluidTank =
-                new FluidTank(FLUID_TANK_CAPACITY_MB) {
-                    @Override
-                    public boolean isFluidValid(FluidStack stack) {
-                        Fluid required = ModFluids.forMinerTier(getMinerTier());
-                        return requiresFluidInput()
-                                && required != null
-                                && stack.getFluid().getFluidType() == required.getFluidType();
-                    }
-
-                    @Override
-                    protected void onContentsChanged() {
-                        setChanged();
-                    }
-                };
-        this.fluidInputHandler = createFluidInputHandler();
-        this.fluidOutputHandler = createFluidOutputHandler();
     }
 
     public boolean requiresFluidInput() {
@@ -144,111 +130,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     public final int getMinerTier() {
         return getBlockState().getBlock() instanceof BaseMinerBlock miner ? miner.minerTier() : 1;
-    }
-
-    public FluidTank getFluidTank() {
-        return fluidTank;
-    }
-
-    /**
-     * Moves fluid between a held fluid container and this miner's single tank on direct
-     * interaction. A filled container pours into the tank when the tank is empty or already holds
-     * that fluid; failing that, an empty (or matching) container draws the stored fluid back out.
-     *
-     * @return true when any fluid actually moved, so the caller knows to re-place the container
-     */
-    public boolean exchangeWithFluidContainer(IFluidHandlerItem container) {
-        if (container.getTanks() < 1) return false;
-        FluidStack held = container.getFluidInTank(0);
-        boolean input = !held.isEmpty() && pourIntoFrom(container, held);
-        boolean output = !input && scoopIntoContainer(container);
-        if (input || output) {
-            setChanged();
-            playFluidTransferSound(input);
-        }
-        return input || output;
-    }
-
-    /** Pours a filled container into the tank, up to the tank's remaining room. */
-    private boolean pourIntoFrom(IFluidHandlerItem container, FluidStack held) {
-        if (!fluidTank.isEmpty()
-                && !FluidStack.isSameFluidSameComponents(fluidTank.getFluid(), held)) return false;
-        int wanted =
-                Math.min(fluidTank.getCapacity() - fluidTank.getFluidAmount(), held.getAmount());
-        if (wanted <= 0 || !fluidTank.isFluidValid(held)) return false;
-        FluidStack drained = container.drain(wanted, IFluidHandler.FluidAction.EXECUTE);
-        if (drained.isEmpty()) return false;
-        int accepted = fluidTank.fill(drained, IFluidHandler.FluidAction.EXECUTE);
-        if (accepted < drained.getAmount()) {
-            FluidStack refund = drained.copy();
-            refund.setAmount(drained.getAmount() - accepted);
-            container.fill(refund, IFluidHandler.FluidAction.EXECUTE);
-        }
-        return accepted > 0;
-    }
-
-    /** Draws the tank into a container that has room and will not end up with a mixture. */
-    private boolean scoopIntoContainer(IFluidHandlerItem container) {
-        if (fluidTank.isEmpty()) return false;
-        FluidStack stored = fluidTank.getFluid();
-        FluidStack held = container.getFluidInTank(0);
-        if (!held.isEmpty() && !FluidStack.isSameFluidSameComponents(held, stored)) return false;
-        int room = container.getTankCapacity(0) - held.getAmount();
-        if (room <= 0) return false;
-        FluidStack offered =
-                fluidTank.drain(
-                        Math.min(room, stored.getAmount()), IFluidHandler.FluidAction.SIMULATE);
-        if (offered.isEmpty()) return false;
-        int accepted = container.fill(offered, IFluidHandler.FluidAction.EXECUTE);
-        if (accepted <= 0) return false;
-        fluidTank.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
-        return true;
-    }
-
-    /**
-     * Sound for a direct container transfer: pouring in plays a bucket empty, scooping out fills.
-     */
-    private void playFluidTransferSound(boolean pouringIn) {
-        if (level == null) return;
-        level.playSound(
-                null,
-                worldPosition,
-                pouringIn ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL,
-                SoundSource.BLOCKS,
-                1.0F,
-                1.0F);
-    }
-
-    public FluidFaceMode getFluidFaceMode(Direction worldDirection) {
-        return fluidFaceModes[worldDirection.ordinal()];
-    }
-
-    public void cycleFluidFace(Direction logicalDirection) {
-        Direction worldDirection = toWorldDirection(logicalDirection);
-        fluidFaceModes[worldDirection.ordinal()] =
-                FluidFaceMode.values()[
-                        (fluidFaceModes[worldDirection.ordinal()].ordinal() + 1)
-                                % FluidFaceMode.values().length];
-        setChanged();
-    }
-
-    public int getFluidFaceModesPacked() {
-        int packed = 0;
-        for (Direction direction : Direction.values()) {
-            packed |= fluidFaceModes[direction.ordinal()].ordinal() << (direction.ordinal() * 2);
-        }
-        return packed;
-    }
-
-    public boolean isAutoExtractFluidEnabled() {
-        return requiresFluidInput() && autoExtractFluid;
-    }
-
-    public void toggleAutoExtractFluid() {
-        if (requiresFluidInput()) {
-            autoExtractFluid = !autoExtractFluid;
-            setChanged();
-        }
     }
 
     protected abstract int getSlotCount();
@@ -407,6 +288,20 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return c != null && c.energyCapacity() != null ? c.energyCapacity() : getEnergyCapacity();
     }
 
+    /**
+     * The capacity the energy input chamber must mirror: the tier's base capacity scaled by the
+     * energy upgrades. Zero-sum when the structure is incomplete, because the upgrades are cleared
+     * then — which is exactly why the chamber caches the last value it read from a complete
+     * machine.
+     */
+    public int getEffectiveEnergyCapacity() {
+        long capacity =
+                Math.round(
+                        getBaseEnergyCapacity()
+                                * upgradeController.state().energyCapacityMultiplier());
+        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, capacity));
+    }
+
     public float getEffectiveMachineLuck() {
         return upgradeController.effectiveLuck(getBaseMachineLuck());
     }
@@ -488,11 +383,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         setChanged();
     }
 
-    public void cycleOutputState() {
-        outputController.cycleOutputState();
-        setChanged();
-    }
-
     public boolean supportsEquipmentDismantling() {
         return getBlockState().getBlock() instanceof BaseMinerBlock miner && miner.minerTier() >= 3;
     }
@@ -508,38 +398,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         }
     }
 
-    public int getOutputFaceMask() {
-        return outputController.outputFaceMask();
-    }
-
-    public boolean isOutputFaceEnabled(Direction direction) {
-        return outputController.outputFaceEnabled(toWorldDirection(direction));
-    }
-
-    public void toggleOutputFace(Direction direction) {
-        outputController.toggleOutputFace(toWorldDirection(direction));
-        setChanged();
-    }
-
-    public Direction toWorldDirection(Direction logicalDirection) {
-        if (level == null
-                || !level.getBlockState(worldPosition).hasProperty(BaseMinerBlock.FACING)) {
-            return logicalDirection;
-        }
-        Direction front = level.getBlockState(worldPosition).getValue(BaseMinerBlock.FACING);
-        return switch (logicalDirection) {
-            case NORTH -> front;
-            case SOUTH -> front.getOpposite();
-            case EAST -> front.getClockWise();
-            case WEST -> front.getCounterClockWise();
-            default -> logicalDirection;
-        };
-    }
-
-    public boolean isWorldOutputFaceEnabled(Direction worldDirection) {
-        return outputController.outputFaceEnabled(worldDirection);
-    }
-
     /** The raw slot handler. Only the menu and the miner's own controllers may hold this one. */
     public IItemHandler getItemHandler() {
         return itemHandler;
@@ -550,11 +408,85 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
      *
      * <p>Every slot holds a marker the miner consumes, so an external handler must be able to load
      * them and never to take them: an extraction would feed the machine's own inputs to whatever
-     * pipe asked. Everything outside the machine reads through this view, while the menu keeps
-     * {@link #getItemHandler()} so the player can still take a marker back out.
+     * pipe asked. Everything outside the machine reads through this view, while the menu keeps the
+     * raw handler so the player can still take a marker back out.
      */
     public IItemHandler insertOnlyItemHandler() {
         return insertOnlyItemHandler;
+    }
+
+    // --- chamber-backed readouts ---------------------------------------------
+
+    /**
+     * The installed fluid chamber's tank, or null when the ring has none. The controller has no
+     * tank of its own any more, so every fluid readout has to come from here.
+     */
+    @Nullable
+    private FluidTank fluidTank() {
+        return fluidChamber == null ? null : fluidChamber.tank();
+    }
+
+    @Nullable
+    private EnergyContainer energyContainer() {
+        return energyChamber == null ? null : energyChamber.energy();
+    }
+
+    public int getFluidAmount() {
+        FluidTank tank = fluidTank();
+        return tank == null ? 0 : tank.getFluidAmount();
+    }
+
+    public int getFluidCapacity() {
+        FluidTank tank = fluidTank();
+        return tank == null ? 0 : tank.getCapacity();
+    }
+
+    public Fluid getStoredFluid() {
+        FluidTank tank = fluidTank();
+        return tank == null || tank.isEmpty() ? Fluids.EMPTY : tank.getFluid().getFluid();
+    }
+
+    public boolean hasStoredFluid() {
+        FluidTank tank = fluidTank();
+        return tank != null && !tank.isEmpty();
+    }
+
+    public boolean isFluidAutoPullEnabled() {
+        return fluidChamber != null && fluidChamber.isAutoPullEnabled();
+    }
+
+    /** Sets the installed fluid chamber's auto-pull; a no-op when the ring has no fluid chamber. */
+    public void setFluidAutoPull(boolean enabled) {
+        if (fluidChamber != null) fluidChamber.setAutoPull(enabled);
+    }
+
+    /** The energy chamber's buffer, or 0 when the ring has no energy chamber. */
+    public int getEnergyStored() {
+        EnergyContainer energy = energyContainer();
+        return energy == null ? 0 : energy.getEnergyStored();
+    }
+
+    /**
+     * The energy chamber's current capacity, or 0 when the ring has no energy chamber. Named apart
+     * from the abstract {@link #getEnergyCapacity()}, which is the tier's own base capacity: those
+     * are different numbers, and conflating them would let a tier answer for a machine it is not
+     * part of.
+     */
+    public int getStoredEnergyCapacity() {
+        EnergyContainer energy = energyContainer();
+        return energy == null ? 0 : energy.getMaxEnergyStored();
+    }
+
+    public boolean hasFluidChamber() {
+        return fluidChamber != null;
+    }
+
+    public boolean hasEnergyChamber() {
+        return energyChamber != null;
+    }
+
+    public boolean hasItemChamber() {
+        return itemChamber != null;
     }
 
     /**
@@ -564,9 +496,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
      * <p>Called from {@code BaseMinerBlock#onRemove}, which only runs server side ({@code
      * LevelChunk#setBlockState} guards the hook with {@code !level.isClientSide}) and still has the
      * block entity registered at that point. Each slot is emptied as it is dropped so a repeated
-     * removal cannot duplicate the contents. The tank is intentionally left alone: it holds a
-     * working fluid consumed by the cycle, the same stance {@code StructureReactorBlockEntity}
-     * takes for its own tanks.
+     * removal cannot duplicate the contents. The chambers' tanks are intentionally left alone, the
+     * same stance {@code StructureReactorBlockEntity} takes for its own tanks.
      */
     public void dropContents() {
         if (level == null) return;
@@ -583,26 +514,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                     level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
         }
         outputController.setPending(List.of());
-    }
-
-    /** Fill-only view of the single tank, used as the block capability on input faces. */
-    IFluidHandler getFluidInputHandler() {
-        return fluidInputHandler;
-    }
-
-    /** Drain-only view of the single tank, used as the block capability on output faces. */
-    IFluidHandler getFluidOutputHandler() {
-        return fluidOutputHandler;
-    }
-
-    /** Legacy Forge-facing accessor retained for source and binary compatibility. */
-    public IEnergyStorage getEnergyStorage() {
-        return energyStorage;
-    }
-
-    /** Returns the reusable machine-side energy contract. */
-    public EnergyContainer getEnergyContainer() {
-        return energyStorage;
     }
 
     public int getProgress() {
@@ -657,7 +568,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 DRAWS_PER_PARALLEL,
                 getQuantityReference(),
                 isEquipmentDismantlingEnabled(),
-                outputController.disabledItems());
+                outputController.disabledItems(slot));
     }
 
     /**
@@ -669,31 +580,30 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         updateProcessingPlans();
     }
 
-    public void toggleExpectedItem(ResourceLocation itemId) {
-        outputController.toggleDisabledItem(itemId);
+    public void toggleExpectedItem(int slot, ResourceLocation itemId) {
+        if (!validSlot(slot)) return;
+        outputController.toggleDisabledItem(slot, itemId);
         setChanged();
     }
 
     /**
-     * Replaces the disabled-output set wholesale, for the select-all and deselect-all gestures.
+     * Replaces one thread's disabled-output set wholesale, for the select-all and deselect-all
+     * gestures.
      *
      * <p>Idempotent where {@link #toggleExpectedItem} is not: it states the desired set instead of
      * inverting the current one, so a repeated call is a no-op rather than a flip back.
      *
      * @return true when the set changed, so the caller can skip re-running the analysis.
      */
-    public boolean setDisabledExpectedItems(Collection<ResourceLocation> itemIds) {
-        if (!outputController.replaceDisabledItems(itemIds)) return false;
+    public boolean setDisabledExpectedItems(int slot, Collection<ResourceLocation> itemIds) {
+        if (!validSlot(slot)) return false;
+        if (!outputController.replaceDisabledItems(slot, itemIds)) return false;
         setChanged();
         return true;
     }
 
-    public boolean isExpectedItemDisabled(ResourceLocation itemId) {
-        return outputController.disabled(itemId);
-    }
-
-    public int getEnergyStored() {
-        return energyStorage.getEnergyStored();
+    public boolean isExpectedItemDisabled(int slot, ResourceLocation itemId) {
+        return validSlot(slot) && outputController.disabled(slot, itemId);
     }
 
     public boolean isOutputBlocked() {
@@ -714,17 +624,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return structures.stream().distinct().toList();
     }
 
-    public OutputState getOutputState() {
-        if (!(level instanceof ServerLevel)) {
-            return OutputState.NONE;
-        }
-        return outputController.outputState();
-    }
-
-    /** Runs the miner contract: state, eligibility, resources, progress, completion, output. */
+    /** Runs the miner contract: state, chambers, eligibility, resources, progress, output. */
     public void serverTick() {
         if (!(level instanceof ServerLevel serverLevel)) return;
         updateMachineState(serverLevel);
+        locateChambers(serverLevel);
+        tickChambers();
         if (!canRunThisTick(serverLevel)) return;
         if (!consumeWorkResources(serverLevel)) return;
         List<MarkerAnalysis> completedSlots = advanceWork(serverLevel);
@@ -739,8 +644,48 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             structureComplete = complete;
             setChanged();
         }
-        applyUpgradeBonuses(
-                complete ? upgradeController.refresh(serverLevel) : upgradeController.clear());
+        if (complete) {
+            upgradeController.refresh(serverLevel);
+        } else {
+            upgradeController.clear();
+        }
+    }
+
+    /**
+     * Walks the casing cells in their fixed order and keeps the first chamber of each kind.
+     * Chambers can be swapped without ever changing the structure's completeness — a chamber is a
+     * valid casing — so this cannot be cached against a completeness transition; it is re-read
+     * every tick.
+     */
+    private void locateChambers(ServerLevel serverLevel) {
+        FluidInputChamberBlockEntity fluid = null;
+        EnergyInputChamberBlockEntity energy = null;
+        ItemOutputChamberBlockEntity item = null;
+        for (BlockPos position :
+                StructureMinerMultiblock.casingSearchOrder(serverLevel, worldPosition)) {
+            BlockEntity blockEntity = serverLevel.getBlockEntity(position);
+            if (fluid == null && blockEntity instanceof FluidInputChamberBlockEntity candidate) {
+                fluid = candidate;
+            } else if (energy == null
+                    && blockEntity instanceof EnergyInputChamberBlockEntity candidate) {
+                energy = candidate;
+            } else if (item == null
+                    && blockEntity instanceof ItemOutputChamberBlockEntity candidate) {
+                item = candidate;
+            }
+            if (fluid != null && energy != null && item != null) break;
+        }
+        fluidChamber = fluid;
+        energyChamber = energy;
+        itemChamber = item;
+        if (fluid != null) fluid.bindMiner(this);
+        if (energy != null) energy.bindMiner(this);
+    }
+
+    private void tickChambers() {
+        if (fluidChamber != null) fluidChamber.chamberTick(this);
+        if (energyChamber != null) energyChamber.chamberTick(this);
+        if (itemChamber != null) itemChamber.chamberTick(this);
     }
 
     private boolean canRunThisTick(ServerLevel serverLevel) {
@@ -748,7 +693,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         if (!redstoneMode.allows(level.getBestNeighborSignal(worldPosition), redstoneThreshold)) {
             return false;
         }
-        autoExtractFluid(serverLevel);
         if (outputController.blocked()) {
             retryPendingOutput(serverLevel);
             return false;
@@ -764,15 +708,26 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         long gameTime = serverLevel.getGameTime();
         int energyConsumption = getEffectiveEnergyConsumption();
         if (gameTime != lastEnergyConsumptionGameTime
-                && (energyConsumption <= 0 || !energyStorage.canConsume(energyConsumption))) {
+                && (energyConsumption <= 0 || !canConsumeEnergy(energyConsumption))) {
             return false;
         }
         if (!consumeCycleFluid(startingCycles)) return false;
         if (gameTime != lastEnergyConsumptionGameTime) {
-            energyStorage.consume(energyConsumption);
+            consumeEnergy(energyConsumption);
             lastEnergyConsumptionGameTime = gameTime;
         }
         return true;
+    }
+
+    /** Energy is paid out of the energy chamber; with none installed the cycle cannot start. */
+    private boolean canConsumeEnergy(int amount) {
+        EnergyContainer energy = energyContainer();
+        return energy != null && energy.canConsume(amount);
+    }
+
+    private void consumeEnergy(int amount) {
+        EnergyContainer energy = energyContainer();
+        if (energy != null) energy.consume(amount);
     }
 
     /**
@@ -808,7 +763,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private void outputCompletedWork(
             ServerLevel serverLevel, List<CompletedMarker> completedMarkers) {
-        if (!completedMarkers.isEmpty()) drawMarkerLoot(serverLevel.getServer(), completedMarkers);
+        if (completedMarkers.isEmpty()) return;
+        drawMarkerLoot(serverLevel.getServer(), completedMarkers);
     }
 
     private int countStartingCycles() {
@@ -824,16 +780,19 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return startingCycles;
     }
 
+    /** Fluid is paid out of the fluid chamber; with none installed the cycle cannot start. */
     private boolean consumeCycleFluid(int cycleCount) {
         if (cycleCount <= 0 || !requiresFluidInput()) return true;
         long requested = (long) cycleCount * FLUID_PER_WORK_CYCLE_MB;
         if (requested > Integer.MAX_VALUE) return false;
         Fluid required = getRequiredFluid();
         if (required == null) return false;
+        FluidTank tank = fluidTank();
+        if (tank == null) return false;
         FluidStack request = new FluidStack(required, (int) requested);
-        FluidStack simulated = fluidTank.drain(request, IFluidHandler.FluidAction.SIMULATE);
+        FluidStack simulated = tank.drain(request, IFluidHandler.FluidAction.SIMULATE);
         if (simulated.getAmount() < requested) return false;
-        FluidStack drained = fluidTank.drain(request, IFluidHandler.FluidAction.EXECUTE);
+        FluidStack drained = tank.drain(request, IFluidHandler.FluidAction.EXECUTE);
         return drained.getAmount() == requested;
     }
 
@@ -843,11 +802,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
 
     private boolean isStructureComplete(ServerLevel serverLevel) {
         return StructureMinerMultiblock.isComplete(serverLevel, worldPosition);
-    }
-
-    private void applyUpgradeBonuses(MinerUpgradeController.UpgradeState bonuses) {
-        long capacity = Math.round(getBaseEnergyCapacity() * bonuses.energyCapacityMultiplier());
-        energyStorage.setCapacity((int) Math.max(1L, Math.min(Integer.MAX_VALUE, capacity)));
     }
 
     private boolean hasValidMarker() {
@@ -896,10 +850,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                         this,
                         server,
                         outputLevel,
-                        worldPosition,
                         completedMarkers,
                         getMinerTier(),
-                        this::isWorldOutputFaceEnabled,
                         slot ->
                                 accelerationController.drawsForQuantity(
                                         slot,
@@ -911,6 +863,9 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                         analysisController.entryForSlot(slot).quantity(),
                                         getQuantityReference())));
         setChanged();
+        // The first group leaves in the same tick the loot was generated; the rest drains one group
+        // per tick from retryPendingOutput.
+        retryPendingOutput(outputLevel);
     }
 
     private void refreshMarkerLootCache(MinecraftServer server) {
@@ -944,98 +899,10 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 accelerationController);
     }
 
-    private void autoExtractFluid(ServerLevel serverLevel) {
-        outputController.extractFluid(
-                this,
-                serverLevel,
-                worldPosition,
-                fluidTank,
-                getRequiredFluid(),
-                isAutoExtractFluidEnabled(),
-                this::getFluidFaceMode);
-    }
-
-    private IFluidHandler createFluidInputHandler() {
-        return new IFluidHandler() {
-            @Override
-            public int getTanks() {
-                return fluidTank.getTanks();
-            }
-
-            @Override
-            public FluidStack getFluidInTank(int tank) {
-                return fluidTank.getFluidInTank(tank);
-            }
-
-            @Override
-            public int getTankCapacity(int tank) {
-                return fluidTank.getTankCapacity(tank);
-            }
-
-            @Override
-            public boolean isFluidValid(int tank, FluidStack stack) {
-                return fluidTank.isFluidValid(tank, stack);
-            }
-
-            @Override
-            public int fill(FluidStack stack, FluidAction action) {
-                return fluidTank.fill(stack, action);
-            }
-
-            @Override
-            public FluidStack drain(FluidStack stack, FluidAction action) {
-                return FluidStack.EMPTY;
-            }
-
-            @Override
-            public FluidStack drain(int amount, FluidAction action) {
-                return FluidStack.EMPTY;
-            }
-        };
-    }
-
-    private IFluidHandler createFluidOutputHandler() {
-        return new IFluidHandler() {
-            @Override
-            public int getTanks() {
-                return fluidTank.getTanks();
-            }
-
-            @Override
-            public FluidStack getFluidInTank(int tank) {
-                return fluidTank.getFluidInTank(tank);
-            }
-
-            @Override
-            public int getTankCapacity(int tank) {
-                return fluidTank.getTankCapacity(tank);
-            }
-
-            @Override
-            public boolean isFluidValid(int tank, FluidStack stack) {
-                return false;
-            }
-
-            @Override
-            public int fill(FluidStack stack, FluidAction action) {
-                return 0;
-            }
-
-            @Override
-            public FluidStack drain(FluidStack stack, FluidAction action) {
-                return fluidTank.drain(stack, action);
-            }
-
-            @Override
-            public FluidStack drain(int amount, FluidAction action) {
-                return fluidTank.drain(amount, action);
-            }
-        };
-    }
-
+    /** Hands the pending queue to the item output chamber; with none installed it stays blocked. */
     private void retryPendingOutput(ServerLevel outputLevel) {
         outputController.setPending(
-                outputController.retry(outputLevel, worldPosition, this::isWorldOutputFaceEnabled));
+                outputController.retry(outputLevel, worldPosition, itemChamber));
         setChanged();
     }
 
@@ -1087,9 +954,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put(INVENTORY_TAG, itemHandler.serializeNBT(registries));
-        energyStorage.save(tag, ENERGY_TAG);
-        if (requiresFluidInput())
-            tag.put("Fluid", fluidTank.writeToNBT(registries, new CompoundTag()));
         tag.putLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, lastEnergyConsumptionGameTime);
         tag.putInt(PROGRESS_TAG, getProgress());
         tag.putIntArray(SLOT_PROGRESS_TAG, accelerationController.progressValues());
@@ -1109,14 +973,17 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 EXTERNAL_ACCELERATION_STATES_TAG);
         tag.putInt("RedstoneMode", redstoneMode.ordinal());
         tag.putInt("RedstoneThreshold", redstoneThreshold);
-        tag.putInt("FluidFaceModes", getFluidFaceModesPacked());
-        tag.putBoolean("AutoExtractFluid", autoExtractFluid);
         int[] enabledSlots = new int[slotEnabled.length];
         for (int index = 0; index < slotEnabled.length; index++) {
             enabledSlots[index] = slotEnabled[index] ? 1 : 0;
         }
         tag.putIntArray(SLOT_ENABLED_TAG, enabledSlots);
         outputController.save(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG, registries);
+        MinecraftServer analysisServer = level == null ? null : level.getServer();
+        analysisController.saveAnalysis(
+                tag,
+                analysisServer == null ? null : AnalysisDataFingerprint.current(analysisServer),
+                registries);
     }
 
     @Override
@@ -1127,15 +994,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
             inventoryTag.putInt("Size", itemHandler.getSlots());
             itemHandler.deserializeNBT(registries, inventoryTag);
         }
-        if (tag.contains(ENERGY_TAG, Tag.TAG_INT)) {
-            energyStorage.load(tag, ENERGY_TAG);
-        }
-        if (tag.contains("Fluid", Tag.TAG_COMPOUND)) {
-            fluidTank.readFromNBT(registries, tag.getCompound("Fluid"));
-            if (!fluidTank.isEmpty() && !fluidTank.isFluidValid(fluidTank.getFluid())) {
-                fluidTank.setFluid(FluidStack.EMPTY);
-            }
-        }
+        // The fluid and energy tags an older save carries are deliberately ignored: those buffers
+        // live in the chambers now, and the chambers have their own data.
         lastEnergyConsumptionGameTime =
                 tag.contains(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG, Tag.TAG_LONG)
                         ? tag.getLong(LAST_ENERGY_CONSUMPTION_GAME_TIME_TAG)
@@ -1164,18 +1024,13 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                 tag.contains("RedstoneThreshold", Tag.TAG_INT)
                                         ? tag.getInt("RedstoneThreshold")
                                         : 8));
-        int fluidFaceModesPacked = tag.getInt("FluidFaceModes");
-        for (Direction direction : Direction.values()) {
-            int ordinal = (fluidFaceModesPacked >> (direction.ordinal() * 2)) & 3;
-            fluidFaceModes[direction.ordinal()] =
-                    !tag.contains("FluidFaceModes", Tag.TAG_INT)
-                            ? FluidFaceMode.INPUT
-                            : ordinal < FluidFaceMode.values().length
-                                    ? FluidFaceMode.values()[ordinal]
-                                    : FluidFaceMode.DISABLED;
-        }
-        autoExtractFluid = requiresFluidInput() && tag.getBoolean("AutoExtractFluid");
-        outputController.load(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG, registries);
+        outputController.load(
+                tag,
+                EQUIPMENT_DISMANTLING_TAG,
+                PENDING_OUTPUT_TAG,
+                registries,
+                itemHandler.getSlots());
+        analysisController.loadAnalysis(tag, registries);
         java.util.Arrays.fill(slotEnabled, true);
         if (tag.contains(SLOT_ENABLED_TAG, Tag.TAG_INT_ARRAY)) {
             int[] enabledSlots = tag.getIntArray(SLOT_ENABLED_TAG);
@@ -1197,18 +1052,6 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     public AbstractContainerMenu createMenu(
             int containerId, Inventory playerInventory, Player player) {
         return new StructureMinerMenu(containerId, playerInventory, this);
-    }
-
-    public enum OutputState {
-        ME_NETWORK,
-        ITEM_HANDLER,
-        NONE
-    }
-
-    public enum FluidFaceMode {
-        DISABLED,
-        INPUT,
-        OUTPUT
     }
 
     public enum RedstoneMode {
