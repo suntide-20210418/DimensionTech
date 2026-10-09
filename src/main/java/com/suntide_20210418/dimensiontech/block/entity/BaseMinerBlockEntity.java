@@ -489,6 +489,26 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         return itemChamber != null;
     }
 
+    /** Bit flags for {@link #CHAMBER_FLUID} and friends, packed into one telemetry channel. */
+    public static final int CHAMBER_FLUID = 1;
+
+    public static final int CHAMBER_ENERGY = 1 << 1;
+    public static final int CHAMBER_OUTPUT = 1 << 2;
+
+    /**
+     * Which chambers the casing ring currently carries, as {@link #CHAMBER_FLUID}-style bits.
+     *
+     * <p>This exists for the GUI's telemetry channel. The three {@code has*Chamber()} reads are
+     * server-side only — the client never runs {@link #serverTick()}, so its copy of this block
+     * entity never locates a chamber and every one of them answers false. Anything the interface
+     * draws has to come through the synchronised container data instead of reading them directly.
+     */
+    public int installedChamberMask() {
+        return (fluidChamber != null ? CHAMBER_FLUID : 0)
+                | (energyChamber != null ? CHAMBER_ENERGY : 0)
+                | (itemChamber != null ? CHAMBER_OUTPUT : 0);
+    }
+
     /**
      * Drops the markers loaded into the machine and any reward that finished generating but has not
      * reached an output target yet, so breaking the machine never destroys player property.

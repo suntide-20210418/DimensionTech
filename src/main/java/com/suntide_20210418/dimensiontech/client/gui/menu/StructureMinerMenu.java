@@ -62,6 +62,13 @@ public class StructureMinerMenu extends AbstractContainerMenu {
     private static final int BASE_PARALLEL_LOW = 38;
     private static final int BASE_PARALLEL_HIGH = 39;
     private static final int EQUIPMENT_DISMANTLING = 40;
+
+    /**
+     * Carries {@code BaseMinerBlockEntity#installedChamberMask()}. This index used to be the
+     * per-face output mask, which the item output chamber replaced.
+     */
+    private static final int CHAMBER_MASK = 13;
+
     private static final int EXTERNAL_ACCELERATION_PARALLEL_LOW = 41;
     private static final int EXTERNAL_ACCELERATION_PARALLEL_HIGH = 42;
     private static final int EXTERNAL_ACCELERATION_TICKS_LOW = 43;
@@ -167,6 +174,10 @@ public class StructureMinerMenu extends AbstractContainerMenu {
                             case 10 -> lowWord(blockEntity.getEffectiveEnergyConsumption());
                             case 11 -> blockEntity.getRedstoneMode().ordinal();
                             case 12 -> blockEntity.getRedstoneThreshold();
+                            // Chamber presence has to travel as telemetry: the client-side copy of
+                            // this block entity never runs serverTick, so reading it directly there
+                            // always answers "no chamber".
+                            case CHAMBER_MASK -> blockEntity.installedChamberMask();
                             case 14 -> blockEntity.isStructureComplete() ? 1 : 0;
                             case ENERGY_STORED_HIGH -> highWord(blockEntity.getEnergyStored());
                             case ENERGY_CAPACITY_HIGH ->
@@ -384,6 +395,21 @@ public class StructureMinerMenu extends AbstractContainerMenu {
 
     public boolean isRedstoneControlEnabled() {
         return getTelemetry(11) == BaseMinerBlockEntity.RedstoneMode.SIGNAL.ordinal();
+    }
+
+    /** Whether the fluid input chamber is installed, as last synchronised by the server. */
+    public boolean hasFluidChamber() {
+        return (getTelemetry(CHAMBER_MASK) & BaseMinerBlockEntity.CHAMBER_FLUID) != 0;
+    }
+
+    /** Whether the energy input chamber is installed, as last synchronised by the server. */
+    public boolean hasEnergyChamber() {
+        return (getTelemetry(CHAMBER_MASK) & BaseMinerBlockEntity.CHAMBER_ENERGY) != 0;
+    }
+
+    /** Whether the item output chamber is installed, as last synchronised by the server. */
+    public boolean hasItemChamber() {
+        return (getTelemetry(CHAMBER_MASK) & BaseMinerBlockEntity.CHAMBER_OUTPUT) != 0;
     }
 
     public BaseMinerBlockEntity getBlockEntity() {

@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerTelemetrySnapshot;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.ExactProbability;
@@ -20,6 +21,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
@@ -474,7 +476,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         graphics.pose().translate(leftPos, topPos, 0.0D);
         drawPage(graphics, logicalMouseX - leftPos, logicalMouseY - topPos);
         graphics.pose().popPose();
-        if (!menu.telemetrySnapshot().structureComplete()) {
+        StructureMinerTelemetrySnapshot telemetry = menu.telemetrySnapshot();
+        if (!telemetry.structureComplete()) {
             GuiText.centered(
                     graphics,
                     font,
@@ -483,6 +486,21 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                     leftPos + imageWidth / 2,
                     topPos + 46,
                     INK);
+        } else {
+            // The structure standing is not the same as the machine being able to run: the
+            // chambers carry its fluid, power and output, and a ring built entirely from plain
+            // casing completes while leaving it unable to do either. Name the missing pieces
+            // instead of letting it idle for no visible reason.
+            Component missing = missingChambers(telemetry);
+            if (missing != null) {
+                GuiText.centered(
+                        graphics,
+                        font,
+                        missing,
+                        leftPos + imageWidth / 2,
+                        topPos + 46,
+                        StructureMinerTheme.ERROR);
+            }
         }
         graphics.pose().popPose();
 
@@ -563,6 +581,39 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                     mouseX,
                     mouseY);
         }
+    }
+
+    /**
+     * Names the chambers whose absence keeps the machine idle, or {@code null} when the ring has
+     * all three.
+     *
+     * <p>Reads the synchronised telemetry rather than the block entity: on the client this block
+     * entity never ticks, so its own chamber references are permanently null and would report every
+     * machine as bare.
+     */
+    private static Component missingChambers(StructureMinerTelemetrySnapshot telemetry) {
+        List<Component> missing = new ArrayList<>(3);
+        if (!telemetry.fluidChamberInstalled()) {
+            missing.add(Component.translatable("block.dimension_tech.fluid_input"));
+        }
+        if (!telemetry.energyChamberInstalled()) {
+            missing.add(Component.translatable("block.dimension_tech.energy_input"));
+        }
+        if (!telemetry.outputChamberInstalled()) {
+            missing.add(Component.translatable("block.dimension_tech.item_output"));
+        }
+        if (missing.isEmpty()) {
+            return null;
+        }
+        MutableComponent names = Component.empty();
+        for (int index = 0; index < missing.size(); index++) {
+            if (index > 0) {
+                names.append(", ");
+            }
+            names.append(missing.get(index));
+        }
+        return Component.translatable(
+                "screen.dimension_tech.structure_miner.chamber_missing", names);
     }
 
     private void renderInventoryItemTooltip(

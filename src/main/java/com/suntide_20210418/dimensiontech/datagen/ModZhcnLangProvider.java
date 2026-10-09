@@ -489,10 +489,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.attribute.reduction", "最终降低：%s%%");
         add("screen.dimension_tech.structure_miner.attribute.total_count", "升级方块总数：%s");
         add("screen.dimension_tech.structure_miner.attribute.upgrade_breakdown", "专精升级：%s，聚合升级：%s");
-        add("screen.dimension_tech.structure_miner.output.me_network", "ME 网络");
-        add("screen.dimension_tech.structure_miner.output.item_handler", "物品容器");
-        add("screen.dimension_tech.structure_miner.output.none", "未连接");
         add("screen.dimension_tech.structure_miner.output.chamber", "物品弹出仓");
+        add("screen.dimension_tech.structure_miner.output.chamber_missing", "未安装物品弹出仓");
+        add("screen.dimension_tech.structure_miner.chamber_missing", "缺少仓室：%s");
         add("screen.dimension_tech.structure_miner.output.blocked", "输出堵塞：%s 件无法弹出");
         add("screen.dimension_tech.structure_miner.inventory", "玩家背包");
         add("screen.dimension_tech.structure_miner.output_face", "输出面");

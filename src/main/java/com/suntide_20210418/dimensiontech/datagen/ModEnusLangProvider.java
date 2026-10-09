@@ -698,10 +698,11 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_miner.attribute.upgrade_breakdown",
                 "Focused upgrades: %s, aggregate upgrades: %s");
-        add("screen.dimension_tech.structure_miner.output.me_network", "ME Network");
-        add("screen.dimension_tech.structure_miner.output.item_handler", "Item Container");
-        add("screen.dimension_tech.structure_miner.output.none", "Unlinked");
         add("screen.dimension_tech.structure_miner.output.chamber", "Item output chamber");
+        add(
+                "screen.dimension_tech.structure_miner.output.chamber_missing",
+                "No item output chamber");
+        add("screen.dimension_tech.structure_miner.chamber_missing", "Missing chambers: %s");
         add("screen.dimension_tech.structure_miner.output.blocked", "Output blocked: %s pending");
         add("screen.dimension_tech.structure_miner.inventory", "Player Inventory");
         add("screen.dimension_tech.structure_miner.output_face", "Output Face");

@@ -295,8 +295,9 @@ final class StructureMinerWorkPage {
 
         // A non-empty pending list is the machine's hard stop: canRunThisTick refuses every cycle
         // until the item output chamber drains it, so this state outranks the output target. The
-        // output target itself is the chamber's identity now, so the chip only reports whether one
-        // is installed at all.
+        // target itself is the chamber's identity now, so the chip reports whether one is installed
+        // — and names it when it is not, because "unlinked" on its own tells the player nothing
+        // about what to place.
         if (t.pendingCount() > 0) {
             StructureMinerTheme.statusChip(
                     g,
@@ -319,7 +320,7 @@ final class StructureMinerWorkPage {
                     Component.translatable(
                             installed
                                     ? "screen.dimension_tech.structure_miner.output.chamber"
-                                    : "screen.dimension_tech.structure_miner.output.none"),
+                                    : "screen.dimension_tech.structure_miner.output.chamber_missing"),
                     installed ? StructureMinerTheme.FLUIX : StructureMinerTheme.ERROR);
         }
 
