@@ -201,6 +201,7 @@ modEventBus.addListener(…::commonSetup);
 - `FluidInputChamberBlockEntity`：单罐 16000 mB，`isFluidValid` 要求宿主存在、`requiresFluidInput()` 且流体等于该 Tier 所需流体。能力只暴露**只进**视图（`inputHandler()`），因为它是输入仓。自动抽取在 `chamberTick` 里从相邻 handler 拉所需流体。空手右键报储量，Shift+右键切换自动拉取；手持流体容器右键走 `exchangeWithFluidContainer` 灌/抽（这段从原 `BaseMinerBlockEntity` 平移过来）。
 - `EnergyInputChamberBlockEntity`：**容量是镜像来的，不是自定的**。本体只有在多方块成形时才给出有意义的容量（升级倍率在未成形时被清空），所以仓室把最近一次从"成形机器"读到的值缓存下来；未成形时用缓存，从未读过则用 `DEFAULT_CAPACITY_FE = 10_000`。存档时**先恢复缓存容量再恢复已存电量**，否则超出 10000 的值会在读入时被 `setCapacity` 截断。
 - `ItemOutputChamberBlockEntity`：`eject(level, pending)` 两条互斥路径——网格在线时整批推入网络存储，否则只送走队首**一组**，其余原样返回（内容相同则直接返回原列表，避免造一个相等的副本）。**AE 设备身份**经 `AECapabilities.IN_WORLD_GRID_NODE_HOST` 能力暴露：AE2 19.2 的 `GridHelper.getNodeHost` 是 `Level.getCapability(...)` 调用而非 `instanceof`，所以宿主是可插拔的，仓室方块实体本身**完全不引用 AE2 类型**，未装 AE2 时不会被类验证拖垮。`ManagedGridNode` 的 `inWorldNode` 默认 false，必须显式 `setInWorldNode(true)`，否则线缆找到宿主也连不上。
+- **Jade 悬停**：两种仓室各有自己的 provider（`FluidInputChamberJadeProvider` 报罐内流体 / 机器所需流体 / 自动拉取开关；`ItemOutputChamberJadeProvider` 报 AE 设备在线状态 / 待输出堆积件数 / 是否已让机器停机），三者共用 `JadeText.line`。注意**待输出队列在本体上**，所以弹出仓的 Jade 是**透过绑定读本体的**（`chamber.miner()`），而不是仓室自己持有——这与"队列必须随机器保存并在破坏时掉落"是同一条约束的两面。`gridNode()` 为 null（未装 AE2）时设备行显示"未安装 AE2"，与"离线"区分开，因为前者不是故障。
 
 ---
 
@@ -353,7 +354,7 @@ record 字段：`int algorithmVersion`（当前 `ALGORITHM_VERSION = 1`）、`Li
 | 集成 | 包/主类 | 作用 |
 | --- | --- | --- |
 | JEI | `integration/jei/`：`StructureReactorJeiPlugin`、`StructureMinerJeiPlugin`、`DeconstructionCoreJeiCategory`（+ `Recipe(s)`/`Text`）、`chestminerjeitext` | 展示结构反应堆、采掘器、拆解核心的配方；把对应屏幕展示区注册为 JEI 点击区域 |
-| Jade | `integration/jade/StructureMinerJadePlugin` + `StructureMinerJadeProvider` | 服务端向 Jade HUD 提供矿机状态、slot marker、进度、并行、输出、能量等显示 |
+| Jade | `integration/jade/StructureMinerJadePlugin` + `StructureMinerJadeProvider` / `FluidInputChamberJadeProvider` / `ItemOutputChamberJadeProvider`（共享 `JadeText`） | 服务端向 Jade HUD 提供矿机状态、slot marker、进度、并行、输出、能量等显示；两种仓室另有自己的悬停读数（见 §4.7） |
 | KubeJS | `integration/kubejs/DimensionTechKubeJSPlugin`、`MinerEventsJS`、`MinerBlockEntityJS`、`DimensionTechJS` | 向服务器脚本暴露矿机参数、反应堆配方、结构价值与工作事件覆写（详见 `docs/kubejs.md`） |
 | AE2 | `integration/ae2/Ae2Integration`、`integration/ae2/Ae2GridNode`、`integration/ae2/Ae2GridHosts`（经核心侧 `integration/MachineGridNode(s)` 桥接） | ME 网络流体交互；以及把物品弹出仓注册成 ME 设备（`AECapabilities.IN_WORLD_GRID_NODE_HOST`） |
 | 通用钩子 | `MinerIntegrationHooks` | 统一封装跨集成的矿机钩子点 |

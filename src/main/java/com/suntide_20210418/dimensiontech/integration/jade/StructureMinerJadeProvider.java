@@ -125,26 +125,28 @@ public enum StructureMinerJadeProvider
 
         String status = data.getString(STATUS);
         IThemeHelper theme = IThemeHelper.get();
-        tooltip.add(line("status", themedStatus(theme, status)));
+        tooltip.add(JadeText.line("status", themedStatus(theme, status)));
         tooltip.add(Component.empty());
         tooltip.add(
-                line(
+                JadeText.line(
                         "base_parameters",
                         theme.info(Component.translatable("jade.dimension_tech.parameters"))));
         tooltip.add(
-                line(
+                JadeText.line(
                         "efficiency",
                         Component.literal(formatDecimal(data.getDouble(BASE_EFFICIENCY)))));
-        tooltip.add(line("capacity", Component.literal(data.getInt(BASE_CAPACITY) + " FE")));
         tooltip.add(
-                line(
+                JadeText.line("capacity", Component.literal(data.getInt(BASE_CAPACITY) + " FE")));
+        tooltip.add(
+                JadeText.line(
                         "base_consumption",
                         Component.literal(data.getInt(BASE_CONSUMPTION) + " FE/t")));
         tooltip.add(
-                line(
+                JadeText.line(
                         "base_parallel",
                         Component.literal(Integer.toString(data.getInt(BASE_PARALLEL)))));
-        tooltip.add(line("luck", Component.literal(formatDecimal(data.getFloat(BASE_LUCK)))));
+        tooltip.add(
+                JadeText.line("luck", Component.literal(formatDecimal(data.getFloat(BASE_LUCK)))));
         tooltip.add(
                 Component.translatable(
                         "jade.dimension_tech.slot_usage",
@@ -166,7 +168,7 @@ public enum StructureMinerJadeProvider
                     (int) Math.max(0L, Math.min((long) processing, slot.getLong(SLOT_PROGRESS)));
             addProgressBar(tooltip, progress, processing, theme);
             tooltip.add(
-                    line(
+                    JadeText.line(
                             "slot_progress",
                             theme.info(
                                     Component.translatable(
@@ -175,14 +177,14 @@ public enum StructureMinerJadeProvider
                                             processing))));
             if (waiting) {
                 tooltip.add(
-                        line(
+                        JadeText.line(
                                 "waiting_for_natural_window",
                                 theme.info(
                                         Component.translatable(
                                                 "jade.dimension_tech.waiting_for_natural_window"))));
             }
             tooltip.add(
-                    line(
+                    JadeText.line(
                             "slot_parallel",
                             theme.info(
                                     Component.literal(
@@ -191,7 +193,7 @@ public enum StructureMinerJadeProvider
                     slot.getLong(SLOT_ACTUAL_TICKS) != slot.getLong(SLOT_NATURAL_TICKS);
             if (externalActive) {
                 tooltip.add(
-                        line(
+                        JadeText.line(
                                 "external_parallel",
                                 theme.info(
                                         Component.literal(
@@ -199,7 +201,7 @@ public enum StructureMinerJadeProvider
                                                         slot.getInt(SLOT_EXTERNAL_PARALLEL)
                                                                 / 100.0D)))));
                 tooltip.add(
-                        line(
+                        JadeText.line(
                                 "external_equivalent_acceleration",
                                 theme.info(
                                         Component.literal(
@@ -207,13 +209,13 @@ public enum StructureMinerJadeProvider
                                                         currentCycleEquivalentAcceleration(
                                                                 slot))))));
                 tooltip.add(
-                        line(
+                        JadeText.line(
                                 "actual_ticks",
                                 theme.info(
                                         Component.literal(
                                                 Long.toString(slot.getLong(SLOT_ACTUAL_TICKS))))));
                 tooltip.add(
-                        line(
+                        JadeText.line(
                                 "previous_ticks",
                                 theme.info(
                                         Component.literal(
@@ -221,7 +223,7 @@ public enum StructureMinerJadeProvider
                                                         slot.getLong(SLOT_PREVIOUS_TICKS))))));
             }
             tooltip.add(
-                    line(
+                    JadeText.line(
                             "previous_parallel",
                             theme.info(
                                     Component.literal(
@@ -232,7 +234,7 @@ public enum StructureMinerJadeProvider
         if ("blocked".equals(status)) {
             tooltip.add(Component.empty());
             tooltip.add(
-                    line(
+                    JadeText.line(
                             "pending",
                             theme.danger(
                                     Component.translatable(
@@ -240,15 +242,16 @@ public enum StructureMinerJadeProvider
                                             data.getInt(PENDING_ITEMS)))));
         }
 
-        tooltip.add(line("output", outputName(data.getString(OUTPUT))));
+        tooltip.add(JadeText.line("output", outputName(data.getString(OUTPUT))));
         tooltip.add(
-                line(
+                JadeText.line(
                         "consumption",
                         Component.translatable(
                                 "jade.dimension_tech.energy_consumption_value",
                                 data.getInt(ENERGY_CONSUMPTION))));
         if ("blocked".equals(status)) {
-            tooltip.add(line("reason", theme.danger(blockedReason(data.getString(OUTPUT)))));
+            tooltip.add(
+                    JadeText.line("reason", theme.danger(blockedReason(data.getString(OUTPUT)))));
         }
     }
 
@@ -298,10 +301,6 @@ public enum StructureMinerJadeProvider
         ListTag result = new ListTag();
         result.add(StringTag.valueOf(structure));
         return result;
-    }
-
-    private static Component line(String key, Component value) {
-        return Component.translatable("jade.dimension_tech." + key, value);
     }
 
     private static Component structureNames(ListTag structures) {

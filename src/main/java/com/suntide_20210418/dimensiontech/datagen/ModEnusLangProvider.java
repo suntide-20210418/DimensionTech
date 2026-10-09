@@ -890,6 +890,24 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("jade.dimension_tech.energy_consumption_value", "%s FE/t");
         add("jade.dimension_tech.seconds", "%s");
         add("jade.dimension_tech.items", "%s");
+
+        // Chamber hover readouts (fluid input chamber / item output chamber)
+        add("jade.dimension_tech.fluid", "Fluid: %s");
+        add("jade.dimension_tech.fluid_amount", "Stored: %s");
+        add("jade.dimension_tech.fluid_empty", "Empty");
+        add("jade.dimension_tech.required_fluid", "Requires: %s");
+        add("jade.dimension_tech.auto_pull", "Auto-pull: %s");
+        add("jade.dimension_tech.on", "On");
+        add("jade.dimension_tech.off", "Off");
+        add("jade.dimension_tech.unbound", "No miner bound");
+        add("jade.dimension_tech.device", "Device: %s");
+        add("jade.dimension_tech.device_online", "Online");
+        add("jade.dimension_tech.device_offline", "Offline");
+        add("jade.dimension_tech.device_absent", "AE2 not installed");
+        add("jade.dimension_tech.backlog", "Backlog: %s");
+        add("jade.dimension_tech.backlog_blocked", "%s items, machine stopped");
+        add("jade.dimension_tech.backlog_waiting", "%s items waiting to eject");
+        add("jade.dimension_tech.backlog_clear", "None");
     }
 
     private void addVanillaRegistryNames() {

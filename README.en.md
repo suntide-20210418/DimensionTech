@@ -97,7 +97,7 @@ The NeoForge common configuration contains base values for all six miner tiers a
 These integrations are optional:
 
 - **KubeJS**: server-side miner overrides, reactor recipes, structure-value rules, and work events.
-- **Jade**: miner status display.
+- **Jade**: miner status display; the fluid input chamber shows its contents, the fluid the machine needs and whether auto-pull is on, and the item output chamber shows whether its ME device is online plus how much finished loot is still stacked up.
 - **Applied Energistics 2**: ME-network-related output and fluid interaction.
 - **JEI**: recipes for the reactor, the miner, and the deconstruction core.
 

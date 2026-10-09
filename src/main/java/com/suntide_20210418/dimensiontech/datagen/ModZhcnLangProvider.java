@@ -635,6 +635,24 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jade.dimension_tech.energy_consumption_value", "%s FE/t");
         add("jade.dimension_tech.seconds", "%s");
         add("jade.dimension_tech.items", "%s");
+
+        // 仓室悬停读数（流体输入仓 / 物品弹出仓）
+        add("jade.dimension_tech.fluid", "流体：%s");
+        add("jade.dimension_tech.fluid_amount", "储量：%s");
+        add("jade.dimension_tech.fluid_empty", "空");
+        add("jade.dimension_tech.required_fluid", "需求：%s");
+        add("jade.dimension_tech.auto_pull", "自动拉取：%s");
+        add("jade.dimension_tech.on", "开");
+        add("jade.dimension_tech.off", "关");
+        add("jade.dimension_tech.unbound", "未绑定采掘器");
+        add("jade.dimension_tech.device", "设备：%s");
+        add("jade.dimension_tech.device_online", "在线");
+        add("jade.dimension_tech.device_offline", "离线");
+        add("jade.dimension_tech.device_absent", "未安装 AE2");
+        add("jade.dimension_tech.backlog", "物品堆积：%s");
+        add("jade.dimension_tech.backlog_blocked", "%s 件，机器已停机");
+        add("jade.dimension_tech.backlog_waiting", "%s 件待弹出");
+        add("jade.dimension_tech.backlog_clear", "无");
     }
 
     private void addVanillaRegistryNames() {
