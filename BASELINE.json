@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/suntide-20210418/DimensionTech",
+  "reference": "master",
+  "archive_acquired_date": "2026-10-21",
+  "archive_sha256": "6de0b8d76be5918aa1e18c39667c1390ac6b0a4f44b75abf1e24bbb8121f5baf",
+  "commit_sha": "3577594bdf04c5948e6318b8b2653f06c3550e92",
+  "application": "overlay onto the matching upstream source, then review and adapt to the current branch"
+}

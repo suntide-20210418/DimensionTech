@@ -68,6 +68,9 @@ minecraft {
         client {
             property 'forge.enabledGameTestNamespaces', mod_id
             workingDirectory project.file('run/client')
+            if (project.hasProperty('redwedgeModelValidation')) {
+                property 'dimension_tech.validate_models', 'true'
+            }
         }
 
         server {

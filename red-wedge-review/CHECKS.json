@@ -1,0 +1,16 @@
+{
+  "build": "1.0.2-1.20.1-redwedge.1.1.1",
+  "java_target": 17,
+  "gradle_test_build": "passed",
+  "junit": {
+    "tests": 3,
+    "failures": 0,
+    "skipped": 0
+  },
+  "asset_contract_assertions": 14666,
+  "six_distinct_controller_models": "passed",
+  "face_configuration_visual_states": 4,
+  "current_revision_game_integration": "pending",
+  "fps_benchmark": "not performed",
+  "baseline_commit": "3577594bdf04c5948e6318b8b2653f06c3550e92"
+}

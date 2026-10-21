@@ -12,10 +12,11 @@ final class StructureMinerSpriteRenderer {
     static final int MARKER_U = 0, MARKER_V = 80, MARKER_W = 18, MARKER_H = 18;
 
     /**
-     * Spritesheet (18,80)-(35,97): the same slot face with its outline lifted from {@code ADB0C4} to
-     * {@code D0D1DE}. Selection is therefore a sprite swap, not something painted over the slot.
+     * Spritesheet (18,80)-(35,97): the same slot face with its outline lifted from {@code ADB0C4}
+     * to {@code D0D1DE}. Selection is therefore a sprite swap, not something painted over the slot.
      */
     static final int MARKER_SELECTED_U = 18, MARKER_SELECTED_V = 80;
+
     static final int SMALL_U = 0, SMALL_HOVER_U = 20, SMALL_V = 98, SMALL_W = 20, SMALL_H = 20;
 
     /**
@@ -47,10 +48,10 @@ final class StructureMinerSpriteRenderer {
     /**
      * A rectangular region of a texture, tagged with the file's real size.
      *
-     * <p>The size rides along because {@code blit} normalises UVs by whatever it is handed: hand it a
-     * width two pixels off the file and every region silently samples about a percent off, which is
-     * how {@code StructureMinerScreen}'s energy strip lost its last column to the panel and its fluid
-     * overlay crept into the strip.
+     * <p>The size rides along because {@code blit} normalises UVs by whatever it is handed: hand it
+     * a width two pixels off the file and every region silently samples about a percent off, which
+     * is how {@code StructureMinerScreen}'s energy strip lost its last column to the panel and its
+     * fluid overlay crept into the strip.
      */
     record Fragment(
             ResourceLocation texture,
@@ -127,10 +128,10 @@ final class StructureMinerSpriteRenderer {
      *
      * <p>Clipping rather than scaling is the whole point. {@code blit}'s {@code width} argument is
      * simultaneously how much texture is taken from {@code u} and how much screen is covered, so
-     * drawing a shorter leading run of the same columns is a crop — the fragment keeps its own pixel
-     * pitch. The strips are a 2px-period pattern; any non-integer scaling would smear them. Vanilla
-     * ships {@code GuiGraphics#blitRepeating} for the "fill this rectangle" case, but it takes no
-     * repeat count, no direction, and no cover layer.
+     * drawing a shorter leading run of the same columns is a crop — the fragment keeps its own
+     * pixel pitch. The strips are a 2px-period pattern; any non-integer scaling would smear them.
+     * Vanilla ships {@code GuiGraphics#blitRepeating} for the "fill this rectangle" case, but it
+     * takes no repeat count, no direction, and no cover layer.
      */
     static void stitchTo(
             GuiGraphics g,
@@ -191,8 +192,10 @@ final class StructureMinerSpriteRenderer {
                 fragment.textureHeight());
     }
 
-    /** One strip fragment off {@link #SPRITESHEET}, at its shared {@link #PROGRESS_W}x{@link
-     * #PROGRESS_H} size. */
+    /**
+     * One strip fragment off {@link #SPRITESHEET}, at its shared {@link #PROGRESS_W}x{@link
+     * #PROGRESS_H} size.
+     */
     private static Fragment fragment(int u, int v) {
         return new Fragment(SPRITESHEET, TEXTURE_SIZE, TEXTURE_SIZE, u, v, PROGRESS_W, PROGRESS_H);
     }
@@ -219,15 +222,16 @@ final class StructureMinerSpriteRenderer {
 
     /** Spritesheet (0,144)-(47,159) and (48,144)-(95,159). */
     static final int LONG_BUTTON_U = 0, LONG_BUTTON_V = 144, LONG_BUTTON_W = 48, LONG_BUTTON_H = 16;
+
     static final int LONG_PRESSED_U = 48;
 
     /**
      * The 48x16 tab button, in the same two states as {@link #button}.
      *
-     * <p>Decoded from the sheet, the idle sprite is a {@code #3F4054} outline over a {@code #9EAFAA}
-     * face with a {@code #B0C0BF} top row, and the lit sprite drops that row to a transparent pixel
-     * and lifts the face to {@code #B5E6C6} — byte for byte the relationship the 32x16 pair has,
-     * which is what lets the two sizes read as one family.
+     * <p>Decoded from the sheet, the idle sprite is a {@code #3F4054} outline over a {@code
+     * #9EAFAA} face with a {@code #B0C0BF} top row, and the lit sprite drops that row to a
+     * transparent pixel and lifts the face to {@code #B5E6C6} — byte for byte the relationship the
+     * 32x16 pair has, which is what lets the two sizes read as one family.
      */
     static void longButton(GuiGraphics g, int x, int y, boolean lit) {
         g.blit(
@@ -282,16 +286,38 @@ final class StructureMinerSpriteRenderer {
         g.blit(SPRITESHEET, x, y, 0, u, v, 16, 16, TEXTURE_SIZE, TEXTURE_SIZE);
     }
 
+    /** Input and output are independent flags; hover never masquerades as enabled. */
+    static void faceButton(
+            GuiGraphics g, int x, int y, boolean input, boolean output, boolean hovered) {
+        int mode = (input ? 1 : 0) | (output ? 2 : 0);
+        g.blit(
+                SPRITESHEET,
+                x,
+                y,
+                0,
+                40 + mode * 20,
+                hovered ? 118 : 98,
+                20,
+                20,
+                TEXTURE_SIZE,
+                TEXTURE_SIZE);
+    }
+
+    static void faceIndicator(GuiGraphics g, int x, int y, boolean input, boolean output) {
+        int mode = (input ? 1 : 0) | (output ? 2 : 0);
+        g.blit(SPRITESHEET, x, y, 0, 120 + mode * 8, 98, 8, 8, TEXTURE_SIZE, TEXTURE_SIZE);
+    }
+
     /**
      * with the energised cover over the first {@code filled} pixels.
      *
-     * <p>Both halves come from one 16x4 fragment each, so length is a parameter rather than a second
-     * asset — see {@link #stitchTo}. The cover is laid left to right and nothing else: a bar that
-     * grew from the right would read as progress running backwards.
+     * <p>Both halves come from one 16x4 fragment each, so length is a parameter rather than a
+     * second asset — see {@link #stitchTo}. The cover is laid left to right and nothing else: a bar
+     * that grew from the right would read as progress running backwards.
      *
-     * <p>Do not reach for {@link GuiChrome#progress}: that primitive scales {@code value / max} over
-     * an arbitrary width and overlays its own notch pattern, which would draw something other than
-     * this sprite at a height the sprite does not have.
+     * <p>Do not reach for {@link GuiChrome#progress}: that primitive scales {@code value / max}
+     * over an arbitrary width and overlays its own notch pattern, which would draw something other
+     * than this sprite at a height the sprite does not have.
      */
     static void progressStrip(GuiGraphics g, int x, int y, int length, int filled) {
         int bounded = Math.max(0, length);

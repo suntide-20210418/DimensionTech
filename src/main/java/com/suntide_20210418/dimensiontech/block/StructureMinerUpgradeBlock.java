@@ -1,18 +1,20 @@
 package com.suntide_20210418.dimensiontech.block;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
-import java.math.BigDecimal;
-import java.util.List;
-import javax.annotation.Nullable;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
-public final class StructureMinerUpgradeBlock extends Block {
+import java.math.BigDecimal;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+public final class StructureMinerUpgradeBlock extends AssemblyPanelBlock {
     public enum Type {
         NONE,
         PARALLEL,

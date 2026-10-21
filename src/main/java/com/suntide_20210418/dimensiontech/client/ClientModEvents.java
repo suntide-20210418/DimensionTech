@@ -1,12 +1,13 @@
 package com.suntide_20210418.dimensiontech.client;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import com.suntide_20210418.dimensiontech.block.ModBlocks;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
-import com.suntide_20210418.dimensiontech.client.gui.screen.StructureReactorScreen;
-import com.suntide_20210418.dimensiontech.block.ModBlocks;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureMinerScreen;
+import com.suntide_20210418.dimensiontech.client.gui.screen.StructureReactorScreen;
 import com.suntide_20210418.dimensiontech.item.ModItems;
+
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
@@ -29,7 +30,9 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(
-                () -> MenuScreens.register(ModMenu.STRUCTURE_MINER.get(), StructureMinerScreen::new));
+                () ->
+                        MenuScreens.register(
+                                ModMenu.STRUCTURE_MINER.get(), StructureMinerScreen::new));
         event.enqueueWork(
                 () ->
                         MenuScreens.register(
@@ -52,13 +55,11 @@ public final class ClientModEvents {
                 () ->
                         ItemBlockRenderTypes.setRenderLayer(
                                 ModBlocks.STRUCTURE_DATA_OPERATOR.get(), RenderType.cutout()));
-        // The glass body is genuinely translucent (alpha ramp, not a two-state cutout), so it needs
-        // the translucent pass to blend; cutout would hard-render every sub-threshold pixel opaque.
+        // RED WEDGE glass is a clear cutout: no translucent sorting pass is needed.
         event.enqueueWork(
                 () ->
                         ItemBlockRenderTypes.setRenderLayer(
-                                ModBlocks.STRUCTURE_MINER_GLASS.get(),
-                                RenderType.translucent()));
+                                ModBlocks.STRUCTURE_MINER_GLASS.get(), RenderType.cutout()));
     }
 
     @SubscribeEvent

@@ -3,9 +3,7 @@ package com.suntide_20210418.dimensiontech.block;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
-import java.util.List;
-import java.util.Optional;
-import javax.annotation.Nullable;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
@@ -32,6 +30,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.api.distmarker.Dist;
@@ -40,8 +39,14 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkHooks;
 
+import java.util.List;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 public abstract class BaseMinerBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final BooleanProperty ASSEMBLED = BooleanProperty.create("assembled");
 
     public int minerTier() {
         return 1;
@@ -49,7 +54,8 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
 
     protected BaseMinerBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+        registerDefaultState(
+                stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(ASSEMBLED, false));
     }
 
     @Override
@@ -98,13 +104,25 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
                             .withStyle(ChatFormatting.GOLD));
             // Counted straight off the pattern, so the list can never drift from the coordinates.
             int[] materials = StructureMinerMultiblock.projectionCounts();
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.CASING,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.CASING,
                     "material.casing");
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.STRUCTURE,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.STRUCTURE,
                     "material.structure");
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.GLASS,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.GLASS,
                     "material.glass");
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.UPGRADE,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.UPGRADE,
                     "material.upgrade");
         } else {
             tooltip.add(
@@ -129,7 +147,7 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
     @Override
     protected void createBlockStateDefinition(
             StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
-        builder.add(FACING);
+        builder.add(FACING, ASSEMBLED);
     }
 
     @Override
@@ -239,9 +257,9 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
     }
 
     /**
-     * The miner stores its contents in a Forge {@code ItemStackHandler}, not in a vanilla
-     * {@code Container}, so nothing drops on its own. Markers and unrouted output are returned to
-     * the world here, matching what the structure reactor already does on removal.
+     * The miner stores its contents in a Forge {@code ItemStackHandler}, not in a vanilla {@code
+     * Container}, so nothing drops on its own. Markers and unrouted output are returned to the
+     * world here, matching what the structure reactor already does on removal.
      */
     @Override
     public void onRemove(
@@ -249,6 +267,8 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
         if (!state.is(replacement.getBlock())
                 && level.getBlockEntity(pos) instanceof BaseMinerBlockEntity miner) {
             miner.dropContents();
+            if (level instanceof ServerLevel serverLevel)
+                StructureMinerVisuals.clearLoaded(serverLevel, pos);
         }
         super.onRemove(state, level, pos, replacement, moving);
     }

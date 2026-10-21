@@ -1,0 +1,153 @@
+{
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "all": "dimension_tech:block/redwedge/module_efficiency_2",
+    "particle": "dimension_tech:block/redwedge_particle"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        -0.015625
+      ],
+      "to": [
+        16,
+        16,
+        -0.015625
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#all",
+          "cullface": "north"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        0,
+        16.015625
+      ],
+      "to": [
+        16,
+        16,
+        16.015625
+      ],
+      "faces": {
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#all",
+          "cullface": "south"
+        }
+      }
+    },
+    {
+      "from": [
+        -0.015625,
+        0,
+        0
+      ],
+      "to": [
+        -0.015625,
+        16,
+        16
+      ],
+      "faces": {
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#all",
+          "cullface": "west"
+        }
+      }
+    },
+    {
+      "from": [
+        16.015625,
+        0,
+        0
+      ],
+      "to": [
+        16.015625,
+        16,
+        16
+      ],
+      "faces": {
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#all",
+          "cullface": "east"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        16.015625,
+        0
+      ],
+      "to": [
+        16,
+        16.015625,
+        16
+      ],
+      "faces": {
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#all",
+          "cullface": "up"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        -0.015625,
+        0
+      ],
+      "to": [
+        16,
+        -0.015625,
+        16
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#all",
+          "cullface": "down"
+        }
+      }
+    }
+  ]
+}

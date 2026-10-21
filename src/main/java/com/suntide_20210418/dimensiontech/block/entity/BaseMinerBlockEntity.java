@@ -3,6 +3,7 @@ package com.suntide_20210418.dimensiontech.block.entity;
 import com.suntide_20210418.dimensiontech.block.BaseMinerBlock;
 import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
+import com.suntide_20210418.dimensiontech.block.StructureMinerVisuals;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
 import com.suntide_20210418.dimensiontech.energy.EnergyContainer;
 import com.suntide_20210418.dimensiontech.energy.SimpleEnergyContainer;
@@ -16,9 +17,7 @@ import com.suntide_20210418.dimensiontech.utils.InsertOnlyItemHandler;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfig;
 import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.Nullable;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -50,7 +49,13 @@ import net.minecraftforge.fluids.capability.templates.FluidTank;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuProvider {
     private static final boolean AE2_LOADED = ModList.get().isLoaded("ae2");
@@ -85,6 +90,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
      * runs on, so an extractor that empties one silently stops the machine.
      */
     private final IItemHandler automationInventory;
+
     private final EnergyContainer energyStorage;
     private LazyOptional<IItemHandler> itemHandlerCapability;
     private LazyOptional<IEnergyStorage> energyCapability;
@@ -102,6 +108,11 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
     private final FluidFaceMode[] fluidFaceModes = new FluidFaceMode[Direction.values().length];
     private boolean autoExtractFluid;
     private boolean structureComplete;
+    private boolean visualRefreshPending = true;
+
+    public void requestVisualRefresh() {
+        visualRefreshPending = true;
+    }
 
     /** Natural game time for which this machine has already paid its energy cost. */
     private long lastEnergyConsumptionGameTime = Long.MIN_VALUE;
@@ -682,7 +693,12 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         boolean complete = isStructureComplete(serverLevel);
         if (complete != structureComplete) {
             structureComplete = complete;
+            visualRefreshPending = true;
             setChanged();
+        }
+        if (visualRefreshPending
+                && StructureMinerVisuals.refresh(serverLevel, worldPosition, complete)) {
+            visualRefreshPending = false;
         }
         applyUpgradeBonuses(
                 complete ? upgradeController.refresh(serverLevel) : upgradeController.clear());

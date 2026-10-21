@@ -19,156 +19,156 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
 final class GuiPalette {
     // --- structure ---------------------------------------------------------
     /** Outer outline of every raised surface. */
-    static final int HAIRLINE = 0xFF000000;
+    static final int HAIRLINE = 0xFF25292B;
 
     /** The panel face. */
-    static final int FACE = 0xFFC6C6C6;
+    static final int FACE = 0xFFE6DECD;
 
     /**
      * A recessed viewport that keeps body text readable inside it. It is a touch darker than the
      * face so the recess reads at a glance, and dark enough for the light {@link #TEXT}.
      */
-    static final int WELL = 0xFF808080;
+    static final int WELL = 0xFF4C4C46;
 
     /** The dark title band across the top of a window. */
-    static final int BAND = 0xFF2B2B2B;
+    static final int BAND = 0xFF25292B;
 
     /** Bottom and right drop shadow of a raised surface. */
-    static final int SHADE = 0xFF555555;
+    static final int SHADE = 0xFF8C8170;
 
     /** Top and left highlight of a raised surface. */
-    static final int HILIGHT = 0xFFFFFFFF;
+    static final int HILIGHT = 0xFFFAF4E8;
 
     /** Secondary highlight, used one pixel inside {@link #HILIGHT}. */
-    static final int BEVEL_MID = 0xFFE0E0E0;
+    static final int BEVEL_MID = 0xFFF1E9DA;
 
     /** The face of a hovered control. */
-    static final int HOVER = 0xFFDCDCDC;
+    static final int HOVER = 0xFFF0E6D4;
 
     /** The dark well a slot sits in. */
-    static final int SLOT_FACE = 0xFF3F3F3F;
+    static final int SLOT_FACE = 0xFF373A38;
 
     /** One pixel highlight inside a slot well. */
-    static final int SLOT_HILIGHT = 0xFF565656;
+    static final int SLOT_HILIGHT = 0xFF686A60;
 
     /** One pixel shadow inside a slot well. */
-    static final int SLOT_SHADE = 0xFF2F2F2F;
+    static final int SLOT_SHADE = 0xFF202624;
 
     /** Selected row in the catalogue. */
-    static final int SELECT = 0xFF77909F;
+    static final int SELECT = 0xFFD5B199;
 
     /** Zebra striping on data rows that sit on the light face. */
-    static final int STRIPE_INK = 0xFFB4B4B4;
+    static final int STRIPE_INK = 0xFFDCD0B9;
 
     /** Zebra striping on data rows that sit inside a recessed well. */
-    static final int STRIPE_WELL = 0xFF969696;
+    static final int STRIPE_WELL = 0xFF55564E;
 
     // --- the machine canvas itself ----------------------------------------
     /*
-     * These four are sampled off the machine textures, not chosen: they are the greens the artwork is
-     * actually painted in. Anything drawn *on* the canvas has to come from this family, or it reads
+     * These four match the RED WEDGE artwork: warm ivory and taupe recess tones.
+     * Keep these in sync with the editable SVG masters under art-source/svg/. Anything drawn *on* the canvas has to come from this family, or it reads
      * as a foreign panel dropped onto the recess.
      */
 
     /** The recessed canvas face — what a page is painted on. */
-    static final int RECESS = 0xFF97B6A4;
+    static final int RECESS = 0xFFCFC5B1;
 
     /** One step up from the canvas: the textures' raised slot face. Used to lift a hovered row. */
-    static final int RECESS_LIT = 0xFFACC5B6;
+    static final int RECESS_LIT = 0xFFE3DACA;
 
     /** One step down: the textures' shaded recess edge. Used to press a selected row in. */
-    static final int RECESS_PRESSED = 0xFF83A893;
+    static final int RECESS_PRESSED = 0xFFBCAF98;
 
     /** The textures' outer contour — rails and outlines drawn on the recess family. */
-    static final int RECESS_EDGE = 0xFF3C5647;
+    static final int RECESS_EDGE = 0xFF746956;
 
     /** The empty track of a horizontal progress bar laid on the face. */
-    static final int PROGRESS_TRACK = 0xFF555555;
+    static final int PROGRESS_TRACK = 0xFF6E6556;
 
     /** Overlay that dims a disabled control or slot. */
     static final int DISABLED_OVERLAY = 0x80000000;
 
     /** The canvas behind a machine window. */
-    static final int BACKDROP = 0xFF141618;
+    static final int BACKDROP = 0xFF141A1C;
 
     // --- ink ---------------------------------------------------------------
     /** Body text on {@link #FACE}. Deliberately pure black: all UI text is black. */
-    static final int INK = 0xFF000000;
+    static final int INK = 0xFF141A1C;
 
     /** Labels and units on {@link #FACE}, black for the same reason as {@link #INK}. */
-    static final int DIM = 0xFF000000;
+    static final int DIM = 0xFF25292B;
 
     /** Legacy body text, light: for {@link #WELL} and {@link #BAND} only. */
-    static final int TEXT = 0xFFE6E6E6;
+    static final int TEXT = 0xFFFAF4E8;
 
     /** Legacy muted text, light: for {@link #WELL} and {@link #BAND} only. */
-    static final int MUTED = 0xFFA9A9A9;
+    static final int MUTED = 0xFFCFC5B1;
 
     // --- data accents on FACE ---------------------------------------------
     /** Amber axis: progress, elapsed time, reward windows. */
-    static final int AMBER = 0xFF8A5A14;
+    static final int AMBER = 0xFF76501D;
 
     /** Steel-blue axis: structure data, primary values. */
-    static final int FLUIX = 0xFF2A6180;
+    static final int FLUIX = 0xFF315E60;
 
     /** Settled successfully, or available. */
-    static final int SUCCESS = 0xFF2E6B3E;
+    static final int SUCCESS = 0xFF355E48;
 
     /** Blocked, penalised, or conflicting. */
-    static final int ERROR = 0xFFA6442F;
+    static final int ERROR = 0xFF9D3027;
 
     /** The notch at the leading edge of an incomplete progress scale. */
-    static final int RECESS_ACTIVE = 0xFF3F5B4A;
+    static final int RECESS_ACTIVE = 0xFF852E29;
 
     // --- data accents on dark surfaces ------------------------------------
     /** Amber axis on the title band, a dark well, or a dark slot fill. */
-    static final int WELL_AMBER = 0xFFC8943C;
+    static final int WELL_AMBER = 0xFFE7B96D;
 
     /** Steel-blue axis on the title band, a dark well, or a dark slot fill. */
-    static final int WELL_FLUIX = 0xFF70C9E4;
+    static final int WELL_FLUIX = 0xFF8AC2BD;
 
     /** Settled-successfully accent on the title band or a dark well. */
-    static final int WELL_SUCCESS = 0xFF6EA27F;
+    static final int WELL_SUCCESS = 0xFF9BC59D;
 
     /** Blocked or penalised accent on the title band or a dark well. */
-    static final int WELL_ERROR = 0xFFE08A7A;
+    static final int WELL_ERROR = 0xFFF3A18B;
 
     // --- instruments -------------------------------------------------------
     /** Fallback tint for an empty fluid tank. */
-    static final int FLUID = 0xFF5DAFC8;
+    static final int FLUID = 0xFF557F80;
 
     /** The base steel-blue accent drawn as a band rail or a title mark on the light face. */
-    static final int FLUID_ACCENT = 0xFF2A6180;
+    static final int FLUID_ACCENT = 0xFF315E60;
 
     /** Border of a striped energy rail. */
-    static final int ENERGY_BORDER = 0xFFC7C9D3;
+    static final int ENERGY_BORDER = 0xFFE6DECD;
 
     /** Edge ticks that separate the striped rows of the recessed energy rail. */
-    static final int ENERGY_TICK = 0xFF8888A0;
+    static final int ENERGY_TICK = 0xFF8C8170;
 
     /** Bright row of the empty half of an energy rail. */
-    static final int ENERGY_BASE_LIGHT = 0xFF8E92B0;
+    static final int ENERGY_BASE_LIGHT = 0xFF887C68;
 
     /** Dark row of the empty half of an energy rail: a two-tone stripe, matching AE2's meter. */
-    static final int ENERGY_BASE_DARK = 0xFF5E5E86;
+    static final int ENERGY_BASE_DARK = 0xFF514C42;
 
     /** The mid tone of the empty half of an energy rail. */
-    static final int ENERGY_BASE_MID = 0xFF4D4D67;
+    static final int ENERGY_BASE_MID = 0xFF3A3932;
 
     /** Fill row of an energised rail. */
-    static final int ENERGY_FILL_LIGHT = 0xFF915DCD;
+    static final int ENERGY_FILL_LIGHT = 0xFFC54332;
 
     /** Bright fill row of an energised rail. */
-    static final int ENERGY_FILL_BRIGHT = 0xFFB06FDD;
+    static final int ENERGY_FILL_BRIGHT = 0xFFE16448;
 
     /** Hot centre row of an energised rail. */
-    static final int ENERGY_FILL_HOT = 0xFFFF80D7;
+    static final int ENERGY_FILL_HOT = 0xFFF4AA77;
 
     /** Dark fill row of an energised rail. */
-    static final int ENERGY_FILL_DARK = 0xFF5257A0;
+    static final int ENERGY_FILL_DARK = 0xFF852E29;
 
     /** Mid fill row of an energised rail. */
-    static final int ENERGY_FILL_MID = 0xFF6054A6;
+    static final int ENERGY_FILL_MID = 0xFFAA3B2E;
 
     /** Contrast ratio a text token must clear against the surface it lands on. */
     static final double MIN_TEXT_CONTRAST = 3.0D;

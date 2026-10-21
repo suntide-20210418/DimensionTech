@@ -2,6 +2,7 @@ package com.suntide_20210418.dimensiontech.block;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -66,7 +67,7 @@ public final class ModBlocks {
     public static final RegistryObject<Block> STRUCTURE_MINER_CASING =
             BLOCKS.register(
                     "structure_miner_casing",
-                    () -> new Block(BlockBehaviour.Properties.of().strength(4.0F)));
+                    () -> new AssemblyPanelBlock(BlockBehaviour.Properties.of().strength(4.0F)));
     public static final RegistryObject<Block> STRUCTURE_MINER_STRUCTURE =
             BLOCKS.register(
                     "structure_miner_structure",
@@ -78,7 +79,9 @@ public final class ModBlocks {
     public static final RegistryObject<Block> STRUCTURE_MINER_GLASS =
             BLOCKS.register(
                     "structure_miner_glass",
-                    () -> new Block(BlockBehaviour.Properties.of().strength(3.0F).noOcclusion()));
+                    () ->
+                            new ConnectedMinerGlassBlock(
+                                    BlockBehaviour.Properties.of().strength(3.0F).noOcclusion()));
     public static final RegistryObject<Block> UPGRADE_PARALLEL =
             upgrade("parallel", StructureMinerUpgradeBlock.Type.PARALLEL, 1);
     public static final RegistryObject<Block> UPGRADE_LUCK =
@@ -96,9 +99,11 @@ public final class ModBlocks {
     public static final RegistryObject<Block>[] UPGRADE_ENERGY_TIERS =
             upgradeTiers("energy", StructureMinerUpgradeBlock.Type.ENERGY, UPGRADE_ENERGY);
     public static final RegistryObject<Block>[] UPGRADE_EFFICIENCY_TIERS =
-            upgradeTiers("efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
+            upgradeTiers(
+                    "efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
     public static final RegistryObject<Block>[] UPGRADE_AGGREGATE_TIERS =
             upgradeTiers("aggregate", StructureMinerUpgradeBlock.Type.AGGREGATE, UPGRADE_AGGREGATE);
+
     private static RegistryObject<Block> upgrade(
             String name, StructureMinerUpgradeBlock.Type type, int tier) {
         return BLOCKS.register(
