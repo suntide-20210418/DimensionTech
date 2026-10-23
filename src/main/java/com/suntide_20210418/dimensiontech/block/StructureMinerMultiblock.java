@@ -1,6 +1,7 @@
 package com.suntide_20210418.dimensiontech.block;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +116,55 @@ public class StructureMinerMultiblock {
                     "1,-3,0", "0,-4,-1", "0,-4,1", "-1,-4,0", "1,-4,0");
 
     private StructureMinerMultiblock() {}
+
+    /*
+     * Geometry invariants, asserted once at class-init. A pattern coordinate is a bare string, so a
+     * typo would otherwise only show up as a machine that silently refuses to assemble; these fail
+     * loudly at class load instead.
+     *
+     *   1. no two of the four sets claim the same cell;
+     *   2. every block stays inside the body box this class declares;
+     *   3. the controller's own cell is never claimed, so placement can never stack casing on it.
+     *
+     * Unlike the 1.21.1 tree this class does not also assert a facing contract: the head here sits
+     * at the origin with the body centred on it, so all four coordinate sets are invariant under a
+     * quarter turn and a `rotate()` step would be the identity. The box below is therefore the only
+     * thing worth pinning.
+     */
+    static {
+        Set<BlockPos> claimed =
+                new HashSet<>(CASING.size() + GLASS.size() + STRUCTURE.size() + UPGRADE.size());
+        for (Set<String> coordinates : List.of(CASING, GLASS, STRUCTURE, UPGRADE)) {
+            for (String coordinate : coordinates) {
+                int[] components = parse(coordinate);
+                BlockPos offset = new BlockPos(components[0], components[1], components[2]);
+                if (!claimed.add(offset)) {
+                    throw new IllegalStateException("Overlapping multiblock offset " + offset);
+                }
+                if (!inBody(offset)) {
+                    throw new IllegalStateException(
+                            "Multiblock block " + offset + " escapes the body box");
+                }
+            }
+        }
+        if (claimed.contains(BlockPos.ZERO)) {
+            throw new IllegalStateException(
+                    "A pattern block claims the controller's own cell at the origin");
+        }
+    }
+
+    /**
+     * Whether an offset lands inside this pattern's box: the head at {@code (0,0,0)}, both flange
+     * plates centred on it, and the waist running down to {@code y = -5}.
+     */
+    private static boolean inBody(BlockPos offset) {
+        return offset.getX() >= -2
+                && offset.getX() <= 2
+                && offset.getY() >= -5
+                && offset.getY() <= 0
+                && offset.getZ() >= -2
+                && offset.getZ() <= 2;
+    }
 
     public enum ProjectionKind {
         CASING,
