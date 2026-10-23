@@ -4,8 +4,8 @@ import com.suntide_20210418.dimensiontech.block.entity.StructureReactorBlockEnti
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorLayout;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorMenu;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorTooltipSnapshot;
-import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StateId;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,14 +44,20 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     static final int PROGRESS_TIMEOUT_COLOR = 0xFFFF4A4A;
     private static final int STATUS_AREA_X = StructureReactorLayout.STATUS_REWARD_AREA.x() + 2;
     private static final int STATUS_AREA_Y = StructureReactorLayout.STATUS_REWARD_AREA.y() + 2;
-    private static final int STATUS_AREA_WIDTH = StructureReactorLayout.STATUS_REWARD_AREA.width() - 4;
+    private static final int STATUS_AREA_WIDTH =
+            StructureReactorLayout.STATUS_REWARD_AREA.width() - 4;
+
     /** Right edge for the right-aligned tick counter, so digit growth does not jitter the line. */
-    private static final int STATUS_TICK_RIGHT = StructureReactorLayout.STATUS_REWARD_AREA.right() - 2;
+    private static final int STATUS_TICK_RIGHT =
+            StructureReactorLayout.STATUS_REWARD_AREA.right() - 2;
+
     private static final int STATUS_LINE_STEP = 13;
     private static final int DETAIL_LINE_HEIGHT = 12;
     private static final int DETAIL_TEXT_INSET = 3;
+
     /** Section titles in the detail viewport; a step up from body text. */
     private static final int DETAIL_HEADER_COLOR = 0xFF2E5A88;
+
     private static final String KEY_TITLE = "screen.dimension_tech.structure_reactor.title";
     private static final String KEY_INVENTORY_LABEL =
             "screen.dimension_tech.structure_reactor.inventory_label";
@@ -120,15 +126,21 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     private static final String KEY_PREV_STEP_REWARD_SUFFIX =
             "screen.dimension_tech.structure_reactor.previous_step.reward_suffix";
 
-    /** Left control rail, top to bottom: output-face config, redstone control. Mirror of the miner. */
+    /**
+     * Left control rail, top to bottom: output-face config, redstone control. Mirror of the miner.
+     */
     private static final int GUIDE_BUTTON_X = -21;
+
     private static final int GUIDE_BUTTON_Y = 0;
     private static final int GUIDE_BUTTON_STRIDE = 20;
     private static final int GUIDE_ICON_INSET = 2;
+
     /** The redstone torch is drawn this many pixels above the ordinary icon slots. */
     private static final int GUIDE_REDSTONE_ICON_RISE = 2;
+
     /** Item icons sit on a raised GUI Z, so the off marker must clear that layer to land on top. */
     private static final double GUIDE_ICON_MARKER_Z = 200.0D;
+
     private static final String KEY_BUTTON_OUTPUT_FACE =
             "screen.dimension_tech.structure_reactor.output_face";
     private static final String KEY_BUTTON_REDSTONE_ON =
@@ -226,7 +238,8 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                     innerY + innerHeight,
                     FLUID_FALLBACK);
         }
-        int scaleX = leftPos + tank.x() + tank.width() - StructureReactorLayout.FLUID_SCALE_WIDTH - 1;
+        int scaleX =
+                leftPos + tank.x() + tank.width() - StructureReactorLayout.FLUID_SCALE_WIDTH - 1;
         int scaleY =
                 topPos + tank.y() + (tank.height() - StructureReactorLayout.FLUID_SCALE_HEIGHT) / 2;
         g.blit(
@@ -264,8 +277,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             value = 0;
             maximum = 1;
         }
-        int covered =
-                progressPixels(value, maximum, StructureReactorLayout.PROGRESS_BAR.width());
+        int covered = progressPixels(value, maximum, StructureReactorLayout.PROGRESS_BAR.width());
         if (covered <= 0) return;
         GuiRect bar = StructureReactorLayout.PROGRESS_BAR;
         g.blit(
@@ -463,9 +475,12 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             // long annotation cannot run off the viewport edge.
             Component text = Component.literal(current ? "▶ " : "· ").append(stageText(state));
             if (outcome != null && outcome != StructureReactorCycle.Resolution.NONE) {
-                text = text
-                        .copy()
-                        .append(Component.literal("（").append(outcomeLabel(outcome)).append("）"));
+                text =
+                        text.copy()
+                                .append(
+                                        Component.literal("（")
+                                                .append(outcomeLabel(outcome))
+                                                .append("）"));
             }
             for (String wrapped :
                     wrapText(
@@ -484,8 +499,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             for (ItemStack candidate : snapshot.operationCandidates())
                 lines.add(
                         DetailLine.plain(
-                                Component.literal(
-                                        "· " + candidate.getHoverName().getString()),
+                                Component.literal("· " + candidate.getHoverName().getString()),
                                 INK,
                                 false));
             int total = snapshot.operationCandidateTotal();
@@ -516,8 +530,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                         Component.translatable(KEY_DETAIL_METRIC_TIME),
                         INK,
                         Component.translatable(
-                                KEY_DETAIL_METRIC_TIME_VALUE,
-                                Math.max(0, menu.timeReduction()))));
+                                KEY_DETAIL_METRIC_TIME_VALUE, Math.max(0, menu.timeReduction()))));
         lines.add(
                 DetailLine.metric(
                         Component.translatable(KEY_DETAIL_METRIC_FRAGMENT),
@@ -582,8 +595,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
     }
 
     private void clampDetailScroll() {
-        int maxScroll =
-                Math.max(0, detailContentHeight - StructureReactorLayout.VIEWPORT.height());
+        int maxScroll = Math.max(0, detailContentHeight - StructureReactorLayout.VIEWPORT.height());
         if (detailScroll < 0) detailScroll = 0;
         if (detailScroll > maxScroll) detailScroll = maxScroll;
     }
@@ -632,8 +644,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 if (maxScroll > 0) {
                     int vh = vp.height();
                     int thumbH = Math.max(8, vh * vh / Math.max(1, detailContentHeight));
-                    int thumbTop =
-                            topPos + vp.y() + (vh - thumbH) * detailScroll / maxScroll;
+                    int thumbTop = topPos + vp.y() + (vh - thumbH) * detailScroll / maxScroll;
                     scrollGrabY = (int) mouseY - thumbTop;
                 } else {
                     scrollGrabY = 0;
@@ -687,8 +698,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        int maxScroll =
-                Math.max(0, detailContentHeight - StructureReactorLayout.VIEWPORT.height());
+        int maxScroll = Math.max(0, detailContentHeight - StructureReactorLayout.VIEWPORT.height());
         if (keyCode == 266) {
             detailScroll = 0;
             return true;
@@ -750,14 +760,11 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             case PHASE_IDLE ->
                     Component.translatable(
                             "screen.dimension_tech.structure_reactor.status_line.previous.penalty.phase_idle",
-                            penaltyTicks(
-                                    StructureReactorCycle.WRONG_STATE_TIME_PENALTY_TICKS));
+                            penaltyTicks(StructureReactorCycle.WRONG_STATE_TIME_PENALTY_TICKS));
             case BRANCH_CONFLICT ->
                     Component.translatable(
                             "screen.dimension_tech.structure_reactor.status_line.previous.penalty.branch",
-                            penaltyTicks(
-                                    StructureReactorCycle
-                                            .BRANCH_CONFLICT_TIME_PENALTY_TICKS));
+                            penaltyTicks(StructureReactorCycle.BRANCH_CONFLICT_TIME_PENALTY_TICKS));
             case RECURSION_OVERFLOW ->
                     Component.translatable(
                             "screen.dimension_tech.structure_reactor.status_line.previous.penalty.recurse",
@@ -765,8 +772,7 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
             case EARLY_CONVERGE ->
                     Component.translatable(
                             "screen.dimension_tech.structure_reactor.status_line.previous.penalty.converge",
-                            StructureReactorCycle.EARLY_CONVERGE_OUTPUT_PENALTY_BP_PER_DEPTH
-                                    / 100);
+                            StructureReactorCycle.EARLY_CONVERGE_OUTPUT_PENALTY_BP_PER_DEPTH / 100);
             case STABILIZE_FAILURE ->
                     Component.translatable(
                             "screen.dimension_tech.structure_reactor.status_line.previous.penalty.stabilize",
@@ -828,7 +834,8 @@ public final class StructureReactorScreen extends AbstractContainerScreen<Struct
                 };
         return key.isEmpty()
                 ? Component.empty()
-                : Component.translatable("screen.dimension_tech.structure_reactor.step_outcome." + key);
+                : Component.translatable(
+                        "screen.dimension_tech.structure_reactor.step_outcome." + key);
     }
 
     private static String statusKey(StructureReactorCycle.Status status) {

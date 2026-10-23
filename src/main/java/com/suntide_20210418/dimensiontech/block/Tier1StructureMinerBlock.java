@@ -9,14 +9,12 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Tier1StructureMinerBlock extends BaseMinerBlock {
 
-    public Tier1StructureMinerBlock(
-            BlockBehaviour.Properties properties) {
+    public Tier1StructureMinerBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
 
     @Override
     public @NotNull BlockEntity newBlockEntity(BlockPos position, BlockState blockState) {
-        return new Tier1StructureMinerBlockEntity(
-                position, blockState);
+        return new Tier1StructureMinerBlockEntity(position, blockState);
     }
 }

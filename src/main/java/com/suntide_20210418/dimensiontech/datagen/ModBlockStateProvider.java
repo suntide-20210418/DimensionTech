@@ -30,12 +30,10 @@ public class ModBlockStateProvider extends BlockStateProvider {
         // The trailing rotational offset tunes the authored geometry onto the front face: the
         // reactor's front reads a quarter turn counter-clockwise, the operator's a half turn
         // round, from the +Z reference.
-        ModelFile reactor =
-                models().getExistingFile(modLoc("block/strcture_reactor"));
+        ModelFile reactor = models().getExistingFile(modLoc("block/strcture_reactor"));
         horizontalFrontingSouth(ModBlocks.STRUCTURE_REACTOR.get(), reactor, 90);
         simpleBlockItem(ModBlocks.STRUCTURE_REACTOR.get(), reactor);
-        ModelFile operator =
-                models().getExistingFile(modLoc("block/structure_data_operator"));
+        ModelFile operator = models().getExistingFile(modLoc("block/structure_data_operator"));
         horizontalFrontingSouth(ModBlocks.STRUCTURE_DATA_OPERATOR.get(), operator, 180);
         simpleBlockItem(ModBlocks.STRUCTURE_DATA_OPERATOR.get(), operator);
         simpleBlockWithItem(
@@ -70,13 +68,14 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
     /**
      * The six miner tiers ship hand-authored Blockbench models, so datagen only writes the
-     * blockstate and the item model, both pointing at
-     * {@code dimension_tech:block/tier_N_strcture_miner}. The "strcture" spelling is the
-     * on-disk file name from the original Blockbench export and must not be "fixed" here —
-     * the block ids are spelled correctly ("structure"), so the two are easy to conflate.
+     * blockstate and the item model, both pointing at {@code
+     * dimension_tech:block/tier_N_strcture_miner}. The "strcture" spelling is the on-disk file name
+     * from the original Blockbench export and must not be "fixed" here — the block ids are spelled
+     * correctly ("structure"), so the two are easy to conflate.
      */
     private void registerHandWrittenMiner(Block block, int tier) {
-        ModelFile model = models().getExistingFile(modLoc("block/tier_" + tier + "_strcture_miner"));
+        ModelFile model =
+                models().getExistingFile(modLoc("block/tier_" + tier + "_strcture_miner"));
         horizontalBlock(block, model);
         simpleBlockItem(block, model);
     }

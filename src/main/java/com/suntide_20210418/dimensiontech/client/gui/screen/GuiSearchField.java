@@ -19,15 +19,17 @@ import net.minecraft.network.chat.Component;
  * height — so a nine-pixel glyph in the usual twelve-pixel box rides the frame instead of sitting
  * inside it. Here the padding surrounds a whole line instead.
  *
- * <p>{@code renderWidget} is overridden wholesale. Vanilla draws the value through the five-argument
- * {@code drawString}, which hard-codes {@code dropShadow = true} — and {@code setTextShadow} does
- * not exist on Forge 1.20.1 (it only landed in NeoForge 1.21). That shadow is a second, offset copy
- * of every glyph, which reads as doubled text on the flat panel faces. Drawing the string here with
- * {@code false} removes it while keeping the caret and the hint faithful to the rest of the UI.
+ * <p>{@code renderWidget} is overridden wholesale. Vanilla draws the value through the
+ * five-argument {@code drawString}, which hard-codes {@code dropShadow = true} — and {@code
+ * setTextShadow} does not exist on Forge 1.20.1 (it only landed in NeoForge 1.21). That shadow is a
+ * second, offset copy of every glyph, which reads as doubled text on the flat panel faces. Drawing
+ * the string here with {@code false} removes it while keeping the caret and the hint faithful to
+ * the rest of the UI.
  */
 final class GuiSearchField extends EditBox {
     /** Room between the drawn frame and the text area. */
     private static final int PAD_X = 3;
+
     private static final int PAD_Y = 2;
 
     /** The vanilla font's line height: one row of text, Chinese included. */
@@ -65,7 +67,8 @@ final class GuiSearchField extends EditBox {
     @Override
     public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partial) {
         // The recessed frame, in the canvas' own green family so it belongs to the recess.
-        GuiChrome.recessWell(g, getX() - PAD_X, getY() - PAD_Y, width + PAD_X * 2, height + PAD_Y * 2);
+        GuiChrome.recessWell(
+                g, getX() - PAD_X, getY() - PAD_Y, width + PAD_X * 2, height + PAD_Y * 2);
 
         int textX = getX();
         int textY = getY();

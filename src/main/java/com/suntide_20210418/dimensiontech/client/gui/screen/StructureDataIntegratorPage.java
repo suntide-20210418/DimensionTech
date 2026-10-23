@@ -21,9 +21,9 @@ import net.minecraft.world.item.ItemStack;
  * Shared dimension catalogue and dossier viewport for both data-source plugins.
  *
  * <p>Everything here is canvas-local: {@code StructureDataOperatorScreen#drawPage} has already
- * clipped to the canvas and translated to its origin, so {@code (0,0)} is the canvas corner. The two
- * columns are 150 and 181 pixels wide inside a 343-wide canvas — the catalogue is a master list, the
- * dossier its detail pane.
+ * clipped to the canvas and translated to its origin, so {@code (0,0)} is the canvas corner. The
+ * two columns are 150 and 181 pixels wide inside a 343-wide canvas — the catalogue is a master
+ * list, the dossier its detail pane.
  */
 final class StructureDataIntegratorPage {
     private static final int PAD = 4;
@@ -40,11 +40,7 @@ final class StructureDataIntegratorPage {
     private StructureDataIntegratorPage() {}
 
     static void renderSource(
-            StructureDataOperatorScreen s,
-            GuiGraphics g,
-            int mouseX,
-            int mouseY,
-            int accent) {
+            StructureDataOperatorScreen s, GuiGraphics g, int mouseX, int mouseY, int accent) {
         int detailX = StructureDataOperatorScreen.DETAIL_X;
         int canvasHeight = StructureDataOperatorLayout.CANVAS.height();
         /* The page title used to sit here, above the search field. The tab already names the page,
@@ -79,7 +75,8 @@ final class StructureDataIntegratorPage {
             int screenMouseX,
             int screenMouseY) {
         if (s.detailMarker().isEmpty()) return;
-        List<Map.Entry<ResourceLocation, ExactProbability>> rows = expectedItemRows(s.detailMarker());
+        List<Map.Entry<ResourceLocation, ExactProbability>> rows =
+                expectedItemRows(s.detailMarker());
         int visible = StructureDataOperatorScreen.tableRows();
         for (int row = 0; row < visible && s.detailScroll() + row < rows.size(); row++) {
             int y = tableRowY(row);
@@ -133,7 +130,10 @@ final class StructureDataIntegratorPage {
                         (s.isDimensionExpanded(rowData.dimension()) ? "v " : "> ")
                                 + TranslateHelper.dimensionName(rowData.dimension()).getString();
             } else {
-                label = "  " + TranslateHelper.structureName(rowData.entry().structure()).getString();
+                label =
+                        "  "
+                                + TranslateHelper.structureName(rowData.entry().structure())
+                                        .getString();
             }
             StructureMinerTheme.listRow(
                     g,
@@ -142,8 +142,7 @@ final class StructureDataIntegratorPage {
                     y,
                     width - 4,
                     ROW_H,
-                    Component.literal(
-                            s.getMinecraft().font.plainSubstrByWidth(label, width - 12)),
+                    Component.literal(s.getMinecraft().font.plainSubstrByWidth(label, width - 12)),
                     selected,
                     hovered,
                     accent);
@@ -174,8 +173,8 @@ final class StructureDataIntegratorPage {
     /**
      * Y of the detail table's first row.
      *
-     * <p>The screen sizes its scroll window from this rather than from a fixed canvas inset, because
-     * the readings block above the table is what actually sets the offset.
+     * <p>The screen sizes its scroll window from this rather than from a fixed canvas inset,
+     * because the readings block above the table is what actually sets the offset.
      */
     static int tableTop() {
         return tableRowY(0);
@@ -227,8 +226,19 @@ final class StructureDataIntegratorPage {
                         .getString();
         int expectedX = x + width * 55 / 100;
         int multiplierX = x + width * 78 / 100;
-        g.fill(x, tableHeaderY(), x + width, tableHeaderY() + TABLE_HEADER_H, StructureMinerTheme.STRIPE_WELL);
-        g.drawString(s.getMinecraft().font, itemLabel, x + 2, tableHeaderY() + 1, StructureMinerTheme.INK, false);
+        g.fill(
+                x,
+                tableHeaderY(),
+                x + width,
+                tableHeaderY() + TABLE_HEADER_H,
+                StructureMinerTheme.STRIPE_WELL);
+        g.drawString(
+                s.getMinecraft().font,
+                itemLabel,
+                x + 2,
+                tableHeaderY() + 1,
+                StructureMinerTheme.INK,
+                false);
         g.drawString(
                 s.getMinecraft().font,
                 expectedLabel,
@@ -275,7 +285,8 @@ final class StructureDataIntegratorPage {
                     String.format(
                             Locale.ROOT,
                             "%.2f",
-                            StructureDataOperatorOperationPage.multiplier(item == null ? net.minecraft.world.item.Items.AIR : item)),
+                            StructureDataOperatorOperationPage.multiplier(
+                                    item == null ? net.minecraft.world.item.Items.AIR : item)),
                     multiplierX,
                     y + 5,
                     StructureMinerTheme.DIM,

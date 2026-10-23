@@ -10,9 +10,10 @@ public enum StateId {
     /**
      * The comparator level this step announces while the reward window is closed.
      *
-     * <p>It is spelled out per constant rather than derived from {@link #ordinal()} so that inserting
-     * a step later cannot silently renumber a redstone interface that players have already built
-     * around. The reward-window half of the range lives in {@link ReactorAnalogSignal}.
+     * <p>It is spelled out per constant rather than derived from {@link #ordinal()} so that
+     * inserting a step later cannot silently renumber a redstone interface that players have
+     * already built around. The reward-window half of the range lives in {@link
+     * ReactorAnalogSignal}.
      */
     private final int signalLevel;
 

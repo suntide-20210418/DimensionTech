@@ -87,10 +87,11 @@ final class GuiChrome {
      * A recessed well painted in the machine canvas' own green family, so it belongs to the recess
      * instead of reading as a grey panel dropped onto it.
      *
-     * <p>The bevel is the same inverted one as {@link #well}: a sunken fill with its top-left edge in
-     * shade and its bottom-right edge lit. The tones come from {@link GuiPalette#RECESS_PRESSED},
-     * {@link GuiPalette#RECESS_EDGE} and {@link GuiPalette#RECESS_LIT} — the same three the catalogue
-     * rows use — so an input field and the tree it filters look like one surface.
+     * <p>The bevel is the same inverted one as {@link #well}: a sunken fill with its top-left edge
+     * in shade and its bottom-right edge lit. The tones come from {@link
+     * GuiPalette#RECESS_PRESSED}, {@link GuiPalette#RECESS_EDGE} and {@link GuiPalette#RECESS_LIT}
+     * — the same three the catalogue rows use — so an input field and the tree it filters look like
+     * one surface.
      */
     static void recessWell(GuiGraphics g, int x, int y, int width, int height) {
         fill(g, x, y, width, height, GuiPalette.RECESS_PRESSED);
@@ -216,8 +217,8 @@ final class GuiChrome {
      * three states read as one surface moving rather than as three unrelated colours — and the ink
      * stays dark across all of them, because light text only belonged to the old near-black fill.
      *
-     * <p>The height is the caller's row pitch. It used to be a literal, which did not match the pitch
-     * and left each row's fill overlapping the next one by a pixel.
+     * <p>The height is the caller's row pitch. It used to be a literal, which did not match the
+     * pitch and left each row's fill overlapping the next one by a pixel.
      */
     static void listRow(
             GuiGraphics g,
@@ -313,12 +314,7 @@ final class GuiChrome {
     static void emptyState(
             GuiGraphics g, Font font, int x, int y, int width, int height, Component label) {
         GuiText.centered(
-                g,
-                font,
-                label,
-                x + width / 2,
-                y + Math.max(0, height / 2 - 4),
-                GuiPalette.DIM);
+                g, font, label, x + width / 2, y + Math.max(0, height / 2 - 4), GuiPalette.DIM);
     }
 
     /** A modal confirmation panel with fixed button geometry. */

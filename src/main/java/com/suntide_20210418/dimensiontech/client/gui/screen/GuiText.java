@@ -7,11 +7,11 @@ import net.minecraft.network.chat.Component;
 /**
  * Centred text drawn without a drop shadow.
  *
- * <p>{@code GuiGraphics.drawCenteredString} has no overload that omits the shadow: all three of
- * its variants forward to a five-argument {@code drawString}, which hard-codes
- * {@code dropShadow = true}. Centring a string therefore forced an outline onto it, which reads
- * as unwanted extra weight on these flat panel faces. Every centred string in this mod goes
- * through here instead, so the shadow cannot come back by accident.
+ * <p>{@code GuiGraphics.drawCenteredString} has no overload that omits the shadow: all three of its
+ * variants forward to a five-argument {@code drawString}, which hard-codes {@code dropShadow =
+ * true}. Centring a string therefore forced an outline onto it, which reads as unwanted extra
+ * weight on these flat panel faces. Every centred string in this mod goes through here instead, so
+ * the shadow cannot come back by accident.
  */
 final class GuiText {
     private GuiText() {}

@@ -1,11 +1,10 @@
 package com.suntide_20210418.dimensiontech.block.entity;
 
+import com.mojang.logging.LogUtils;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem;
-import com.mojang.logging.LogUtils;
-
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.loot.expectation.Diagnostic;
 import com.suntide_20210418.dimensiontech.loot.expectation.RuntimeLootAstSource;
@@ -126,11 +125,7 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
             ItemStack stack = inventory.getStackInSlot(slot);
             if (stack.isEmpty()) continue;
             Containers.dropItemStack(
-                    level,
-                    worldPosition.getX(),
-                    worldPosition.getY(),
-                    worldPosition.getZ(),
-                    stack);
+                    level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
             inventory.setStackInSlot(slot, ItemStack.EMPTY);
         }
     }
@@ -287,25 +282,31 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                                     ModConfigs.STRUCTURE_VALUE
                                                                             .calculationFingerprint()))
                                                         return;
-                                                    // Every terminal outcome is archived, including a bare
+                                                    // Every terminal outcome is archived, including
+                                                    // a bare
                                                     // failure, so the client always receives a
                                                     // marker and stops polling instead of showing
                                                     // "analysing" forever. On success the discovery
-                                                    // and value are reused; on failure a synthesized
-                                                    // UNSUPPORTED value carries the error diagnostic.
+                                                    // and value are reused; on failure a
+                                                    // synthesized
+                                                    // UNSUPPORTED value carries the error
+                                                    // diagnostic.
                                                     long elapsedMillis =
                                                             (System.nanoTime() - requestStart)
                                                                     / 1_000_000L;
                                                     LOGGER.warn(
-                                                            "[TEMP PROBE] requestCatalogueValue {} reached archive in {}ms error={} on {}",
+                                                            "[TEMP PROBE] requestCatalogueValue {}"
+                                                                    + " reached archive in {}ms"
+                                                                    + " error={} on {}",
                                                             id,
                                                             elapsedMillis,
                                                             error != null,
-                                                            java.lang.Thread
-                                                                    .currentThread()
+                                                            java.lang.Thread.currentThread()
                                                                     .getName());
-                                                    StructureLootAnalyzer.DiscoveryResult resultDiscovery;
-                                                    StructureValueCalculator.StructureValue resultValue;
+                                                    StructureLootAnalyzer.DiscoveryResult
+                                                            resultDiscovery;
+                                                    StructureValueCalculator.StructureValue
+                                                            resultValue;
                                                     if (error == null && calculation != null) {
                                                         resultDiscovery = calculation.discovery();
                                                         resultValue = calculation.value();
@@ -320,18 +321,17 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
                                                                                                 .toString()));
                                                         resultDiscovery =
                                                                 new StructureLootAnalyzer
-                                                                                .DiscoveryResult(
+                                                                        .DiscoveryResult(
                                                                         AnalysisStatus.UNSUPPORTED,
                                                                         List.of(),
                                                                         failure);
                                                         resultValue =
                                                                 new StructureValueCalculator
-                                                                                .StructureValue(
+                                                                        .StructureValue(
                                                                         AnalysisStatus.UNSUPPORTED,
                                                                         ModConfigs.STRUCTURE_VALUE
                                                                                 .dimensionValue(
-                                                                                        level
-                                                                                                .dimension()
+                                                                                        level.dimension()
                                                                                                 .location()),
                                                                         0.0D,
                                                                         new StackMeasure(),
@@ -406,8 +406,8 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
      * carries — the capacity is read from the save file, not from the constructor. A world saved
      * while the write array held 27 markers therefore loads this handler with 30 slots, while the
      * menu registers all 39; the first {@code AbstractContainerMenu.broadcastChanges} then reads
-     * slot 30 out of range and kills the server thread with
-     * {@code Slot 30 not in valid range - [0,30)}.
+     * slot 30 out of range and kills the server thread with {@code Slot 30 not in valid range -
+     * [0,30)}.
      *
      * <p>The handler's capacity belongs to the code, so the tag is normalised instead of the menu
      * being made to tolerate it. Growing the write array also moves the two plugin slots — an older
@@ -462,8 +462,7 @@ public final class StructureDataOperatorBlockEntity extends BlockEntity implemen
      * One catalogue row. Only the pair of ids crosses the wire — the analysed marker is kept in
      * {@code analysedCatalogueEntries}, keyed the same way, and is looked up on demand.
      */
-    public record StructureCatalogueEntry(
-            ResourceLocation dimension, ResourceLocation structure) {}
+    public record StructureCatalogueEntry(ResourceLocation dimension, ResourceLocation structure) {}
 
     private record CatalogueKey(ResourceLocation dimension, ResourceLocation structure) {}
 }

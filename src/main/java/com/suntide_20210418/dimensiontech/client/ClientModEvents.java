@@ -1,11 +1,11 @@
 package com.suntide_20210418.dimensiontech.client;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
+import com.suntide_20210418.dimensiontech.block.ModBlocks;
 import com.suntide_20210418.dimensiontech.client.gui.ModMenu;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureDataOperatorScreen;
-import com.suntide_20210418.dimensiontech.client.gui.screen.StructureReactorScreen;
-import com.suntide_20210418.dimensiontech.block.ModBlocks;
 import com.suntide_20210418.dimensiontech.client.gui.screen.StructureMinerScreen;
+import com.suntide_20210418.dimensiontech.client.gui.screen.StructureReactorScreen;
 import com.suntide_20210418.dimensiontech.item.ModItems;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -29,7 +29,9 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(
-                () -> MenuScreens.register(ModMenu.STRUCTURE_MINER.get(), StructureMinerScreen::new));
+                () ->
+                        MenuScreens.register(
+                                ModMenu.STRUCTURE_MINER.get(), StructureMinerScreen::new));
         event.enqueueWork(
                 () ->
                         MenuScreens.register(
@@ -57,8 +59,7 @@ public final class ClientModEvents {
         event.enqueueWork(
                 () ->
                         ItemBlockRenderTypes.setRenderLayer(
-                                ModBlocks.STRUCTURE_MINER_GLASS.get(),
-                                RenderType.translucent()));
+                                ModBlocks.STRUCTURE_MINER_GLASS.get(), RenderType.translucent()));
     }
 
     @SubscribeEvent

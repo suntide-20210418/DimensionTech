@@ -21,68 +21,59 @@ public final class ModBlockEntities {
                                                     StructureDataOperatorBlockEntity::new,
                                                     ModBlocks.STRUCTURE_DATA_OPERATOR.get())
                                             .build(null));
-    public static final RegistryObject<BlockEntityType<StructureReactorBlockEntity>> STRUCTURE_REACTOR =
-            BLOCK_ENTITY_TYPES.register(
-                    "structure_reactor",
-                    () ->
-                            BlockEntityType.Builder.of(
-                                            StructureReactorBlockEntity::new,
-                                            ModBlocks.STRUCTURE_REACTOR.get())
-                                    .build(null));
+    public static final RegistryObject<BlockEntityType<StructureReactorBlockEntity>>
+            STRUCTURE_REACTOR =
+                    BLOCK_ENTITY_TYPES.register(
+                            "structure_reactor",
+                            () ->
+                                    BlockEntityType.Builder.of(
+                                                    StructureReactorBlockEntity::new,
+                                                    ModBlocks.STRUCTURE_REACTOR.get())
+                                            .build(null));
 
-    public static final RegistryObject<
-                    BlockEntityType<Tier1StructureMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<Tier1StructureMinerBlockEntity>>
             TIER_1_STRUCTURE_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             ResourceLocationHelper.getPath(ModBlocks.TIER_1_STRUCTURE_MINER_ID),
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier1StructureMinerBlockEntity
-                                                            ::new,
+                                                    Tier1StructureMinerBlockEntity::new,
                                                     ModBlocks.TIER_1_STRUCTURE_MINER.get())
                                             .build(null));
-    public static final RegistryObject<
-                    BlockEntityType<Tier2StructureMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<Tier2StructureMinerBlockEntity>>
             TIER_2_STRUCTURE_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_2_structure_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier2StructureMinerBlockEntity
-                                                            ::new,
+                                                    Tier2StructureMinerBlockEntity::new,
                                                     ModBlocks.TIER_2_STRUCTURE_MINER.get())
                                             .build(null));
-    public static final RegistryObject<
-                    BlockEntityType<Tier3StructureMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<Tier3StructureMinerBlockEntity>>
             TIER_3_STRUCTURE_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_3_structure_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier3StructureMinerBlockEntity
-                                                            ::new,
+                                                    Tier3StructureMinerBlockEntity::new,
                                                     ModBlocks.TIER_3_STRUCTURE_MINER.get())
                                             .build(null));
-    public static final RegistryObject<
-                    BlockEntityType<Tier4StructureMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<Tier4StructureMinerBlockEntity>>
             TIER_4_STRUCTURE_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_4_structure_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier4StructureMinerBlockEntity
-                                                            ::new,
+                                                    Tier4StructureMinerBlockEntity::new,
                                                     ModBlocks.TIER_4_STRUCTURE_MINER.get())
                                             .build(null));
-    public static final RegistryObject<
-                    BlockEntityType<Tier5StructureMinerBlockEntity>>
+    public static final RegistryObject<BlockEntityType<Tier5StructureMinerBlockEntity>>
             TIER_5_STRUCTURE_MINER =
                     BLOCK_ENTITY_TYPES.register(
                             "tier_5_structure_miner",
                             () ->
                                     BlockEntityType.Builder.of(
-                                                    Tier5StructureMinerBlockEntity
-                                                            ::new,
+                                                    Tier5StructureMinerBlockEntity::new,
                                                     ModBlocks.TIER_5_STRUCTURE_MINER.get())
                                             .build(null));
     public static final RegistryObject<BlockEntityType<Tier6StructureMinerBlockEntity>>

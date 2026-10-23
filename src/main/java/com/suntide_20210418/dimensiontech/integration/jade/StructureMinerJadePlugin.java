@@ -18,6 +18,7 @@ public final class StructureMinerJadePlugin implements IWailaPlugin {
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
-        registration.registerBlockComponent(StructureMinerJadeProvider.INSTANCE, BaseMinerBlock.class);
+        registration.registerBlockComponent(
+                StructureMinerJadeProvider.INSTANCE, BaseMinerBlock.class);
     }
 }

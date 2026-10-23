@@ -23,9 +23,9 @@ public class WrenchItem extends Item {
     }
 
     /**
-     * Returning {@code true} keeps the structure miner's {@code Block.use} reachable while sneaking.
-     * By default a plain item's sneak+right-click skips the block and uses the item instead, so the
-     * shift+build branch would never run.
+     * Returning {@code true} keeps the structure miner's {@code Block.use} reachable while
+     * sneaking. By default a plain item's sneak+right-click skips the block and uses the item
+     * instead, so the shift+build branch would never run.
      */
     @Override
     public boolean doesSneakBypassUse(
@@ -35,10 +35,7 @@ public class WrenchItem extends Item {
 
     @Override
     public void appendHoverText(
-            ItemStack stack,
-            @Nullable Level level,
-            List<Component> tooltip,
-            TooltipFlag flag) {
+            ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         tooltip.add(
                 Component.translatable("tooltip.dimension_tech.wrench.projection")

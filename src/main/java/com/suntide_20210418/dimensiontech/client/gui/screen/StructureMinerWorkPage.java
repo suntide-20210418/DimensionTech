@@ -13,12 +13,12 @@ import net.minecraft.world.item.ItemStack;
 /**
  * WORK page: the marker lane, one progress strip per cell, and a two-column meter grid.
  *
- * <p>The meter grid carries eight readings in four lines of two. It deliberately shows both the base
- * parallel and the total parallel: the total is what the machine actually produces, while the base is
- * only one of its three addends, so showing the base alone would answer the wrong question.
+ * <p>The meter grid carries eight readings in four lines of two. It deliberately shows both the
+ * base parallel and the total parallel: the total is what the machine actually produces, while the
+ * base is only one of its three addends, so showing the base alone would answer the wrong question.
  *
- * <p>State and interaction stay with the parent screen; this class only draws. The lane is drawn here
- * rather than by the vanilla slot pass because the menu parks its slots off-screen — see
+ * <p>State and interaction stay with the parent screen; this class only draws. The lane is drawn
+ * here rather than by the vanilla slot pass because the menu parks its slots off-screen — see
  * {@code StructureMinerMenu#addContainerSlots}.
  */
 final class StructureMinerWorkPage {
@@ -80,8 +80,8 @@ final class StructureMinerWorkPage {
     }
 
     /**
-     * A 3px lamp in the cell's top-right corner. Kept out of the centre so it never covers the marker
-     * icon, whose visual weight sits in the middle 10px.
+     * A 3px lamp in the cell's top-right corner. Kept out of the centre so it never covers the
+     * marker icon, whose visual weight sits in the middle 10px.
      *
      * <p>Amber covers both "not advancing" states — no processing plan (analysis still running or
      * failed) and a slot throttled by the natural observation window — because the client cannot
@@ -103,7 +103,10 @@ final class StructureMinerWorkPage {
                         : marker.processingTime() <= 0 || marker.waitingForNaturalWindow()
                                 ? StructureMinerTheme.AMBER
                                 : StructureMinerTheme.FLUIX;
-        int lampRight = x + StructureMinerInfoLayout.MARKER_SIZE - StructureMinerInfoLayout.MARKER_LAMP_RIGHT_INSET;
+        int lampRight =
+                x
+                        + StructureMinerInfoLayout.MARKER_SIZE
+                        - StructureMinerInfoLayout.MARKER_LAMP_RIGHT_INSET;
         int lampTop = y + StructureMinerInfoLayout.MARKER_LAMP_TOP_INSET;
         g.fill(
                 lampRight - StructureMinerInfoLayout.MARKER_LAMP_SIZE,
@@ -301,7 +304,8 @@ final class StructureMinerWorkPage {
                     y,
                     width,
                     Component.translatable(
-                            "screen.dimension_tech.structure_miner.output.blocked", t.pendingCount()),
+                            "screen.dimension_tech.structure_miner.output.blocked",
+                            t.pendingCount()),
                     StructureMinerTheme.ERROR);
         } else {
             StructureMinerTheme.statusChip(

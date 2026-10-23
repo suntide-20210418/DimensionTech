@@ -60,9 +60,7 @@ public class ModItemModelsProvider extends ItemModelProvider {
             ModFluids.FRACTAL_ESSENCE
         };
         for (int i = 0; i < fluidBuckets.length; i++) {
-            withExistingParent(
-                            fluidBuckets[i],
-                            new ResourceLocation("forge", "item/bucket"))
+            withExistingParent(fluidBuckets[i], new ResourceLocation("forge", "item/bucket"))
                     .customLoader(DynamicFluidContainerModelBuilder::begin)
                     .fluid(fluids[i].source().get());
         }

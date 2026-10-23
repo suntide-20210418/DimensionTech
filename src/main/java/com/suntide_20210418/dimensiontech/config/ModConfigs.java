@@ -32,9 +32,12 @@ public final class ModConfigs {
                 new StructureMinerTierConfig[] {
                     new StructureMinerTierConfig(builder, "tier1", 1, 0.0D, 1, 100000, 1024, 1.0D),
                     new StructureMinerTierConfig(builder, "tier2", 3, 1.0D, 2, 400000, 4096, 2.0D),
-                    new StructureMinerTierConfig(builder, "tier3", 5, 2.0D, 3, 1600000, 16384, 3.0D),
-                    new StructureMinerTierConfig(builder, "tier4", 7, 4.0D, 4, 6400000, 65536, 4.0D),
-                    new StructureMinerTierConfig(builder, "tier5", 9, 8.0D, 6, 25600000, 262144, 5.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier3", 5, 2.0D, 3, 1600000, 16384, 3.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier4", 7, 4.0D, 4, 6400000, 65536, 4.0D),
+                    new StructureMinerTierConfig(
+                            builder, "tier5", 9, 8.0D, 6, 25600000, 262144, 5.0D),
                     new StructureMinerTierConfig(
                             builder, "tier6", 11, 16.0D, 9, 102400000, 1048576, 6.0D)
                 };

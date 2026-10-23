@@ -92,8 +92,7 @@ public final class DimensionTechJS {
                             return override == null
                                     ? step
                                     : new StateStep<ItemStack>(
-                                            step.state(),
-                                            OperationMatcher.of(override));
+                                            step.state(), OperationMatcher.of(override));
                         })
                 .toList();
     }
@@ -161,8 +160,7 @@ public final class DimensionTechJS {
          * Overrides the ritual operation item for one state in one branch. {@code stateName} must
          * occur in that branch's DSL.
          */
-        public ReactorRecipeJS overrideOperation(
-                String side, String stateName, Object ingredient) {
+        public ReactorRecipeJS overrideOperation(String side, String stateName, Object ingredient) {
             Ingredient parsed = parseIngredient(ingredient);
             (isB(side) ? overridesB : overridesA).put(stateName, parsed);
             return this;

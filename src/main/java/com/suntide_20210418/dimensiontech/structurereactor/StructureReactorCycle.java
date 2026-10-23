@@ -62,8 +62,10 @@ public final class StructureReactorCycle<S> {
     private int carriedExtraRecursion;
     private boolean carriedRecursionAlreadySettled = true;
     private int extraFragmentCost;
+
     /** Outcome recorded for each settled sequence step; {@code NONE} until a step settles. */
     private final List<Resolution> stateOutcomes = new ArrayList<>();
+
     private Status status = Status.IDLE;
 
     /** Starts a cycle that keeps the branch persisted on this state machine. */
@@ -122,7 +124,8 @@ public final class StructureReactorCycle<S> {
         StateStep<S> expected = currentStep();
         StateId expectedState = expected.state();
         StateId submitted = stateFor(stack);
-        if (submitted == expectedState && expected.operation().test(stack)) return correct(actionIndex);
+        if (submitted == expectedState && expected.operation().test(stack))
+            return correct(actionIndex);
         if (submitted == null) {
             timePenalty += WRONG_STATE_TIME_PENALTY_TICKS;
             stateTicks = 0;
@@ -200,8 +203,7 @@ public final class StructureReactorCycle<S> {
                 case STABILIZE -> settleStabilizeReward();
             }
         }
-        recordOutcome(
-                actionIndex, rewarded ? Resolution.CORRECT_REWARDED : Resolution.CORRECT);
+        recordOutcome(actionIndex, rewarded ? Resolution.CORRECT_REWARDED : Resolution.CORRECT);
         if (id == StateId.RECURSE) currentDepth++;
         stateIndex++;
         stateTicks = 0;

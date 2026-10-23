@@ -33,8 +33,8 @@ final class ReadingFormat {
      * Fixed-point format for a reading — {@code %.2f} at the current precision.
      *
      * <p>Assembled from {@link #DECIMALS} rather than written out, because Java's formatter takes a
-     * literal precision only: {@code "%.*f"} is C syntax and throws
-     * {@code UnknownFormatConversionException} here.
+     * literal precision only: {@code "%.*f"} is C syntax and throws {@code
+     * UnknownFormatConversionException} here.
      */
     private static final String FIXED_FORMAT = "%." + DECIMALS + "f";
 

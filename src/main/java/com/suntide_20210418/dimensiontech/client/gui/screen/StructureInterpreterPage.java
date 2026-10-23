@@ -7,7 +7,6 @@ final class StructureInterpreterPage {
     private StructureInterpreterPage() {}
 
     static void render(StructureDataOperatorScreen s, GuiGraphics g, int mx, int my) {
-        StructureDataIntegratorPage.renderSource(
-                s, g, mx, my, StructureMinerTheme.AMBER);
+        StructureDataIntegratorPage.renderSource(s, g, mx, my, StructureMinerTheme.AMBER);
     }
 }

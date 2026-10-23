@@ -144,10 +144,7 @@ public final class ChestMarkerScreen extends Screen {
         StructureMinerTheme.statusChip(
                 g,
                 font,
-                StructMarkerLayout.WIDTH
-                        - 2
-                        - StructMarkerLayout.FACE_MARGIN
-                        - chipWidth,
+                StructMarkerLayout.WIDTH - 2 - StructMarkerLayout.FACE_MARGIN - chipWidth,
                 StructMarkerLayout.CHIP_Y,
                 chipWidth,
                 label,
@@ -249,9 +246,7 @@ public final class ChestMarkerScreen extends Screen {
                 left + StructMarkerLayout.VIEWPORT.right(),
                 top + StructMarkerLayout.VIEWPORT.bottom());
         g.pose().pushPose();
-        g.pose()
-                .translate(
-                        StructMarkerLayout.VIEWPORT.x(), StructMarkerLayout.VIEWPORT.y(), 0.0D);
+        g.pose().translate(StructMarkerLayout.VIEWPORT.x(), StructMarkerLayout.VIEWPORT.y(), 0.0D);
 
         if (rows.isEmpty()) {
             StructureMinerTheme.emptyState(
@@ -263,7 +258,8 @@ public final class ChestMarkerScreen extends Screen {
                     StructMarkerLayout.VIEWPORT_H,
                     Component.translatable("screen.dimension_tech.struct_marker.no_items"));
         } else {
-            int visible = Math.min(scroll, Math.max(0, rows.size() - StructMarkerLayout.visibleRows()));
+            int visible =
+                    Math.min(scroll, Math.max(0, rows.size() - StructMarkerLayout.visibleRows()));
             for (int index = visible; index < rows.size(); index++) {
                 int y = StructMarkerLayout.rowY(index - visible);
                 if (y >= StructMarkerLayout.VIEWPORT_H) break;
@@ -306,12 +302,7 @@ public final class ChestMarkerScreen extends Screen {
                                         - expectedWidth
                                         - 6));
         g.drawString(
-                font,
-                name,
-                StructMarkerLayout.ROW_NAME_X,
-                y + 4,
-                StructureMinerTheme.INK,
-                false);
+                font, name, StructMarkerLayout.ROW_NAME_X, y + 4, StructureMinerTheme.INK, false);
         g.drawString(
                 font,
                 expected,
@@ -414,8 +405,7 @@ public final class ChestMarkerScreen extends Screen {
         };
     }
 
-    private static boolean inside(
-            double x, double y, int left, int top, int width, int height) {
+    private static boolean inside(double x, double y, int left, int top, int width, int height) {
         return x >= left && x < left + width && y >= top && y < top + height;
     }
 

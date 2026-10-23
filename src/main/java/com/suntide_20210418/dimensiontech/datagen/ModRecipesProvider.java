@@ -117,7 +117,9 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .save(writer);
     }
 
-    /** Mass-produced frame parts; one machine eats 44 casings, so the yield is deliberately high. */
+    /**
+     * Mass-produced frame parts; one machine eats 44 casings, so the yield is deliberately high.
+     */
     private void frameParts(Consumer<FinishedRecipe> writer) {
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.STRUCTURE_MINER_CASING.get())
                 .pattern("INI")

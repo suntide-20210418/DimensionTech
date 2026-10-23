@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
  * One miner tier's JEI page. The pages are split one-per-tier (a tier's page shows only that tier's
  * recipe), which is why this category is constructed with a concrete tier, recipe type and icon.
  *
- * The slot row is centred and carries the tier's real inputs (essence plus a target marker) and
+ * <p>The slot row is centred and carries the tier's real inputs (essence plus a target marker) and
  * its products (this tier's fragments, tokens, the structure's own loot and the deconstruction-core
  * chance). Each slot's explanation lives in that slot's tooltip; only the arrow keeps an on-hover
  * note about the time algorithm.
@@ -52,7 +52,10 @@ public final class StructureMinerJeiCategory
     private final int tier;
 
     public StructureMinerJeiCategory(
-            IGuiHelper guiHelper, int tier, RecipeType<StructureMinerJeiRecipe> recipeType, Block icon) {
+            IGuiHelper guiHelper,
+            int tier,
+            RecipeType<StructureMinerJeiRecipe> recipeType,
+            Block icon) {
         super(
                 recipeType,
                 Component.translatable(TranslateHelper.block("tier_" + tier + "_structure_miner")),

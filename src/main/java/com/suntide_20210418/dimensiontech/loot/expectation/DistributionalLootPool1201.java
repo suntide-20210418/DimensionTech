@@ -359,8 +359,7 @@ public final class DistributionalLootPool1201 {
             maxOneRollMapAllocations =
                     Math.max(maxOneRollMapAllocations, generated.maxMapAllocations());
             oneRollMarginal =
-                    oneRollMarginal.plus(
-                            generated.enchantmentMarginal().scale(branch.getValue()));
+                    oneRollMarginal.plus(generated.enchantmentMarginal().scale(branch.getValue()));
             for (Map.Entry<T, ExactProbability> output : generated.occurrences().entrySet()) {
                 oneRoll.merge(
                         output.getKey(),

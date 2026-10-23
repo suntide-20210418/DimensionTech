@@ -15,9 +15,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * The deconstruction-core's own JEI page: how it is earned. This page stands apart from the per-tier
- * miner pages and spells out the full source story — the mining-drop chance range, the chest pity,
- * the chest-loot path before a first miner exists, and the craft it feeds.
+ * The deconstruction-core's own JEI page: how it is earned. This page stands apart from the
+ * per-tier miner pages and spells out the full source story — the mining-drop chance range, the
+ * chest pity, the chest-loot path before a first miner exists, and the craft it feeds.
  *
  * <p>The core icon is centred and the full explanation is rendered as wrapped text directly on the
  * page, so every line is visible without a tooltip. The core is placed as the recipe's only output
@@ -38,8 +38,7 @@ public final class DeconstructionCoreJeiCategory
     public DeconstructionCoreJeiCategory(IGuiHelper guiHelper) {
         super(
                 StructureMinerJeiPlugin.CORE_TYPE,
-                Component.translatable(
-                        TranslateHelper.item("dimension_deconstruction_core")),
+                Component.translatable(TranslateHelper.item("dimension_deconstruction_core")),
                 guiHelper.createDrawableItemLike(ModItems.DIMENSION_DECONSTRUCTION_CORE.get()),
                 WIDTH,
                 HEIGHT);
@@ -60,7 +59,8 @@ public final class DeconstructionCoreJeiCategory
     @Override
     public void createRecipeExtras(
             IRecipeExtrasBuilder builder, DeconstructionCoreJeiRecipe recipe, IFocusGroup focuses) {
-        // The whole explanation wraps onto its own lines inside the reserved box, so no line is ever
+        // The whole explanation wraps onto its own lines inside the reserved box, so no line is
+        // ever
         // clipped into a tooltip — none of it is hidden.
         builder.addText(
                         StructureMinerJeiText.sourcePageLines(recipe),

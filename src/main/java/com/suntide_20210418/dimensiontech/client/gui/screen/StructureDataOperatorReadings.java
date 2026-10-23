@@ -12,10 +12,10 @@ import net.minecraft.world.item.ItemStack;
 /**
  * The four readings that describe a structure, drawn identically on every operator page.
  *
- * <p>Both console pages used to draw their readings as framed value cells — the operate page stacked
- * four of them down its left column, the catalogue pages showed two side by side under a structure
- * name — so the same data read as two different things. They share this block now: one reading per
- * line, label then value, no frame around either.
+ * <p>Both console pages used to draw their readings as framed value cells — the operate page
+ * stacked four of them down its left column, the catalogue pages showed two side by side under a
+ * structure name — so the same data read as two different things. They share this block now: one
+ * reading per line, label then value, no frame around either.
  *
  * <p>The label column is measured from the widest label so the values line up, and because it is
  * measured at draw time it stays aligned in every language.
@@ -68,17 +68,18 @@ final class StructureDataOperatorReadings {
      * Draws the readings, one per line: which dimension and structure are being described, then the
      * two values the marker carries.
      *
-     * <p>A marker without a snapshot leaves the value column showing a dash rather than collapsing the
-     * block, so the page keeps its shape while a catalogue entry is still being analysed. The two
-     * identifiers are passed in because the operate page reads them out of its marker while the
-     * catalogue pages already know which entry is selected — and an entry can be selected before its
-     * analysis lands, so the two cannot both be taken from the marker.
+     * <p>A marker without a snapshot leaves the value column showing a dash rather than collapsing
+     * the block, so the page keeps its shape while a catalogue entry is still being analysed. The
+     * two identifiers are passed in because the operate page reads them out of its marker while the
+     * catalogue pages already know which entry is selected — and an entry can be selected before
+     * its analysis lands, so the two cannot both be taken from the marker.
      *
-     * <p>{@code lineHeight} is a parameter rather than a constant because the block is not only ever
-     * placed in the operator's 152px column. The structure marker stacks these same four readings
-     * down an 88px column that owns the whole left half of its 176px-tall face, and the looser 18 is
-     * what keeps that from reading as cramped. The label column, the value accents and the dash all
-     * stay identical, which is the point of there being one implementation rather than two.
+     * <p>{@code lineHeight} is a parameter rather than a constant because the block is not only
+     * ever placed in the operator's 152px column. The structure marker stacks these same four
+     * readings down an 88px column that owns the whole left half of its 176px-tall face, and the
+     * looser 18 is what keeps that from reading as cramped. The label column, the value accents and
+     * the dash all stay identical, which is the point of there being one implementation rather than
+     * two.
      */
     static void draw(
             GuiGraphics g,
@@ -90,17 +91,7 @@ final class StructureDataOperatorReadings {
             ItemStack marker,
             ResourceLocation dimension,
             ResourceLocation structure) {
-        draw(
-                g,
-                font,
-                x,
-                y,
-                width,
-                lineHeight,
-                marker,
-                dimension,
-                structure,
-                STRUCTURE_VALUE);
+        draw(g, font, x, y, width, lineHeight, marker, dimension, structure, STRUCTURE_VALUE);
     }
 
     /**
@@ -168,7 +159,9 @@ final class StructureDataOperatorReadings {
                 StructureMinerTheme.AMBER);
     }
 
-    /** Width reserved for the label, measured so the value column lines up in the current language. */
+    /**
+     * Width reserved for the label, measured so the value column lines up in the current language.
+     */
     private static int labelColumn(Font font, Component structureValueLabel) {
         int widest = 0;
         for (Component label :
@@ -178,7 +171,9 @@ final class StructureDataOperatorReadings {
         return widest + COLUMN_GAP;
     }
 
-    /** One reading: an unremarkable label, then the value in its accent colour, on the same line. */
+    /**
+     * One reading: an unremarkable label, then the value in its accent colour, on the same line.
+     */
     private static void row(
             GuiGraphics g,
             Font font,

@@ -46,9 +46,13 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.status.ready", "Ready to commit");
         add("screen.dimension_tech.structure_reactor.status_line.current", "Status: %s  %s");
         add("screen.dimension_tech.structure_reactor.status_line.progress_value", "%s/%s ticks");
-        add("screen.dimension_tech.structure_reactor.status_line.refining_value", "elapsed %s ticks");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.refining_value",
+                "elapsed %s ticks");
         add("screen.dimension_tech.structure_reactor.status_line.sequence", "Recipe steps: ");
-        add("screen.dimension_tech.structure_reactor.status_line.progress", "Progress: %s/%s ticks");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.progress",
+                "Progress: %s/%s ticks");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.refining_progress",
                 "Progress: elapsed %s ticks");
@@ -86,8 +90,12 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.status_line.previous.none", "None");
         add("screen.dimension_tech.structure_reactor.status_line.no_recipe", "No recipe");
         add("screen.dimension_tech.structure_reactor.status_line.no_requirement", "None");
-        add("screen.dimension_tech.structure_reactor.status_line.reward_window", "Reward window %s-%s tick");
-        add("screen.dimension_tech.structure_reactor.status_line.reward_idle", "Outside reward window");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.reward_window",
+                "Reward window %s-%s tick");
+        add(
+                "screen.dimension_tech.structure_reactor.status_line.reward_idle",
+                "Outside reward window");
         add("screen.dimension_tech.structure_reactor.stage.branch", "Branch");
         add("screen.dimension_tech.structure_reactor.stage.recurse", "Recurse");
         add("screen.dimension_tech.structure_reactor.stage.converge", "Converge");
@@ -95,7 +103,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.step_outcome.rewarded", "Triggered reward");
         add("screen.dimension_tech.structure_reactor.step_outcome.normal", "Normal");
         add("screen.dimension_tech.structure_reactor.step_outcome.phase_idle", "Phase idle");
-        add("screen.dimension_tech.structure_reactor.step_outcome.early_converge", "Early converge");
+        add(
+                "screen.dimension_tech.structure_reactor.step_outcome.early_converge",
+                "Early converge");
         add(
                 "screen.dimension_tech.structure_reactor.step_outcome.recursion_overflow",
                 "Recursion overflow");
@@ -147,7 +157,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_reactor.event.recursion_overflow",
                 "Recursion overflow: %s");
-        add("screen.dimension_tech.structure_reactor.event.stabilize_failure", "Early stabilize: %s");
+        add(
+                "screen.dimension_tech.structure_reactor.event.stabilize_failure",
+                "Early stabilize: %s");
         add("screen.dimension_tech.structure_reactor.modifier.time.reward", "Time -%s");
         add("screen.dimension_tech.structure_reactor.modifier.time.penalty", "Time +%s");
         add("screen.dimension_tech.structure_reactor.modifier.fluid.reward", "Fluid -%s%%");
@@ -158,7 +170,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.modifier.time.mixed", "Time -%s/+%s");
         add("screen.dimension_tech.structure_reactor.modifier.fluid.mixed", "Fluid -%s%%/+%s%%");
         add("screen.dimension_tech.structure_reactor.modifier.output.mixed", "Output +%s%%/-%s%%");
-        add("screen.dimension_tech.structure_reactor.result", "Projected: %s ticks, %s mB -> %s mB");
+        add(
+                "screen.dimension_tech.structure_reactor.result",
+                "Projected: %s ticks, %s mB -> %s mB");
         add("screen.dimension_tech.structure_reactor.refining", "Refining %s/%s ticks");
         add("screen.dimension_tech.structure_reactor.refined", "Refined in %s ticks");
         add(
@@ -174,9 +188,7 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.control.auto_push", "Auto push");
         add("screen.dimension_tech.structure_reactor.control.me_network", "ME network");
         add("screen.dimension_tech.structure_reactor.output_face", "Output Face Config");
-        add(
-                "screen.dimension_tech.structure_reactor.redstone_control_on",
-                "Redstone control: on");
+        add("screen.dimension_tech.structure_reactor.redstone_control_on", "Redstone control: on");
         add(
                 "screen.dimension_tech.structure_reactor.redstone_control_off",
                 "Redstone control: off");
@@ -212,7 +224,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.tooltip.expected", "Expected: %s x %s mB");
         add("screen.dimension_tech.structure_reactor.tooltip.free", "Free space: %s mB");
         add("screen.dimension_tech.structure_reactor.tooltip.fragment", "Fragment requirement");
-        add("screen.dimension_tech.structure_reactor.tooltip.requirement", "Recipe requirement: %s");
+        add(
+                "screen.dimension_tech.structure_reactor.tooltip.requirement",
+                "Recipe requirement: %s");
         add(
                 "screen.dimension_tech.structure_reactor.tooltip.fragment_custom_detail",
                 "The concrete item is determined by the current recipe rule");
@@ -232,7 +246,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_reactor.tooltip.more", "%s more available items");
         add("screen.dimension_tech.structure_reactor.tooltip.timeout", "Timeout: %s ticks");
         add("screen.dimension_tech.structure_reactor.tooltip.empty_item", "Empty");
-        add("screen.dimension_tech.structure_reactor.tooltip.status.no_recipe", "No matching recipe");
+        add(
+                "screen.dimension_tech.structure_reactor.tooltip.status.no_recipe",
+                "No matching recipe");
         add("screen.dimension_tech.structure_reactor.tooltip.status.available", "Ready");
         add("screen.dimension_tech.structure_reactor.tooltip.status.insufficient", "Insufficient");
         add("screen.dimension_tech.structure_reactor.tooltip.status.mismatch", "Type mismatch");
@@ -332,16 +348,15 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "Effective efficiency: base efficiency \u00d7 efficiency upgrade multiplier");
         add(
                 "jei.dimension_tech.structure_miner.time.minimum",
-                "Below the %s-tick minimum cycle, the minimum is kept and the excess becomes parallel");
+                "Below the %s-tick minimum cycle, the minimum is kept and the excess becomes"
+                        + " parallel");
         add(
                 "jei.dimension_tech.deconstruction_core.line.chance",
                 "Mining drop: %s%%\u2013%s%% per roll (rises with miner tier)");
         add(
                 "jei.dimension_tech.deconstruction_core.line.first",
                 "Before a first miner exists, also found in chest loot");
-        add(
-                "jei.dimension_tech.deconstruction_core.line.use",
-                "Crafts the Tier 1 Structure Miner");
+        add("jei.dimension_tech.deconstruction_core.line.use", "Crafts the Tier 1 Structure Miner");
         add(
                 TranslateHelper.block("tier_1_structure_miner"),
                 "Tier 1 Void Structure Resource Miner");
@@ -357,7 +372,9 @@ public class ModEnusLangProvider extends LanguageProvider {
                     "Tier " + tier + " Void Structure Resource Miner");
         }
         add("block.dimension_tech.tier_6_structure_miner", "Tier 6 Void Structure Resource Miner");
-        add("container.dimension_tech.tier_6_structure_miner", "Tier 6 Void Structure Resource Miner");
+        add(
+                "container.dimension_tech.tier_6_structure_miner",
+                "Tier 6 Void Structure Resource Miner");
         add("block.dimension_tech.structure_miner_casing", "Miner Casing");
         add("block.dimension_tech.structure_miner_structure", "Miner Structure Block");
         add("block.dimension_tech.structure_miner_glass", "Structure Miner Glass");
@@ -405,7 +422,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.status.ready", "Ready");
         add("screen.dimension_tech.structure_miner.status.waiting_structure", "Waiting");
         add("message.dimension_tech.structure_miner.projection_on", "Multiblock projection shown");
-        add("message.dimension_tech.structure_miner.projection_off", "Multiblock projection hidden");
+        add(
+                "message.dimension_tech.structure_miner.projection_off",
+                "Multiblock projection hidden");
         add(
                 "message.dimension_tech.structure_miner.structure_complete",
                 "Structure already complete, no projection needed");
@@ -427,10 +446,10 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "Hold Shift for multiblock materials");
         add("tooltip.dimension_tech.structure_miner.materials", "Multiblock Materials");
         add("tooltip.dimension_tech.structure_miner.material.casing", "Miner Casing x%s");
-        add("tooltip.dimension_tech.structure_miner.material.structure", "Miner Structure Block x%s");
         add(
-                "tooltip.dimension_tech.structure_miner.material.glass",
-                "Structure Miner Glass x%s");
+                "tooltip.dimension_tech.structure_miner.material.structure",
+                "Miner Structure Block x%s");
+        add("tooltip.dimension_tech.structure_miner.material.glass", "Structure Miner Glass x%s");
         add(
                 "tooltip.dimension_tech.structure_miner.material.upgrade",
                 "Any Upgrade Block or Miner Structure Block x%s");
@@ -485,7 +504,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.empty", "No structures available");
         add("screen.dimension_tech.structure_operator.loading", "Analysing...");
         add("screen.dimension_tech.structure_operator.no_loot", "This structure has no loot");
-        add("screen.dimension_tech.structure_operator.select_entry", "Select a structure on the left");
+        add(
+                "screen.dimension_tech.structure_operator.select_entry",
+                "Select a structure on the left");
         add("screen.dimension_tech.structure_operator.dimension", "Dimension");
         add("screen.dimension_tech.structure_operator.structure", "Structure");
         add("screen.dimension_tech.structure_operator.virtual_approximate", "Approximate analysis");
@@ -493,11 +514,19 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.status.copied", "Copied to write slots");
         add("screen.dimension_tech.structure_operator.status.written", "Written to read slot");
         add("screen.dimension_tech.structure_operator.slot.target", "Insert Structure Marker");
-        add("screen.dimension_tech.structure_operator.slot.target.func", "Lets the operator read and analyse the structure");
+        add(
+                "screen.dimension_tech.structure_operator.slot.target.func",
+                "Lets the operator read and analyse the structure");
         add("screen.dimension_tech.structure_operator.slot.integrator", "Insert Data Integrator");
-        add("screen.dimension_tech.structure_operator.slot.integrator.func", "Unlocks the Explored Structures page");
-        add("screen.dimension_tech.structure_operator.slot.interpreter", "Insert Structure Interpreter");
-        add("screen.dimension_tech.structure_operator.slot.interpreter.func", "Unlocks the All Structures page (requires a Data Integrator)");
+        add(
+                "screen.dimension_tech.structure_operator.slot.integrator.func",
+                "Unlocks the Explored Structures page");
+        add(
+                "screen.dimension_tech.structure_operator.slot.interpreter",
+                "Insert Structure Interpreter");
+        add(
+                "screen.dimension_tech.structure_operator.slot.interpreter.func",
+                "Unlocks the All Structures page (requires a Data Integrator)");
         add("screen.dimension_tech.struct_marker.title", "Structure Marker Analysis");
         add("screen.dimension_tech.struct_marker.subtitle", "Loot expectations and value overview");
         add("screen.dimension_tech.struct_marker.dimension", "Dimension: %s");
@@ -553,14 +582,18 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_miner.auto_extract_disabled",
                 "Automatic fluid extraction: disabled");
-        add("screen.dimension_tech.structure_miner.fluid_required_type", "Accepts only this essence");
+        add(
+                "screen.dimension_tech.structure_miner.fluid_required_type",
+                "Accepts only this essence");
         add("fluid.dimension_tech.structure_essence", "Structure Essence");
         add("fluid.dimension_tech.surging_structure_essence", "Surging Structure Essence");
         add("fluid.dimension_tech.recursive_essence", "Recursive Essence");
         add("fluid.dimension_tech.surging_recursive_essence", "Surging Recursive Essence");
         add("fluid.dimension_tech.fractal_essence", "Fractal Essence");
         add("item.dimension_tech.structure_essence_bucket", "Structure Essence Bucket");
-        add("item.dimension_tech.surging_structure_essence_bucket", "Surging Structure Essence Bucket");
+        add(
+                "item.dimension_tech.surging_structure_essence_bucket",
+                "Surging Structure Essence Bucket");
         add("item.dimension_tech.recursive_essence_bucket", "Recursive Essence Bucket");
         add(
                 "item.dimension_tech.surging_recursive_essence_bucket",
@@ -589,10 +622,13 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.info.section.marker", "Marker properties");
         add("screen.dimension_tech.structure_miner.info.section.work", "Work status");
         add("screen.dimension_tech.structure_miner.info.section.products", "Products and actions");
-        add("screen.dimension_tech.structure_miner.hint.slot_toggle",
+        add(
+                "screen.dimension_tech.structure_miner.hint.slot_toggle",
                 "Right-click a slot to enable or disable that thread");
         add("screen.dimension_tech.structure_miner.expected_item.enable", "Click to enable output");
-        add("screen.dimension_tech.structure_miner.expected_item.disable", "Click to disable output");
+        add(
+                "screen.dimension_tech.structure_miner.expected_item.disable",
+                "Click to disable output");
         add("screen.dimension_tech.structure_miner.natural_progress", "Natural ticks: %s / %s");
         add("screen.dimension_tech.structure_miner.actual_progress", "Actual ticks: %s / %s (x%s)");
         add(
@@ -612,7 +648,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.attribute.installed", "Installed upgrades");
         add("screen.dimension_tech.structure_miner.attribute.upgrade_count", "×%s");
         add("screen.dimension_tech.structure_miner.attribute.total_short", "Total %s");
-        add("screen.dimension_tech.structure_miner.attribute.summary_counts", "Focus %s | Combo %s");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.summary_counts",
+                "Focus %s | Combo %s");
         add(
                 "screen.dimension_tech.structure_miner.attribute.efficiency_value",
                 "Effective efficiency: %s");
@@ -628,7 +666,9 @@ public class ModEnusLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_miner.attribute.luck_value", "Effective luck: %s");
         add("screen.dimension_tech.structure_miner.attribute.bonus", "Final bonus: +%s%%");
         add("screen.dimension_tech.structure_miner.attribute.reduction", "Final reduction: %s%%");
-        add("screen.dimension_tech.structure_miner.attribute.total_count", "Total upgrade blocks: %s");
+        add(
+                "screen.dimension_tech.structure_miner.attribute.total_count",
+                "Total upgrade blocks: %s");
         add(
                 "screen.dimension_tech.structure_miner.attribute.upgrade_breakdown",
                 "Focused upgrades: %s, aggregate upgrades: %s");
@@ -655,17 +695,23 @@ public class ModEnusLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_miner.marker_info.select",
                 "Click a slot above to select a marker");
-        add("screen.dimension_tech.structure_miner.marker_info.unconfigured", "No structure marker");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.unconfigured",
+                "No structure marker");
         add("screen.dimension_tech.structure_miner.marker_info.structure", "Slot %s: %s");
         add("screen.dimension_tech.structure_miner.marker_info.dimension", "Dimension: %s");
-        add("screen.dimension_tech.structure_miner.marker_info.parallel_status", "Parallel: %s / %s");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.parallel_status",
+                "Parallel: %s / %s");
         add(
                 "screen.dimension_tech.structure_miner.marker_info.dimension_value",
                 "Dimension value: %s");
         add(
                 "screen.dimension_tech.structure_miner.marker_info.structure_value",
                 "Structure value: %s");
-        add("screen.dimension_tech.structure_miner.marker_info.expected_items", "Item expectations");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.expected_items",
+                "Item expectations");
         add(
                 "screen.dimension_tech.structure_miner.marker_info.loading",
                 "Calculating effective machine expectations...");
@@ -673,10 +719,16 @@ public class ModEnusLangProvider extends LanguageProvider {
                 "screen.dimension_tech.structure_miner.marker_info.no_items",
                 "No item expectations available");
         add("screen.dimension_tech.structure_miner.slot.enable", "Enable selected slot");
-        add("screen.dimension_tech.structure_miner.slot.enable_right", "Right-click to enable this thread");
-        add("screen.dimension_tech.structure_miner.slot.disable_right", "Right-click to disable this thread");
+        add(
+                "screen.dimension_tech.structure_miner.slot.enable_right",
+                "Right-click to enable this thread");
+        add(
+                "screen.dimension_tech.structure_miner.slot.disable_right",
+                "Right-click to disable this thread");
         add("screen.dimension_tech.structure_miner.slot.disable", "Disable selected slot");
-        add("screen.dimension_tech.structure_miner.marker_info.parallel", "Total parallel: %s  [%s]");
+        add(
+                "screen.dimension_tech.structure_miner.marker_info.parallel",
+                "Total parallel: %s  [%s]");
         add("screen.dimension_tech.structure_miner.marker_info.parallel.expand", "Click to expand");
         add(
                 "screen.dimension_tech.structure_miner.marker_info.parallel.collapse",

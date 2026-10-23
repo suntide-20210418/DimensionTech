@@ -85,7 +85,8 @@ public final class StructureMinerLootMergeGameTests {
                 }
                 java.util.Arrays.sort(samples);
                 DimensionTechMod.LOGGER.info(
-                        "Structure miner linear merge baseline: {} ns/merge ({} distinct stacks, {})",
+                        "Structure miner linear merge baseline: {} ns/merge ({} distinct stacks,"
+                                + " {})",
                         samples[samples.length / 2] / 250,
                         existingStacks,
                         mergeCase.name().toLowerCase(java.util.Locale.ROOT));

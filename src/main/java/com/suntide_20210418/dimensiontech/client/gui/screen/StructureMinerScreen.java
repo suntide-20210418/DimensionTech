@@ -35,19 +35,22 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
             new ResourceLocation("dimension_tech", "guis/void_structre_miner.png");
     private static final ResourceLocation OUTPUT_FACE_TEXTURE =
             new ResourceLocation("dimension_tech", "guis/output_face_config.png");
+
     /**
      * Real pixel size of {@link #GUI_TEXTURE}. {@code blit} normalises UVs by the size it is handed
      * ({@code (uOffset + uWidth) / textureWidth}), so it has to match the file exactly or every
-     * region silently samples the wrong columns. Two pixels of lie on the width is enough: the energy
-     * strip loses its last column to the panel and the fluid overlay reaches back into the energy
-     * strip. Package-private so the contract test can pin the pair to the file's own header.
+     * region silently samples the wrong columns. Two pixels of lie on the width is enough: the
+     * energy strip loses its last column to the panel and the fluid overlay reaches back into the
+     * energy strip. Package-private so the contract test can pin the pair to the file's own header.
      */
     static final int TEXTURE_WIDTH = 256, TEXTURE_HEIGHT = 256;
+
     /**
      * Control panel region: (0,0) to (243,161). The dark outline on column 244 / row 162 is outside
      * it, matching the measured 244x162.
      */
     private static final int PANEL_WIDTH = 244, PANEL_HEIGHT = 162;
+
     private static final int GUI_WIDTH = 255;
     private static final int GUI_HEIGHT = 254;
     private static final int INFO_X = 32, INFO_Y = 33, INFO_W = 208, INFO_H = 123;
@@ -63,10 +66,15 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     /** Body ink for the light panel face. Also read by {@code OutputFaceConfigScreen}. */
     static final int INK = StructureMinerTheme.INK;
-    /** Energy fill artwork in the texture: (245,0) to (249,143) inclusive, i.e. 5 wide, 144 tall. */
+
+    /**
+     * Energy fill artwork in the texture: (245,0) to (249,143) inclusive, i.e. 5 wide, 144 tall.
+     */
     private static final int ENERGY_U = 245, ENERGY_V = 0, ENERGY_SRC_W = 5, ENERGY_SRC_H = 144;
+
     /** The well it fills: x 7..11, filled bottom-up, so the last row it can reach is 154. */
     private static final int ENERGY_BAR_X = 7, ENERGY_BAR_BOTTOM = 155, ENERGY_BAR_H = 121;
+
     private static final int LEFT_CONTROLS_WIDTH = 30;
 
     /**
@@ -96,6 +104,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     private final StructureMinerUiState uiState = new StructureMinerUiState();
     private int markerInfoContentHeight;
     private int attributeContentHeight;
+
     /**
      * Expected products as reported by the last analysis packet.
      *
@@ -103,6 +112,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
      * they change. See {@link #expectedItemRows()} for why the item wins.
      */
     private List<ExpectedItemRow> analysisRows = List.of();
+
     private Set<ResourceLocation> disabledExpectedItems = Set.of();
 
     /**
@@ -244,8 +254,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     /**
      * Expected products for the selected marker, read from the marker item first.
      *
-     * <p>The item carries the exact expectations the marking pass persisted. That makes it the right
-     * source rather than the async snapshot: when a machine cannot recompute a loot table the
+     * <p>The item carries the exact expectations the marking pass persisted. That makes it the
+     * right source rather than the async snapshot: when a machine cannot recompute a loot table the
      * snapshot comes back empty, and an empty result printed as data is worse than no result.
      */
     @Override
@@ -266,15 +276,16 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     }
 
     /**
-     * Breaks down every equipment row into the materials that craft it and merges those materials with
-     * any other source of the same item, so the result is a single unified resource total with no
-     * equipment left standing.
+     * Breaks down every equipment row into the materials that craft it and merges those materials
+     * with any other source of the same item, so the result is a single unified resource total with
+     * no equipment left standing.
      *
-     * <p>The marker item persists raw loot (including equipment) independent of the miner's dismantling
-     * toggle, so the breakdown has to happen here, on the client. {@link
-     * EquipmentDismantler#dismantle} is passed a {@code null} level: the primary-material path it uses
-     * for the common armour and tool cases needs no recipe manager, and only the rare recipe-lookup
-     * fallback is skipped — leaving such an item intact is acceptable rather than guessing at it.
+     * <p>The marker item persists raw loot (including equipment) independent of the miner's
+     * dismantling toggle, so the breakdown has to happen here, on the client. {@link
+     * EquipmentDismantler#dismantle} is passed a {@code null} level: the primary-material path it
+     * uses for the common armour and tool cases needs no recipe manager, and only the rare
+     * recipe-lookup fallback is skipped — leaving such an item intact is acceptable rather than
+     * guessing at it.
      */
     private static List<ExpectedItemRow> dismantledRows(List<ExpectedItemRow> rows) {
         Map<ResourceLocation, Double> expectations = new LinkedHashMap<>();
@@ -293,7 +304,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         result.sort(
                 Comparator.comparingDouble(ExpectedItemRow::expected)
                         .reversed()
-                        .thenComparing(row -> BuiltInRegistries.ITEM.getKey(row.item()).toString()));
+                        .thenComparing(
+                                row -> BuiltInRegistries.ITEM.getKey(row.item()).toString()));
         return List.copyOf(result);
     }
 
@@ -304,8 +316,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     /**
      * The marker item is the authority for these numbers. It is what the marking pass persisted, so
-     * it still reads correctly on a machine whose own recomputation yields nothing — which is exactly
-     * the case where the async snapshot shows zero and looks like a real reading.
+     * it still reads correctly on a machine whose own recomputation yields nothing — which is
+     * exactly the case where the async snapshot shows zero and looks like a real reading.
      */
     @Override
     public double effectiveDimensionValue() {
@@ -345,7 +357,9 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                 : menu.slots.get(slot).getItem();
     }
 
-    /** Turns the marker's persisted exact expectations into display rows, sorted like the packet's. */
+    /**
+     * Turns the marker's persisted exact expectations into display rows, sorted like the packet's.
+     */
     private static List<ExpectedItemRow> rowsFromCounts(
             Map<ResourceLocation, ExactProbability> counts) {
         List<ExpectedItemRow> rows = new ArrayList<>(counts.size());
@@ -379,8 +393,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     /**
      * Resolves the marker cell under a panel-local point, or {@code -1}.
      *
-     * <p>Deliberately does not consult {@code menu.slots}: the menu parks those off-screen, so the lane
-     * is the only authority on where its cells are drawn.
+     * <p>Deliberately does not consult {@code menu.slots}: the menu parks those off-screen, so the
+     * lane is the only authority on where its cells are drawn.
      */
     private int markerSlotAt(double localX, double localY) {
         if (uiState.page == Page.ATTRIBUTES) return -1;
@@ -390,7 +404,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     private static final int TAB_Y = 31;
     private static final int TAB_HEIGHT = 13;
 
-    public StructureMinerScreen(StructureMinerMenu menu, Inventory playerInventory, Component title) {
+    public StructureMinerScreen(
+            StructureMinerMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         imageWidth = GUI_WIDTH;
         imageHeight = GUI_HEIGHT;
@@ -429,7 +444,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         renderBackground(graphics);
         int logicalMouseX = toLogical(mouseX);
         int logicalMouseY = toLogical(mouseY);
-        // Traced here rather than inside the pages so the lane has one source of hover truth for both
+        // Traced here rather than inside the pages so the lane has one source of hover truth for
+        // both
         // the work page's lane and the info page's selector, which share the same grid.
         uiState.hoveredMarkerSlot = markerSlotAt(logicalMouseX - leftPos, logicalMouseY - topPos);
         graphics.pose().pushPose();
@@ -511,10 +527,14 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                     mouseX,
                     mouseY);
         }
-        // Page-owned hovers go through the page router, so a tooltip can only ever describe something
-        // the page actually drew. It is gated to the page canvas: below it, the player inventory owns
-        // the hover, and the inventory's own item tooltip must not be covered. Panel-local coordinates
-        // feed its hit tests; the raw GUI-scaled pair is handed over separately because renderTooltip
+        // Page-owned hovers go through the page router, so a tooltip can only ever describe
+        // something
+        // the page actually drew. It is gated to the page canvas: below it, the player inventory
+        // owns
+        // the hover, and the inventory's own item tooltip must not be covered. Panel-local
+        // coordinates
+        // feed its hit tests; the raw GUI-scaled pair is handed over separately because
+        // renderTooltip
         // draws in window space and ignores the pose.
         if (insidePageCanvas(logicalMouseX - leftPos, logicalMouseY - topPos)) {
             StructureMinerPageRenderer.renderTooltip(
@@ -575,8 +595,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     /**
      * Top of the scrolling page's viewport, or {@code -1} when the current page does not scroll.
      *
-     * <p>The scrollbar is shared chrome between the two scrolling pages, exactly like the tab strip,
-     * so the screen owns the gesture while the pages only own their content.
+     * <p>The scrollbar is shared chrome between the two scrolling pages, exactly like the tab
+     * strip, so the screen owns the gesture while the pages only own their content.
      */
     private int scrollViewportY() {
         return switch (uiState.page) {
@@ -595,8 +615,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     }
 
     /**
-     * Height the pages last reported. The pages write it while drawing, so it is always the height of
-     * what is on screen rather than a value guessed from the menu.
+     * Height the pages last reported. The pages write it while drawing, so it is always the height
+     * of what is on screen rather than a value guessed from the menu.
      */
     private int scrollContentHeight() {
         return uiState.page == Page.ATTRIBUTES ? attributeContentHeight : markerInfoContentHeight;
@@ -648,8 +668,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     /**
      * True when a panel-local point sits inside the current page's canvas. The canvas stops above
-     * the player inventory, so click, drag and wheel handling bound to it never leak into the
-     * slots underneath the machine.
+     * the player inventory, so click, drag and wheel handling bound to it never leak into the slots
+     * underneath the machine.
      */
     private boolean insidePageCanvas(double localX, double localY) {
         return StructureMinerInfoLayout.inside(
@@ -759,7 +779,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     @Override
     public boolean mouseDragged(
             double mouseX, double mouseY, int button, double dragX, double dragY) {
-        // Checked before the page guard below: that guard exists to stop drags reaching vanilla slot
+        // Checked before the page guard below: that guard exists to stop drags reaching vanilla
+        // slot
         // handling, and it used to swallow scrollbar drags too, leaving the bar inert.
         if (updateScrollbarDrag(mouseY / uiScale - topPos)) return true;
         double localX = mouseX / uiScale - leftPos;
@@ -860,8 +881,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     /**
      * Projects a panel-local x into the absolute GUI space that scissor rectangles live in. {@code
-     * GuiGraphics.enableScissor} applies the window GUI scale only and ignores the render pose, so a
-     * scissor built from panel-local coordinates clips in the wrong place entirely.
+     * GuiGraphics.enableScissor} applies the window GUI scale only and ignores the render pose, so
+     * a scissor built from panel-local coordinates clips in the wrong place entirely.
      */
     private int toScreenX(int panelX) {
         return Math.round((leftPos + panelX) * uiScale);
@@ -899,8 +920,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     /**
      * The torch is the control's identity, so it is drawn in every mode; the mode itself only adds
-     * or removes the "off" marker stacked on top of it. Both sit
-     * {@link StructureMinerInfoLayout#REDSTONE_ICON_RISE} pixels above the ordinary icon slots.
+     * or removes the "off" marker stacked on top of it. Both sit {@link
+     * StructureMinerInfoLayout#REDSTONE_ICON_RISE} pixels above the ordinary icon slots.
      */
     private void drawRedstoneControlIcon(GuiGraphics g, int buttonX, int buttonY) {
         int iconX = buttonX + StructureMinerInfoLayout.EXTERNAL_ICON_INSET;
@@ -928,12 +949,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
         graphics.drawString(font, title, 4, 4, INK, false);
         if (uiState.page == Page.WORK) {
             GuiText.centered(
-                    graphics,
-                    font,
-                    playerInventoryTitle,
-                    imageWidth / 2,
-                    inventoryLabelY,
-                    INK);
+                    graphics, font, playerInventoryTitle, imageWidth / 2, inventoryLabelY, INK);
         }
     }
 
@@ -1012,16 +1028,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                 TEXTURE_WIDTH,
                 TEXTURE_HEIGHT);
         graphics.blit(
-                GUI_TEXTURE,
-                x + 35,
-                y + 167,
-                0,
-                35,
-                167,
-                175,
-                87,
-                TEXTURE_WIDTH,
-                TEXTURE_HEIGHT);
+                GUI_TEXTURE, x + 35, y + 167, 0, 35, 167, 175, 87, TEXTURE_WIDTH, TEXTURE_HEIGHT);
     }
 
     private void drawHeader(GuiGraphics graphics) {
@@ -1040,7 +1047,8 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
                         default -> StructureMinerInfoLayout.ATTR_BUTTON_X;
                     };
             boolean selected = uiState.page == pages[index];
-            StructureMinerSpriteRenderer.button(graphics, x, StructureMinerInfoLayout.BUTTON_Y, selected);
+            StructureMinerSpriteRenderer.button(
+                    graphics, x, StructureMinerInfoLayout.BUTTON_Y, selected);
             Component label = Component.translatable(labels[index]);
             String text = font.plainSubstrByWidth(label.getString(), 30);
             graphics.drawString(font, text, x + 16 - font.width(text) / 2, 19, INK, false);
@@ -1115,7 +1123,9 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
     private void drawEnergyRail(GuiGraphics graphics) {
         int filled =
                 fillPixels(
-                        menu.getEnergyStored(), Math.max(1, menu.getEnergyCapacity()), ENERGY_BAR_H);
+                        menu.getEnergyStored(),
+                        Math.max(1, menu.getEnergyCapacity()),
+                        ENERGY_BAR_H);
         if (filled > 0) {
             graphics.blit(
                     GUI_TEXTURE,
@@ -1151,9 +1161,7 @@ public final class StructureMinerScreen extends AbstractContainerScreen<Structur
 
     /** A percentage held as hundredths, with trailing zeros stripped: 20 -> "20", 25 -> "0.25". */
     static String formatPercent(int hundredths) {
-        return java.math.BigDecimal.valueOf(hundredths, 2)
-                .stripTrailingZeros()
-                .toPlainString();
+        return java.math.BigDecimal.valueOf(hundredths, 2).stripTrailingZeros().toPlainString();
     }
 
     /** A configured percentage, already in whole percent: 20.0 -> "20", 12.5 -> "12.5". */

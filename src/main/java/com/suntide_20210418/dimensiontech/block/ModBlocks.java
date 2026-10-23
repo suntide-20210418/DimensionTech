@@ -96,9 +96,11 @@ public final class ModBlocks {
     public static final RegistryObject<Block>[] UPGRADE_ENERGY_TIERS =
             upgradeTiers("energy", StructureMinerUpgradeBlock.Type.ENERGY, UPGRADE_ENERGY);
     public static final RegistryObject<Block>[] UPGRADE_EFFICIENCY_TIERS =
-            upgradeTiers("efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
+            upgradeTiers(
+                    "efficiency", StructureMinerUpgradeBlock.Type.EFFICIENCY, UPGRADE_EFFICIENCY);
     public static final RegistryObject<Block>[] UPGRADE_AGGREGATE_TIERS =
             upgradeTiers("aggregate", StructureMinerUpgradeBlock.Type.AGGREGATE, UPGRADE_AGGREGATE);
+
     private static RegistryObject<Block> upgrade(
             String name, StructureMinerUpgradeBlock.Type type, int tier) {
         return BLOCKS.register(

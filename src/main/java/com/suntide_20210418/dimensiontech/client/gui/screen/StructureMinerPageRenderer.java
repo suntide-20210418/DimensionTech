@@ -9,15 +9,16 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * Routes page content and page-scoped interaction to the page that owns it.
  *
- * <p>Dispatch lives here so the screen stays a shell: it owns the window, the control rail and the tab
- * strip, while each page owns everything inside the viewport — including where its own clickable rows
- * are. Asking the page rather than recomputing its layout here is what keeps a click landing on the
- * row that was actually drawn, even when rows change height as they expand.
+ * <p>Dispatch lives here so the screen stays a shell: it owns the window, the control rail and the
+ * tab strip, while each page owns everything inside the viewport — including where its own
+ * clickable rows are. Asking the page rather than recomputing its layout here is what keeps a click
+ * landing on the row that was actually drawn, even when rows change height as they expand.
  */
 final class StructureMinerPageRenderer {
     private StructureMinerPageRenderer() {}
 
-    static void render(StructureMinerScreenContext context, GuiGraphics g, StructureMinerScreen.Page page) {
+    static void render(
+            StructureMinerScreenContext context, GuiGraphics g, StructureMinerScreen.Page page) {
         switch (page) {
             case WORK -> StructureMinerWorkPage.render(context, g);
             case INFO -> StructureMinerInfoPage.render(context, g);
@@ -43,15 +44,16 @@ final class StructureMinerPageRenderer {
         switch (page) {
             case WORK -> StructureMinerWorkPage.renderTooltip(c, g, x, y, screenX, screenY);
             case INFO -> StructureMinerInfoPage.renderTooltip(c, g, x, y, screenX, screenY);
-            case ATTRIBUTES -> StructureMinerAttributesPage.renderTooltip(c, g, x, y, screenX, screenY);
+            case ATTRIBUTES ->
+                    StructureMinerAttributesPage.renderTooltip(c, g, x, y, screenX, screenY);
         }
     }
 
     /**
-     * @return {@code true} when the page consumed the click. The work page returns {@code false} for
-     *     anything that is not part of its lane. The scrolling pages own every primary click inside
-     *     their canvas, and {@code false} everywhere else, so the player inventory below the canvas
-     *     stays vanilla's to handle.
+     * @return {@code true} when the page consumed the click. The work page returns {@code false}
+     *     for anything that is not part of its lane. The scrolling pages own every primary click
+     *     inside their canvas, and {@code false} everywhere else, so the player inventory below the
+     *     canvas stays vanilla's to handle.
      */
     static boolean mouseClicked(
             StructureMinerScreenContext c,
@@ -83,9 +85,8 @@ final class StructureMinerPageRenderer {
      * <p>Position is gated by the screen before this is reached: the wheel applies over the page
      * canvas but not over the player inventory. Pages draw at {@code viewportY - scroll}, so a
      * larger offset looks further down the content. GLFW reports a positive y-offset for a wheel
-     * pushed away, which must show content above, so the wheel sign is inverted: wheel down
-     * (delta &lt; 0) increases the offset. This matches vanilla's creative inventory, which subtracts
-     * too.
+     * pushed away, which must show content above, so the wheel sign is inverted: wheel down (delta
+     * &lt; 0) increases the offset. This matches vanilla's creative inventory, which subtracts too.
      */
     static boolean mouseScrolled(
             StructureMinerScreenContext c, StructureMinerScreen.Page page, double delta) {
@@ -97,13 +98,17 @@ final class StructureMinerPageRenderer {
         return switch (page) {
             case INFO -> {
                 int max =
-                        Math.max(0, c.markerInfoContentHeight() - StructureMinerInfoLayout.INFO_LIST_H);
+                        Math.max(
+                                0,
+                                c.markerInfoContentHeight() - StructureMinerInfoLayout.INFO_LIST_H);
                 c.markerInfoScroll(Math.max(0, Math.min(max, c.markerInfoScroll() + step)));
                 yield true;
             }
             case ATTRIBUTES -> {
                 int max =
-                        Math.max(0, c.attributeContentHeight() - StructureMinerInfoLayout.ATTR_LIST_H);
+                        Math.max(
+                                0,
+                                c.attributeContentHeight() - StructureMinerInfoLayout.ATTR_LIST_H);
                 c.attributeScroll(Math.max(0, Math.min(max, c.attributeScroll() + step)));
                 yield true;
             }
@@ -135,10 +140,10 @@ final class StructureMinerPageRenderer {
     /**
      * Flips a thread's enabled flag, but only where the lane can draw the answer back.
      *
-     * <p>An empty slot refuses rather than forwarding: the server would flip a flag nothing renders,
-     * so the player would see a click that did nothing at all. Everything else falls through to
-     * vanilla so right-click stays a working inventory gesture — including on a slot holding some
-     * other item, which the menu still lets through.
+     * <p>An empty slot refuses rather than forwarding: the server would flip a flag nothing
+     * renders, so the player would see a click that did nothing at all. Everything else falls
+     * through to vanilla so right-click stays a working inventory gesture — including on a slot
+     * holding some other item, which the menu still lets through.
      */
     private static boolean toggleMarkerSlot(StructureMinerScreenContext c, double x, double y) {
         int count = c.menu().getContainerSlotCount();
@@ -178,5 +183,4 @@ final class StructureMinerPageRenderer {
         }
         return true;
     }
-
 }

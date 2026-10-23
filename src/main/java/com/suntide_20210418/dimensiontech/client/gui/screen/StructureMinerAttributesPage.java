@@ -27,8 +27,8 @@ import net.minecraft.world.item.Items;
  *
  * <p>One {@link #contentHeight} function is the only source of truth for the page's shape. The draw
  * pass, the hit test and the tooltip all advance through the same terms, so collapsing a section
- * cannot leave a clickable row where nothing is drawn — the failure mode sectioned pages are
- * famous for.
+ * cannot leave a clickable row where nothing is drawn — the failure mode sectioned pages are famous
+ * for.
  *
  * <p>This page is read-only. Upgrades are placed and removed through the multiblock itself; adding
  * install/uninstall controls here would create a second source of truth for the machine's shape.
@@ -45,6 +45,7 @@ final class StructureMinerAttributesPage {
      * Sections default to collapsed: the first screen is the readout alone, which is the point.
      */
     private static final int SECTION_COMPOSITION_KEY = -100;
+
     private static final int SECTION_UPGRADES_KEY = -101;
 
     /** Display order, independent of the enum's own order, which starts at {@code NONE}. */
@@ -89,7 +90,13 @@ final class StructureMinerAttributesPage {
         y = drawOverview(c, g, StructureMinerInfoLayout.ATTR_COL_X, y);
         y =
                 collapsibleHeader(
-                        c, g, StructureMinerInfoLayout.ATTR_COL_X, y, SECTION_COMPOSITION_KEY, "attribute.composition", null);
+                        c,
+                        g,
+                        StructureMinerInfoLayout.ATTR_COL_X,
+                        y,
+                        SECTION_COMPOSITION_KEY,
+                        "attribute.composition",
+                        null);
         if (c.upgradeRowExpanded(SECTION_COMPOSITION_KEY)) {
             y = drawComposition(c, g, StructureMinerInfoLayout.ATTR_COL_X, y);
         }
@@ -256,7 +263,13 @@ final class StructureMinerAttributesPage {
                 y + 2,
                 StructureMinerTheme.INK,
                 false);
-        g.drawString(font, value, x + StructureMinerInfoLayout.ATTR_COL_W - font.width(value), y + 2, accent, false);
+        g.drawString(
+                font,
+                value,
+                x + StructureMinerInfoLayout.ATTR_COL_W - font.width(value),
+                y + 2,
+                accent,
+                false);
         return y + StructureMinerInfoLayout.ROW_H_DATA;
     }
 
@@ -276,7 +289,12 @@ final class StructureMinerAttributesPage {
             String total) {
         boolean expanded = c.upgradeRowExpanded(key);
         Font font = c.font();
-        g.fill(x, y - 1, x + StructureMinerInfoLayout.ATTR_COL_W, y + GROUP_ROW_H - 3, StructureMinerTheme.STRIPE_INK);
+        g.fill(
+                x,
+                y - 1,
+                x + StructureMinerInfoLayout.ATTR_COL_W,
+                y + GROUP_ROW_H - 3,
+                StructureMinerTheme.STRIPE_INK);
         g.fill(x, y - 1, x + 2, y + GROUP_ROW_H - 3, StructureMinerTheme.FLUIX);
         g.drawString(font, expanded ? "-" : "+", x + 4, y + 5, StructureMinerTheme.INK, false);
         String label =
@@ -285,7 +303,8 @@ final class StructureMinerAttributesPage {
         int totalWidth = total == null ? 0 : font.width(total);
         g.drawString(
                 font,
-                font.plainSubstrByWidth(label, Math.max(1, StructureMinerInfoLayout.ATTR_COL_W - 20 - totalWidth)),
+                font.plainSubstrByWidth(
+                        label, Math.max(1, StructureMinerInfoLayout.ATTR_COL_W - 20 - totalWidth)),
                 x + 12,
                 y + 5,
                 StructureMinerTheme.INK,
@@ -308,11 +327,18 @@ final class StructureMinerAttributesPage {
         Font font = c.font();
         for (Group group : groups(c)) {
             int totalWidth = font.width(group.total());
-            g.fill(x, y - 1, x + StructureMinerInfoLayout.ATTR_COL_W, y + GROUP_ROW_H - 3, StructureMinerTheme.STRIPE_INK);
+            g.fill(
+                    x,
+                    y - 1,
+                    x + StructureMinerInfoLayout.ATTR_COL_W,
+                    y + GROUP_ROW_H - 3,
+                    StructureMinerTheme.STRIPE_INK);
             g.fill(x, y - 1, x + 2, y + GROUP_ROW_H - 3, StructureMinerTheme.FLUIX);
             g.drawString(
                     font,
-                    font.plainSubstrByWidth(group.label(), Math.max(1, StructureMinerInfoLayout.ATTR_COL_W - 18 - totalWidth)),
+                    font.plainSubstrByWidth(
+                            group.label(),
+                            Math.max(1, StructureMinerInfoLayout.ATTR_COL_W - 18 - totalWidth)),
                     x + 10,
                     y + 5,
                     StructureMinerTheme.INK,
@@ -329,7 +355,8 @@ final class StructureMinerAttributesPage {
                 g.fill(x + 8, y + 1, x + 10, y + GROUP_CHILD_H - 4, line.railColor());
                 g.drawString(
                         font,
-                        font.plainSubstrByWidth(line.text(), StructureMinerInfoLayout.ATTR_COL_W - 16),
+                        font.plainSubstrByWidth(
+                                line.text(), StructureMinerInfoLayout.ATTR_COL_W - 16),
                         x + 12,
                         y,
                         StructureMinerTheme.INK,
@@ -367,7 +394,8 @@ final class StructureMinerAttributesPage {
                 for (Line line : upgradeBonusLines(type, upgradeConfig(type, tier))) {
                     g.drawString(
                             font,
-                            font.plainSubstrByWidth(line.text(), StructureMinerInfoLayout.ATTR_COL_W - 24),
+                            font.plainSubstrByWidth(
+                                    line.text(), StructureMinerInfoLayout.ATTR_COL_W - 24),
                             x + 20,
                             y,
                             line.railColor(),
@@ -380,7 +408,8 @@ final class StructureMinerAttributesPage {
         if (!any) {
             g.drawString(
                     font,
-                    Component.translatable("screen.dimension_tech.structure_miner.attribute.no_upgrades")
+                    Component.translatable(
+                                    "screen.dimension_tech.structure_miner.attribute.no_upgrades")
                             .getString(),
                     x,
                     y + 5,
@@ -427,7 +456,8 @@ final class StructureMinerAttributesPage {
                                         Component.translatable(
                                                         "screen.dimension_tech.structure_miner.attribute.bonus",
                                                         StructureMinerScreen.formatPercent(
-                                                                menu.getEfficiencyBonusHundredths()))
+                                                                menu
+                                                                        .getEfficiencyBonusHundredths()))
                                                 .getString(),
                                         fluix))));
 
@@ -478,14 +508,16 @@ final class StructureMinerAttributesPage {
                                         Component.translatable(
                                                         "screen.dimension_tech.structure_miner.attribute.consumption_value",
                                                         StructureMinerScreen.formatCompact(
-                                                                menu.getEffectiveEnergyConsumption()))
+                                                                menu
+                                                                        .getEffectiveEnergyConsumption()))
                                                 .getString(),
                                         amber),
                                 new Line(
                                         Component.translatable(
                                                         "screen.dimension_tech.structure_miner.attribute.reduction",
                                                         StructureMinerScreen.formatPercent(
-                                                                menu.getConsumptionReductionHundredths()))
+                                                                menu
+                                                                        .getConsumptionReductionHundredths()))
                                                 .getString(),
                                         amber))));
 
@@ -525,7 +557,8 @@ final class StructureMinerAttributesPage {
 
     /** ENERGY and AGGREGATE carry more than one line by design. */
     private static List<Line> upgradeBonusLines(
-            StructureMinerUpgradeBlock.Type type, ModConfigs.StructureMinerUpgradeTierConfig config) {
+            StructureMinerUpgradeBlock.Type type,
+            ModConfigs.StructureMinerUpgradeTierConfig config) {
         List<Line> lines = new ArrayList<>(5);
         int fluix = StructureMinerTheme.FLUIX;
         int amber = StructureMinerTheme.AMBER;
@@ -581,7 +614,8 @@ final class StructureMinerAttributesPage {
 
     private static String upgradeTranslationKey(StructureMinerUpgradeBlock.Type type, int tier) {
         String key =
-                "block.dimension_tech.structure_miner_upgrade_" + type.name().toLowerCase(Locale.ROOT);
+                "block.dimension_tech.structure_miner_upgrade_"
+                        + type.name().toLowerCase(Locale.ROOT);
         return tier == 1 ? key : key + "_tier_" + tier;
     }
 
@@ -657,7 +691,9 @@ final class StructureMinerAttributesPage {
                 StructureMinerInfoLayout.ATTR_LIST_H)) {
             return Integer.MIN_VALUE;
         }
-        if (x < StructureMinerInfoLayout.ATTR_COL_X || x >= StructureMinerInfoLayout.ATTR_COL_X + StructureMinerInfoLayout.ATTR_COL_W) return Integer.MIN_VALUE;
+        if (x < StructureMinerInfoLayout.ATTR_COL_X
+                || x >= StructureMinerInfoLayout.ATTR_COL_X + StructureMinerInfoLayout.ATTR_COL_W)
+            return Integer.MIN_VALUE;
         int rowTop =
                 StructureMinerInfoLayout.ATTR_LIST_Y
                         - c.attributeScroll()
@@ -698,7 +734,9 @@ final class StructureMinerAttributesPage {
                 StructureMinerInfoLayout.ATTR_LIST_H)) {
             return;
         }
-        if (x < StructureMinerInfoLayout.ATTR_COL_X || x >= StructureMinerInfoLayout.ATTR_COL_X + StructureMinerInfoLayout.ATTR_COL_W) return;
+        if (x < StructureMinerInfoLayout.ATTR_COL_X
+                || x >= StructureMinerInfoLayout.ATTR_COL_X + StructureMinerInfoLayout.ATTR_COL_W)
+            return;
 
         int row = overviewRowAt(c, y);
         if (row < 0) return;

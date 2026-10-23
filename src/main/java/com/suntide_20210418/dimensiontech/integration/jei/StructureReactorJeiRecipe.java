@@ -1,8 +1,8 @@
 package com.suntide_20210418.dimensiontech.integration.jei;
 
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
-import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipe;
 import com.suntide_20210418.dimensiontech.structurereactor.StateId;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipe;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;

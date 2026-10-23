@@ -4,14 +4,14 @@ package com.suntide_20210418.dimensiontech.client.gui.screen;
  * Pixel-locked layout for the three miner pages.
  *
  * <p><b>Coordinate space.</b> Every value here is page-local. {@code StructureMinerScreen#drawPage}
- * translates the pose by {@code (leftPos, topPos)} and clips to {@link #INFO_X}/{@link #INFO_Y} plus
- * {@link #INFO_W}/{@link #INFO_H}, so a page draws in exactly these numbers. Only
- * {@code GuiGraphics.enableScissor} needs the absolute projection — use
- * {@code StructureMinerLayout.scaleToScreen} for that.
+ * translates the pose by {@code (leftPos, topPos)} and clips to {@link #INFO_X}/{@link #INFO_Y}
+ * plus {@link #INFO_W}/{@link #INFO_H}, so a page draws in exactly these numbers. Only {@code
+ * GuiGraphics.enableScissor} needs the absolute projection — use {@code
+ * StructureMinerLayout.scaleToScreen} for that.
  *
- * <p><b>Grid.</b> The canvas is 208x123 and content runs from {@link #CONTENT_X} to
- * {@link #CONTENT_RIGHT}. The marker lane holds up to nine {@link #MARKER_SIZE} cells at
- * {@link #MARKER_STRIDE}, centred. The vanilla slot pass is *not* responsible for that lane: the menu
+ * <p><b>Grid.</b> The canvas is 208x123 and content runs from {@link #CONTENT_X} to {@link
+ * #CONTENT_RIGHT}. The marker lane holds up to nine {@link #MARKER_SIZE} cells at {@link
+ * #MARKER_STRIDE}, centred. The vanilla slot pass is *not* responsible for that lane: the menu
  * keeps its slots off-screen and the pages draw them.
  *
  * <p><b>Page shapes.</b> Work uses a two-column meter grid (8 readings + 3 status chips); info uses
@@ -156,8 +156,8 @@ final class StructureMinerInfoLayout {
     /**
      * Marker cell index under a panel-local point, or {@code -1}.
      *
-     * <p>Lives here so the work page's lane and the info page's thread selector hit-test against the
-     * same arithmetic that draws them — the menu cannot answer this, because it parks its slots
+     * <p>Lives here so the work page's lane and the info page's thread selector hit-test against
+     * the same arithmetic that draws them — the menu cannot answer this, because it parks its slots
      * off-screen.
      */
     static int markerSlotAt(double localX, double localY, int slotCount) {
@@ -177,11 +177,12 @@ final class StructureMinerInfoLayout {
     /**
      * Marker cell whose progress strip is under a panel-local point, or {@code -1}.
      *
-     * <p>The strip band starts exactly where the cells end, so this and {@link
-     * #markerSlotAt} partition the lane: every y in it belongs to exactly one of them.
+     * <p>The strip band starts exactly where the cells end, so this and {@link #markerSlotAt}
+     * partition the lane: every y in it belongs to exactly one of them.
      */
     static int markerProgressAt(double localX, double localY, int slotCount) {
-        if (localY < MARKER_PROGRESS_Y || localY >= MARKER_PROGRESS_Y + MARKER_PROGRESS_H) return -1;
+        if (localY < MARKER_PROGRESS_Y || localY >= MARKER_PROGRESS_Y + MARKER_PROGRESS_H)
+            return -1;
         for (int slot = 0; slot < slotCount; slot++) {
             int x = laneX(slot, slotCount) + MARKER_PROGRESS_INSET;
             if (localX >= x && localX < x + MARKER_PROGRESS_W) return slot;
@@ -197,7 +198,8 @@ final class StructureMinerInfoLayout {
      * to the page canvas by the screen, which is wider than the viewport but still clear of the
      * player inventory.
      */
-    static boolean scrollColumnContains(double localX, double localY, int viewportY, int viewportH) {
+    static boolean scrollColumnContains(
+            double localX, double localY, int viewportY, int viewportH) {
         int pad = (SCROLLBAR_GRAB_W - SCROLLBAR_W) / 2;
         return localX >= SCROLLBAR_X - pad
                 && localX < SCROLLBAR_X + SCROLLBAR_W + pad

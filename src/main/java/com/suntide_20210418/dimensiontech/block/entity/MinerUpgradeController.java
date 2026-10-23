@@ -103,7 +103,8 @@ final class MinerUpgradeController {
             int luckCount = 0;
             int aggregateCount = 0;
             int[] counts = new int[StructureMinerUpgradeBlock.Type.values().length * 6];
-            for (StructureMinerUpgradeBlock block : StructureMinerMultiblock.upgrades(level, position)) {
+            for (StructureMinerUpgradeBlock block :
+                    StructureMinerMultiblock.upgrades(level, position)) {
                 if (block.getType() != StructureMinerUpgradeBlock.Type.NONE) {
                     counts[(block.getType().ordinal() - 1) * 6 + block.getTier() - 1]++;
                 }

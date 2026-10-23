@@ -34,8 +34,8 @@ final class StructureDataOperatorOperationPage {
 
     /**
      * Width of the readings column. The item table takes whatever is left, so this has to hold the
-     * label column the readings block measures — in English the labels are about twice as wide as in
-     * Chinese, and a narrower column would truncate the dimension and structure names.
+     * label column the readings block measures — in English the labels are about twice as wide as
+     * in Chinese, and a narrower column would truncate the dimension and structure names.
      */
     private static final int READINGS_W = 152;
 
@@ -93,7 +93,13 @@ final class StructureDataOperatorOperationPage {
             return;
         }
         if (!hasData) {
-            empty(g, s, TABLE_X, PAD, tableW, "screen.dimension_tech.struct_marker.selection.empty");
+            empty(
+                    g,
+                    s,
+                    TABLE_X,
+                    PAD,
+                    tableW,
+                    "screen.dimension_tech.struct_marker.selection.empty");
             return;
         }
         refresh(s);
@@ -120,18 +126,26 @@ final class StructureDataOperatorOperationPage {
     // ------------------------------------------------------------------ table
 
     private static void drawTable(
-            GuiGraphics g, StructureDataOperatorScreen s, int x, int y, int width, int mouseX, int mouseY) {
+            GuiGraphics g,
+            StructureDataOperatorScreen s,
+            int x,
+            int y,
+            int width,
+            int mouseX,
+            int mouseY) {
         int expectedX = x + width * 58 / 100;
         int multiplierX = x + width * 78 / 100;
         g.fill(x, y, x + width, y + HEADER_H, StructureMinerTheme.STRIPE_WELL);
 
-        String itemLabel = Component.translatable("screen.dimension_tech.struct_marker.item").getString();
+        String itemLabel =
+                Component.translatable("screen.dimension_tech.struct_marker.item").getString();
         String expectedLabel =
                 Component.translatable("screen.dimension_tech.struct_marker.expected").getString();
         String multiplierLabel =
                 Component.translatable("screen.dimension_tech.struct_marker.multiplier_header")
                         .getString();
-        g.drawString(s.getMinecraft().font, itemLabel, x + 3, y + 2, StructureMinerTheme.INK, false);
+        g.drawString(
+                s.getMinecraft().font, itemLabel, x + 3, y + 2, StructureMinerTheme.INK, false);
         g.drawString(
                 s.getMinecraft().font,
                 expectedLabel,
@@ -155,7 +169,8 @@ final class StructureDataOperatorOperationPage {
         if (rows.isEmpty()) {
             g.drawString(
                     s.getMinecraft().font,
-                    Component.translatable("screen.dimension_tech.struct_marker.no_items").getString(),
+                    Component.translatable("screen.dimension_tech.struct_marker.no_items")
+                            .getString(),
                     x + 3,
                     listY + 4,
                     StructureMinerTheme.DIM,
@@ -220,10 +235,10 @@ final class StructureDataOperatorOperationPage {
     /**
      * Draws the hovered row's item tooltip.
      *
-     * <p>Called from the screen's hover pass rather than from {@link #drawTable}, which runs with the
-     * pose translated onto the canvas and the scissor clipped to it. {@code renderTooltip} draws under
-     * the current pose and leaves the scissor alone, so calling it in there placed the box one canvas
-     * origin away from the cursor and cropped it at the canvas edge.
+     * <p>Called from the screen's hover pass rather than from {@link #drawTable}, which runs with
+     * the pose translated onto the canvas and the scissor clipped to it. {@code renderTooltip}
+     * draws under the current pose and leaves the scissor alone, so calling it in there placed the
+     * box one canvas origin away from the cursor and cropped it at the canvas edge.
      */
     static void renderTooltip(
             StructureDataOperatorScreen s,
@@ -252,7 +267,12 @@ final class StructureDataOperatorOperationPage {
     }
 
     private static void sortMarker(
-            GuiGraphics g, StructureDataOperatorScreen s, int headerY, Column column, int labelX, String label) {
+            GuiGraphics g,
+            StructureDataOperatorScreen s,
+            int headerY,
+            Column column,
+            int labelX,
+            String label) {
         if (sortColumn != column) return;
         g.drawString(
                 s.getMinecraft().font,

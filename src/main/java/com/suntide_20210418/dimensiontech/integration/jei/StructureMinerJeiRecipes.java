@@ -9,9 +9,9 @@ import net.minecraft.world.level.material.Fluid;
 /**
  * Builds one JEI entry per miner tier.
  *
- * <p>Everything game-live (the tier registry, config parallels, fluid and item registries) is passed
- * in as functional inputs so the adapter stays a plain, registries-free unit like the structure
- * reactor's {@link StructureReactorJeiRecipes}. The two magic numbers here mirror {@code
+ * <p>Everything game-live (the tier registry, config parallels, fluid and item registries) is
+ * passed in as functional inputs so the adapter stays a plain, registries-free unit like the
+ * structure reactor's {@link StructureReactorJeiRecipes}. The two magic numbers here mirror {@code
  * ExpectationRewardGenerator}: at most ten products per cycle and a 0.05 core chance per tier.
  */
 public final class StructureMinerJeiRecipes {

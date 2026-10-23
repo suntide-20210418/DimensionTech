@@ -1,8 +1,8 @@
 package com.suntide_20210418.dimensiontech.item;
 
 import com.suntide_20210418.dimensiontech.config.ModConfigs;
-import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkedStructure;
+import com.suntide_20210418.dimensiontech.item.StructMarkerItem.MarkerInfo;
 import com.suntide_20210418.dimensiontech.loot.expectation.AnalysisStatus;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer;
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureValueCalculator;
@@ -14,7 +14,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -31,15 +30,14 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 /**
- * 宝箱分析器：按绑定按键（默认 V）分析准星指向的宝箱；若目标是带 LootTable 引用的容器，直接以该
- * 宝箱的 LootTable 作为战利品来源做期望分析并标记它。右键（use）只打开分析界面查看已标记内容。
+ * 宝箱分析器：按绑定按键（默认 V）分析准星指向的宝箱；若目标是带 LootTable 引用的容器，直接以该 宝箱的 LootTable
+ * 作为战利品来源做期望分析并标记它。右键（use）只打开分析界面查看已标记内容。
  *
  * <p>它写入的 {@code StructureMarkerData} 与 {@link StructMarkerItem} 同构（Dimension + Position +
- * Structure{Id, Bounds}），只是 Structure.Id 固定为虚拟 id {@link #CHEST_MARKER_ID}，并把宝箱的
- * LootTable 存进 {@code ChestData} 子标签。因为下游只认 NBT 结构不认物品类型，结构数据分析仪的
- * 复制模式和结构采掘器的生产链路都能直接消费宝箱标记；唯一的分支点是分析：宝箱没有注册结构、
- * 没有模板，必须用 {@code discoverFixedForValue} 按记录在 NBT 里的 LootTable 构造 profile，而
- * 不能走按结构 id 的 {@code StructureAnalysisService.discover}。
+ * Structure{Id, Bounds}），只是 Structure.Id 固定为虚拟 id {@link #CHEST_MARKER_ID}，并把宝箱的 LootTable 存进
+ * {@code ChestData} 子标签。因为下游只认 NBT 结构不认物品类型，结构数据分析仪的 复制模式和结构采掘器的生产链路都能直接消费宝箱标记；唯一的分支点是分析：宝箱没有注册结构、
+ * 没有模板，必须用 {@code discoverFixedForValue} 按记录在 NBT 里的 LootTable 构造 profile，而 不能走按结构 id 的 {@code
+ * StructureAnalysisService.discover}。
  */
 public class ChestMarkerItem extends Item {
     /** 虚拟结构 id：不进注册表，只作为宝箱标记在 StructureMarkerData 里的占位标识。 */
@@ -73,15 +71,16 @@ public class ChestMarkerItem extends Item {
     /**
      * 读取指定位置方块的 LootTable 引用，非容器时返回 null。
      *
-     * <p>分析动作由绑定按键（默认 V）触发：客户端把准星指向的方块位置发给服务端，服务端在这里
-     * 验证并标记。不用右键方块交互，因为右键一个宝箱会优先打开它而不是分析它。
+     * <p>分析动作由绑定按键（默认 V）触发：客户端把准星指向的方块位置发给服务端，服务端在这里 验证并标记。不用右键方块交互，因为右键一个宝箱会优先打开它而不是分析它。
      */
     public static ResourceLocation lootTableAt(ServerLevel level, BlockPos position) {
         return containerLootTable(level.getBlockEntity(position));
     }
 
     private static void openScreen(
-            net.minecraft.server.level.ServerPlayer player, ItemStack itemStack, InteractionHand hand) {
+            net.minecraft.server.level.ServerPlayer player,
+            ItemStack itemStack,
+            InteractionHand hand) {
         com.suntide_20210418.dimensiontech.network.ModNetwork.openRefreshedMarker(
                 player, itemStack, hand);
     }
@@ -138,7 +137,8 @@ public class ChestMarkerItem extends Item {
                             CompoundTag markerData =
                                     itemStack.getOrCreateTagElement(MARKER_DATA_TAG);
                             String fingerprint = analysisFingerprint(level, chest);
-                            if (!fingerprint.equals(markerData.getString(ANALYSIS_FINGERPRINT_TAG))) {
+                            if (!fingerprint.equals(
+                                    markerData.getString(ANALYSIS_FINGERPRINT_TAG))) {
                                 writeAnalysis(level, markerData, chest);
                             }
                         });
@@ -175,8 +175,7 @@ public class ChestMarkerItem extends Item {
         CompoundTag markerData = itemStack.getTagElement(MARKER_DATA_TAG);
         if (markerData == null) {
             tooltip.add(
-                    TranslateHelper.translate(
-                                    TranslateHelper.tooltip("chest_marker.empty"))
+                    TranslateHelper.translate(TranslateHelper.tooltip("chest_marker.empty"))
                             .withStyle(ChatFormatting.DARK_GRAY));
             return;
         }
@@ -203,8 +202,7 @@ public class ChestMarkerItem extends Item {
                             .withStyle(ChatFormatting.GRAY));
         }
         AnalysisStatus analysisStatus = StructMarkerItem.analysisStatus(markerData);
-        if ((analysisStatus == AnalysisStatus.EXACT
-                        || analysisStatus == AnalysisStatus.APPROXIMATE)
+        if ((analysisStatus == AnalysisStatus.EXACT || analysisStatus == AnalysisStatus.APPROXIMATE)
                 && markerData.contains("StructureValue", Tag.TAG_ANY_NUMERIC)) {
             tooltip.add(
                     TranslateHelper.translate(

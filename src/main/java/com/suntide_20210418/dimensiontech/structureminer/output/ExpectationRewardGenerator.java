@@ -24,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class ExpectationRewardGenerator {
     private static final int MAX_DECONSTRUCTION_CORES = 10;
+
     private ExpectationRewardGenerator() {}
 
     public static List<ItemStack> draw(
@@ -72,8 +73,7 @@ public final class ExpectationRewardGenerator {
         List<ItemStack> merged = new ArrayList<>();
         int clampedTier = Math.max(1, Math.min(6, minerTier));
         int deconstructionCores = 0;
-        boolean coresAllowed =
-                !disabledItems.contains(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
+        boolean coresAllowed = !disabledItems.contains(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
         for (Cycle cycle : cycles) {
             MarkerAnalysis cached = cycle.loot();
             ServerLevel lootLevel =
@@ -105,7 +105,8 @@ public final class ExpectationRewardGenerator {
         if (deconstructionCores > 0) {
             mergeEquivalent(
                     merged,
-                    new ItemStack(ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), deconstructionCores));
+                    new ItemStack(
+                            ModItems.DIMENSION_DECONSTRUCTION_CORE.get(), deconstructionCores));
         }
         return List.copyOf(merged);
     }

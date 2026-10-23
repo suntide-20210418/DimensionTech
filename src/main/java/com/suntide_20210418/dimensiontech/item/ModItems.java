@@ -60,16 +60,16 @@ public final class ModItems {
             ITEMS.register(
                     "structure_interpreter", () -> new Item(new Item.Properties().stacksTo(1)));
 
-
     /**
      * The projection wrench: toggles the multiblock projection on a structure miner, and on
-     * shift+right-click builds it out of the player's inventory. It replaces the ad-hoc wooden-stick
-     * trigger in {@code BaseMinerBlock}.
+     * shift+right-click builds it out of the player's inventory. It replaces the ad-hoc
+     * wooden-stick trigger in {@code BaseMinerBlock}.
      */
     public static final RegistryObject<Item> WRENCH =
             ITEMS.register(
                     ResourceLocationHelper.getPath(WRENCH_ID),
                     () -> new WrenchItem(new Item.Properties().stacksTo(1)));
+
     public static final RegistryObject<Item> STRUCTURE_DATA_OPERATOR =
             blockItem("structure_data_operator", ModBlocks.STRUCTURE_DATA_OPERATOR);
     public static final RegistryObject<Item> STRUCTURE_REACTOR =
@@ -129,6 +129,7 @@ public final class ModItems {
             upgradeItems("efficiency", ModBlocks.UPGRADE_EFFICIENCY_TIERS, UPGRADE_EFFICIENCY);
     public static final RegistryObject<Item>[] UPGRADE_AGGREGATE_TIERS =
             upgradeItems("aggregate", ModBlocks.UPGRADE_AGGREGATE_TIERS, UPGRADE_AGGREGATE);
+
     private static RegistryObject<Item> blockItem(String name, RegistryObject<Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
@@ -166,7 +167,8 @@ public final class ModItems {
         tiers[0] = tierOne;
         for (int tier = 2; tier <= 6; tier++) {
             tiers[tier - 1] =
-                    blockItem("structure_miner_upgrade_" + name + "_tier_" + tier, blocks[tier - 1]);
+                    blockItem(
+                            "structure_miner_upgrade_" + name + "_tier_" + tier, blocks[tier - 1]);
         }
         return tiers;
     }

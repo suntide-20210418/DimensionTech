@@ -31,7 +31,9 @@ public final class StructureDataOperatorLayout {
     public static final ResourceLocation TEXTURE =
             ResourceLocationHelper.modLoc("guis/structure_data_operator.png");
 
-    /** Real file size. {@code blit} normalises UVs by whatever it is handed, so these must match. */
+    /**
+     * Real file size. {@code blit} normalises UVs by whatever it is handed, so these must match.
+     */
     public static final int TEXTURE_WIDTH = 357;
 
     public static final int TEXTURE_HEIGHT = 245;
@@ -90,8 +92,8 @@ public final class StructureDataOperatorLayout {
      * Blank panel rows kept between a section label and the first face of the block it names.
      *
      * <p>The strip between the canvas rule at {@code y=147} and the two wells is the only place a
-     * label fits: it is 15 rows tall on the left and 11 on the right, and a label box needs 9, so the
-     * gap cannot grow much beyond this without pushing the text under the canvas.
+     * label fits: it is 15 rows tall on the left and 11 on the right, and a label box needs 9, so
+     * the gap cannot grow much beyond this without pushing the text under the canvas.
      */
     public static final int SECTION_LABEL_GAP = 3;
 
@@ -109,17 +111,14 @@ public final class StructureDataOperatorLayout {
      *
      * <p>Both captions start at the same nominal gap, but the inventory well opens four rows higher
      * than the write array's — y=159 against y=163 — so its caption reads a touch high against that
-     * edge. The nudge was asked for by eye. It must stay below {@link #SECTION_LABEL_GAP}, otherwise
-     * the caption would sit on the well's rule with no blank row left between them.
+     * edge. The nudge was asked for by eye. It must stay below {@link #SECTION_LABEL_GAP},
+     * otherwise the caption would sit on the well's rule with no blank row left between them.
      */
     public static final int INVENTORY_LABEL_NUDGE = 1;
 
     /** Label box for the player inventory: the write array's gap, nudged down by one row. */
     public static final int INVENTORY_LABEL_Y =
-            PLAYER_INVENTORY_Y
-                    - SECTION_LABEL_GAP
-                    - SECTION_LABEL_HEIGHT
-                    + INVENTORY_LABEL_NUDGE;
+            PLAYER_INVENTORY_Y - SECTION_LABEL_GAP - SECTION_LABEL_HEIGHT + INVENTORY_LABEL_NUDGE;
 
     private StructureDataOperatorLayout() {}
 

@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 /** Serializes the server's loaded loot objects, including Forge load-event modifications. */
 public class RuntimeLootAstSource {
     private static final Logger LOGGER = LogUtils.getLogger();
+
     // A frozen source must be usable without initializing Minecraft's live loot registries.
     private static final class RuntimeSerializers {
         static final Gson TABLE = Deserializers.createLootTableSerializer().create();
@@ -118,7 +119,8 @@ public class RuntimeLootAstSource {
         long totalMillis = (System.nanoTime() - start) / 1_000_000L;
         if (totalMillis > 20) {
             LOGGER.warn(
-                    "[TEMP PROBE] snapshotTables roots={} tables={} preds={} mods={} totalMs={} fingerprintMs={} on {}",
+                    "[TEMP PROBE] snapshotTables roots={} tables={} preds={} mods={} totalMs={}"
+                            + " fingerprintMs={} on {}",
                     roots.size(),
                     tables.size(),
                     predicates.size(),

@@ -55,7 +55,9 @@ public record EnchantmentMarginal(Map<EnchantmentKey, ExactProbability> values) 
         return new EnchantmentMarginal(scaled);
     }
 
-    /** Scales by {@code factor}, saturating at {@link Integer#MAX_VALUE} to protect later merges. */
+    /**
+     * Scales by {@code factor}, saturating at {@link Integer#MAX_VALUE} to protect later merges.
+     */
     public EnchantmentMarginal scaleSaturating(ExactProbability factor) {
         if (values.isEmpty() || factor.isZero()) return EMPTY;
         Map<EnchantmentKey, ExactProbability> scaled = new LinkedHashMap<>();

@@ -1,6 +1,5 @@
 package com.suntide_20210418.dimensiontech.client.gui.menu;
 
-import com.suntide_20210418.dimensiontech.block.BaseMinerBlock;
 import com.suntide_20210418.dimensiontech.block.StructureMinerMultiblock;
 import com.suntide_20210418.dimensiontech.block.StructureMinerUpgradeBlock;
 import com.suntide_20210418.dimensiontech.block.entity.BaseMinerBlockEntity;
@@ -21,8 +20,7 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
-public class StructureMinerMenu extends AbstractContainerMenu
-        implements OutputFaceConfigMenu {
+public class StructureMinerMenu extends AbstractContainerMenu implements OutputFaceConfigMenu {
     public static final int BASE_PLAYER_INVENTORY_Y = 258;
     public static final int MENU_WIDTH = 320;
     public static final int FLUID_MENU_WIDTH = 376;
@@ -236,7 +234,8 @@ public class StructureMinerMenu extends AbstractContainerMenu
                                     blockEntity.getUpgradeCount(
                                             StructureMinerUpgradeBlock.Type.PARALLEL);
                             case LUCK_UPGRADE_COUNT ->
-                                    blockEntity.getUpgradeCount(StructureMinerUpgradeBlock.Type.LUCK);
+                                    blockEntity.getUpgradeCount(
+                                            StructureMinerUpgradeBlock.Type.LUCK);
                             case AGGREGATE_UPGRADE_COUNT ->
                                     blockEntity.getUpgradeCount(
                                             StructureMinerUpgradeBlock.Type.AGGREGATE);
@@ -312,12 +311,12 @@ public class StructureMinerMenu extends AbstractContainerMenu
     /**
      * Parks the marker slots outside the window, on purpose.
      *
-     * <p>{@code AbstractContainerScreen} calls {@code renderSlot} for every slot whose
-     * {@code isActive()} is true, and {@code SlotItemHandler} never overrides it — so the previous
-     * {@code (-100, -100)} drew nine marker icons just outside the panel's top-left corner, visibly
-     * rather than harmlessly. The lane is drawn by the page renderers instead, which hit-test it and
-     * forward clicks back through {@code slotClicked}; the slots only need to exist so that protocol
-     * has something to address.
+     * <p>{@code AbstractContainerScreen} calls {@code renderSlot} for every slot whose {@code
+     * isActive()} is true, and {@code SlotItemHandler} never overrides it — so the previous {@code
+     * (-100, -100)} drew nine marker icons just outside the panel's top-left corner, visibly rather
+     * than harmlessly. The lane is drawn by the page renderers instead, which hit-test it and
+     * forward clicks back through {@code slotClicked}; the slots only need to exist so that
+     * protocol has something to address.
      */
     private void addContainerSlots(IItemHandler itemHandler) {
         for (int slot = 0; slot < containerSlotCount; slot++) {
@@ -517,8 +516,8 @@ public class StructureMinerMenu extends AbstractContainerMenu
     }
 
     /**
-     * Builds the multiblock around this controller, charging the player for whatever it places.
-     * See {@link StructureMinerMultiblock#buildFromInventory} for the validation and mutation rules.
+     * Builds the multiblock around this controller, charging the player for whatever it places. See
+     * {@link StructureMinerMultiblock#buildFromInventory} for the validation and mutation rules.
      */
     private void placeMultiblockChargingMaterials(ServerLevel level, Player player) {
         Component message =

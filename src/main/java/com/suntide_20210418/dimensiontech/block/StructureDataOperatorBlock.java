@@ -74,9 +74,9 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
     }
 
     /**
-     * Opens the console. The block entity is its own {@link net.minecraft.world.MenuProvider}, which
-     * is the same wiring the structure reactor uses — the menu type is registered on both sides, so
-     * the server can construct the container without touching anything client-only.
+     * Opens the console. The block entity is its own {@link net.minecraft.world.MenuProvider},
+     * which is the same wiring the structure reactor uses — the menu type is registered on both
+     * sides, so the server can construct the container without touching anything client-only.
      */
     @Override
     public InteractionResult use(
@@ -95,9 +95,9 @@ public final class StructureDataOperatorBlock extends BaseEntityBlock {
     }
 
     /**
-     * The console keeps its slots in a Forge {@code ItemStackHandler} rather than a vanilla
-     * {@code Container}, so vanilla drops nothing by itself: every marker, integrator and
-     * interpreter in the block is returned to the world here.
+     * The console keeps its slots in a Forge {@code ItemStackHandler} rather than a vanilla {@code
+     * Container}, so vanilla drops nothing by itself: every marker, integrator and interpreter in
+     * the block is returned to the world here.
      */
     @Override
     public void onRemove(

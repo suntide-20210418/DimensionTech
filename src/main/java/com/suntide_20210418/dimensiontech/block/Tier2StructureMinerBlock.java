@@ -7,8 +7,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class Tier2StructureMinerBlock extends BaseMinerBlock {
-    public Tier2StructureMinerBlock(
-            BlockBehaviour.Properties properties) {
+    public Tier2StructureMinerBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
 

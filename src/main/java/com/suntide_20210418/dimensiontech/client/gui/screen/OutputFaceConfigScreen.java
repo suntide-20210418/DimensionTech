@@ -1,9 +1,8 @@
 package com.suntide_20210418.dimensiontech.client.gui.screen;
 
+import com.suntide_20210418.dimensiontech.client.gui.menu.OutputFaceConfigMenu;
 import java.util.List;
 import java.util.Optional;
-
-import com.suntide_20210418.dimensiontech.client.gui.menu.OutputFaceConfigMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -55,8 +54,7 @@ public final class OutputFaceConfigScreen extends Screen {
         g.pose().pushPose();
         g.pose().translate(left, top, 0);
         g.blit(
-                new ResourceLocation(
-                        "dimension_tech", "guis/output_face_config.png"),
+                new ResourceLocation("dimension_tech", "guis/output_face_config.png"),
                 0,
                 0,
                 0,
@@ -76,15 +74,12 @@ public final class OutputFaceConfigScreen extends Screen {
         Component aeLabel =
                 Component.translatable("screen.dimension_tech.structure_miner.output.ae_mode");
         Component fluidLabel =
-                Component.translatable("screen.dimension_tech.structure_miner.output.auto_pull_fluid");
+                Component.translatable(
+                        "screen.dimension_tech.structure_miner.output.auto_pull_fluid");
         // AE mode: normal frame (48,16)-(63,31), pressed frame (48,32)-(63,47).
         int controlX = controlX();
         StructureMinerSpriteRenderer.externalIcon(
-                g,
-                controlX,
-                controlY(0),
-                48,
-                menu.isModernModeEnabled() ? 32 : 16);
+                g, controlX, controlY(0), 48, menu.isModernModeEnabled() ? 32 : 16);
         StructureMinerSpriteRenderer.externalIcon(
                 g, controlX, controlY(1), 48, menu.isAutoExtractEnabled() ? 32 : 16);
         g.drawString(
@@ -135,11 +130,7 @@ public final class OutputFaceConfigScreen extends Screen {
     private ItemStack adjacentBlock(Direction d) {
         Direction world = menu.toWorldDirection(d);
         if (minecraft.level == null) return ItemStack.EMPTY;
-        var block =
-                minecraft
-                        .level
-                        .getBlockState(menu.getBlockPos().relative(world))
-                        .getBlock();
+        var block = minecraft.level.getBlockState(menu.getBlockPos().relative(world)).getBlock();
         return block.defaultBlockState().isAir()
                         || block.asItem() == net.minecraft.world.item.Items.AIR
                 ? ItemStack.EMPTY

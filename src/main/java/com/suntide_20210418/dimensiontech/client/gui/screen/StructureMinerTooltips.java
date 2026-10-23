@@ -17,12 +17,13 @@ import net.minecraft.world.item.ItemStack;
  *
  * <p>Every number comes from the getter the pages themselves draw with, so a hovered value cannot
  * disagree with a printed one. The two bodies answer different questions on purpose: a cell answers
- * "what is in here", the strip under it answers "how far along is it, and where does its parallelism
- * come from". The second would not fit anywhere on a 20px cell, so it is hover-only rather than a
- * third collapsible control.
+ * "what is in here", the strip under it answers "how far along is it, and where does its
+ * parallelism come from". The second would not fit anywhere on a 20px cell, so it is hover-only
+ * rather than a third collapsible control.
  *
- * <p>Units are load-bearing. Total and efficiency parallelism are whole units; external acceleration
- * parallel is stored in hundredths and must go through {@link StructureMinerScreen#formatDecimal}.
+ * <p>Units are load-bearing. Total and efficiency parallelism are whole units; external
+ * acceleration parallel is stored in hundredths and must go through {@link
+ * StructureMinerScreen#formatDecimal}.
  */
 final class StructureMinerTooltips {
     private StructureMinerTooltips() {}
@@ -37,8 +38,8 @@ final class StructureMinerTooltips {
      * Slot contents, where the marker points, and what a click will do.
      *
      * <p>{@code rightClickToggle} is true on the work page, where right-click is the gesture that
-     * flips a thread's enabled flag; the info-page selector reuses the same grid but only selects, so
-     * it keeps the plain enable/disable state without the misleading right-click instruction.
+     * flips a thread's enabled flag; the info-page selector reuses the same grid but only selects,
+     * so it keeps the plain enable/disable state without the misleading right-click instruction.
      */
     static void markerSlot(
             StructureMinerScreenContext c,
@@ -53,21 +54,22 @@ final class StructureMinerTooltips {
         List<Component> lines = new ArrayList<>(4);
 
         Component name =
-                info.map(
-                                markerInfo ->
-                                        TranslateHelper.structureName(markerInfo.structure().id()))
+                info.map(markerInfo -> TranslateHelper.structureName(markerInfo.structure().id()))
                         .orElse(
                                 Component.translatable(
                                         "screen.dimension_tech.structure_miner.marker_info.unconfigured"));
         lines.add(
                 Component.translatable(
-                        "screen.dimension_tech.structure_miner.marker_info.structure", slot + 1, name));
+                        "screen.dimension_tech.structure_miner.marker_info.structure",
+                        slot + 1,
+                        name));
 
         info.ifPresent(
-                markerInfo -> lines.add(
-                        Component.translatable(
-                                "screen.dimension_tech.structure_miner.marker_info.dimension",
-                                TranslateHelper.dimensionName(markerInfo.dimension()))));
+                markerInfo ->
+                        lines.add(
+                                Component.translatable(
+                                        "screen.dimension_tech.structure_miner.marker_info.dimension",
+                                        TranslateHelper.dimensionName(markerInfo.dimension()))));
 
         // A configured, enabled slot with no plan is the "looks ready but never advances" state:
         // the analysis either has not landed yet or keeps failing, and nothing else says so. Stated

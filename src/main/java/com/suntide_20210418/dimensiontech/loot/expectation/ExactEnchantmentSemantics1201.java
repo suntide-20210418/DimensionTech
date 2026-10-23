@@ -28,8 +28,8 @@ public final class ExactEnchantmentSemantics1201 {
      * TEMPORARY: enchantment computation is disabled (emit un-enchanted items) until re-enabled.
      *
      * <p>When {@code false}, {@code enchant_with_levels} is treated as a no-op so heavy tables
-     * (e.g. underwater ruins) keep an exact, cheap result. Flip back to {@code true} to restore
-     * the full enumeration; requires a restart because this is a code-level switch.
+     * (e.g. underwater ruins) keep an exact, cheap result. Flip back to {@code true} to restore the
+     * full enumeration; requires a restart because this is a code-level switch.
      */
     public static final boolean ENABLED = false;
 
@@ -47,9 +47,9 @@ public final class ExactEnchantmentSemantics1201 {
 
     /**
      * Cap on {@code EnchantmentHelper.getAvailableEnchantmentResults} calls. Aggregation costs one
-     * call per (input stack, adjusted level) pair, and a set_damage fan-out can make that pair count
-     * large even when the distinct plans are few. The recursion itself is bounded separately; this
-     * bounds the work needed to discover those plans.
+     * call per (input stack, adjusted level) pair, and a set_damage fan-out can make that pair
+     * count large even when the distinct plans are few. The recursion itself is bounded separately;
+     * this bounds the work needed to discover those plans.
      */
     private static final int MARK_MARGINAL_WORK_BUDGET = 8_192;
 

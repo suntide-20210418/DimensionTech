@@ -4,9 +4,9 @@ package com.suntide_20210418.dimensiontech.client.gui.menu;
  * Machine-wide geometry shared by the miner menu and its screen.
  *
  * <p>The marker lane no longer lives here. Slots are laid out in a single centred row, kept
- * off-screen by {@link StructureMinerMenu}, and drawn by the page renderers — so their geometry belongs
- * with the pages that own it, in {@code StructureMinerInfoLayout}. What remains is what the menu and
- * the screen genuinely share: the inventory anchor, and the scissor projection.
+ * off-screen by {@link StructureMinerMenu}, and drawn by the page renderers — so their geometry
+ * belongs with the pages that own it, in {@code StructureMinerInfoLayout}. What remains is what the
+ * menu and the screen genuinely share: the inventory anchor, and the scissor projection.
  */
 public final class StructureMinerLayout {
     /** Anchor of the player inventory block, below the fixed marker lane and dashboard. */
@@ -15,8 +15,8 @@ public final class StructureMinerLayout {
     private StructureMinerLayout() {}
 
     /**
-     * Y of the player inventory. It does not depend on the marker count: the lane is a single row of
-     * at most nine cells at every tier, so the section above the inventory never grows.
+     * Y of the player inventory. It does not depend on the marker count: the lane is a single row
+     * of at most nine cells at every tier, so the section above the inventory never grows.
      */
     public static int playerInventoryY() {
         return BASE_PLAYER_INVENTORY_Y;

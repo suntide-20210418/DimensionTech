@@ -16,13 +16,13 @@ import net.minecraft.world.item.ItemStack;
 /**
  * INFO page: one flat scrolling viewport describing the selected thread.
  *
- * <p>There is no collapsing here on purpose. Section heights come from a single {@link #contentHeight}
- * function rather than from per-section offset helpers, which is what made the previous incarnation
- * drift out of sync with its own hit-testing: moving one section silently shifted every section below
- * it and nothing noticed.
+ * <p>There is no collapsing here on purpose. Section heights come from a single {@link
+ * #contentHeight} function rather than from per-section offset helpers, which is what made the
+ * previous incarnation drift out of sync with its own hit-testing: moving one section silently
+ * shifted every section below it and nothing noticed.
  *
- * <p>The dual bars are drawn from one telemetry snapshot. Two bars exist only so they can be compared,
- * so sampling them at different moments would defeat the point.
+ * <p>The dual bars are drawn from one telemetry snapshot. Two bars exist only so they can be
+ * compared, so sampling them at different moments would defeat the point.
  */
 final class StructureMinerInfoPage {
     /** Height of the thread summary line that opens the viewport. */
@@ -34,9 +34,7 @@ final class StructureMinerInfoPage {
     /** Breathing room between a progress strip and whatever follows it. */
     private static final int STRIP_GAP = 2;
 
-    /**
-     * A strip plus its gap. The sprite owns its own height, so only the rhythm is typed here.
-     */
+    /** A strip plus its gap. The sprite owns its own height, so only the rhythm is typed here. */
     private static final int STRIP_H = StructureMinerSpriteRenderer.PROGRESS_H + STRIP_GAP;
 
     /** A tick line plus the strip under it. */
@@ -111,8 +109,8 @@ final class StructureMinerInfoPage {
     // --- thread selector ---------------------------------------------------
 
     /**
-     * One 20x20 sprite button per thread, drawn from the sheet rather than assembled from fills so the
-     * control keeps the same lighting as every other button in the console.
+     * One 20x20 sprite button per thread, drawn from the sheet rather than assembled from fills so
+     * the control keeps the same lighting as every other button in the console.
      *
      * <p>The button is dimmed when its slot holds no marker: the number alone cannot say whether a
      * thread exists, and that is the first thing the player needs from this row.
@@ -175,12 +173,14 @@ final class StructureMinerInfoPage {
                                         "screen.dimension_tech.structure_miner.marker_info.unconfigured"));
         Component header =
                 Component.translatable(
-                        "screen.dimension_tech.structure_miner.marker_info.structure", slot + 1, name);
+                        "screen.dimension_tech.structure_miner.marker_info.structure",
+                        slot + 1,
+                        name);
 
         String total =
                 Component.translatable(
-                                                "screen.dimension_tech.structure_miner.overview.total_parallel")
-                                        .getString()
+                                        "screen.dimension_tech.structure_miner.overview.total_parallel")
+                                .getString()
                         + " "
                         + t.totalParallel();
         int totalWidth = font.width(total);
@@ -198,7 +198,14 @@ final class StructureMinerInfoPage {
     private static int drawMarkerSection(
             StructureMinerScreenContext c, GuiGraphics g, int slot, int x, int y, int width) {
         Font font = c.font();
-        y = sectionHeader(c, g, x, y, width, "screen.dimension_tech.structure_miner.info.section.marker");
+        y =
+                sectionHeader(
+                        c,
+                        g,
+                        x,
+                        y,
+                        width,
+                        "screen.dimension_tech.structure_miner.info.section.marker");
 
         ItemStack stack = c.menu().slots.get(slot).getItem();
         StructMarkerItem.MarkerInfo info = StructMarkerItem.getMarkerInfo(stack).orElse(null);
@@ -290,7 +297,14 @@ final class StructureMinerInfoPage {
             int y,
             int width) {
         Font font = c.font();
-        y = sectionHeader(c, g, x, y, width, "screen.dimension_tech.structure_miner.info.section.work");
+        y =
+                sectionHeader(
+                        c,
+                        g,
+                        x,
+                        y,
+                        width,
+                        "screen.dimension_tech.structure_miner.info.section.work");
 
         StructureMinerTelemetrySnapshot.Marker marker = t.markers().get(slot);
         int cycle = Math.max(1, marker.processingTime());
@@ -457,7 +471,9 @@ final class StructureMinerInfoPage {
                 clip(font, Component.translatable(key, value), width - 6),
                 x + 6,
                 y,
-                color == StructureMinerTheme.MUTED ? StructureMinerTheme.DIM : StructureMinerTheme.INK,
+                color == StructureMinerTheme.MUTED
+                        ? StructureMinerTheme.DIM
+                        : StructureMinerTheme.INK,
                 false);
         return y + DETAIL_ROW_STRIDE;
     }
@@ -521,7 +537,12 @@ final class StructureMinerInfoPage {
                     disabled ? StructureMinerTheme.ERROR : StructureMinerTheme.FLUIX,
                     false);
             if (disabled) {
-                g.fill(x, rowY + 9, x + width - expectedWidth - 3, rowY + 10, StructureMinerTheme.ERROR);
+                g.fill(
+                        x,
+                        rowY + 9,
+                        x + width - expectedWidth - 3,
+                        rowY + 10,
+                        StructureMinerTheme.ERROR);
             }
         }
         return y + rows.size() * StructureMinerInfoLayout.ROW_H_INTERACTIVE;
@@ -538,8 +559,8 @@ final class StructureMinerInfoPage {
 
     /**
      * A full-width progress strip assembled from the two spritesheet halves rather than from fills:
-     * the drained track stitched out to {@code width}, then the energised cover clipped over it from
-     * the left to whatever fraction {@code value / total} comes to.
+     * the drained track stitched out to {@code width}, then the energised cover clipped over it
+     * from the left to whatever fraction {@code value / total} comes to.
      *
      * <p>The old two-tone version took a colour, which let the held/actual pair be told apart by
      * hue. The sheet owns the colours now, so the two strips are distinguished by the labels above
@@ -576,7 +597,8 @@ final class StructureMinerInfoPage {
      * The single source of truth for the page height. Every section offset is derived from the same
      * terms, so the drawn content and the scroll range cannot disagree.
      */
-    static int contentHeight(StructureMinerScreenContext c, StructureMinerTelemetrySnapshot t, int slot) {
+    static int contentHeight(
+            StructureMinerScreenContext c, StructureMinerTelemetrySnapshot t, int slot) {
         int height = SUMMARY_H;
         height +=
                 StructureMinerInfoLayout.SECTION_HEADER_H
@@ -602,7 +624,8 @@ final class StructureMinerInfoPage {
         int height = accelerated ? 2 * TICK_BLOCK_H : TICK_BLOCK_H;
         // One headline line, then a row per contribution. The external row only appears under
         // external acceleration, so it has to be counted here too: leaving it out is what made the
-        // old height ten pixels short, which clipped the scroll range and shifted every product row.
+        // old height ten pixels short, which clipped the scroll range and shifted every product
+        // row.
         height += StructureMinerInfoLayout.ROW_H_DATA;
         height += (accelerated ? 4 : 3) * DETAIL_ROW_STRIDE;
         if (marker.waitingForNaturalWindow()) height += StructureMinerInfoLayout.ROW_H_DATA;
@@ -612,17 +635,19 @@ final class StructureMinerInfoPage {
     /**
      * Product-row index under a panel-local point, or {@code -1}.
      *
-     * <p>Derived from the same terms {@link #contentHeight} uses, so the clickable strip and the drawn
-     * strip cannot drift apart.
+     * <p>Derived from the same terms {@link #contentHeight} uses, so the clickable strip and the
+     * drawn strip cannot drift apart.
      */
     static int productRowAt(StructureMinerScreenContext c, double x, double y) {
         int slot = c.selectedMarkerSlot();
         if (slot < 0) return -1;
         int top = productSectionTop(c, slot);
-        int index = (int) Math.floor((y - top) / (double) StructureMinerInfoLayout.ROW_H_INTERACTIVE);
+        int index =
+                (int) Math.floor((y - top) / (double) StructureMinerInfoLayout.ROW_H_INTERACTIVE);
         if (index < 0 || index >= c.expectedItemRows().size()) return -1;
         int left = StructureMinerInfoLayout.INFO_LIST_X + StructureMinerInfoLayout.VIEWPORT_PAD;
-        int width = StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
+        int width =
+                StructureMinerInfoLayout.INFO_LIST_W - 2 * StructureMinerInfoLayout.VIEWPORT_PAD;
         return StructureMinerInfoLayout.inside(
                         x,
                         y,

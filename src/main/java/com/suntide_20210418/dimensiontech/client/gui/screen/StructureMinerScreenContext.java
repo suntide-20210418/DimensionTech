@@ -71,8 +71,8 @@ interface StructureMinerScreenContext {
     double effectiveStructureValue();
 
     /**
-     * Marker cell under the pointer, or {@code -1}. The work lane and the info page's thread selector
-     * occupy the same grid, so one value serves both.
+     * Marker cell under the pointer, or {@code -1}. The work lane and the info page's thread
+     * selector occupy the same grid, so one value serves both.
      */
     int hoveredMarkerSlot();
 
@@ -87,9 +87,9 @@ interface StructureMinerScreenContext {
     /**
      * Forwards a click to the vanilla slot protocol.
      *
-     * <p>The lane is drawn by the pages, and the menu deliberately parks its slots off-screen, so the
-     * pages own the hit-testing and hand the result back here — which is what keeps pickup, shift-move
-     * and drag behaving exactly as they do in any other container.
+     * <p>The lane is drawn by the pages, and the menu deliberately parks its slots off-screen, so
+     * the pages own the hit-testing and hand the result back here — which is what keeps pickup,
+     * shift-move and drag behaving exactly as they do in any other container.
      */
     void clickContainerSlot(int index, int mouseButton);
 }

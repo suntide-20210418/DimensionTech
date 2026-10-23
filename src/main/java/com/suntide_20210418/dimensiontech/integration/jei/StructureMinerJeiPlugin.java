@@ -23,8 +23,8 @@ import net.minecraft.world.level.block.Block;
  * <p>Each miner tier gets its own category and recipe page (clicking a tier-3 miner shows only
  * tier-3), and the deconstruction core gets a standalone source page. JEI discovers this via the
  * {@link JeiPlugin} annotation and a public no-argument constructor, so the class must stay
- * instantiable that way. JEI rebuilds categories and recipes together on a recipe reload, which makes
- * this the right place to read the live tier registry and config.
+ * instantiable that way. JEI rebuilds categories and recipes together on a recipe reload, which
+ * makes this the right place to read the live tier registry and config.
  */
 @JeiPlugin
 public final class StructureMinerJeiPlugin implements IModPlugin {
@@ -36,7 +36,9 @@ public final class StructureMinerJeiPlugin implements IModPlugin {
     public static final RecipeType<StructureMinerJeiRecipe>[] TIER_RECIPE_TYPES = tierRecipeTypes();
     public static final RecipeType<DeconstructionCoreJeiRecipe> CORE_TYPE =
             RecipeType.create(
-                    DimensionTechMod.MOD_ID, "deconstruction_core", DeconstructionCoreJeiRecipe.class);
+                    DimensionTechMod.MOD_ID,
+                    "deconstruction_core",
+                    DeconstructionCoreJeiRecipe.class);
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -71,8 +73,7 @@ public final class StructureMinerJeiPlugin implements IModPlugin {
             StructureMinerJeiRecipe structure = all.get(tier - 1);
             // Two entries on one page: the structure-marker recipe and its chest-marker variant.
             registration.addRecipes(
-                    TIER_RECIPE_TYPES[tier - 1],
-                    List.of(structure, structure.asChestVariant()));
+                    TIER_RECIPE_TYPES[tier - 1], List.of(structure, structure.asChestVariant()));
         }
         registration.addRecipes(CORE_TYPE, DeconstructionCoreJeiRecipes.build());
     }
@@ -83,8 +84,7 @@ public final class StructureMinerJeiPlugin implements IModPlugin {
         for (int tier = 1; tier <= TIER_COUNT; tier++) {
             registration.addRecipeCatalysts(TIER_RECIPE_TYPES[tier - 1], minerBlock(tier));
         }
-        registration.addRecipeCatalysts(
-                CORE_TYPE, ModItems.DIMENSION_DECONSTRUCTION_CORE.get());
+        registration.addRecipeCatalysts(CORE_TYPE, ModItems.DIMENSION_DECONSTRUCTION_CORE.get());
     }
 
     private static Block minerBlock(int tier) {

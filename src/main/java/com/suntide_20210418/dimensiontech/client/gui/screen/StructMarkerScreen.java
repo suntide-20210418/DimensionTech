@@ -219,10 +219,7 @@ public final class StructMarkerScreen extends Screen {
         StructureMinerTheme.statusChip(
                 g,
                 font,
-                StructMarkerLayout.WIDTH
-                        - 2
-                        - StructMarkerLayout.FACE_MARGIN
-                        - chipWidth,
+                StructMarkerLayout.WIDTH - 2 - StructMarkerLayout.FACE_MARGIN - chipWidth,
                 StructMarkerLayout.CHIP_Y,
                 chipWidth,
                 label,
@@ -292,9 +289,9 @@ public final class StructMarkerScreen extends Screen {
     /**
      * The section caption, its rule, and the scrolling expectation viewport.
      *
-     * <p>{@code sectionHeader} draws the caption and underlines it in a single call — the text lands
-     * on {@code SECTION_Y + 1} and the rule on {@code SECTION_Y + 11} — so nothing here paints a
-     * second rule one row under the first.
+     * <p>{@code sectionHeader} draws the caption and underlines it in a single call — the text
+     * lands on {@code SECTION_Y + 1} and the rule on {@code SECTION_Y + 11} — so nothing here
+     * paints a second rule one row under the first.
      */
     private void drawExpectationSection(GuiGraphics g, int windowX, int windowY) {
         StructureMinerTheme.sectionHeader(
@@ -326,9 +323,9 @@ public final class StructMarkerScreen extends Screen {
      * Clips to the viewport, translates to its origin, and draws the rows.
      *
      * <p>{@code enableScissor} takes GUI-logical coordinates and applies the window's GUI scale
-     * itself, so the rectangle is handed over in absolute logical pixels — the panel origin plus the
-     * viewport's own offset — and never multiplied by a scale first. This screen does not scale its
-     * pose at all: the frame is a fixed 300x176, which fits the 480x270 minimum, so there is no
+     * itself, so the rectangle is handed over in absolute logical pixels — the panel origin plus
+     * the viewport's own offset — and never multiplied by a scale first. This screen does not scale
+     * its pose at all: the frame is a fixed 300x176, which fits the 480x270 minimum, so there is no
      * second scale to fold in.
      */
     private void drawViewport(GuiGraphics g) {
@@ -338,9 +335,7 @@ public final class StructMarkerScreen extends Screen {
                 left + StructMarkerLayout.VIEWPORT.right(),
                 top + StructMarkerLayout.VIEWPORT.bottom());
         g.pose().pushPose();
-        g.pose()
-                .translate(
-                        StructMarkerLayout.VIEWPORT.x(), StructMarkerLayout.VIEWPORT.y(), 0.0D);
+        g.pose().translate(StructMarkerLayout.VIEWPORT.x(), StructMarkerLayout.VIEWPORT.y(), 0.0D);
 
         if (rows.isEmpty()) {
             StructureMinerTheme.emptyState(
@@ -352,7 +347,8 @@ public final class StructMarkerScreen extends Screen {
                     StructMarkerLayout.VIEWPORT_H,
                     Component.translatable("screen.dimension_tech.struct_marker.no_items"));
         } else {
-            int visible = Math.min(scroll, Math.max(0, rows.size() - StructMarkerLayout.visibleRows()));
+            int visible =
+                    Math.min(scroll, Math.max(0, rows.size() - StructMarkerLayout.visibleRows()));
             for (int index = visible; index < rows.size(); index++) {
                 int y = StructMarkerLayout.rowY(index - visible);
                 if (y >= StructMarkerLayout.VIEWPORT_H) break;
@@ -395,12 +391,7 @@ public final class StructMarkerScreen extends Screen {
                                         - expectedWidth
                                         - 6));
         g.drawString(
-                font,
-                name,
-                StructMarkerLayout.ROW_NAME_X,
-                y + 4,
-                StructureMinerTheme.INK,
-                false);
+                font, name, StructMarkerLayout.ROW_NAME_X, y + 4, StructureMinerTheme.INK, false);
         g.drawString(
                 font,
                 expected,
@@ -414,8 +405,8 @@ public final class StructMarkerScreen extends Screen {
      * The action pair, centred across the bottom of the face.
      *
      * <p>Both labels are four characters, which is why these are the 48x16 long buttons rather than
-     * the 32x16 ones: the short sprite's face is 32 pixels wide and "标记结构" measures 36, so
-     * {@code plainSubstrByWidth} would drop the last glyph instead of shrinking it.
+     * the 32x16 ones: the short sprite's face is 32 pixels wide and "标记结构" measures 36, so {@code
+     * plainSubstrByWidth} would drop the last glyph instead of shrinking it.
      */
     private void drawActions(GuiGraphics g, int windowX, int windowY) {
         boolean marked = StructMarkerItem.getMarkerInfo(marker).isPresent();
@@ -522,8 +513,7 @@ public final class StructMarkerScreen extends Screen {
          * it, so the padding terms are measured from there rather than from the box top.
          */
         int bandHeight = GuiChrome.BAND_HEIGHT + 1;
-        int height =
-                bandHeight + CHOICE_TOP_PAD + visible * CHOICE_ROW_H + CHOICE_BOTTOM_PAD;
+        int height = bandHeight + CHOICE_TOP_PAD + visible * CHOICE_ROW_H + CHOICE_BOTTOM_PAD;
         int x = (width - CHOICE_BOX_W) / 2;
         int y = (this.height - height) / 2;
         return new ChoiceBox(x, y, CHOICE_BOX_W, height, bandHeight + CHOICE_TOP_PAD);
@@ -584,8 +574,7 @@ public final class StructMarkerScreen extends Screen {
             choiceScroll =
                     Math.max(
                             0,
-                            Math.min(
-                                    Math.max(0, choices.size() - visible), choiceScroll - step));
+                            Math.min(Math.max(0, choices.size() - visible), choiceScroll - step));
             return true;
         }
         scroll = Math.max(0, Math.min(maxScroll(), scroll - step));
@@ -651,8 +640,7 @@ public final class StructMarkerScreen extends Screen {
                 + "]";
     }
 
-    private static boolean inside(
-            double x, double y, int left, int top, int width, int height) {
+    private static boolean inside(double x, double y, int left, int top, int width, int height) {
         return x >= left && x < left + width && y >= top && y < top + height;
     }
 

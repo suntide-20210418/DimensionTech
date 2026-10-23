@@ -35,9 +35,9 @@ import net.minecraft.world.item.ItemStack;
  * coordinates, which the authored art does not support.
  *
  * <p><b>Two coordinate spaces.</b> Chrome (tabs, action buttons, the search box) is positioned in
- * window-local pixels exactly as {@link StructureDataOperatorLayout} records them. Everything a page
- * draws is canvas-local: {@link #drawPage} translates by the canvas origin and clips to it before
- * handing control to a page, so a page never needs to know where the canvas sits.
+ * window-local pixels exactly as {@link StructureDataOperatorLayout} records them. Everything a
+ * page draws is canvas-local: {@link #drawPage} translates by the canvas origin and clips to it
+ * before handing control to a page, so a page never needs to know where the canvas sits.
  */
 public final class StructureDataOperatorScreen
         extends AbstractContainerScreen<StructureDataOperatorMenu> {
@@ -52,6 +52,7 @@ public final class StructureDataOperatorScreen
 
     /** Canvas-local columns shared by the catalogue pages. */
     static final int LIST_X = 4;
+
     static final int LIST_W = 150;
     static final int DETAIL_X = 158;
     static final int DETAIL_W = 181;
@@ -85,6 +86,7 @@ public final class StructureDataOperatorScreen
      * the 48x16 ones.
      */
     static final int ACTION_Y = StructureDataOperatorLayout.TAB_BUTTON_Y;
+
     static final int ACTION_W = StructureMinerSpriteRenderer.BUTTON_W;
     static final int ACTION_H = StructureMinerSpriteRenderer.BUTTON_H;
     static final int ACTION_FIRST_X = 176;
@@ -217,8 +219,7 @@ public final class StructureDataOperatorScreen
 
     /** How many catalogue rows the list region can show. */
     static int listRows() {
-        return Math.max(
-                1, (StructureDataOperatorLayout.CANVAS.height() - LIST_Y - 4) / LIST_ROW_H);
+        return Math.max(1, (StructureDataOperatorLayout.CANVAS.height() - LIST_Y - 4) / LIST_ROW_H);
     }
 
     /** How many expectation rows the detail table can show. */
@@ -256,14 +257,14 @@ public final class StructureDataOperatorScreen
     /**
      * Whether an entry survives the search box.
      *
-     * <p>The match runs against what the tree actually shows: the structure's translated name, and the
-     * name of the dimension grouping it, since that header is part of what the player reads for the
-     * row. It used to run against the resource key alone, which meant nothing typed in the player's
-     * own language could ever hit — {@code minecraft:desert_pyramid} reads the same in every language,
-     * while the row next to the cursor said 沙漠神殿.
+     * <p>The match runs against what the tree actually shows: the structure's translated name, and
+     * the name of the dimension grouping it, since that header is part of what the player reads for
+     * the row. It used to run against the resource key alone, which meant nothing typed in the
+     * player's own language could ever hit — {@code minecraft:desert_pyramid} reads the same in
+     * every language, while the row next to the cursor said 沙漠神殿.
      *
-     * <p>The key is still accepted, but deliberately last: it is the only handle on a structure this
-     * mod has no translation for, and it can match text the row never displays — searching
+     * <p>The key is still accepted, but deliberately last: it is the only handle on a structure
+     * this mod has no translation for, and it can match text the row never displays — searching
      * {@code minecraft} would otherwise light up the entire list.
      */
     private boolean matches(
@@ -274,8 +275,7 @@ public final class StructureDataOperatorScreen
     }
 
     /** Lowercased translated names of a structure and its dimension, resolved once per entry. */
-    private String searchLabel(
-            StructureDataOperatorBlockEntity.StructureCatalogueEntry entry) {
+    private String searchLabel(StructureDataOperatorBlockEntity.StructureCatalogueEntry entry) {
         return searchLabels.computeIfAbsent(
                 entry,
                 e ->
@@ -386,8 +386,8 @@ public final class StructureDataOperatorScreen
      * Applies the read marker's data to every filled write slot.
      *
      * <p>There is no confirmation step: the button is already disabled unless the read slot holds a
-     * marked structure and at least one write slot is filled, so a modal could only repeat the guard
-     * back at the player. The status line reports what happened instead.
+     * marked structure and at least one write slot is filled, so a modal could only repeat the
+     * guard back at the player. The status line reports what happened instead.
      */
     void copyToOperands() {
         ModNetwork.structureOperatorCopy(menu.containerId);
@@ -449,20 +449,10 @@ public final class StructureDataOperatorScreen
          */
         if (page == Page.OPERATION) {
             StructureDataOperatorOperationPage.renderTooltip(
-                    this,
-                    graphics,
-                    canvasMouseX(mouseX),
-                    canvasMouseY(mouseY),
-                    mouseX,
-                    mouseY);
+                    this, graphics, canvasMouseX(mouseX), canvasMouseY(mouseY), mouseX, mouseY);
         } else {
             StructureDataIntegratorPage.renderTooltip(
-                    this,
-                    graphics,
-                    canvasMouseX(mouseX),
-                    canvasMouseY(mouseY),
-                    mouseX,
-                    mouseY);
+                    this, graphics, canvasMouseX(mouseX), canvasMouseY(mouseY), mouseX, mouseY);
         }
     }
 
@@ -559,19 +549,19 @@ public final class StructureDataOperatorScreen
     }
 
     /**
-     * Names the two slot blocks that sit under the canvas, so the write array cannot be mistaken for
-     * the player's own inventory at a glance — both are 9x4 grids of the same 16px faces.
+     * Names the two slot blocks that sit under the canvas, so the write array cannot be mistaken
+     * for the player's own inventory at a glance — both are 9x4 grids of the same 16px faces.
      *
-     * <p>Each label is measured from the first face of the block it names and placed
-     * {@link StructureDataOperatorLayout#SECTION_LABEL_GAP} blank panel rows above it, less the
-     * inventory's one-row nudge. The boxes land at y=152 (write array) and y=149 (inventory). They are
-     * deliberately not on a shared baseline: the two blocks are not either — the write array starts at
-     * y=164 and the inventory at y=160, so the captions sit the same distance from their own blocks
-     * and follow them if either ever moves.
+     * <p>Each label is measured from the first face of the block it names and placed {@link
+     * StructureDataOperatorLayout#SECTION_LABEL_GAP} blank panel rows above it, less the
+     * inventory's one-row nudge. The boxes land at y=152 (write array) and y=149 (inventory). They
+     * are deliberately not on a shared baseline: the two blocks are not either — the write array
+     * starts at y=164 and the inventory at y=160, so the captions sit the same distance from their
+     * own blocks and follow them if either ever moves.
      *
-     * <p>These are chrome, not page content: they are painted outside the canvas scissor, in the strip
-     * between it and the wells. Nothing here may cross into the canvas — the labels would be clipped
-     * there and would read as a stray word inside a page.
+     * <p>These are chrome, not page content: they are painted outside the canvas scissor, in the
+     * strip between it and the wells. Nothing here may cross into the canvas — the labels would be
+     * clipped there and would read as a stray word inside a page.
      */
     private void drawSectionLabels(GuiGraphics g) {
         sectionLabel(
@@ -599,7 +589,8 @@ public final class StructureDataOperatorScreen
         return switch (page) {
             case OPERATION -> "screen.dimension_tech.structure_operator.tab.operation";
             case DATA_INTEGRATOR -> "screen.dimension_tech.structure_operator.tab.integrator";
-            case STRUCTURE_INTERPRETER -> "screen.dimension_tech.structure_operator.tab.interpreter";
+            case STRUCTURE_INTERPRETER ->
+                    "screen.dimension_tech.structure_operator.tab.interpreter";
         };
     }
 
@@ -648,12 +639,7 @@ public final class StructureDataOperatorScreen
      * which is how every other disabled control in this mod reads.
      */
     void actionButton(
-            GuiGraphics g,
-            int x,
-            String key,
-            boolean enabled,
-            int windowMouseX,
-            int windowMouseY) {
+            GuiGraphics g, int x, String key, boolean enabled, int windowMouseX, int windowMouseY) {
         boolean hovered = inside(windowMouseX, windowMouseY, x, ACTION_Y, ACTION_W, ACTION_H);
         StructureMinerSpriteRenderer.button(g, x, ACTION_Y, enabled && hovered);
         if (!enabled) {
@@ -800,9 +786,9 @@ public final class StructureDataOperatorScreen
 
     /**
      * Draws every slot tooltip by hand. The default AbstractContainerScreen hovered-slot tooltip is
-     * suppressed under this screen's custom canvas/scissor layout, so each of the three function slots
-     * is decided by {@link #functionSlotTooltip} and every other slot falls back to the item tooltip —
-     * mirroring StructureReactorScreen.
+     * suppressed under this screen's custom canvas/scissor layout, so each of the three function
+     * slots is decided by {@link #functionSlotTooltip} and every other slot falls back to the item
+     * tooltip — mirroring StructureReactorScreen.
      */
     private void renderSlotTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
         Slot hovered = this.hoveredSlot;
@@ -835,9 +821,9 @@ public final class StructureDataOperatorScreen
 
     /**
      * A function slot's tooltip. When the slot is empty it shows the purpose hint — what fits there
-     * and what it unlocks — so the player can plan before owning the part. Once an item is placed the
-     * hint would only bury that item's own description, so the slot falls back to the vanilla item
-     * tooltip.
+     * and what it unlocks — so the player can plan before owning the part. Once an item is placed
+     * the hint would only bury that item's own description, so the slot falls back to the vanilla
+     * item tooltip.
      */
     private void functionSlotTooltip(
             GuiGraphics graphics, int mouseX, int mouseY, String headKey, String funcKey) {

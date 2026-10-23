@@ -55,8 +55,7 @@ public final class StructureReactorRecipes {
         add(
                 new StructureReactorRecipe(
                         DimensionTechMod.MOD_ID.equals("dimension_tech")
-                                ? new ResourceLocation(
-                                        DimensionTechMod.MOD_ID, "fractal_closure")
+                                ? new ResourceLocation(DimensionTechMod.MOD_ID, "fractal_closure")
                                 : new ResourceLocation("dimension_tech", "fractal_closure"),
                         ModFluids.SURGING_RECURSIVE_ESSENCE.source().get(),
                         ModFluids.FRACTAL_ESSENCE.source().get(),
@@ -96,7 +95,8 @@ public final class StructureReactorRecipes {
         return RECIPES.get(id);
     }
 
-    public static synchronized Collection<StructureReactorRecipe<net.minecraft.world.item.ItemStack>>
+    public static synchronized Collection<
+                    StructureReactorRecipe<net.minecraft.world.item.ItemStack>>
             all() {
         return List.copyOf(RECIPES.values());
     }

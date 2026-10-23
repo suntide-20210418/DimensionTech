@@ -1,9 +1,9 @@
 package com.suntide_20210418.dimensiontech.integration.jei;
 
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
+import com.suntide_20210418.dimensiontech.structurereactor.StateStep;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorRecipe;
-import com.suntide_20210418.dimensiontech.structurereactor.StateStep;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +41,8 @@ public final class StructureReactorJeiRecipes {
         for (StructureReactorRecipe<S> recipe : recipes) {
             longest = Math.max(longest, recipe.sequence(StructureReactorRecipe.Branch.A).size());
             if (recipe.hasAlternateBranch())
-                longest = Math.max(longest, recipe.sequence(StructureReactorRecipe.Branch.B).size());
+                longest =
+                        Math.max(longest, recipe.sequence(StructureReactorRecipe.Branch.B).size());
         }
         return longest;
     }
@@ -56,7 +57,9 @@ public final class StructureReactorJeiRecipes {
     }
 
     private static <S> StructureReactorJeiRecipe entry(
-            StructureReactorRecipe<S> recipe, StructureReactorRecipe.Branch branch, boolean alternate) {
+            StructureReactorRecipe<S> recipe,
+            StructureReactorRecipe.Branch branch,
+            boolean alternate) {
         List<StructureReactorJeiRecipe.DisplayStep> steps = new ArrayList<>();
         for (StateStep<S> step : recipe.sequence(branch)) {
             steps.add(

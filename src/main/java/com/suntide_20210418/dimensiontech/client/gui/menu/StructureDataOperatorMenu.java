@@ -19,9 +19,9 @@ import net.minecraftforge.items.SlotItemHandler;
  * tagging every slot with a page predicate. The authored texture has one face with one set of
  * recesses, so that mechanism is gone: every slot lives at exactly one place.
  *
- * <p>Slot order matches {@link StructureDataOperatorBlockEntity}: {@code 0} the read slot,
- * {@code 1..36} the 9x4 write array in row-major order, {@code 37} the Data Integrator,
- * {@code 38} the Structure Interpreter, then the player inventory and hotbar.
+ * <p>Slot order matches {@link StructureDataOperatorBlockEntity}: {@code 0} the read slot, {@code
+ * 1..36} the 9x4 write array in row-major order, {@code 37} the Data Integrator, {@code 38} the
+ * Structure Interpreter, then the player inventory and hotbar.
  */
 public final class StructureDataOperatorMenu extends AbstractContainerMenu {
     public static final int PLAYER_SLOT_START = StructureDataOperatorBlockEntity.INVENTORY_SIZE;
@@ -70,7 +70,8 @@ public final class StructureDataOperatorMenu extends AbstractContainerMenu {
 
     private void addPlayerInventory(Inventory inv) {
         for (int row = 0; row < StructureDataOperatorLayout.PLAYER_INVENTORY_ROWS; row++) {
-            for (int column = 0; column < StructureDataOperatorLayout.PLAYER_INVENTORY_COLUMNS;
+            for (int column = 0;
+                    column < StructureDataOperatorLayout.PLAYER_INVENTORY_COLUMNS;
                     column++) {
                 addSlot(
                         new Slot(
@@ -80,7 +81,8 @@ public final class StructureDataOperatorMenu extends AbstractContainerMenu {
                                 StructureDataOperatorLayout.playerSlotY(row)));
             }
         }
-        for (int column = 0; column < StructureDataOperatorLayout.PLAYER_INVENTORY_COLUMNS;
+        for (int column = 0;
+                column < StructureDataOperatorLayout.PLAYER_INVENTORY_COLUMNS;
                 column++) {
             addSlot(
                     new Slot(

@@ -102,7 +102,10 @@ public final class DistributionalLootTableExecutor1201 {
         }
         return logical.fullStackMeasureAvailable()
                 ? new LootExpectationResult(
-                        AnalysisStatus.EXACT, logical.measure(), marginal(logical), logical.diagnostics())
+                        AnalysisStatus.EXACT,
+                        logical.measure(),
+                        marginal(logical),
+                        logical.diagnostics())
                 : LootExpectationResult.exactTerminal(
                         logical.terminalMeasure(), marginal(logical), logical.diagnostics());
     }
@@ -818,8 +821,7 @@ public final class DistributionalLootTableExecutor1201 {
             mayAllocateMap |= transformed.mayAllocateMap();
             hasRandomCalls |= transformed.hasRandomCalls();
             marginal =
-                    marginal.plus(
-                            transformed.enchantmentMarginal().scale(inputBranch.getValue()));
+                    marginal.plus(transformed.enchantmentMarginal().scale(inputBranch.getValue()));
             for (Map.Entry<StackState, ExactProbability> branch :
                     transformed.distribution().masses().entrySet()) {
                 result.add(branch.getKey(), inputBranch.getValue().multiply(branch.getValue()));

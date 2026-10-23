@@ -463,11 +463,13 @@ public final class ModNetwork {
         }
 
         private static StructureMinerAnalysisRequestPacket decode(FriendlyByteBuf buffer) {
-            return new StructureMinerAnalysisRequestPacket(buffer.readVarInt(), buffer.readVarInt());
+            return new StructureMinerAnalysisRequestPacket(
+                    buffer.readVarInt(), buffer.readVarInt());
         }
 
         private static void handle(
-                StructureMinerAnalysisRequestPacket packet, Supplier<NetworkEvent.Context> supplier) {
+                StructureMinerAnalysisRequestPacket packet,
+                Supplier<NetworkEvent.Context> supplier) {
             NetworkEvent.Context context = supplier.get();
             ServerPlayer player = context.getSender();
             if (player != null
@@ -656,7 +658,9 @@ public final class ModNetwork {
             buffer.writeVarInt(snapshot.operationStepCount());
             buffer.writeVarInt(snapshot.inputRequiredAmount());
             buffer.writeVarInt(snapshot.outputExpectedAmount());
-            List<com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle.Resolution>
+            List<
+                            com.suntide_20210418.dimensiontech.structurereactor
+                                    .StructureReactorCycle.Resolution>
                     outcomes = snapshot.stateOutcomes();
             buffer.writeVarInt(outcomes.size());
             for (var outcome : outcomes) buffer.writeVarInt(outcome.ordinal());
@@ -677,9 +681,10 @@ public final class ModNetwork {
             int operationStepCount = buffer.readVarInt();
             int inputRequiredAmount = buffer.readVarInt();
             int outputExpectedAmount = buffer.readVarInt();
-            var outcomes = new ArrayList<
-                    com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle
-                            .Resolution>();
+            var outcomes =
+                    new ArrayList<
+                            com.suntide_20210418.dimensiontech.structurereactor
+                                    .StructureReactorCycle.Resolution>();
             int outcomeCount = buffer.readVarInt();
             var resolutionValues =
                     com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle
@@ -855,7 +860,10 @@ public final class ModNetwork {
     }
 
     private record OperatorAnalysisRequestPacket(
-            int containerId, ResourceLocation dimension, ResourceLocation structure, boolean force) {
+            int containerId,
+            ResourceLocation dimension,
+            ResourceLocation structure,
+            boolean force) {
         private void encode(FriendlyByteBuf buffer) {
             buffer.writeVarInt(containerId);
             buffer.writeResourceLocation(dimension);

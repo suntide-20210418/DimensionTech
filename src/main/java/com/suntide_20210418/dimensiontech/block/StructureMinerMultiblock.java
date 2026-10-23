@@ -18,8 +18,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Drum-style rig: one 5x5 flange plate hangs under the head, a 3x3 glazed waist carries the
- * upgrade bays, and a matching 5x5 flange closes the bottom.
+ * Drum-style rig: one 5x5 flange plate hangs under the head, a 3x3 glazed waist carries the upgrade
+ * bays, and a matching 5x5 flange closes the bottom.
  *
  * <p>The head keeps its four side neighbours and the block above it free, so automation can attach
  * to any of those five faces without routing around the frame. Nothing in the pattern reaches
@@ -27,8 +27,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * from every side instead of sprouting arms.
  *
  * <p>The layout is deliberately tier-independent: every block is one of the shared frame parts, so
- * the four {@code Set} fields below are the single source of truth for the shape, the material
- * plan and the projection overlay.
+ * the four {@code Set} fields below are the single source of truth for the shape, the material plan
+ * and the projection overlay.
  */
 public class StructureMinerMultiblock {
     /**
@@ -111,18 +111,8 @@ public class StructureMinerMultiblock {
      */
     private static final Set<String> UPGRADE =
             Set.of(
-                    "0,-2,-1",
-                    "0,-2,1",
-                    "-1,-2,0",
-                    "1,-2,0",
-                    "0,-3,-1",
-                    "0,-3,1",
-                    "-1,-3,0",
-                    "1,-3,0",
-                    "0,-4,-1",
-                    "0,-4,1",
-                    "-1,-4,0",
-                    "1,-4,0");
+                    "0,-2,-1", "0,-2,1", "-1,-2,0", "1,-2,0", "0,-3,-1", "0,-3,1", "-1,-3,0",
+                    "1,-3,0", "0,-4,-1", "0,-4,1", "-1,-4,0", "1,-4,0");
 
     private StructureMinerMultiblock() {}
 
@@ -171,7 +161,9 @@ public class StructureMinerMultiblock {
             int[] components = parse(coordinate);
             blocks.add(
                     new ProjectionBlock(
-                            new BlockPos(components[0], components[1], components[2]), state, kind));
+                            new BlockPos(components[0], components[1], components[2]),
+                            state,
+                            kind));
         }
     }
 
@@ -252,8 +244,8 @@ public class StructureMinerMultiblock {
     /**
      * The one completeness test, shared by the block entity and the client-side projection: it only
      * reads block states, so both a {@link ServerLevel} and a {@code ClientLevel} can call it.
-     * Walks the projection rather than the bounding box, so it asks {@link #isFilled} about the same
-     * slots the planner and the overlay see, in the same order.
+     * Walks the projection rather than the bounding box, so it asks {@link #isFilled} about the
+     * same slots the planner and the overlay see, in the same order.
      */
     public static boolean isComplete(LevelReader level, BlockPos center) {
         for (ProjectionBlock projected : projection()) {
@@ -266,8 +258,7 @@ public class StructureMinerMultiblock {
 
     public static void place(ServerLevel level, BlockPos center) {
         for (ProjectionBlock projected : projection()) {
-            level.setBlock(
-                    center.offset(projected.offset()), projected.state(), Block.UPDATE_ALL);
+            level.setBlock(center.offset(projected.offset()), projected.state(), Block.UPDATE_ALL);
         }
     }
 
@@ -280,8 +271,7 @@ public class StructureMinerMultiblock {
      * @return a message to show the player, or {@code null} when the build succeeded or had nothing
      *     left to place
      */
-    public static Component buildFromInventory(
-            ServerLevel level, BlockPos center, Player player) {
+    public static Component buildFromInventory(ServerLevel level, BlockPos center, Player player) {
         BuildPlan plan = planMaterials(level, center);
         if (!plan.isClear()) {
             return Component.translatable(

@@ -64,7 +64,11 @@ final class StructureMinerMarkerAnalysisCache {
             ItemStackHandler inventory,
             Supplier<LootAnalysisFingerprint> currentFingerprint,
             BooleanSupplier removed) {
-        this(inventory, currentFingerprint, removed, StructureMinerMarkerAnalysisCache::startAnalysis);
+        this(
+                inventory,
+                currentFingerprint,
+                removed,
+                StructureMinerMarkerAnalysisCache::startAnalysis);
     }
 
     StructureMinerMarkerAnalysisCache(
@@ -300,8 +304,7 @@ final class StructureMinerMarkerAnalysisCache {
                                                 discovery.structures().stream()
                                                         .flatMap(
                                                                 value ->
-                                                                        value.lootTables()
-                                                                                .stream())
+                                                                        value.lootTables().stream())
                                                         .distinct()
                                                         .toList();
                                         RuntimeLootAstSource source =

@@ -98,13 +98,25 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
                             .withStyle(ChatFormatting.GOLD));
             // Counted straight off the pattern, so the list can never drift from the coordinates.
             int[] materials = StructureMinerMultiblock.projectionCounts();
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.CASING,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.CASING,
                     "material.casing");
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.STRUCTURE,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.STRUCTURE,
                     "material.structure");
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.GLASS,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.GLASS,
                     "material.glass");
-            addMaterialLine(tooltip, materials, StructureMinerMultiblock.ProjectionKind.UPGRADE,
+            addMaterialLine(
+                    tooltip,
+                    materials,
+                    StructureMinerMultiblock.ProjectionKind.UPGRADE,
                     "material.upgrade");
         } else {
             tooltip.add(
@@ -239,9 +251,9 @@ public abstract class BaseMinerBlock extends BaseEntityBlock {
     }
 
     /**
-     * The miner stores its contents in a Forge {@code ItemStackHandler}, not in a vanilla
-     * {@code Container}, so nothing drops on its own. Markers and unrouted output are returned to
-     * the world here, matching what the structure reactor already does on removal.
+     * The miner stores its contents in a Forge {@code ItemStackHandler}, not in a vanilla {@code
+     * Container}, so nothing drops on its own. Markers and unrouted output are returned to the
+     * world here, matching what the structure reactor already does on removal.
      */
     @Override
     public void onRemove(

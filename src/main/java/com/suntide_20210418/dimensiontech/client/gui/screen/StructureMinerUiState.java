@@ -11,11 +11,13 @@ final class StructureMinerUiState {
     int hoveredMarkerSlot = -1;
     int markerInfoScroll;
     int attributeScroll;
+
     /**
      * Scrollbar drag, kept with the window rather than with a page: both scrolling pages share one
      * scrollbar column, so the gesture belongs to the screen that owns that column.
      */
     boolean draggingScrollbar;
+
     int scrollbarDragOriginY;
     int scrollbarDragOriginScroll;
     final Set<Integer> expandedUpgradeRows = new HashSet<>();

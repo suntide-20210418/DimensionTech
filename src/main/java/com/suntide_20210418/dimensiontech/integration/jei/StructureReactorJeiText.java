@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.integration.jei;
 
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorAnalogSignal;
 import com.suntide_20210418.dimensiontech.structurereactor.ReactorFormula;
-import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import com.suntide_20210418.dimensiontech.structurereactor.StateId;
+import com.suntide_20210418.dimensiontech.structurereactor.StructureReactorCycle;
 import java.util.List;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import net.minecraft.network.chat.Component;
@@ -45,7 +45,8 @@ final class StructureReactorJeiText {
     static final String REWARD_CONVERGE = "jei.dimension_tech.structure_reactor.reward.converge";
     static final String REWARD_STABILIZE = "jei.dimension_tech.structure_reactor.reward.stabilize";
 
-    static final String PENALTY_STABILIZE = "jei.dimension_tech.structure_reactor.penalty.stabilize";
+    static final String PENALTY_STABILIZE =
+            "jei.dimension_tech.structure_reactor.penalty.stabilize";
     static final String PENALTY_CONVERGE = "jei.dimension_tech.structure_reactor.penalty.converge";
     static final String PENALTY_RECURSE = "jei.dimension_tech.structure_reactor.penalty.recurse";
     static final String PENALTY_BRANCH = "jei.dimension_tech.structure_reactor.penalty.branch";
@@ -119,8 +120,8 @@ final class StructureReactorJeiText {
 
     /**
      * The two comparator levels this step announces: the one it holds outside the reward window and
-     * the one it moves to inside it. Both come from the mapping the reactor itself publishes, so the
-     * page can never advertise a level the redstone interface does not produce.
+     * the one it moves to inside it. Both come from the mapping the reactor itself publishes, so
+     * the page can never advertise a level the redstone interface does not produce.
      */
     static Component signalLine(StateId state) {
         return Component.translatable(
@@ -167,7 +168,8 @@ final class StructureReactorJeiText {
         return switch (state) {
             case BRANCH ->
                     Component.translatable(
-                            REWARD_BRANCH, StructureReactorCycle.REWARD_BRANCH_TIME_REDUCTION_TICKS);
+                            REWARD_BRANCH,
+                            StructureReactorCycle.REWARD_BRANCH_TIME_REDUCTION_TICKS);
             case RECURSE ->
                     Component.translatable(
                             REWARD_RECURSE,
@@ -184,7 +186,8 @@ final class StructureReactorJeiText {
         return switch (state) {
             case BRANCH ->
                     Component.translatable(
-                            PENALTY_BRANCH, StructureReactorCycle.BRANCH_CONFLICT_TIME_PENALTY_TICKS);
+                            PENALTY_BRANCH,
+                            StructureReactorCycle.BRANCH_CONFLICT_TIME_PENALTY_TICKS);
             case RECURSE ->
                     Component.translatable(
                             PENALTY_RECURSE,

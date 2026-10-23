@@ -92,10 +92,10 @@ public final class StructureReactorBlock extends BaseEntityBlock {
     /**
      * The reactor answers comparators, and only comparators.
      *
-     * <p>{@code getSignal} and {@code getDirectSignal} are deliberately left at zero. Redstone control
-     * reads {@code Level#getBestNeighborSignal}, which asks each neighbour for the signal it points
-     * back with - so a reactor that emitted power would light the dust beside it, read that dust back,
-     * and latch itself on with no way to switch it off.
+     * <p>{@code getSignal} and {@code getDirectSignal} are deliberately left at zero. Redstone
+     * control reads {@code Level#getBestNeighborSignal}, which asks each neighbour for the signal
+     * it points back with - so a reactor that emitted power would light the dust beside it, read
+     * that dust back, and latch itself on with no way to switch it off.
      */
     @Override
     public boolean hasAnalogOutputSignal(BlockState state) {

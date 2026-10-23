@@ -2,8 +2,8 @@ package com.suntide_20210418.dimensiontech.client.gui;
 
 import com.suntide_20210418.dimensiontech.DimensionTechMod;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureDataOperatorMenu;
-import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorMenu;
 import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerMenu;
+import com.suntide_20210418.dimensiontech.client.gui.menu.StructureReactorMenu;
 import com.suntide_20210418.dimensiontech.utils.ResourceLocationHelper;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -17,15 +17,17 @@ public final class ModMenu {
 
     public static final RegistryObject<MenuType<StructureMinerMenu>> STRUCTURE_MINER =
             MENU_TYPES.register(
-                    ResourceLocationHelper.getPath(ResourceLocationHelper.modLoc("structure_miner")),
+                    ResourceLocationHelper.getPath(
+                            ResourceLocationHelper.modLoc("structure_miner")),
                     () -> IForgeMenuType.create(StructureMinerMenu::new));
     public static final RegistryObject<MenuType<StructureReactorMenu>> STRUCTURE_REACTOR =
             MENU_TYPES.register(
                     "structure_reactor", () -> IForgeMenuType.create(StructureReactorMenu::new));
-    public static final RegistryObject<MenuType<StructureDataOperatorMenu>> STRUCTURE_DATA_OPERATOR =
-            MENU_TYPES.register(
-                    "structure_data_operator",
-                    () -> IForgeMenuType.create(StructureDataOperatorMenu::new));
+    public static final RegistryObject<MenuType<StructureDataOperatorMenu>>
+            STRUCTURE_DATA_OPERATOR =
+                    MENU_TYPES.register(
+                            "structure_data_operator",
+                            () -> IForgeMenuType.create(StructureDataOperatorMenu::new));
 
     private ModMenu() {}
 }

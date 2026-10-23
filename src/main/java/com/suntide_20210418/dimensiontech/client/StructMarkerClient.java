@@ -20,10 +20,10 @@ public final class StructMarkerClient {
     /**
      * Shows the marker terminal, or re-feeds the one that is already open.
      *
-     * <p>Marking a structure round-trips through the server and comes back as a freshly built stack.
-     * When that answer arrives while the terminal is already up for the same hand, the open screen is
-     * handed the new stack rather than replaced: rebuilding it would throw away the scroll position
-     * and flash the whole background on every press of an action button.
+     * <p>Marking a structure round-trips through the server and comes back as a freshly built
+     * stack. When that answer arrives while the terminal is already up for the same hand, the open
+     * screen is handed the new stack rather than replaced: rebuilding it would throw away the
+     * scroll position and flash the whole background on every press of an action button.
      */
     public static void open(ItemStack marker, InteractionHand hand) {
         Minecraft minecraft = Minecraft.getInstance();

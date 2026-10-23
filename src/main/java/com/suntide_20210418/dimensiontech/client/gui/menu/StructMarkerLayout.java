@@ -29,7 +29,9 @@ public final class StructMarkerLayout {
     public static final ResourceLocation TEXTURE =
             ResourceLocationHelper.modLoc("guis/structure_marker.png");
 
-    /** Real file size. {@code blit} normalises UVs by whatever it is handed, so these must match. */
+    /**
+     * Real file size. {@code blit} normalises UVs by whatever it is handed, so these must match.
+     */
     public static final int TEXTURE_WIDTH = 300;
 
     public static final int TEXTURE_HEIGHT = 176;
@@ -45,11 +47,11 @@ public final class StructMarkerLayout {
     /**
      * The analysis-state chip, right-aligned against the face margin.
      *
-     * <p>{@link #CHIP_W} is a floor rather than a size. "Approximate" — the longest of the four state
-     * names — measures about 62 pixels in the vanilla font, so a fixed 40 pixel chip would centre it
-     * two pixels past each of its own edges. This is the one control on the face whose width depends
-     * on the language, so the screen computes it at draw time and this constant only stops the
-     * shorter labels from making the chip look starved.
+     * <p>{@link #CHIP_W} is a floor rather than a size. "Approximate" — the longest of the four
+     * state names — measures about 62 pixels in the vanilla font, so a fixed 40 pixel chip would
+     * centre it two pixels past each of its own edges. This is the one control on the face whose
+     * width depends on the language, so the screen computes it at draw time and this constant only
+     * stops the shorter labels from making the chip look starved.
      */
     public static final int CHIP_W = 40;
 
@@ -110,8 +112,8 @@ public final class StructMarkerLayout {
      *
      * <p>That primitive draws its text at {@code y + 1} and underlines it at {@code y + 11}, so 21
      * puts the caption on 22 and the rule on 32. The texture's viewport rule is at 39, which leaves
-     * six blank rows between the two. Passing 22 here instead would push both two rows down and land
-     * the rule on the viewport's own contour.
+     * six blank rows between the two. Passing 22 here instead would push both two rows down and
+     * land the rule on the viewport's own contour.
      */
     public static final int SECTION_Y = 21;
 

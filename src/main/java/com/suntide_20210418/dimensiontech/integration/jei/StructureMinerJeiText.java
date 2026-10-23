@@ -81,9 +81,7 @@ final class StructureMinerJeiText {
      * probability of at least one core. The chest pity stays on the core's own page.
      */
     static List<Component> coreChanceTip(StructureMinerJeiRecipe recipe) {
-        return List.of(
-                chanceLine(recipe),
-                atLeastOneLine(recipe));
+        return List.of(chanceLine(recipe), atLeastOneLine(recipe));
     }
 
     private static Component chanceLine(StructureMinerJeiRecipe recipe) {
@@ -134,8 +132,7 @@ final class StructureMinerJeiText {
 
     /** The mining-drop chance range across miner tiers. */
     private static Component coreSourceChanceLine(double minChance, double maxChance) {
-        return Component.translatable(
-                CORE_LINE_CHANCE, percent(minChance), percent(maxChance));
+        return Component.translatable(CORE_LINE_CHANCE, percent(minChance), percent(maxChance));
     }
 
     private static Component firstLine() {

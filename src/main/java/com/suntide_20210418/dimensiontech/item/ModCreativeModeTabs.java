@@ -47,7 +47,8 @@ public final class ModCreativeModeTabs {
                                                 output.accept(
                                                         ModItems.STRUCTURE_DATA_OPERATOR.get());
                                                 output.accept(ModItems.STRUCTURE_REACTOR.get());
-                                                output.accept(ModItems.STRUCTURE_ESSENCE_BUCKET.get());
+                                                output.accept(
+                                                        ModItems.STRUCTURE_ESSENCE_BUCKET.get());
                                                 output.accept(
                                                         ModItems.SURGING_STRUCTURE_ESSENCE_BUCKET
                                                                 .get());
@@ -58,13 +59,20 @@ public final class ModCreativeModeTabs {
                                                                 .get());
                                                 output.accept(
                                                         ModItems.FRACTAL_ESSENCE_BUCKET.get());
-                                                output.accept(ModItems.TIER_1_STRUCTURE_MINER.get());
-                                                output.accept(ModItems.TIER_2_STRUCTURE_MINER.get());
-                                                output.accept(ModItems.TIER_3_STRUCTURE_MINER.get());
-                                                output.accept(ModItems.TIER_4_STRUCTURE_MINER.get());
-                                                output.accept(ModItems.TIER_5_STRUCTURE_MINER.get());
-                                                output.accept(ModItems.TIER_6_STRUCTURE_MINER.get());
-                                                output.accept(ModItems.STRUCTURE_MINER_CASING.get());
+                                                output.accept(
+                                                        ModItems.TIER_1_STRUCTURE_MINER.get());
+                                                output.accept(
+                                                        ModItems.TIER_2_STRUCTURE_MINER.get());
+                                                output.accept(
+                                                        ModItems.TIER_3_STRUCTURE_MINER.get());
+                                                output.accept(
+                                                        ModItems.TIER_4_STRUCTURE_MINER.get());
+                                                output.accept(
+                                                        ModItems.TIER_5_STRUCTURE_MINER.get());
+                                                output.accept(
+                                                        ModItems.TIER_6_STRUCTURE_MINER.get());
+                                                output.accept(
+                                                        ModItems.STRUCTURE_MINER_CASING.get());
                                                 output.accept(
                                                         ModItems.STRUCTURE_MINER_STRUCTURE.get());
                                                 output.accept(ModItems.STRUCTURE_MINER_GLASS.get());

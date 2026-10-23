@@ -12,6 +12,7 @@ import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyz
 import com.suntide_20210418.dimensiontech.structure.analysis.StructureLootAnalyzer.StructureLoot;
 import com.suntide_20210418.dimensiontech.utils.LootExpectationSnapshot;
 import com.suntide_20210418.dimensiontech.utils.LootTableLottery;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -19,11 +20,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -369,7 +369,9 @@ public final class StructureValueCalculator {
                                                         null,
                                                         luck,
                                                         samples)) {
-                                            if (stack.isEmpty() || stack.getCount() <= 0 || isNbtHeavy(stack)) continue;
+                                            if (stack.isEmpty()
+                                                    || stack.getCount() <= 0
+                                                    || isNbtHeavy(stack)) continue;
                                             String id =
                                                     net.minecraft.core.registries.BuiltInRegistries
                                                             .ITEM
@@ -389,7 +391,8 @@ public final class StructureValueCalculator {
                                                 (System.nanoTime() - drawCallStart) / 1_000_000L;
                                         if (drawCallMillis > 50) {
                                             LOGGER.warn(
-                                                    "[TEMP PROBE] sampling draw table {} occurrence {}/{} took {}ms (samples={}) on {}",
+                                                    "[TEMP PROBE] sampling draw table {} occurrence"
+                                                            + " {}/{} took {}ms (samples={}) on {}",
                                                     table.getKey(),
                                                     occurrence,
                                                     table.getValue(),
@@ -403,7 +406,8 @@ public final class StructureValueCalculator {
                             long drawMillis = (System.nanoTime() - drawStart) / 1_000_000L;
                             if (drawMillis > 20) {
                                 LOGGER.warn(
-                                        "[TEMP PROBE] sampling draw took {}ms roots={} samples={} on {}",
+                                        "[TEMP PROBE] sampling draw took {}ms roots={} samples={}"
+                                                + " on {}",
                                         drawMillis,
                                         roots.size(),
                                         samples,
@@ -679,9 +683,7 @@ public final class StructureValueCalculator {
                                 terminal.put(
                                         new TerminalStackKey(
                                                 net.minecraft.core.registries.BuiltInRegistries.ITEM
-                                                        .get(
-                                                                new ResourceLocation(
-                                                                        item.itemId())),
+                                                        .get(new ResourceLocation(item.itemId())),
                                                 item.count(),
                                                 net.minecraft.world.item.Rarity.valueOf(
                                                         item.rarity())),
@@ -1133,7 +1135,13 @@ public final class StructureValueCalculator {
                 float ignoredLuck,
                 StackMeasure measure,
                 List<Diagnostic> diagnostics) {
-            this(status, dimensionValue, structureValue, measure, EnchantmentMarginal.EMPTY, diagnostics);
+            this(
+                    status,
+                    dimensionValue,
+                    structureValue,
+                    measure,
+                    EnchantmentMarginal.EMPTY,
+                    diagnostics);
         }
 
         /** Compatibility overload for callers compiled against the pre-extraction API. */
@@ -1197,7 +1205,8 @@ public final class StructureValueCalculator {
             status = Objects.requireNonNull(status, "status");
             measure = Objects.requireNonNull(measure, "measure");
             terminalMeasure = Objects.requireNonNull(terminalMeasure, "terminalMeasure");
-            enchantmentMarginal = Objects.requireNonNull(enchantmentMarginal, "enchantmentMarginal");
+            enchantmentMarginal =
+                    Objects.requireNonNull(enchantmentMarginal, "enchantmentMarginal");
             diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
             if (!Double.isFinite(dimensionValue) || dimensionValue < 0.0D) {
                 throw new IllegalArgumentException(

@@ -14,9 +14,7 @@ public final class DeconstructionCoreJeiRecipes {
         return List.of(
                 new DeconstructionCoreJeiRecipe(
                         StructureMinerJeiRecipes.CORE_CHANCE_PER_TIER,
-                        Math.min(
-                                1.0D,
-                                StructureMinerJeiRecipes.CORE_CHANCE_PER_TIER * 6),
+                        Math.min(1.0D, StructureMinerJeiRecipes.CORE_CHANCE_PER_TIER * 6),
                         DimensionCoreChestLoot.DROP_CHANCE,
                         DimensionCoreChestLoot.PITY_CHEST));
     }

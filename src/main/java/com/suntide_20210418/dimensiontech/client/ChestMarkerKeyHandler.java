@@ -16,8 +16,8 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * Client-side handler for the chest marker's analyse key.
  *
- * <p>Pressing the key (default V) with a chest marker in hand sends the block under the crosshair to
- * the server, which validates it as a loot-table container and marks it. The client uses its own
+ * <p>Pressing the key (default V) with a chest marker in hand sends the block under the crosshair
+ * to the server, which validates it as a loot-table container and marks it. The client uses its own
  * crosshair hit rather than re-raycasting on the server, so the block the player actually sees is
  * the block that gets marked.
  */

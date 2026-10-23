@@ -27,14 +27,12 @@ final class EssenceFluidType extends FluidType {
                 new IClientFluidTypeExtensions() {
                     @Override
                     public ResourceLocation getStillTexture() {
-                        return new ResourceLocation(
-                                "minecraft", "block/water_still");
+                        return new ResourceLocation("minecraft", "block/water_still");
                     }
 
                     @Override
                     public ResourceLocation getFlowingTexture() {
-                        return new ResourceLocation(
-                                "minecraft", "block/water_flow");
+                        return new ResourceLocation("minecraft", "block/water_flow");
                     }
 
                     @Override

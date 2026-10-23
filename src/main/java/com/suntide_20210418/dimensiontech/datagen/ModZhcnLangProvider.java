@@ -26,12 +26,8 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(TranslateHelper.item("data_integrator"), "数据整合器");
         add(TranslateHelper.item("structure_interpreter"), "结构阐释器");
         add(TranslateHelper.item("wrench"), "扳手");
-        add(
-                "tooltip.dimension_tech.wrench.projection",
-                "右键采掘器：显示/隐藏多方块结构投影");
-        add(
-                "tooltip.dimension_tech.wrench.build",
-                "Shift+右键：用背包中的方块一键搭建多方块结构");
+        add("tooltip.dimension_tech.wrench.projection", "右键采掘器：显示/隐藏多方块结构投影");
+        add("tooltip.dimension_tech.wrench.build", "Shift+右键：用背包中的方块一键搭建多方块结构");
         add("block.dimension_tech.structure_data_operator", "结构数据操作仪");
         add("block.dimension_tech.structure_reactor", "结构反应堆");
         add("container.dimension_tech.structure_reactor", "结构反应堆");
@@ -52,9 +48,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(
                 "screen.dimension_tech.structure_reactor.status_line.changes",
                 "变化：%s产出 %s消耗，耗时-%s/+%s tick，额外递归%s");
-        add(
-                "screen.dimension_tech.structure_reactor.status_line.previous.reward.branch",
-                "耗时减少%s");
+        add("screen.dimension_tech.structure_reactor.status_line.previous.reward.branch", "耗时减少%s");
         add(
                 "screen.dimension_tech.structure_reactor.status_line.previous.reward.recurse",
                 "消耗减少%s%%");
@@ -232,60 +226,26 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("jei.dimension_tech.structure_reactor.range.output", "产出：%s-%s mB");
         add("jei.dimension_tech.structure_reactor.range.fragments", "碎片：%s 个（上限 %s 个）");
         add("jei.dimension_tech.structure_miner.marker", "已标记的结构标记器");
-        add(
-                "jei.dimension_tech.structure_miner.marker.tip",
-                "放入一个已标记目标结构的结构标记器");
+        add("jei.dimension_tech.structure_miner.marker.tip", "放入一个已标记目标结构的结构标记器");
         add("jei.dimension_tech.structure_miner.loot", "结构中的战利品");
-        add(
-                "jei.dimension_tech.structure_miner.loot.tip",
-                "该结构原有的战利品，按采掘器总并行抽取");
-        add(
-                "jei.dimension_tech.structure_miner.requirement",
-                "需求流体：每工作周期 %s mB（储罐 %s mB）");
-        add(
-                "jei.dimension_tech.structure_miner.product",
-                "每周期产出该物品 × %s（受基础并行上限约束）");
-        add(
-                "jei.dimension_tech.structure_miner.core.chance",
-                "采掘：每周期最多 %s 次判定，每次 %s%% 概率");
-        add(
-                "jei.dimension_tech.structure_miner.core.at_least_one",
-                "周期内至少获得一个核心的概率 ≈ %s%%");
-        add(
-                "jei.dimension_tech.structure_miner.core.pity",
-                "保底：战利品箱每箱基础 %s%%，最多 %s 箱内必出");
-        add(
-                "jei.dimension_tech.structure_miner.reward.note",
-                "实际产出随并行升级与外部加速而提升");
-        add(
-                "jei.dimension_tech.structure_miner.not_consumed",
-                "不消耗：标记器保留在采掘器中，不会被消耗");
+        add("jei.dimension_tech.structure_miner.loot.tip", "该结构原有的战利品，按采掘器总并行抽取");
+        add("jei.dimension_tech.structure_miner.requirement", "需求流体：每工作周期 %s mB（储罐 %s mB）");
+        add("jei.dimension_tech.structure_miner.product", "每周期产出该物品 × %s（受基础并行上限约束）");
+        add("jei.dimension_tech.structure_miner.core.chance", "采掘：每周期最多 %s 次判定，每次 %s%% 概率");
+        add("jei.dimension_tech.structure_miner.core.at_least_one", "周期内至少获得一个核心的概率 ≈ %s%%");
+        add("jei.dimension_tech.structure_miner.core.pity", "保底：战利品箱每箱基础 %s%%，最多 %s 箱内必出");
+        add("jei.dimension_tech.structure_miner.reward.note", "实际产出随并行升级与外部加速而提升");
+        add("jei.dimension_tech.structure_miner.not_consumed", "不消耗：标记器保留在采掘器中，不会被消耗");
         add("jei.dimension_tech.chest_miner.chest_marker", "已标记的宝箱标记器");
-        add(
-                "jei.dimension_tech.chest_miner.chest_marker.tip",
-                "放入一个已标记宝箱的宝箱标记器");
+        add("jei.dimension_tech.chest_miner.chest_marker.tip", "放入一个已标记宝箱的宝箱标记器");
         add("jei.dimension_tech.chest_miner.loot", "宝箱中的战利品");
-        add(
-                "jei.dimension_tech.chest_miner.loot.tip",
-                "被标记宝箱的 LootTable 期望物品，按采掘器总并行抽取");
-        add(
-                "jei.dimension_tech.structure_miner.time.step",
-                "耗时：结构价值 ÷ 有效效率（向上取整，tick）");
-        add(
-                "jei.dimension_tech.structure_miner.time.efficiency",
-                "有效效率：基础效率 × 效率升级倍率");
-        add(
-                "jei.dimension_tech.structure_miner.time.minimum",
-                "低于 %s tick 最短周期时，维持最短周期并差值转为并行");
-        add(
-                "jei.dimension_tech.deconstruction_core.line.chance",
-                "采掘掉落：单次判定 %s%%～%s%%（随采掘器等级提升）");
-        add(
-                "jei.dimension_tech.deconstruction_core.line.first",
-                "尚未拥有第一阶采掘器前，亦可从战利品箱获得");
-        add(
-                "jei.dimension_tech.deconstruction_core.line.use",
-                "用于合成第 1 阶结构采掘器");
+        add("jei.dimension_tech.chest_miner.loot.tip", "被标记宝箱的 LootTable 期望物品，按采掘器总并行抽取");
+        add("jei.dimension_tech.structure_miner.time.step", "耗时：结构价值 ÷ 有效效率（向上取整，tick）");
+        add("jei.dimension_tech.structure_miner.time.efficiency", "有效效率：基础效率 × 效率升级倍率");
+        add("jei.dimension_tech.structure_miner.time.minimum", "低于 %s tick 最短周期时，维持最短周期并差值转为并行");
+        add("jei.dimension_tech.deconstruction_core.line.chance", "采掘掉落：单次判定 %s%%～%s%%（随采掘器等级提升）");
+        add("jei.dimension_tech.deconstruction_core.line.first", "尚未拥有第一阶采掘器前，亦可从战利品箱获得");
+        add("jei.dimension_tech.deconstruction_core.line.use", "用于合成第 1 阶结构采掘器");
         add(TranslateHelper.block("tier_1_structure_miner"), "第1阶虚空结构资源采掘器");
         add(TranslateHelper.container("tier_1_structure_miner"), "第1阶虚空结构资源采掘器");
         for (int tier = 2; tier <= 5; tier++) {
@@ -311,7 +271,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
                     "block.dimension_tech.structure_miner_upgrade_parallel_tier_" + tier,
                     tier + "级并行升级方块");
             add("block.dimension_tech.structure_miner_upgrade_luck_tier_" + tier, tier + "级幸运升级方块");
-            add("block.dimension_tech.structure_miner_upgrade_energy_tier_" + tier, tier + "级能量升级方块");
+            add(
+                    "block.dimension_tech.structure_miner_upgrade_energy_tier_" + tier,
+                    tier + "级能量升级方块");
             add(
                     "block.dimension_tech.structure_miner_upgrade_efficiency_tier_" + tier,
                     tier + "级效率升级方块");
@@ -337,9 +299,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("message.dimension_tech.structure_miner.projection_on", "已显示多方块结构投影");
         add("message.dimension_tech.structure_miner.projection_off", "已隐藏多方块结构投影");
         add("message.dimension_tech.structure_miner.structure_complete", "结构已完整，无需投影");
-        add(
-                "message.dimension_tech.structure_miner.build_blocked",
-                "搭建位置被 %s 个方块阻挡，请先清理");
+        add("message.dimension_tech.structure_miner.build_blocked", "搭建位置被 %s 个方块阻挡，请先清理");
         add("message.dimension_tech.structure_miner.build_missing", "材料不足：%s");
         add("message.dimension_tech.structure_miner.build_missing_entry", "%s x%s");
         add("tooltip.dimension_tech.structure_miner.base_parallel", "基础并行：%s");
@@ -353,9 +313,7 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("tooltip.dimension_tech.structure_miner.material.casing", "采掘器外壳 x%s");
         add("tooltip.dimension_tech.structure_miner.material.structure", "采掘器结构方块 x%s");
         add("tooltip.dimension_tech.structure_miner.material.glass", "结构采掘器玻璃 x%s");
-        add(
-                "tooltip.dimension_tech.structure_miner.material.upgrade",
-                "任意升级方块或采掘器结构方块 x%s");
+        add("tooltip.dimension_tech.structure_miner.material.upgrade", "任意升级方块或采掘器结构方块 x%s");
         add("tooltip.dimension_tech.structure_miner.upgrade.efficiency", "效率提升：+%s%%");
         add("tooltip.dimension_tech.structure_miner.upgrade.energy_capacity", "储能提升：+%s%%");
         add(
@@ -373,13 +331,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add(
                 "tooltip.dimension_tech.dimension_deconstruction_core.first",
                 "首次获取：尚未拥有第一阶采掘器时，可从战利品箱获得");
-        add(
-                "tooltip.dimension_tech.dimension_deconstruction_core.use",
-                "用于合成第 1 阶结构采掘器");
+        add("tooltip.dimension_tech.dimension_deconstruction_core.use", "用于合成第 1 阶结构采掘器");
         add("tooltip.dimension_tech.structure_reactor.comparator", "比较器可读取仪式状态（%s-%s）");
-        add(
-                "tooltip.dimension_tech.structure_reactor.comparator.steps",
-                "操作阶段 %s-%s（奖励窗口内 %s-%s）");
+        add("tooltip.dimension_tech.structure_reactor.comparator.steps", "操作阶段 %s-%s（奖励窗口内 %s-%s）");
         add(
                 "tooltip.dimension_tech.structure_reactor.comparator.levels",
                 "空闲 %s · 空闲受阻 %s · 提交受阻 %s · 炼制中 %s");
@@ -397,7 +351,9 @@ public class ModZhcnLangProvider extends LanguageProvider {
         add("screen.dimension_tech.structure_operator.slot.integrator", "放入数据整合器");
         add("screen.dimension_tech.structure_operator.slot.integrator.func", "可解锁已探索结构页面");
         add("screen.dimension_tech.structure_operator.slot.interpreter", "放入结构阐释器");
-        add("screen.dimension_tech.structure_operator.slot.interpreter.func", "可解锁所有结构页面（需先安装数据整合器）");
+        add(
+                "screen.dimension_tech.structure_operator.slot.interpreter.func",
+                "可解锁所有结构页面（需先安装数据整合器）");
         add("screen.dimension_tech.structure_operator.search", "搜索结构…");
         add("screen.dimension_tech.structure_operator.copy", "复制");
         add("screen.dimension_tech.structure_operator.clear", "清空");

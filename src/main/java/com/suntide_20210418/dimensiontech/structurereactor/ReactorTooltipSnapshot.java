@@ -37,10 +37,7 @@ public record ReactorTooltipSnapshot(
         outputExpectedAmount = Math.max(0, outputExpectedAmount);
         expectedInputFluid = expectedInputFluid == null ? Fluids.EMPTY : expectedInputFluid;
         expectedOutputFluid = expectedOutputFluid == null ? Fluids.EMPTY : expectedOutputFluid;
-        stateOutcomes =
-                stateOutcomes == null
-                        ? List.of()
-                        : List.copyOf(stateOutcomes);
+        stateOutcomes = stateOutcomes == null ? List.of() : List.copyOf(stateOutcomes);
     }
 
     public static ReactorTooltipSnapshot empty() {
