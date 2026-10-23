@@ -48,7 +48,6 @@ java {
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
     copyIdeResources = true
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
         configureEach {
@@ -176,12 +175,6 @@ dependencies {
 
     add(optionalModConfiguration, fg.deobf("curse.maven:jei-238222:7391695"))
     compileOnly fg.deobf("curse.maven:emi-580555:6420945")
-
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
-}
-
-tasks.named('test', Test).configure {
-    useJUnitPlatform()
 }
 
 tasks.register('syncGameTestStructures', Sync) {
