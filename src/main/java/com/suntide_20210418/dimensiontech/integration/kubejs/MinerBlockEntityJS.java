@@ -105,13 +105,14 @@ public final class MinerBlockEntityJS {
         if (miner.isEquipmentDismantlingEnabled() != enabled) miner.toggleEquipmentDismantling();
     }
 
-    public boolean expectedItemDisabled(Object id) {
-        return miner.isExpectedItemDisabled(DimensionTechJS.parse(id));
+    public boolean expectedItemDisabled(int slot, Object id) {
+        return miner.isExpectedItemDisabled(slot, DimensionTechJS.parse(id));
     }
 
-    public void setExpectedItemDisabled(Object id, boolean disabled) {
+    public void setExpectedItemDisabled(int slot, Object id, boolean disabled) {
         var item = DimensionTechJS.parse(id);
-        if (miner.isExpectedItemDisabled(item) != disabled) miner.toggleExpectedItem(item);
+        if (miner.isExpectedItemDisabled(slot, item) != disabled)
+            miner.toggleExpectedItem(slot, item);
     }
 
     public java.util.List<net.minecraft.resources.ResourceLocation> markedStructures() {

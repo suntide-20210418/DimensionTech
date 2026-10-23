@@ -18,6 +18,7 @@ import com.suntide_20210418.dimensiontech.utils.MinerScriptConfigService;
 import com.suntide_20210418.dimensiontech.utils.TranslateHelper;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -616,7 +617,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                 DRAWS_PER_PARALLEL,
                 getQuantityReference(),
                 isEquipmentDismantlingEnabled(),
-                outputController.disabledItems());
+                outputController.disabledItems(slot));
     }
 
     /**
@@ -628,13 +629,24 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
         updateProcessingPlans();
     }
 
-    public void toggleExpectedItem(ResourceLocation itemId) {
-        outputController.toggleDisabledItem(itemId);
+    public void toggleExpectedItem(int slot, ResourceLocation itemId) {
+        outputController.toggleDisabledItem(slot, itemId);
         setChanged();
     }
 
-    public boolean isExpectedItemDisabled(ResourceLocation itemId) {
-        return outputController.disabled(itemId);
+    public boolean isExpectedItemDisabled(int slot, ResourceLocation itemId) {
+        return outputController.disabled(slot, itemId);
+    }
+
+    /**
+     * Replaces one thread's disabled set wholesale, for the select-all and deselect-all gestures.
+     *
+     * @return true when the set actually changed, so the caller can skip a redundant refresh.
+     */
+    public boolean setDisabledExpectedItems(int slot, Set<ResourceLocation> itemIds) {
+        if (!outputController.replaceDisabledItems(slot, itemIds)) return false;
+        setChanged();
+        return true;
     }
 
     public int getEnergyStored() {
@@ -1147,7 +1159,8 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
                                     : FluidFaceMode.DISABLED;
         }
         autoExtractFluid = requiresFluidInput() && tag.getBoolean("AutoExtractFluid");
-        outputController.load(tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG);
+        outputController.load(
+                tag, EQUIPMENT_DISMANTLING_TAG, PENDING_OUTPUT_TAG, itemHandler.getSlots());
         java.util.Arrays.fill(slotEnabled, true);
         if (tag.contains(SLOT_ENABLED_TAG, Tag.TAG_INT_ARRAY)) {
             int[] enabledSlots = tag.getIntArray(SLOT_ENABLED_TAG);

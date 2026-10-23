@@ -33,7 +33,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "10";
+    private static final String VERSION = "11";
     private static final SimpleChannel CHANNEL =
             NetworkRegistry.newSimpleChannel(
                     new ResourceLocation(DimensionTechMod.MOD_ID, "main"),
@@ -115,6 +115,11 @@ public final class ModNetwork {
                 .decoder(ChestAnalysisRequestPacket::decode)
                 .consumerMainThread(ChestAnalysisRequestPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(StructureMinerExpectedItemBulkPacket.class, nextId++)
+                .encoder(StructureMinerExpectedItemBulkPacket::encode)
+                .decoder(StructureMinerExpectedItemBulkPacket::decode)
+                .consumerMainThread(StructureMinerExpectedItemBulkPacket::handle)
+                .add();
     }
 
     public static void requestStructureSelection(InteractionHand hand) {
@@ -158,6 +163,18 @@ public final class ModNetwork {
     public static void toggleStructureMinerExpectedItem(
             int containerId, int slot, ResourceLocation itemId) {
         CHANNEL.sendToServer(new StructureMinerExpectedItemTogglePacket(containerId, slot, itemId));
+    }
+
+    /**
+     * Enables or disables every expected item of one thread in a single round trip.
+     *
+     * <p>Only the intent travels: the server recomputes the id set from the marker in that slot, so
+     * the client cannot inject item ids and the packet does not grow with the number of drops.
+     */
+    public static void setStructureMinerExpectedItemsBulk(
+            int containerId, int slot, boolean allDisabled) {
+        CHANNEL.sendToServer(
+                new StructureMinerExpectedItemBulkPacket(containerId, slot, allDisabled));
     }
 
     public static void toggleStructureMinerSlot(int containerId, int slot) {
@@ -599,8 +616,12 @@ public final class ModNetwork {
                     && packet.slot() >= 0
                     && packet.slot() < menu.getContainerSlotCount()
                     && menu.stillValid(player)) {
-                menu.getBlockEntity().toggleExpectedItem(packet.itemId());
-                menu.getBlockEntity().refreshMarkerAnalysis();
+                // The slot has been on the wire from the start but was never used here, so every
+                // thread shared one machine-wide disabled set. Thread it through.
+                menu.getBlockEntity().toggleExpectedItem(packet.slot(), packet.itemId());
+                // No analysis refresh: the disabled set takes no part in the derivation, so the
+                // expected values in the cached snapshot are still correct. Only its disabledItems
+                // field changed, and sending the snapshot back covers that.
                 StructureMinerAnalysisSnapshot snapshot =
                         menu.getBlockEntity().getMarkerAnalysisSnapshot(packet.slot());
                 CHANNEL.send(
@@ -613,6 +634,67 @@ public final class ModNetwork {
                                 snapshot.equipmentDismantling(),
                                 snapshot.itemExpectations(),
                                 snapshot.disabledItems()));
+            }
+            context.setPacketHandled(true);
+        }
+    }
+
+    /**
+     * Enables or disables every expected item of one thread at once. Client to server.
+     *
+     * <p>The payload is a boolean, not a set of ids: the server recomputes the set from the marker
+     * in that slot, so the GUI cannot inject item ids and the packet does not grow with the number
+     * of drops. A structure with two hundred drops does not send two hundred ids for this.
+     *
+     * <p>The semantics are "set the disabled set to this", not "flip each item". A flip is only
+     * well defined for a single item; batch-applying it means one retransmit undoes the state that
+     * was just set, while an idempotent assignment cannot.
+     */
+    private record StructureMinerExpectedItemBulkPacket(
+            int containerId, int slot, boolean allDisabled) {
+        private void encode(FriendlyByteBuf buffer) {
+            buffer.writeVarInt(containerId);
+            buffer.writeVarInt(slot);
+            buffer.writeBoolean(allDisabled);
+        }
+
+        private static StructureMinerExpectedItemBulkPacket decode(FriendlyByteBuf buffer) {
+            return new StructureMinerExpectedItemBulkPacket(
+                    buffer.readVarInt(), buffer.readVarInt(), buffer.readBoolean());
+        }
+
+        private static void handle(
+                StructureMinerExpectedItemBulkPacket packet,
+                Supplier<NetworkEvent.Context> supplier) {
+            NetworkEvent.Context context = supplier.get();
+            ServerPlayer player = context.getSender();
+            if (player != null
+                    && player.containerMenu instanceof StructureMinerMenu menu
+                    && menu.containerId == packet.containerId()
+                    && packet.slot() >= 0
+                    && packet.slot() < menu.getContainerSlotCount()
+                    && menu.stillValid(player)) {
+                ItemStack marker = menu.slots.get(packet.slot()).getItem();
+                Set<ResourceLocation> disabled =
+                        packet.allDisabled()
+                                ? StructMarkerItem.getExpectedItemCounts(marker).keySet()
+                                : Set.of();
+                // An unchanged set means the click was a no-op: double-clicking, or pressing
+                // select-all when everything is already selected. Nothing to send back then.
+                if (menu.getBlockEntity().setDisabledExpectedItems(packet.slot(), disabled)) {
+                    StructureMinerAnalysisSnapshot snapshot =
+                            menu.getBlockEntity().getMarkerAnalysisSnapshot(packet.slot());
+                    CHANNEL.send(
+                            PacketDistributor.PLAYER.with(() -> player),
+                            new StructureMinerAnalysisPacket(
+                                    packet.containerId(),
+                                    packet.slot(),
+                                    snapshot.dimensionValue(),
+                                    snapshot.structureValue(),
+                                    snapshot.equipmentDismantling(),
+                                    snapshot.itemExpectations(),
+                                    snapshot.disabledItems()));
+                }
             }
             context.setPacketHandled(true);
         }

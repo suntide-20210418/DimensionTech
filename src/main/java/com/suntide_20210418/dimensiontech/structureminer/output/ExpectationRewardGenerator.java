@@ -63,19 +63,23 @@ public final class ExpectationRewardGenerator {
 
     /**
      * Builds all loot for completed miner cycles, including filtering, dismantling, and rewards.
+     *
+     * <p>Each cycle carries its own thread's disabled set; there is no machine-wide one, so a drop
+     * turned off on one thread stays enabled on the others.
      */
     public static List<ItemStack> generate(
             MinecraftServer server,
             List<Cycle> cycles,
-            Set<ResourceLocation> disabledItems,
             boolean equipmentDismantling,
             int minerTier) {
         List<ItemStack> merged = new ArrayList<>();
         int clampedTier = Math.max(1, Math.min(6, minerTier));
         int deconstructionCores = 0;
-        boolean coresAllowed = !disabledItems.contains(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID);
         for (Cycle cycle : cycles) {
             MarkerAnalysis cached = cycle.loot();
+            // Read per cycle rather than once outside the loop: the set belongs to this cycle's
+            // thread, and hoisting it would apply one thread's disabled list to all of them.
+            Set<ResourceLocation> disabledItems = cycle.disabled();
             ServerLevel lootLevel =
                     server.getLevel(ResourceKey.create(Registries.DIMENSION, cached.dimension()));
             if (lootLevel == null
@@ -95,7 +99,7 @@ public final class ExpectationRewardGenerator {
                         mergeEquivalent(merged, stack);
                 }
             }
-            if (coresAllowed) {
+            if (!disabledItems.contains(ModItems.DIMENSION_DECONSTRUCTION_CORE_ID)) {
                 deconstructionCores =
                         rollDimensionCores(
                                 deconstructionCores, lootLevel, cycle.parallel(), clampedTier);
@@ -142,7 +146,8 @@ public final class ExpectationRewardGenerator {
         return accumulated + produced;
     }
 
-    public record Cycle(MarkerAnalysis loot, int parallel, int draws) {}
+    public record Cycle(
+            MarkerAnalysis loot, int parallel, int draws, Set<ResourceLocation> disabled) {}
 
     private record WeightedItem(Item item, double weight) {}
 }
