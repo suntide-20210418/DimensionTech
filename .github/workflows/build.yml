@@ -11,8 +11,10 @@
 # 关于构建本身（见 build.gradle）：
 #   * `build` 的任务图是 compileJava -> jar -> reobfJar -> sourcesJar -> test -> check，
 #     其中 reobfJar 是 jar 的 finalizer，会把混淆过的 jar 原地写回 build/libs。
-#   * spotless 的 enforceCheck = false，所以 `check` 不会包含 spotlessCheck，
-#     格式化差异不会卡住 CI（本仓的 aosp 100 列配置本身也不适合当门禁）。
+#   * spotless 的 enforceCheck = false，所以 `build` / `check` 的任务图**不含**
+#     spotlessCheck，格式化差异不会自动卡住 CI。门禁因此必须显式调用一次，
+#     否则等于没有——见下面的 "Check formatting" 步骤。
+#   * 这一步放在 Build 之前，格式问题会比编译错误更早暴露。
 #   * 可选依赖（KubeJS / AE2 / Mekanism 等）走 `implementation`，ForgeGradle 必须
 #     把它们全部反混淆，冷缓存下这一步最耗时，所以 setup-gradle 的缓存很关键。
 
@@ -56,6 +58,9 @@ jobs:
         #   2. 自动校验 gradle-wrapper.jar 是否为 Gradle 官方发行的校验和。
         # 本仓的 wrapper jar 来自 Gradle 8.1.1 官方发行（gradle-wrapper.properties
         # 里声明的发行版是 8.8），属于已知官方校验和，校验可以通过。
+
+      - name: Check formatting
+        run: ./gradlew spotlessCheck --stacktrace
 
       - name: Build
         run: ./gradlew build --stacktrace

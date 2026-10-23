@@ -71,9 +71,23 @@ jobs:
             echo "::error::请先把 gradle.properties 的 mod_version 改成 $version 并提交，再重新打标签。"
             exit 1
           fi
+          mod_id=$(sed -n 's/^mod_id=//p' gradle.properties)
+          mc_version=$(sed -n 's/^minecraft_version=//p' gradle.properties)
+          if [ -z "$mod_id" ] || [ -z "$mc_version" ]; then
+            echo "::error::gradle.properties 缺少 mod_id 或 minecraft_version"
+            exit 1
+          fi
+          # 产物名由 build.gradle 的 archivesName + version 决定：<mod_id>-<mod_version>.jar。
+          # 这里推导出精确路径而不是通配：build/ 虽被忽略，但本地手动发版时 build/libs 会残留
+          # 历史版本，通配会把旧包一起交出去。
+          jar="build/libs/${mod_id}-${mod_version}.jar"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "mod_id=$mod_id" >> "$GITHUB_OUTPUT"
+          echo "mc_version=$mc_version" >> "$GITHUB_OUTPUT"
+          echo "jar=$jar" >> "$GITHUB_OUTPUT"
           echo "标签校验通过：$tag -> 发布版本 $version"
+          echo "目标产物：$jar"
 
       # 在耗时十几分钟的构建之前先把凭据问题暴露出来。
       - name: Check publish configuration
@@ -125,29 +139,29 @@ jobs:
       - name: Collect artifacts
         env:
           VERSION: ${{ steps.meta.outputs.version }}
+          JAR: ${{ steps.meta.outputs.jar }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          main=''
-          for f in build/libs/*.jar; do
-            case "$f" in *-sources.jar) continue ;; esac
-            main="$f"
-            break
-          done
-          if [ -z "$main" ]; then
-            echo "::error::build/libs 下没有找到主 jar"
+          if [ ! -f "$JAR" ]; then
+            echo "::error::预期产物不存在：$JAR"
+            ls -l build/libs || true
             exit 1
           fi
-          unzip -p "$main" META-INF/mods.toml > mods.toml.extracted
+          unzip -p "$JAR" META-INF/mods.toml > mods.toml.extracted
           grep -Fq "version=\"${VERSION}\"" mods.toml.extracted
           echo "构建产物："
           ls -l build/libs
 
       - name: Generate changelog
+        env:
+          MC_VERSION: ${{ steps.meta.outputs.mc_version }}
         run: |
           set -euo pipefail
           tag="${RELEASE_TAG}"
-          prev=$(git describe --tags --abbrev=0 --match '*.*.*-*' "${tag}^" 2>/dev/null || true)
+          # 限定同一条 MC 线。本仓同时维护 1.20.1 与 1.21.1 两条独立历史线，
+          # 只按 '*.*.*-*' 匹配会把另一条线的标签当成上一个版本，changelog 因此
+          # 会列出一堆与本线无关的提交。
+          prev=$(git describe --tags --abbrev=0 --match "*.*.*-${MC_VERSION}" "${tag}^" 2>/dev/null || true)
           if [ -n "$prev" ]; then
             {
               echo "自 \`$prev\` 以来的变更："
@@ -170,12 +184,13 @@ jobs:
         uses: Kira-NT/mc-publish@v3.3.1
         with:
           # 只把主 jar 交给 CurseForge / Modrinth；GitHub Release 额外附上源码 jar。
-          files: build/libs/!(*-sources).jar
+          # 两者都用精确路径而不是通配，理由见 meta 步骤里的注释。
+          files: ${{ steps.meta.outputs.jar }}
           github-files: |
-            build/libs/!(*-sources).jar
-            build/libs/*-sources.jar
+            ${{ steps.meta.outputs.jar }}
+            build/libs/${{ steps.meta.outputs.mod_id }}-${{ steps.meta.outputs.version }}-sources.jar
 
-          name: Dimension Tech ${{ steps.meta.outputs.version }} for Minecraft 1.20.1 (Forge)
+          name: Dimension Tech ${{ steps.meta.outputs.version }} for Minecraft ${{ steps.meta.outputs.mc_version }} (Forge)
           version: ${{ steps.meta.outputs.version }}
           version-type: release
           # 提供了 changelog-file 时 github-generate-changelog 默认即为 false，
@@ -184,7 +199,7 @@ jobs:
 
           # 元数据显式给出，不依赖 action 去解析带 ${} 占位符的 mods.toml。
           loaders: forge
-          game-versions: 1.20.1
+          game-versions: ${{ steps.meta.outputs.mc_version }}
           environment: client | server
           java: '17'
           # 与 META-INF/mods.toml 声明的可选前置一致。括号里是 Modrinth 项目 ID，
