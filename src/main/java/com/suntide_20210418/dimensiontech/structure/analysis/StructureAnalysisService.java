@@ -144,6 +144,11 @@ public final class StructureAnalysisService {
     private final Map<Key, Integer> failedSamples = new HashMap<>();
     private final Map<Key, Integer> attemptedCandidates = new HashMap<>();
     private final ArrayDeque<Key> queue = new ArrayDeque<>();
+    /**
+     * In-flight detached samples. A sample now spans several ticks, so its cursor has to survive
+     * between them; the entry is dropped the moment the sample completes or is abandoned.
+     */
+    private final Map<Key, VirtualStructureSampler.Session> sessions = new HashMap<>();
     private final AnalysisTaskCache tasks = new AnalysisTaskCache(1, 32);
     private final MainThreadTaskCache<AnalysisTaskCache.Key, Object> runtimeCaptures =
             new MainThreadTaskCache<>(32);
@@ -218,6 +223,10 @@ public final class StructureAnalysisService {
                     new java.util.concurrent.CancellationException("Server stopped"));
         }
         discoveryFutures.clear();
+        // Interrupt before dropping the map: a session that is mid-advance on another entry point
+        // would otherwise keep placing chunks into chunks nobody will read.
+        for (VirtualStructureSampler.Session session : sessions.values()) session.interrupt();
+        sessions.clear();
         queue.clear();
         states.clear();
         latestStates.clear();
@@ -312,6 +321,13 @@ public final class StructureAnalysisService {
     }
 
     private void failDiscovery(Key key, Throwable error) {
+        // A budget abort or a cancellation is not a generic failure: it carries its own diagnostic
+        // code so the player can tell "this structure is too expensive to read" apart from "this
+        // structure broke".
+        String code =
+                error instanceof VirtualStructureSampler.SampleAbortedException aborted
+                        ? aborted.code()
+                        : "DISCOVERY_FAILED";
         State old = states.get(key);
         if (old != null)
             publishState(
@@ -321,7 +337,7 @@ public final class StructureAnalysisService {
                             old.completedSamples(),
                             old.totalSamples(),
                             old.result(),
-                            List.of(new Diagnostic("DISCOVERY_FAILED", error.toString())),
+                            List.of(new Diagnostic(code, error.toString())),
                             false,
                             AnalysisLifecycle.TaskStatus.FAILED,
                             System.currentTimeMillis(),
@@ -456,34 +472,68 @@ public final class StructureAnalysisService {
         templateTasks.tick(allocated.templates());
         runtimeCaptures.tick(allocated.runtimeCaptures());
         int virtualBudget = allocated.virtualSamples();
+        // One clock for the whole tick: however high stepsPerTick is raised, the time this tick
+        // spends on detached sampling stays bounded by the slice.
+        long sliceDeadlineNanos =
+                System.nanoTime() + ModConfigs.STRUCTURE_VALUE.virtualStructureSampleSliceNanos();
         while (virtualBudget-- > 0 && !queue.isEmpty()) {
             Key key = queue.removeFirst();
             State state = states.get(key);
             ServerLevel level = server.getLevel(key.dimension());
-            if (state == null || state.complete()) continue;
+            if (state == null || state.complete()) {
+                // The request was satisfied or withdrawn while its sample was mid-flight; keeping
+                // the session would leak a cursor that nothing will ever advance again.
+                discardSample(key);
+                continue;
+            }
             if (level == null) {
+                discardSample(key);
                 failDiscovery(key, new IllegalStateException("Discovery dimension is unavailable"));
                 continue;
             }
             try {
-                int attempt = attemptedCandidates.merge(key, 1, Integer::sum) - 1;
                 int next = state.completedSamples() + 1;
-                // Origin derivation is intentionally separate from placement. A placement adapter
-                // must
-                // write only to an in-memory WorldGenLevel; do not substitute ServerLevel here.
-                BlockPos origin = sampleOrigin(level, key.structure(), attempt);
                 Structure structure =
                         level.registryAccess()
                                 .registryOrThrow(Registries.STRUCTURE)
                                 .get(key.structure());
-                if (structure != null) {
+                if (structure == null) {
+                    // The registry no longer knows this id; the sample contributes nothing, which is
+                    // what the previous synchronous path did as well.
+                    discardSample(key);
+                } else {
                     try {
-                        VirtualStructureSampler.Sample sample =
-                                VirtualStructureSampler.sample(level, structure, origin);
+                        VirtualStructureSampler.Session session = sessions.get(key);
+                        if (session == null) {
+                            // Origin derivation is intentionally separate from placement. A
+                            // placement adapter must write only to an in-memory WorldGenLevel; do
+                            // not substitute ServerLevel here.
+                            int attempt = attemptedCandidates.merge(key, 1, Integer::sum) - 1;
+                            BlockPos origin = sampleOrigin(level, key.structure(), attempt);
+                            session =
+                                    VirtualStructureSampler.begin(
+                                            level,
+                                            structure,
+                                            origin,
+                                            VirtualStructureSampler.SamplingControl.ofMillis(
+                                                    ModConfigs.STRUCTURE_VALUE
+                                                            .virtualStructureSampleBudgetMillis()));
+                            sessions.put(key, session);
+                        }
+                        if (!session.advance(sliceDeadlineNanos)) {
+                            // Slice spent: leave the sample parked until a later tick resumes it.
+                            queue.addLast(key);
+                            continue;
+                        }
+                        sessions.remove(key);
+                        VirtualStructureSampler.Sample sample = session.result();
                         if (!sample.generated()) {
                             // Placement gave us a candidate, but biome/terrain/structure-specific
                             // generation conditions rejected it. It is not a statistical sample.
-                            if (attempt < state.totalSamples() * 32) {
+                            // attemptedCandidates is bumped when the session is created, so the
+                            // current candidate index is getOrDefault - 1.
+                            if (attemptedCandidates.getOrDefault(key, 1) - 1
+                                    < state.totalSamples() * 32) {
                                 queue.addLast(key);
                                 continue;
                             }
@@ -497,9 +547,16 @@ public final class StructureAnalysisService {
                                                                 key, ignored -> new HashMap<>())
                                                         .merge(table, count, Integer::sum));
                     } catch (RuntimeException exception) {
+                        if (exception
+                                instanceof VirtualStructureSampler.SampleAbortedException aborted) {
+                            // Budget spent or sampling cancelled: retrying the same sample would
+                            // just burn the budget again, so the structure fails as a whole.
+                            throw aborted;
+                        }
                         // A modded structure may require generation services outside WorldGenLevel.
                         // Keep processing the other deterministic samples and report the final
                         // count.
+                        sessions.remove(key);
                         failedSamples.merge(key, 1, Integer::sum);
                     }
                 }
@@ -570,14 +627,45 @@ public final class StructureAnalysisService {
                 publishState(key, state.complete(next, result));
                 CompletableFuture<DiscoveryResult> future = discoveryFutures.get(key);
                 if (future != null) future.complete(result);
+            } catch (VirtualStructureSampler.SampleAbortedException aborted) {
+                // Budget spent or cancelled: report the structure as unreadable, with the abort's
+                // own diagnostic code, and stop retrying it.
+                discardSample(key);
+                failDiscovery(key, aborted);
             } catch (RuntimeException error) {
-                observedTables.remove(key);
-                failedSamples.remove(key);
-                attemptedCandidates.remove(key);
-                staticDiscoveries.remove(key);
+                discardSample(key);
                 failDiscovery(key, error);
             }
         }
+    }
+
+    /**
+     * Stops detached sampling still running for one structure and fails its discovery future. The
+     * caller is gone (for example the operator block entity was removed), so nothing should keep
+     * burning server time on it.
+     */
+    public synchronized void cancel(
+            net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+            ResourceLocation structure) {
+        for (Key key : List.copyOf(discoveryFutures.keySet())) {
+            if (!key.dimension().equals(dimension) || !key.structure().equals(structure)) continue;
+            discardSample(key);
+            failDiscovery(
+                    key,
+                    new java.util.concurrent.CancellationException(
+                            "Virtual structure sampling was cancelled"));
+        }
+    }
+
+    /** Drops every bookkeeping entry belonging to an in-flight virtual sample. */
+    private void discardSample(Key key) {
+        VirtualStructureSampler.Session session = sessions.remove(key);
+        if (session != null) session.interrupt();
+        queue.remove(key);
+        observedTables.remove(key);
+        failedSamples.remove(key);
+        attemptedCandidates.remove(key);
+        staticDiscoveries.remove(key);
     }
 
     public static ExecutionBudget allocateExecutionBudget(

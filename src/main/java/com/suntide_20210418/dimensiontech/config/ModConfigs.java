@@ -85,6 +85,8 @@ public final class ModConfigs {
         private final ForgeConfigSpec.IntValue glmSupplementSamples;
         private final ForgeConfigSpec.IntValue virtualStructureSamples;
         private final ForgeConfigSpec.IntValue virtualStructureStepsPerTick;
+        private final ForgeConfigSpec.IntValue virtualStructureSampleSliceMillis;
+        private final ForgeConfigSpec.IntValue virtualStructureSampleBudgetMillis;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionValues;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> itemMultipliers;
         private final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionWhitelist;
@@ -129,6 +131,28 @@ public final class ModConfigs {
                                     "Maximum catalogue-analysis work units processed each server"
                                             + " tick")
                             .defineInRange("virtualStructureStepsPerTick", 1, 1, 64);
+            virtualStructureSampleSliceMillis =
+                    builder.comment(
+                                    "Wall-clock slice detached structure sampling may use per"
+                                            + " server tick before it yields and is resumed on the"
+                                            + " next tick; this is the knob that bounds tick"
+                                            + " latency",
+                                    "The slice is checked between structure chunks, so one tick can"
+                                            + " overshoot by the cost of a single chunk;"
+                                            + " virtualStructureSampleBudgetMillis caps that"
+                                            + " overshoot. Raising this trades tick latency for"
+                                            + " faster analysis.")
+                            .defineInRange("virtualStructureSampleSliceMillis", 20, 1, 1000);
+            virtualStructureSampleBudgetMillis =
+                    builder.comment(
+                                    "Total work budget for one detached structure sample (time"
+                                            + " spent inside the sample, not wall-clock)",
+                                    "A sample that needs more is reported as UNSUPPORTED with a"
+                                            + " VIRTUAL_SAMPLE_BUDGET diagnostic instead of running"
+                                            + " away; raise this to analyse very large modded"
+                                            + " structures, lower it to tighten the worst-case"
+                                            + " single-chunk overshoot.")
+                            .defineInRange("virtualStructureSampleBudgetMillis", 5000, 10, 600_000);
             dimensionValues =
                     builder.comment(
                                     "Dimension value entries in dimension_id=value format",
@@ -308,7 +332,14 @@ public final class ModConfigs {
         }
 
         public String generationFingerprint() {
-            return discoveryFingerprint() + "|samples=" + virtualStructureSamples();
+            // The per-sample budget decides whether a structure is EXACT or "budget exceeded", so it
+            // changes the answer and belongs in the fingerprint. The per-tick slice only decides how
+            // the work is scheduled and never changes the result, so it stays out.
+            return discoveryFingerprint()
+                    + "|samples="
+                    + virtualStructureSamples()
+                    + "|sampleBudgetMs="
+                    + virtualStructureSampleBudgetMillis();
         }
 
         public String expectationFingerprint() {
@@ -357,6 +388,19 @@ public final class ModConfigs {
             return StructureScriptConfigService.stepsPerTick() != null
                     ? StructureScriptConfigService.stepsPerTick()
                     : virtualStructureStepsPerTick.get();
+        }
+
+        /** Per-tick wall-clock slice for detached sampling, in nanoseconds. */
+        public long virtualStructureSampleSliceNanos() {
+            return Math.max(1, virtualStructureSampleSliceMillis.get()) * 1_000_000L;
+        }
+
+        /**
+         * Total work budget for one detached sample. Deliberately read live rather than cached: it
+         * is consumed by {@code SamplingControl}, which is constructed fresh for every sample.
+         */
+        public int virtualStructureSampleBudgetMillis() {
+            return virtualStructureSampleBudgetMillis.get();
         }
 
         public double dimensionValue(ResourceLocation dimension) {
