@@ -275,7 +275,7 @@ final class StructureDataIntegratorPage {
                     false);
             g.drawString(
                     s.getMinecraft().font,
-                    ReadingFormat.reading(entry.getValue().finiteDoubleValue()),
+                    ReadingFormat.reading(ReadingFormat.displayValue(entry.getValue())),
                     expectedX,
                     y + 5,
                     accent,

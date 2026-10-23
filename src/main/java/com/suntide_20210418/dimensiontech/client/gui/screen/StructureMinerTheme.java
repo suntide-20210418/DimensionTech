@@ -54,6 +54,20 @@ final class StructureMinerTheme {
     static final int FRAME_HIGHLIGHT = GuiPalette.BEVEL_MID;
     static final int HOVER = GuiPalette.HOVER;
     static final int DISABLED_OVERLAY = GuiPalette.DISABLED_OVERLAY;
+
+    /** A quantity in a slot's corner, drawn over item art with the vanilla text shadow. */
+    static final int SLOT_COUNT = GuiPalette.SLOT_COUNT;
+
+    /**
+     * Translucent wash laid over a hovered cell of the expectation grid.
+     *
+     * <p>Lifted from the marker lane's hover tone and given alpha, so the item icon underneath
+     * stays legible. The lane pressed its hovered row in with an opaque tone because the row was
+     * text on a flat recess; a grid cell has an icon on it and an opaque fill would erase the thing
+     * the player is pointing at.
+     */
+    static final int HOVER_WASH = 0x409BB49A;
+
     static final int BACKDROP = GuiPalette.BACKDROP;
     static final int FLUID = GuiPalette.FLUID;
     static final int FLUID_ACCENT = GuiPalette.FLUID_ACCENT;

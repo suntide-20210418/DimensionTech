@@ -78,7 +78,7 @@ public final class ChestMarkerScreen extends Screen {
             if (item != null) rows.add(new Row(item, entry.getValue()));
         }
         rows.sort(
-                Comparator.comparingDouble((Row row) -> row.expected.finiteDoubleValue())
+                Comparator.comparingDouble((Row row) -> ReadingFormat.displayValue(row.expected))
                         .reversed()
                         .thenComparing(row -> BuiltInRegistries.ITEM.getKey(row.item).toString()));
     }
@@ -290,7 +290,7 @@ public final class ChestMarkerScreen extends Screen {
         ItemStack stack = new ItemStack(row.item);
         g.renderItem(stack, StructMarkerLayout.ROW_PAD, y + 1);
 
-        String expected = ReadingFormat.reading(row.expected.finiteDoubleValue());
+        String expected = ReadingFormat.reading(ReadingFormat.displayValue(row.expected));
         int expectedWidth = font.width(expected);
         String name =
                 font.plainSubstrByWidth(

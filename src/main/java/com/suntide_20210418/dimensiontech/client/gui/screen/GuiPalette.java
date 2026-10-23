@@ -88,6 +88,15 @@ final class GuiPalette {
     /** Overlay that dims a disabled control or slot. */
     static final int DISABLED_OVERLAY = 0x80000000;
 
+    /**
+     * A quantity drawn in a slot's corner, over the item's own art.
+     *
+     * <p>White on purpose: the badge lands on unknown colours, so no flat ink is guaranteed to
+     * read. Paired with the vanilla text shadow, every stroke gets a dark edge against whatever is
+     * behind it.
+     */
+    static final int SLOT_COUNT = 0xFFFFFFFF;
+
     /** The canvas behind a machine window. */
     static final int BACKDROP = 0xFF141618;
 

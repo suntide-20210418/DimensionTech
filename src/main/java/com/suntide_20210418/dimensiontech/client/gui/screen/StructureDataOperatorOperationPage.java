@@ -313,7 +313,8 @@ final class StructureDataOperatorOperationPage {
         for (Map.Entry<ResourceLocation, ExactProbability> entry :
                 StructMarkerItem.getExpectedItemCounts(marker).entrySet()) {
             Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey()).orElse(null);
-            if (item != null) built.add(new Row(item, entry.getValue().finiteDoubleValue()));
+            if (item != null)
+                built.add(new Row(item, ReadingFormat.displayValue(entry.getValue())));
         }
         return List.copyOf(built);
     }
