@@ -144,11 +144,13 @@ public final class StructureAnalysisService {
     private final Map<Key, Integer> failedSamples = new HashMap<>();
     private final Map<Key, Integer> attemptedCandidates = new HashMap<>();
     private final ArrayDeque<Key> queue = new ArrayDeque<>();
+
     /**
      * In-flight detached samples. A sample now spans several ticks, so its cursor has to survive
      * between them; the entry is dropped the moment the sample completes or is abandoned.
      */
     private final Map<Key, VirtualStructureSampler.Session> sessions = new HashMap<>();
+
     private final AnalysisTaskCache tasks = new AnalysisTaskCache(1, 32);
     private final MainThreadTaskCache<AnalysisTaskCache.Key, Object> runtimeCaptures =
             new MainThreadTaskCache<>(32);
@@ -498,7 +500,8 @@ public final class StructureAnalysisService {
                                 .registryOrThrow(Registries.STRUCTURE)
                                 .get(key.structure());
                 if (structure == null) {
-                    // The registry no longer knows this id; the sample contributes nothing, which is
+                    // The registry no longer knows this id; the sample contributes nothing, which
+                    // is
                     // what the previous synchronous path did as well.
                     discardSample(key);
                 } else {

@@ -149,8 +149,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
      *
      * <p>Both slots are inputs the cycle consumes — the fragment slot pays for a start, the
      * operation slot resolves a step — so an extractor that pulls them out starves the reactor of
-     * material the player already supplied. The player keeps full access: the menu talks to
-     * {@link #inventory} directly, exactly as the slots draw it.
+     * material the player already supplied. The player keeps full access: the menu talks to {@link
+     * #inventory} directly, exactly as the slots draw it.
      */
     private final IItemHandler automationInventory = new InsertOnlyItemHandler(inventory);
 
@@ -281,8 +281,8 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
      * its six buttons around the machine's front, so the direction it names is the machine's own
      * "front / left / right" — not a world direction. The stored face modes are world-indexed (the
      * capability asks by world side), so the two only line up after this rotation. Without it a
-     * face configured on that screen lands on a different side of the block than the player
-     * pointed at, which is what "the pipe on this face still cannot pull the output" looks like.
+     * face configured on that screen lands on a different side of the block than the player pointed
+     * at, which is what "the pipe on this face still cannot pull the output" looks like.
      */
     public Direction toWorldDirection(Direction logicalDirection) {
         if (level == null
@@ -1054,7 +1054,9 @@ public final class StructureReactorBlockEntity extends BlockEntity implements Me
             return reactor.getFluidFaceMode(direction);
         }
 
-        /** The tank at {@code index} of this face's view, or null when the index is out of range. */
+        /**
+         * The tank at {@code index} of this face's view, or null when the index is out of range.
+         */
         private FluidTank tank(int index) {
             return switch (mode()) {
                 case INPUT -> index == 0 ? reactor.inputTank : null;

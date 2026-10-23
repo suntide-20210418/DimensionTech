@@ -86,6 +86,7 @@ public abstract class BaseMinerBlockEntity extends BlockEntity implements MenuPr
      * runs on, so an extractor that empties one silently stops the machine.
      */
     private final IItemHandler automationInventory;
+
     private final EnergyContainer energyStorage;
     private LazyOptional<IItemHandler> itemHandlerCapability;
     private LazyOptional<IEnergyStorage> energyCapability;

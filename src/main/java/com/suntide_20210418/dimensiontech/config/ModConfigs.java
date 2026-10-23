@@ -332,8 +332,10 @@ public final class ModConfigs {
         }
 
         public String generationFingerprint() {
-            // The per-sample budget decides whether a structure is EXACT or "budget exceeded", so it
-            // changes the answer and belongs in the fingerprint. The per-tick slice only decides how
+            // The per-sample budget decides whether a structure is EXACT or "budget exceeded", so
+            // it
+            // changes the answer and belongs in the fingerprint. The per-tick slice only decides
+            // how
             // the work is scheduled and never changes the result, so it stays out.
             return discoveryFingerprint()
                     + "|samples="

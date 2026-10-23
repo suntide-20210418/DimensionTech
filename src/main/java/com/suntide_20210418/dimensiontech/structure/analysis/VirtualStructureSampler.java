@@ -119,7 +119,9 @@ final class VirtualStructureSampler {
 
         private final List<ChunkAccess> chunks;
 
-        /** Shared by every {@code placeInChunk} call; its write radius covers the whole footprint. */
+        /**
+         * Shared by every {@code placeInChunk} call; its write radius covers the whole footprint.
+         */
         @Nullable private final WorldGenRegion region;
 
         @Nullable private final StructureStart start;
@@ -237,9 +239,8 @@ final class VirtualStructureSampler {
     }
 
     /**
-     * 一次采样的工作预算与中断标志。预算只在采样真正运行时累计（{@link #resume()}/{@link #pause()} 夹住每一片），
-     * 所以跨 tick 让出的等待时间不会把预算耗光。预算在热路径上被检查（每 {@link #OPS_PER_CHECK} 次方块访问一次），
-     * 所以超预算的采样会立刻中止，而不是把服务端线程占满。
+     * 一次采样的工作预算与中断标志。预算只在采样真正运行时累计（{@link #resume()}/{@link #pause()} 夹住每一片）， 所以跨 tick
+     * 让出的等待时间不会把预算耗光。预算在热路径上被检查（每 {@link #OPS_PER_CHECK} 次方块访问一次）， 所以超预算的采样会立刻中止，而不是把服务端线程占满。
      */
     static final class SamplingControl {
         private final long budgetNanos;
@@ -317,8 +318,8 @@ final class VirtualStructureSampler {
     }
 
     /**
-     * 计数方块访问并在检查点执行 {@link SamplingControl#check()}。piece 直接读 chunk 的路径不计入，
-     * 但那条路径很便宜，而且 {@link Session#advance} 在每个 chunk 之间还会再查一次。
+     * 计数方块访问并在检查点执行 {@link SamplingControl#check()}。piece 直接读 chunk 的路径不计入， 但那条路径很便宜，而且 {@link
+     * Session#advance} 在每个 chunk 之间还会再查一次。
      */
     private static final class CountingWorldGenRegion extends WorldGenRegion {
         private final SamplingControl control;

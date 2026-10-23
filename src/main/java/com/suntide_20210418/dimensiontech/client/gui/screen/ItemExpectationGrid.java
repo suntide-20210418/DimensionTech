@@ -4,7 +4,6 @@ import com.suntide_20210418.dimensiontech.client.gui.menu.StructureMinerLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;

@@ -39,6 +39,7 @@ final class MinerOutputController {
             BaseMinerBlockEntity.OutputState.ITEM_HANDLER;
     private int outputFaceMask = ALL_FACES;
     private boolean equipmentDismantling;
+
     /**
      * Disabled expected items, keyed by thread slot.
      *
@@ -47,6 +48,7 @@ final class MinerOutputController {
      * no entry disables nothing.
      */
     private final Map<Integer, Set<ResourceLocation>> disabledBySlot = new HashMap<>();
+
     private static final boolean AE2_LOADED = ModList.get().isLoaded("ae2");
 
     void extractFluid(
@@ -184,7 +186,8 @@ final class MinerOutputController {
         for (BaseMinerBlockEntity.CompletedMarker cycle : completed) {
             var loot = cycle.loot();
             if (Double.isFinite(loot.quantity()) && loot.quantity() > 0.0D) {
-                // The disabled set travels with the cycle: each thread's marker owns its own set, so
+                // The disabled set travels with the cycle: each thread's marker owns its own set,
+                // so
                 // the generator must not see one machine-wide answer.
                 cycles.add(
                         new ExpectationRewardGenerator.Cycle(

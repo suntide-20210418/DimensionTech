@@ -119,7 +119,8 @@ public final class VanillaStructureLootGameTests {
      */
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 400)
     public static void containerlessStructureResolvesToExactEmpty(GameTestHelper helper) {
-        ResourceLocation structure = ResourceLocation.fromNamespaceAndPath("minecraft", "swamp_hut");
+        ResourceLocation structure =
+                ResourceLocation.fromNamespaceAndPath("minecraft", "swamp_hut");
         CompletableFuture<DiscoveryResult> future =
                 StructureAnalysisService.forServer(helper.getLevel().getServer())
                         .discover(helper.getLevel(), structure);
