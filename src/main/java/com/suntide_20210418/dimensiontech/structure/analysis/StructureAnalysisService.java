@@ -380,17 +380,35 @@ public final class StructureAnalysisService {
         // before paying the cost of detached generation. Mod namespaces deliberately skip this
         // resolver and continue to the virtual sampler.
         if (!mayUseVirtualAnalysis(structure)) {
-            var fixedTables = VanillaStructureLootResolver.resolve(structure);
-            if (fixedTables.isPresent()) {
+            var resolution = VanillaStructureLootResolver.resolve(structure);
+            // A structure that provably places no container has an exact answer of "nothing", not a
+            // gap in the analysis: reporting UNSUPPORTED here would tell the player the machine
+            // cannot read a structure that simply has nothing to read.
+            if (resolution.isPresent() && !resolution.get().hasContainers()) {
+                List<Diagnostic> emptyDiagnostics = new ArrayList<>(staticResult.diagnostics());
+                emptyDiagnostics.add(
+                        new Diagnostic(
+                                "VANILLA_NO_CONTAINER",
+                                "Structure places no loot container: "
+                                        + resolution.get().evidence()));
+                return new DiscoveryResult(
+                        AnalysisStatus.EXACT,
+                        List.of(
+                                new StructureLootAnalyzer.StructureLoot(
+                                        structure, List.of(), List.of(), List.of(), Map.of())),
+                        emptyDiagnostics);
+            }
+            if (resolution.isPresent()) {
                 List<Diagnostic> fixedDiagnostics = new ArrayList<>(staticResult.diagnostics());
                 fixedDiagnostics.add(
                         new Diagnostic(
                                 "VANILLA_FIXED_LOOT_TABLE",
                                 "Resolved vanilla structure loot from fixed container table"
-                                        + " locations."));
+                                        + " locations: "
+                                        + resolution.get().evidence()));
                 DiscoveryResult fixedResult =
                         StructureLootAnalyzer.discoverFixedForValue(
-                                level, structure, fixedTables.get(), fixedDiagnostics);
+                                level, structure, resolution.get().tables(), fixedDiagnostics);
                 if (fixedResult.status() == AnalysisStatus.EXACT) {
                     return fixedResult;
                 }
